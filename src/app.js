@@ -19,23 +19,27 @@
   // GÜVENLİ DEPOLAMA MOTORU (SAFESTORAGE - file:/// VE GİZLİ MOD GÜVENCESİ)
   // ============================================================================
   const SafeStorage = {
+    _mem: {},
     getItem(key, fallback = null) {
       try {
         if (typeof localStorage !== 'undefined') {
           const val = localStorage.getItem(key);
-          return val !== null ? val : fallback;
+          if (val !== null) return val;
         }
       } catch (e) {}
-      return fallback;
+      return (key in this._mem) ? this._mem[key] : fallback;
     },
     setItem(key, val) {
+      const strVal = String(val);
+      this._mem[key] = strVal;
       try {
         if (typeof localStorage !== 'undefined') {
-          localStorage.setItem(key, String(val));
+          localStorage.setItem(key, strVal);
         }
       } catch (e) {}
     },
     removeItem(key) {
+      delete this._mem[key];
       try {
         if (typeof localStorage !== 'undefined') {
           localStorage.removeItem(key);
@@ -46,15 +50,17 @@
       try {
         if (typeof sessionStorage !== 'undefined') {
           const val = sessionStorage.getItem(key);
-          return val !== null ? val : fallback;
+          if (val !== null) return val;
         }
       } catch (e) {}
-      return fallback;
+      return (key in this._mem) ? this._mem[key] : fallback;
     },
     setSession(key, val) {
+      const strVal = String(val);
+      this._mem[key] = strVal;
       try {
         if (typeof sessionStorage !== 'undefined') {
-          sessionStorage.setItem(key, String(val));
+          sessionStorage.setItem(key, strVal);
         }
       } catch (e) {}
     }
@@ -294,11 +300,37 @@
         case 'create_folder':
           return `Klasör oluşturuldu: ${args.path}`;
 
+        case 'write_text_file':
+          return `Dosya kaydedildi: ${args.path}`;
+
         case 'open_path':
           return `Açıldı: ${args.path}`;
 
         case 'delete_file':
           return `Silindi: ${args.path}`;
+
+        case 'launch_interactive_terminal':
+          return 'Sistem terminali (simüle) başlatıldı.';
+
+        case 'get_all_monitors':
+          return {
+            primary_output: 'VGA-0',
+            monitors: [
+              {
+                name: 'VGA-0',
+                connected: true,
+                is_primary: true,
+                current_mode: '1366x768',
+                current_rate: '60.0',
+                position: '0+0',
+                modes: ['1366x768', '1024x768', '800x600']
+              }
+            ],
+            connected_count: 1
+          };
+
+        case 'set_multi_monitor_layout':
+          return `Ekran düzeni uygulandı (simüle): ${args.layout || 'auto'}`;
 
         default:
           return null;
@@ -335,6 +367,20 @@
     nativeWindows: [],
     _desktopHidden: false,
     tabsContainer: null,
+    _isLayerAbove: false,
+
+    ensureDesktopLayer(above) {
+      if (this._isLayerAbove === above) return;
+      this._isLayerAbove = above;
+      TauriBridge.invoke('set_desktop_layer', { above }).catch(() => {});
+    },
+
+    checkAllMinimizedOrClosed() {
+      const hasActive = this.windows.some(w => w.classList.contains('open') && !w.classList.contains('minimized'));
+      if (!hasActive) {
+        this.ensureDesktopLayer(false);
+      }
+    },
 
     init() {
       this.windows = Array.from(document.querySelectorAll('.window'));
@@ -342,17 +388,32 @@
       setInterval(() => this.refreshNativeWindows(), 1500);
       this.refreshNativeWindows();
 
+      const wp = document.getElementById('desktop-wallpaper');
+      if (wp) {
+        wp.addEventListener('click', () => {
+          this.checkAllMinimizedOrClosed();
+        });
+      }
+
+      // Pencere düğmeleri belge düzeyinde dinlenir: init'ten sonra eklenen
+      // pencereler de kapat/küçült/büyüt düğmelerine yanıt verir.
+      document.addEventListener('click', (e) => {
+        const btn = e.target.closest('.ctrl-btn');
+        if (!btn) return;
+        const w = btn.closest('.window');
+        if (!w) return;
+        e.stopPropagation();
+        if (!this.windows.includes(w)) this.windows.push(w);
+        if (btn.classList.contains('close')) this.close(w);
+        else if (btn.classList.contains('min')) this.minimize(w);
+        else if (btn.classList.contains('max')) this.toggleMaximize(w);
+      }, true);
+
       this.windows.forEach(win => {
         win.addEventListener('mousedown', () => this.bringToFront(win));
 
-        const btnClose = win.querySelector('.ctrl-btn.close');
-        const btnMin = win.querySelector('.ctrl-btn.min');
         const btnMax = win.querySelector('.ctrl-btn.max');
-
-        if (btnClose) btnClose.addEventListener('click', (e) => { e.stopPropagation(); this.close(win); });
-        if (btnMin) btnMin.addEventListener('click', (e) => { e.stopPropagation(); this.minimize(win); });
         if (btnMax) {
-          btnMax.addEventListener('click', (e) => { e.stopPropagation(); this.toggleMaximize(win); });
           btnMax.addEventListener('mouseenter', () => {
             const menu = document.getElementById('snap-layouts-menu');
             if (!menu) return;
@@ -384,22 +445,20 @@
 
           header.addEventListener('mousedown', (e) => {
             if (e.target.closest('.window-controls')) return;
-            if (win.classList.contains('maximized')) return;
 
             this.bringToFront(win);
 
+            let wasMax = win.classList.contains('maximized');
             const snapGhost = document.getElementById('snap-ghost-indicator') || document.getElementById('window-snap-preview');
-            const rect = win.getBoundingClientRect();
-            const shiftX = e.clientX - rect.left;
-            const shiftY = e.clientY - rect.top;
+            let rect = win.getBoundingClientRect();
+            let shiftX = e.clientX - rect.left;
+            let shiftY = e.clientY - rect.top;
 
             let rafId = null;
             let targetX = rect.left;
             let targetY = rect.top;
-            let activeSnap = null; // 'left' | 'right' | 'top' | 'corner-tl' | 'corner-tr' | 'corner-bl' | 'corner-br' | null
-
-            document.body.classList.add('is-dragging');
-            win.classList.add('is-dragging');
+            let activeSnap = null;
+            let draggingActive = false;
 
             const applyPos = () => {
               win.style.left = `${targetX}px`;
@@ -408,6 +467,24 @@
             };
 
             const onMouseMove = (moveEvent) => {
+              if (!draggingActive) {
+                if (Math.abs(moveEvent.clientX - e.clientX) < 5 && Math.abs(moveEvent.clientY - e.clientY) < 5) return;
+                draggingActive = true;
+                if (wasMax) {
+                  const preW = parseFloat(win.dataset.preMaxW) || Math.min(840, window.innerWidth * 0.75);
+                  const preH = parseFloat(win.dataset.preMaxH) || Math.min(520, window.innerHeight * 0.7);
+                  const ratio = Math.max(0.1, Math.min(0.9, e.clientX / window.innerWidth));
+                  this.toggleMaximize(win);
+                  win.style.width = `${preW}px`;
+                  win.style.height = `${preH}px`;
+                  shiftX = preW * ratio;
+                  shiftY = 18;
+                  wasMax = false;
+                }
+                document.body.classList.add('is-dragging');
+                win.classList.add('is-dragging');
+              }
+
               const maxLeft = Math.max(0, window.innerWidth - 80);
               const maxTop = Math.max(0, window.innerHeight - 80);
               targetX = Math.max(0, Math.min(moveEvent.clientX - shiftX, maxLeft));
@@ -513,6 +590,8 @@
               document.removeEventListener('mousemove', onMouseMove);
               document.removeEventListener('mouseup', onMouseUp);
 
+              if (!draggingActive) return;
+
               // Snapping Eylemini Uygula
               if (activeSnap === 'left') {
                 this.snapWindow(win, 'left-half');
@@ -551,6 +630,7 @@
             const startW = win.offsetWidth;
             const startH = win.offsetHeight;
             const startX = e.clientX;
+            const startY = e.clientY;
             let resizeRaf = null;
             let targetW = startW;
             let targetH = startH;
@@ -600,12 +680,15 @@
       }
     },
 
-    bringToFront(win) {
+    bringToFront(winInput) {
+      const win = typeof winInput === 'string' ? document.getElementById(winInput) : winInput;
+      if (!win) return;
       this.highestZ++;
       win.style.zIndex = this.highestZ;
       this.windows.forEach(w => w.classList.remove('active'));
       win.classList.add('active');
       this.syncTabs();
+      this.ensureDesktopLayer(true);
     },
 
     open(winId) {
@@ -618,31 +701,88 @@
       this.bringToFront(win);
       this.syncTabs();
 
+      if ((winId === 'win-installer' || (win && win.id === 'win-installer')) && typeof InstallerWizard !== 'undefined') {
+        InstallerWizard.loadDisks();
+      }
+
       if (winId === 'win-updater' && typeof UpdaterManager !== 'undefined' && !UpdaterManager.latestRelease) {
         UpdaterManager.checkForUpdates();
       }
       SessionManager.touch();
     },
 
-    close(win) {
+    close(winInput) {
+      const win = typeof winInput === 'string' ? document.getElementById(winInput) : winInput;
+      if (!win) return;
       win.classList.remove('open');
       win.classList.remove('active');
-      if (win.id === 'win-office' && typeof OfficeManager !== 'undefined') {
-        OfficeManager.clearFrame();
+      try {
+        if (win.id === 'win-office' && typeof OfficeManager !== 'undefined') {
+          OfficeManager.clearFrame();
+        }
+        if (win.id === 'win-browser') {
+          const frame = document.getElementById('browser-iframe') || document.getElementById('browser-frame');
+          if (frame) frame.src = 'about:blank';
+        }
+        // Kapanan pencere sonrası ekranda kalan en üst pencereye odaklan
+        const nextActive = this.getActiveWindow();
+        if (nextActive) {
+          this.bringToFront(nextActive);
+        } else {
+          this.syncTabs();
+          this.checkAllMinimizedOrClosed();
+        }
+        SessionManager.touch();
+      } catch (err) {
+        console.warn('[WindowManager.close]', err);
+        this.syncTabs();
       }
-      this.syncTabs();
-      SessionManager.touch();
     },
 
-    minimize(win) {
+    minimize(winInput) {
+      const win = typeof winInput === 'string' ? document.getElementById(winInput) : winInput;
+      if (!win) return;
       win.classList.add('minimized');
       win.classList.remove('active');
-      this.syncTabs();
-      SessionManager.touch();
+      try {
+        const nextActive = this.getActiveWindow();
+        if (nextActive) {
+          this.bringToFront(nextActive);
+        } else {
+          this.syncTabs();
+          this.checkAllMinimizedOrClosed();
+        }
+        SessionManager.touch();
+      } catch (err) {
+        console.warn('[WindowManager.minimize]', err);
+        this.syncTabs();
+      }
     },
 
-    toggleMaximize(win) {
-      win.classList.toggle('maximized');
+    toggleMaximize(winInput) {
+      const win = typeof winInput === 'string' ? document.getElementById(winInput) : winInput;
+      if (!win) return;
+      if (!win.classList.contains('maximized')) {
+        win.dataset.preMaxW = win.style.width || `${win.offsetWidth}px`;
+        win.dataset.preMaxH = win.style.height || `${win.offsetHeight}px`;
+        win.dataset.preMaxLeft = win.style.left || `${win.offsetLeft}px`;
+        win.dataset.preMaxTop = win.style.top || `${win.offsetTop}px`;
+        win.classList.add('maximized');
+      } else {
+        win.classList.remove('maximized');
+        if (win.dataset.preMaxW) {
+          win.style.width = win.dataset.preMaxW;
+          win.style.height = win.dataset.preMaxH;
+          win.style.left = win.dataset.preMaxLeft;
+          win.style.top = win.dataset.preMaxTop;
+        }
+      }
+      const maxBtn = win.querySelector('.ctrl-btn.max');
+      if (maxBtn) {
+        const isMax = win.classList.contains('maximized');
+        maxBtn.textContent = isMax ? '❐' : '□';
+        maxBtn.title = isMax ? 'Eski Boyut' : 'Büyüt';
+      }
       this.bringToFront(win);
       SessionManager.touch();
     },
@@ -789,6 +929,8 @@
       if (!this.tabsContainer) return;
       // Getir/odak gibi olaylar her seferinde syncTabs çağırıyor; küme
       // değişmediyse tüm çubuğu tahrip etme yerine aynı çizimde kal.
+      // Yerel pencereler de imzaya girer, yoksa yalnızca onlar değiştiğinde
+      // erken dönüş yüzünden sekmeleri hiç çizilmiyordu.
       const sig = this.windows.map(w => {
         const meta = w.querySelector('.window-meta span');
         return [
@@ -798,72 +940,130 @@
           w.classList.contains('minimized') ? 1 : 0,
           meta ? meta.textContent : ''
         ].join('|');
-      }).join('\n');
+      }).join('\n') + '\n#' + (this.nativeWindows || []).map(n => `${n.id}|${n.is_active}|${n.title}`).join('\n');
       if (sig === this._tabsSig) return;
       this._tabsSig = sig;
       this.tabsContainer.innerHTML = '';
 
+      const makeTab = (title, active, iconHtml, tip) => {
+        const tab = document.createElement('button');
+        tab.type = 'button';
+        tab.className = `task-tab${active ? ' active' : ''}`;
+        tab.title = tip || title;
+        tab.innerHTML = `<span class="task-tab-icon">${iconHtml}</span><span class="task-tab-label">${escapeHtml(title)}</span>`;
+        return tab;
+      };
+
       this.windows.forEach(win => {
         // Başka çalışma alanındaki açık pencereler görev çubuğunda görünmez;
         // oralara dönüş noktalarla yapılır.
-        if (win.classList.contains('open') && !win.classList.contains('ws-hide')) {
-          const tab = document.createElement('div');
-          tab.className = `task-tab ${win.classList.contains('active') && !win.classList.contains('minimized') ? 'active' : ''}`;
+        if (!win.classList.contains('open') || win.classList.contains('ws-hide')) return;
+        const titleSpan = win.querySelector('.window-meta span');
+        const title = titleSpan ? titleSpan.textContent.split('—')[0].trim() : 'Pencere';
+        const svg = win.querySelector('.window-meta svg');
+        const isActive = win.classList.contains('active') && !win.classList.contains('minimized');
+        const tab = makeTab(title, isActive, svg ? svg.outerHTML : '');
+        if (win.classList.contains('minimized')) tab.classList.add('minimized');
 
-          const titleSpan = win.querySelector('.window-meta span');
-          const title = titleSpan ? titleSpan.textContent.split('—')[0].trim() : 'Pencere';
-          tab.textContent = title;
-
-          tab.addEventListener('click', () => {
-            if (win.classList.contains('minimized')) {
-              win.classList.remove('minimized');
-              this.bringToFront(win);
-            } else if (win.classList.contains('active')) {
-              this.minimize(win);
-            } else {
-              this.bringToFront(win);
-            }
-          });
-
-          this.tabsContainer.appendChild(tab);
-        }
+        const toggle = () => {
+          if (win.classList.contains('minimized')) {
+            win.classList.remove('minimized');
+            this.bringToFront(win);
+          } else if (win.classList.contains('active')) {
+            this.minimize(win);
+          } else {
+            this.bringToFront(win);
+          }
+        };
+        tab.addEventListener('click', toggle);
+        tab.addEventListener('auxclick', (e) => { if (e.button === 1) { e.preventDefault(); this.close(win); } });
+        tab.addEventListener('contextmenu', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          this.showTabMenu(e, [
+            { label: win.classList.contains('minimized') ? 'Geri yükle' : 'Küçült', run: () => win.classList.contains('minimized') ? toggle() : this.minimize(win) },
+            { label: win.classList.contains('maximized') ? 'Eski boyut' : 'Büyüt', run: () => this.toggleMaximize(win) },
+            { label: 'Kapat', danger: true, run: () => this.close(win) }
+          ]);
+        });
+        this.tabsContainer.appendChild(tab);
       });
 
       // Gerçek X11 Yerel Uygulama Pencereleri Görev Çubuğunda Listelenir
-      if (Array.isArray(this.nativeWindows)) {
-        this.nativeWindows.forEach(nw => {
-          const tab = document.createElement('div');
-          tab.className = `task-tab native-task-tab ${nw.is_active ? 'active' : ''}`;
-          const shortTitle = (nw.title || nw.app_name || 'Uygulama').split('—')[0].trim().substring(0, 20);
-          tab.innerHTML = `<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#38bdf8;margin-right:6px;"></span><span>${escapeHtml(shortTitle)}</span>`;
-          tab.title = `${nw.title} (${nw.app_name})\n• Tıkla: Öne getir / Küçült\n• Sağ tık: Kapat`;
-          tab.addEventListener('click', () => {
-            if (nw.is_active) {
-              TauriBridge.invoke('minimize_native_window', { id: nw.id }).catch(() => {});
-            } else {
-              TauriBridge.invoke('activate_native_window', { id: nw.id }).catch(() => {});
-            }
-            setTimeout(() => this.refreshNativeWindows(), 250);
-          });
-          tab.addEventListener('contextmenu', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            TauriBridge.invoke('close_native_window', { id: nw.id }).catch(() => {});
-            setTimeout(() => this.refreshNativeWindows(), 300);
-          });
-          this.tabsContainer.appendChild(tab);
+      (this.nativeWindows || []).forEach(nw => {
+        const shortTitle = (nw.title || nw.app_name || 'Uygulama').split(/ [—–-] /).pop().trim().substring(0, 28) || nw.app_name;
+        const letter = escapeHtml((nw.app_name || '?').charAt(0).toUpperCase());
+        const tab = makeTab(shortTitle, nw.is_active, `<span class="task-tab-letter">${letter}</span>`, `${nw.title} (${nw.app_name})`);
+        tab.classList.add('native-task-tab');
+        const refresh = (ms) => setTimeout(() => this.refreshNativeWindows(true), ms);
+        const activate = () => {
+          this.ensureDesktopLayer(false);
+          TauriBridge.invoke('activate_native_window', { id: nw.id }).catch(() => {});
+          refresh(250);
+        };
+        const minimize = () => {
+          TauriBridge.invoke('minimize_native_window', { id: nw.id }).catch(() => {});
+          refresh(250);
+        };
+        const close = () => {
+          TauriBridge.invoke('close_native_window', { id: nw.id }).catch(() => {});
+          refresh(400);
+        };
+        tab.addEventListener('click', () => (nw.is_active ? minimize() : activate()));
+        tab.addEventListener('auxclick', (e) => { if (e.button === 1) { e.preventDefault(); close(); } });
+        tab.addEventListener('contextmenu', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          this.showTabMenu(e, [
+            { label: 'Öne getir', run: activate },
+            { label: 'Küçült', run: minimize },
+            { label: 'Kapat', danger: true, run: close }
+          ]);
         });
-      }
+        this.tabsContainer.appendChild(tab);
+      });
     },
 
-    async refreshNativeWindows() {
+    // Görev çubuğu sekmesi sağ tık menüsü. Tek örnek; dışarı tıklayınca,
+    // Esc ile ya da bir seçim yapılınca kapanır.
+    showTabMenu(e, items) {
+      let menu = document.getElementById('taskbar-tab-menu');
+      if (!menu) {
+        menu = document.createElement('div');
+        menu.id = 'taskbar-tab-menu';
+        menu.className = 'taskbar-tab-menu';
+        menu.setAttribute('role', 'menu');
+        document.body.appendChild(menu);
+        const hide = () => menu.classList.remove('open');
+        document.addEventListener('mousedown', (ev) => { if (!menu.contains(ev.target)) hide(); });
+        document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') hide(); });
+        window.addEventListener('blur', hide);
+      }
+      menu.innerHTML = '';
+      items.forEach(it => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.setAttribute('role', 'menuitem');
+        b.className = it.danger ? 'danger' : '';
+        b.textContent = it.label;
+        b.addEventListener('click', () => { menu.classList.remove('open'); it.run(); });
+        menu.appendChild(b);
+      });
+      menu.classList.add('open');
+      const w = menu.offsetWidth;
+      const h = menu.offsetHeight;
+      menu.style.left = `${Math.max(6, Math.min(e.clientX - w / 2, window.innerWidth - w - 6))}px`;
+      menu.style.top = `${Math.max(6, e.clientY - h - 10)}px`;
+    },
+
+    async refreshNativeWindows(force) {
       if (document.hidden || (window.LockManager && window.LockManager.isLocked)) return;
       try {
         const wins = await TauriBridge.invoke('get_native_windows');
         if (Array.isArray(wins)) {
-          const prevSig = (this.nativeWindows || []).map(w => `${w.id}:${w.is_active}`).join('|');
-          const newSig = wins.map(w => `${w.id}:${w.is_active}`).join('|');
-          if (prevSig !== newSig) {
+          const prevSig = (this.nativeWindows || []).map(w => `${w.id}:${w.is_active}:${w.title}`).join('|');
+          const newSig = wins.map(w => `${w.id}:${w.is_active}:${w.title}`).join('|');
+          if (force || prevSig !== newSig) {
             this.nativeWindows = wins;
             this.syncTabs();
           }
@@ -909,6 +1109,7 @@
       });
       TauriBridge.invoke('set_native_workspace', { index: this.active - 1 }).catch(() => {});
       this.syncDots();
+      if (typeof WindowManager !== 'undefined') WindowManager.syncTabs();
       SessionManager.touch();
     },
 
@@ -1311,6 +1512,144 @@
         frag.appendChild(item);
       });
       container.appendChild(frag);
+      this.layoutDesktopIcons(container);
+    },
+
+    // Masaüstü simge ızgarası. Konumlar uygulama kimliğine göre {c, r} hücresi
+    // olarak saklanır; ekran küçülürse taşan simge ilk boş hücreye kayar.
+    ICON_CELL_W: 96,
+    ICON_CELL_H: 104,
+
+    _iconPositions() {
+      try {
+        const raw = JSON.parse(SafeStorage.getItem('ankora_icon_pos') || '{}');
+        return raw && typeof raw === 'object' ? raw : {};
+      } catch (_) {
+        return {};
+      }
+    },
+
+    _gridSize(container) {
+      const w = (container && container.clientWidth > 0)
+        ? container.clientWidth
+        : (window.innerWidth ? window.innerWidth - 32 : 1280);
+      const h = (container && container.clientHeight > 0)
+        ? container.clientHeight
+        : (window.innerHeight ? window.innerHeight - 80 : 720);
+      const cols = Math.max(1, Math.floor(w / this.ICON_CELL_W));
+      const rows = Math.max(1, Math.floor(h / this.ICON_CELL_H));
+      return { cols, rows };
+    },
+
+    layoutDesktopIcons(container) {
+      container = container || document.getElementById('dynamic-desktop-icons');
+      if (!container) return;
+      const { cols, rows } = this._gridSize(container);
+      const saved = this._iconPositions();
+      const used = new Set();
+      const items = Array.from(container.querySelectorAll('.desktop-item'));
+      const placed = new Map();
+
+      items.forEach(el => {
+        const p = saved[el.dataset.appId];
+        if (p && p.c < cols && p.r < rows && !used.has(`${p.c},${p.r}`)) {
+          used.add(`${p.c},${p.r}`);
+          placed.set(el, p);
+        }
+      });
+      // Konumu olmayanlar sütun sütun ilk boş hücreye dizilir.
+      let c = 0, r = 0;
+      items.forEach(el => {
+        if (placed.has(el)) return;
+        while (used.has(`${c},${r}`) && c < cols) {
+          r++;
+          if (r >= rows) { r = 0; c++; }
+        }
+        const p = { c: Math.min(c, cols - 1), r };
+        used.add(`${p.c},${p.r}`);
+        placed.set(el, p);
+      });
+
+      placed.forEach((p, el) => {
+        el.style.left = `${p.c * this.ICON_CELL_W}px`;
+        el.style.top = `${p.r * this.ICON_CELL_H}px`;
+        el.dataset.cell = `${p.c},${p.r}`;
+        if (!el._dragBound) this._bindIconDrag(el, container);
+      });
+
+      if (!this._iconResizeBound) {
+        this._iconResizeBound = true;
+        let t = null;
+        window.addEventListener('resize', () => {
+          clearTimeout(t);
+          t = setTimeout(() => this.layoutDesktopIcons(), 150);
+        });
+      }
+    },
+
+    alignDesktopIcons() {
+      SafeStorage.removeItem('ankora_icon_pos');
+      this.layoutDesktopIcons();
+      if (typeof ReportManager !== 'undefined') {
+        ReportManager.showToast('Masaüstü simgeleri hizalandı.');
+      }
+    },
+
+    _bindIconDrag(el, container) {
+      el._dragBound = true;
+      el.addEventListener('mousedown', (e) => {
+        if (e.button !== 0) return;
+        const startX = e.clientX;
+        const startY = e.clientY;
+        const origLeft = el.offsetLeft;
+        const origTop = el.offsetTop;
+        let dragging = false;
+
+        const onMove = (ev) => {
+          const dx = ev.clientX - startX;
+          const dy = ev.clientY - startY;
+          if (!dragging) {
+            if (Math.abs(dx) < 5 && Math.abs(dy) < 5) return;
+            dragging = true;
+            el.classList.add('icon-dragging');
+          }
+          el.style.left = `${origLeft + dx}px`;
+          el.style.top = `${origTop + dy}px`;
+        };
+
+        const onUp = () => {
+          document.removeEventListener('mousemove', onMove);
+          document.removeEventListener('mouseup', onUp);
+          if (!dragging) return;
+          el.classList.remove('icon-dragging');
+          // Bırakma sonrası gelen click seçim/başlatma tetiklemesin.
+          const swallow = (ce) => { ce.stopPropagation(); ce.preventDefault(); };
+          el.addEventListener('click', swallow, { capture: true, once: true });
+          setTimeout(() => el.removeEventListener('click', swallow, true), 0);
+
+          const { cols, rows } = this._gridSize(container);
+          const nc = Math.max(0, Math.min(cols - 1, Math.round(el.offsetLeft / this.ICON_CELL_W)));
+          const nr = Math.max(0, Math.min(rows - 1, Math.round(el.offsetTop / this.ICON_CELL_H)));
+          const saved = this._iconPositions();
+          const [oc, or] = (el.dataset.cell || '0,0').split(',').map(Number);
+          // Hedef hücre doluysa iki simge yer değiştirir.
+          const other = Array.from(container.querySelectorAll('.desktop-item'))
+            .find(o => o !== el && o.dataset.cell === `${nc},${nr}`);
+          if (other) saved[other.dataset.appId] = { c: oc, r: or };
+          // Ekrandaki diğer simgelerin konumu da sabitlenir, yeniden dizilmesinler.
+          container.querySelectorAll('.desktop-item').forEach(o => {
+            if (o === el || o === other || saved[o.dataset.appId]) return;
+            const [c, r] = (o.dataset.cell || '0,0').split(',').map(Number);
+            saved[o.dataset.appId] = { c, r };
+          });
+          saved[el.dataset.appId] = { c: nc, r: nr };
+          SafeStorage.setItem('ankora_icon_pos', JSON.stringify(saved));
+          this.layoutDesktopIcons(container);
+        };
+
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup', onUp);
+      });
     },
 
     renderToStartMenu() {
@@ -2205,18 +2544,14 @@
 
     // Sistemde kurulu terminal emülatörünü bulup ayrı pencerede açar.
     async openSystemTerminal() {
-      const candidates = ['xterm', 'xfce4-terminal', 'lxterminal', 'sakura', 'urxvt', 'aterm', 'st'];
-      for (const bin of candidates) {
-        try {
-          await TauriBridge.invoke('launch_application', { exec: bin });
-          this.log(`Sistem terminali açıldı: ${bin}`, 'success');
-          return bin;
-        } catch (e) {
-          // Bu aday kurulu değil, sıradakine geç
-        }
+      try {
+        await TauriBridge.invoke('launch_interactive_terminal', { command: null });
+        this.log('Sistem terminali canlı pencerede açıldı (xterm / x-terminal-emulator).', 'success');
+        return 'xterm';
+      } catch (e) {
+        this.log(`Sistem terminali açılamadı: ${e.message || e}`, 'error');
+        return null;
       }
-      this.log('Sistem terminalü bulunamadı: xterm, xfce4-terminal, lxterminal kurulu değil.', 'error');
-      return null;
     },
 
     async runCommand(command) {
@@ -2228,7 +2563,12 @@
       this.hIndex = this.history.length;
       this.saveHistory();
 
-      const verb = clean.split(/\s+/)[0].toLowerCase();
+      const parts = clean.split(/\s+/);
+      let verb = parts[0].toLowerCase();
+      let targetVerb = verb;
+      if (verb === 'sudo' && parts.length > 1) {
+        targetVerb = parts[1].toLowerCase();
+      }
 
       if (clean.toLowerCase() === 'clear') {
         if (this.logs) this.logs.innerHTML = '';
@@ -2239,6 +2579,26 @@
       if (verb === 'help') {
         TERMINAL_HELP.forEach(line => this.log(line, 'muted'));
         return '';
+      }
+
+      // Etkileşimli TUI programları (nano, vim, htop vb.) otomatik olarak gerçek sistem terminalinde çalıştırılır
+      const interactiveCmds = [
+        'nano', 'vim', 'vi', 'emacs', 'htop', 'top', 'btop', 'iotop',
+        'less', 'more', 'man', 'alsamixer', 'nmtui', 'mc', 'ranger',
+        'watch', 'journalctl', 'gdb', 'ssh', 'tmux', 'screen', 'python3', 'python',
+        'bash', 'sh'
+      ];
+
+      if (interactiveCmds.includes(targetVerb)) {
+        this.log(`⚡ Etkileşimli TUI aracı tespit edildi (${targetVerb}). Canlı etkileşimli sistem terminalinde açılıyor...`, 'cmd');
+        try {
+          await TauriBridge.invoke('launch_interactive_terminal', { command: clean });
+          this.log(`✓ '${clean}' harici sistem terminali penceresinde başarıyla açıldı.`, 'success');
+          return '';
+        } catch (e) {
+          this.log(`Terminal başlatılamadı: ${e.message || e}`, 'error');
+          return '';
+        }
       }
 
       try {
@@ -3099,7 +3459,11 @@
       if (btnCloseDoc) {
         btnCloseDoc.addEventListener('click', () => {
           this.clearFrame();
-          Terminal.log('[OFFICE] Belge kapatıldı ve WebKit bellek tamponu boşaltıldı.', 'cmd');
+          const winOffice = document.getElementById('win-office');
+          if (winOffice && typeof WindowManager !== 'undefined') {
+            WindowManager.close(winOffice);
+          }
+          Terminal.log('[OFFICE] Belge ve pencere kapatıldı, WebKit bellek tamponu boşaltıldı.', 'cmd');
         });
       }
 
@@ -4442,6 +4806,8 @@
         if (nextMode && selRate && selRate.value) apply(selRate.value);
       };
       if (selRate) selRate.onchange = () => apply(selRate.value);
+
+      this.loadMultiMonitors();
     },
 
     // --- Çözünürlük onay / geri alma akışı (ekran boş kalmasın diye) ---
@@ -4509,6 +4875,56 @@
         this.loadDisplayModes();
       } catch (e) {
         ReportManager.showToast(`Geri alınamadı: ${e.message || e}`);
+      }
+    },
+
+    // --- Çoklu Monitör Durumu ve Yapılandırması ---
+    async loadMultiMonitors() {
+      const lblStatus = document.getElementById('label-multi-monitor-status');
+      const boxDetected = document.getElementById('box-detected-monitors');
+      const listDetected = document.getElementById('list-detected-monitors');
+      const selLayout = document.getElementById('ctrl-multi-monitor-layout');
+      const btnApply = document.getElementById('btn-apply-multimonitor');
+
+      if (!lblStatus) return;
+
+      try {
+        const data = await TauriBridge.invoke('get_all_monitors');
+        if (data && Array.isArray(data.monitors)) {
+          const connected = data.monitors.filter(m => m.connected);
+          lblStatus.textContent = `${connected.length} ekran bağlı (Birincil: ${data.primary_output || 'Bilinmiyor'})`;
+
+          if (boxDetected && listDetected) {
+            boxDetected.style.display = 'block';
+            listDetected.innerHTML = '';
+            data.monitors.forEach(m => {
+              const badge = document.createElement('span');
+              badge.style.cssText = `padding:3px 8px;border-radius:4px;font-size:11px;background:${m.connected ? 'rgba(56,189,248,0.15)' : 'rgba(255,255,255,0.05)'};color:${m.connected ? '#38bdf8' : 'var(--text-muted)'};border:1px solid ${m.connected ? 'rgba(56,189,248,0.3)' : 'transparent'};`;
+              badge.textContent = `${m.name}: ${m.connected ? (m.current_mode || 'Bağlı') + (m.is_primary ? ' [Birincil]' : '') : 'Bağlı Değil'}`;
+              listDetected.appendChild(badge);
+            });
+          }
+
+          if (btnApply && selLayout) {
+            btnApply.onclick = async () => {
+              const layout = selLayout.value;
+              btnApply.disabled = true;
+              btnApply.textContent = 'Uygulanıyor...';
+              try {
+                const res = await TauriBridge.invoke('set_multi_monitor_layout', { layout });
+                ReportManager.showToast(String(res || 'Ekran düzeni uygulandı.'));
+                setTimeout(() => this.loadMultiMonitors(), 1000);
+              } catch (err) {
+                ReportManager.showToast(`Hata: ${err.message || err}`);
+              } finally {
+                btnApply.disabled = false;
+                btnApply.textContent = 'Uygula';
+              }
+            };
+          }
+        }
+      } catch (e) {
+        if (lblStatus) lblStatus.textContent = 'Ekran taraması yapılamadı';
       }
     },
 
@@ -5161,6 +5577,9 @@
     const startSearch = document.getElementById('start-search');
     const calFlyout = document.getElementById('calendar-flyout');
 
+    let toggleQuickSettings = () => {};
+    let toggleCalendar = () => {};
+
     const toggleStart = (forceState) => {
       if (!startFlyout) return;
       const isOpen = typeof forceState === 'boolean' ? forceState : !startFlyout.classList.contains('open');
@@ -5190,6 +5609,9 @@
     }
 
     document.addEventListener('click', (e) => {
+      if (!e.target.closest('.desktop-item')) {
+        document.querySelectorAll('.desktop-item.selected').forEach(el => el.classList.remove('selected'));
+      }
       if (startFlyout && startFlyout.classList.contains('open')) {
         if (!startFlyout.contains(e.target) && (!startBtn || !startBtn.contains(e.target))) {
           toggleStart(false);
@@ -5199,12 +5621,21 @@
 
     // Klavye Kısayolları (Super/Meta ve Esc)
     document.addEventListener('keydown', (e) => {
-      // Esc -> Başlat menüsünü, genel görünümü ve bağlam menüsünü kapat
+      // Esc -> Başlat menüsünü, hızlı ayarları, takvimi, genel görünümü ve bağlam menüsünü kapat
       if (e.key === 'Escape') {
         toggleStart(false);
+        toggleQuickSettings(false);
+        toggleCalendar(false);
         WorkspaceManager.closeOverview();
+        if (typeof NotificationCenter !== 'undefined' && NotificationCenter.closeDrawer) {
+          NotificationCenter.closeDrawer();
+        }
         const ctx = document.getElementById('desktop-context-menu');
         if (ctx) ctx.classList.remove('open');
+        const tabMenu = document.getElementById('taskbar-tab-menu');
+        if (tabMenu) tabMenu.classList.remove('open');
+        const snapMenu = document.getElementById('snap-layouts-menu');
+        if (snapMenu) snapMenu.classList.remove('open');
         return;
       }
 
@@ -5351,18 +5782,38 @@
     // 4. Evrensel Arama (LauncherSearch)
     if (startSearch) {
       let launcherSearchTimer = 0;
+      let selectedResultIndex = -1;
+
       startSearch.addEventListener('input', (e) => {
         const value = e.target.value;
+        selectedResultIndex = -1;
         clearTimeout(launcherSearchTimer);
-        launcherSearchTimer = setTimeout(() => LauncherSearch.render(value), 120);
+        launcherSearchTimer = setTimeout(() => LauncherSearch.render(value), 100);
       });
 
       startSearch.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-          // Bekleyen gecikmeli çizim varsa Enter öncesi sonuçlar tazelensin.
+        const rows = Array.from(document.querySelectorAll('#start-search-results .search-result-row'));
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          if (rows.length === 0) return;
+          selectedResultIndex = (selectedResultIndex + 1) % rows.length;
+          rows.forEach((r, idx) => r.classList.toggle('active', idx === selectedResultIndex));
+          rows[selectedResultIndex]?.scrollIntoView({ block: 'nearest' });
+        } else if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          if (rows.length === 0) return;
+          selectedResultIndex = (selectedResultIndex - 1 + rows.length) % rows.length;
+          rows.forEach((r, idx) => r.classList.toggle('active', idx === selectedResultIndex));
+          rows[selectedResultIndex]?.scrollIntoView({ block: 'nearest' });
+        } else if (e.key === 'Enter') {
           clearTimeout(launcherSearchTimer);
-          LauncherSearch.render(startSearch.value);
-          document.querySelector('#start-search-results .search-result-row')?.click();
+          if (selectedResultIndex >= 0 && rows[selectedResultIndex]) {
+            rows[selectedResultIndex].click();
+          } else {
+            LauncherSearch.render(startSearch.value);
+            document.querySelector('#start-search-results .search-result-row')?.click();
+          }
+          selectedResultIndex = -1;
         }
       });
 
@@ -5436,7 +5887,7 @@
     const trayVolBtn = document.getElementById('tray-volume-btn');
     const trayBatteryBtn = document.getElementById('tray-battery-btn');
 
-    const toggleQuickSettings = (forceState) => {
+    toggleQuickSettings = (forceState) => {
       if (!qsFlyout) return;
       const isOpen = typeof forceState === 'boolean' ? forceState : !qsFlyout.classList.contains('open');
       qsFlyout.classList.toggle('open', isOpen);
@@ -5586,7 +6037,7 @@
     }
 
     // 5.3 AYAZ DE TAKVİM & BİLDİRİM MERKEZİ (CALENDAR FLYOUT)
-    const toggleCalendar = (forceState) => {
+    toggleCalendar = (forceState) => {
       if (!calFlyout) return;
       const isOpen = typeof forceState === 'boolean' ? forceState : !calFlyout.classList.contains('open');
       calFlyout.classList.toggle('open', isOpen);
@@ -5827,22 +6278,65 @@
           if (act === 'files') {
             WindowManager.open('win-files');
           } else if (act === 'new-folder') {
-            WindowManager.open('win-files');
-            FileManager.promptNewFolder();
-          } else if (act === 'term') WindowManager.open('win-terminal');
-          else if (act === 'office') WindowManager.open('win-office');
-          else if (act === 'calc') WindowManager.open('win-calc');
-          else if (act === 'updater') WindowManager.open('win-updater');
-          else if (act === 'report') WindowManager.open('win-report');
-          else if (act === 'wallpaper') {
+            const folderName = prompt('Masaüstünde yeni klasör adı:', 'Yeni Klasör');
+            if (folderName && folderName.trim()) {
+              const clean = folderName.trim().replace(/[\\/:*?"<>|\0]/g, '');
+              if (clean) {
+                const home = (typeof FileManager !== 'undefined' && FileManager.userHome) ? FileManager.userHome : '/home/ankora';
+                const fullPath = `${home}/Masaüstü/${clean}`;
+                TauriBridge.invoke('create_folder', { path: fullPath })
+                  .then(() => {
+                    Terminal.log(`[MASAÜSTÜ] Klasör oluşturuldu: ${clean}`, 'success');
+                    if (typeof ReportManager !== 'undefined' && ReportManager.showToast) {
+                      ReportManager.showToast(`'${clean}' klasörü masaüstünde oluşturuldu.`);
+                    }
+                    if (typeof FileManager !== 'undefined') FileManager.refresh();
+                  })
+                  .catch((err) => {
+                    alert(`Klasör oluşturulamadı: ${err.message || err}`);
+                  });
+              }
+            }
+          } else if (act === 'new-text') {
+            const docName = prompt('Yeni metin belgesi adı:', 'Yeni Belge.txt');
+            if (docName && docName.trim()) {
+              const clean = docName.trim().replace(/[\\/:*?"<>|\0]/g, '');
+              if (clean) {
+                const home = (typeof FileManager !== 'undefined' && FileManager.userHome) ? FileManager.userHome : '/home/ankora';
+                const fullPath = `${home}/Masaüstü/${clean}`;
+                TauriBridge.invoke('write_text_file', { path: fullPath, content: '' })
+                  .then(() => {
+                    Terminal.log(`[MASAÜSTÜ] Metin belgesi oluşturuldu: ${clean}`, 'success');
+                    if (typeof ReportManager !== 'undefined' && ReportManager.showToast) {
+                      ReportManager.showToast(`'${clean}' belgesi masaüstünde oluşturuldu.`);
+                    }
+                    if (typeof FileManager !== 'undefined') FileManager.refresh();
+                  })
+                  .catch(() => {
+                    WindowManager.open('win-notepad');
+                  });
+              }
+            }
+          } else if (act === 'term') {
+            WindowManager.open('win-terminal');
+          } else if (act === 'align-icons') {
+            if (typeof XdgDesktopEngine !== 'undefined') {
+              XdgDesktopEngine.alignDesktopIcons();
+            }
+          } else if (act === 'wallpaper') {
             WindowManager.open('win-settings');
             document.querySelector('.settings-nav-item[data-pane="pane-set-theme"]')?.click();
-          } else if (act === 'settings') WindowManager.open('win-settings');
-          else if (act === 'toggle-icons') {
+          } else if (act === 'display') {
+            WindowManager.open('win-settings');
+            document.querySelector('.settings-nav-item[data-pane="pane-set-display"]')?.click();
+          } else if (act === 'settings') {
+            WindowManager.open('win-settings');
+          } else if (act === 'toggle-icons') {
             const icons = document.getElementById('dynamic-desktop-icons');
             if (icons) {
               const isHidden = icons.style.display === 'none';
-              icons.style.display = isHidden ? 'grid' : 'none';
+              icons.style.display = isHidden ? '' : 'none';
+              if (isHidden && typeof XdgDesktopEngine !== 'undefined') XdgDesktopEngine.layoutDesktopIcons(icons);
               Terminal.log(`[MASAÜSTÜ] Simgeler: ${isHidden ? 'Görünür' : 'Gizlendi'}`, 'cmd');
             }
           }
@@ -6345,18 +6839,29 @@
 
       const btnSave = document.getElementById('notepad-btn-save');
       if (btnSave) {
-        btnSave.addEventListener('click', () => {
+        btnSave.addEventListener('click', async () => {
           const content = this.textarea ? this.textarea.value : '';
-          const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = 'ankora-not.txt';
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
-          Terminal.log('[NOT DEFTERİ] Not dosyası indirildi: ankora-not.txt', 'success');
+          const home = (typeof FileManager !== 'undefined' && FileManager.userHome) ? FileManager.userHome : '/home/ankora';
+          const savePath = `${home}/Masaüstü/ankora-not.txt`;
+          try {
+            await TauriBridge.invoke('write_text_file', { path: savePath, content });
+            if (typeof ReportManager !== 'undefined' && ReportManager.showToast) {
+              ReportManager.showToast('Not masaüstüne kaydedildi: ankora-not.txt');
+            }
+            Terminal.log(`[NOT DEFTERİ] Not kaydedildi: ${savePath}`, 'success');
+            if (typeof FileManager !== 'undefined') FileManager.refresh();
+          } catch (_) {
+            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'ankora-not.txt';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            Terminal.log('[NOT DEFTERİ] Not dosyası indirildi: ankora-not.txt', 'success');
+          }
         });
       }
 
@@ -6907,6 +7412,19 @@
           this.updateTelemetry();
         }
       }, 5000);
+
+      // 4. Otomatik Akıllı Bellek Budayıcı (Background Auto Memory Reaper)
+      // Sistem uzun süre açık kaldığında WebKitGTK bellek birikmesini önlemek için
+      // 5 dakikada bir veya sayfa gizlendiğinde/boşta iken sessizce optimize eder.
+      setInterval(() => {
+        this.autoReapMemory();
+      }, 5 * 60 * 1000);
+
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+          this.autoReapMemory();
+        }
+      });
     },
 
     setEcoMode(enabled, persist = true) {
@@ -7026,6 +7544,33 @@
       setTimeout(() => {
         this.updateTelemetry();
       }, 2500);
+    },
+
+    async autoReapMemory() {
+      // 1. Terminal çıktı satırlarını sınırla
+      if (Terminal && Terminal.logs && Terminal.logs.children.length > 50) {
+        while (Terminal.logs.children.length > 50) {
+          Terminal.logs.removeChild(Terminal.logs.firstChild);
+        }
+      }
+
+      // 2. Kapalıysa ofis ve tarayıcı önbelleklerini boşalt
+      const winOffice = document.getElementById('win-office');
+      if (winOffice && !winOffice.classList.contains('open') && typeof OfficeManager !== 'undefined') {
+        OfficeManager.clearFrame();
+      }
+
+      // 3. AI mesaj listesini hafiflet
+      if (AIAgent && AIAgent.feed && AIAgent.feed.children.length > 15) {
+        while (AIAgent.feed.children.length > 15) {
+          AIAgent.feed.removeChild(AIAgent.feed.firstChild);
+        }
+      }
+
+      // 4. Rust tarafındaki malloc_trim ve çekirdek bellek havuzunu tetikle
+      try {
+        await TauriBridge.invoke('optimize_system_memory');
+      } catch (e) {}
     }
   };
 

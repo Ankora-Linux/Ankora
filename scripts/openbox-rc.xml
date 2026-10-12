@@ -309,7 +309,7 @@
         <x>0</x>
         <y>0</y>
       </position>
-      <focus>no</focus>
+      <focus>yes</focus>
       <layer>below</layer>
       <desktop>all</desktop>
       <skip_taskbar>yes</skip_taskbar>

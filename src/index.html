@@ -428,7 +428,7 @@
     <section class="window" id="win-store" style="top: 70px; left: 90px; width: 840px; height: 500px;" aria-labelledby="store-header-title">
       <div class="window-header" data-tauri-drag-region>
         <div class="window-meta">
-          <span id="store-header-title">Paket Yöneticisi — Ankora Deposu</span>
+          <span id="store-header-title">Paket Yöneticisi — Devuan & Flathub Depoları</span>
         </div>
         <div class="window-controls">
           <button class="ctrl-btn min" title="Küçült">−</button>
@@ -503,7 +503,7 @@
             <button class="term-chip-btn" data-cmd="clear"><svg class="glyph" aria-hidden="true"><use href="#ico-trash"></use></svg> clear</button>
           </div>
           <div class="term-toolbar-actions">
-            <button class="term-action-btn" id="btn-sys-term" title="Devuan terminal emülatörünü ayrı pencerede aç">Sistem Terminali</button>
+            <button class="term-action-btn" id="btn-sys-term" title="Devuan etkileşimli terminal emülatörünü (xterm) ayrı canlı pencerede aç"><svg class="glyph" aria-hidden="true" style="width:13px;height:13px;vertical-align:-1px;margin-right:4px;"><use href="#ico-terminal"></use></svg>Sistem Terminali (xterm)</button>
             <button class="term-clear-action-btn" id="btn-term-clear-logs" title="Ekran Çıktısını Temizle">Temizle</button>
           </div>
         </div>
@@ -1170,6 +1170,27 @@
                     <option value="200">%200 (2x Büyük)</option>
                   </select>
                 </div>
+              </div>
+
+              <div class="setting-row-item multi-monitor-row">
+                <div class="row-desc">
+                  <strong>Çoklu Monitör Düzeni</strong>
+                  <span id="label-multi-monitor-status">Bağlı ekranlar taranıyor...</span>
+                </div>
+                <div class="row-control multi-monitor-controls" style="display:flex;gap:6px;align-items:center;">
+                  <select id="ctrl-multi-monitor-layout" class="select-mono">
+                    <option value="auto" selected>Otomatik Düzenle</option>
+                    <option value="extend-right">Sağa Genişlet (Çift Ekran)</option>
+                    <option value="extend-left">Sola Genişlet</option>
+                    <option value="mirror">Ayna Modu (Ekranları Klonla)</option>
+                    <option value="single-primary">Yalnızca Birincil Ekran</option>
+                  </select>
+                  <button type="button" class="btn-pill" id="btn-apply-multimonitor">Uygula</button>
+                </div>
+              </div>
+              <div class="multi-monitor-detected-box" id="box-detected-monitors" style="padding:10px 14px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:8px;font-size:12px;margin-top:6px;display:none;">
+                <div style="font-weight:600;margin-bottom:4px;color:var(--text-main);">Algılanan Ekranlar:</div>
+                <div id="list-detected-monitors" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
               </div>
             </div>
 
@@ -2126,9 +2147,9 @@
           <span class="window-title" id="flasher-header-title">Ankora USB & ISO Yazıcı</span>
         </div>
         <div class="window-controls">
-          <button class="win-btn win-btn-minimize" aria-label="Simge Durumuna Küçült">—</button>
-          <button class="win-btn win-btn-maximize" aria-label="Ekranı Kapla">▢</button>
-          <button class="win-btn win-btn-close" aria-label="Pencereyi Kapat">✕</button>
+          <button class="ctrl-btn min" aria-label="Simge Durumuna Küçült">—</button>
+          <button class="ctrl-btn max" aria-label="Ekranı Kapla">▢</button>
+          <button class="ctrl-btn close" aria-label="Pencereyi Kapat">✕</button>
         </div>
       </div>
       <div class="window-body" style="display:flex;flex-direction:column;padding:16px;overflow-y:auto;gap:14px;background:#0d1117;">
@@ -2839,39 +2860,35 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path><line x1="12" y1="11" x2="12" y2="17"></line><line x1="9" y1="14" x2="15" y2="14"></line></svg>
       <span>Yeni Klasör Oluştur</span>
     </div>
+    <div class="ctx-item" data-action="new-text">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+      <span>Yeni Metin Belgesi</span>
+    </div>
+    <div class="ctx-item" data-action="term">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
+      <span>Burada Uçbirim Aç</span>
+    </div>
     <div class="ctx-item" data-action="files">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
       <span>Dosyalar Yöneticisi</span>
     </div>
     <div class="ctx-divider"></div>
-    <div class="ctx-item" data-action="term">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
-      <span>Yeni Terminal Aç</span>
+    <div class="ctx-item" data-action="align-icons">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="21" y1="10" x2="3" y2="10"></line><line x1="21" y1="6" x2="3" y2="6"></line><line x1="21" y1="14" x2="3" y2="14"></line><line x1="21" y1="18" x2="3" y2="18"></line></svg>
+      <span>Simgeleri Izgaraya Hizala</span>
     </div>
-    <div class="ctx-item" data-action="office">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
-      <span>Ankora Office</span>
-    </div>
-    <div class="ctx-item" data-action="calc">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"></rect><line x1="8" y1="6" x2="16" y2="6"></line><line x1="16" y1="14" x2="16" y2="18"></line><path d="M16 10h.01M12 10h.01M8 10h.01M12 14h.01M8 14h.01M12 18h.01M8 18h.01"></path></svg>
-      <span>Hesap Makinesi</span>
-    </div>
-    <div class="ctx-item" data-action="updater">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
-      <span>Ayaz Güncelleyici</span>
-    </div>
-    <div class="ctx-item" data-action="report">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg>
-      <span>Ankora Report &amp; Topluluk</span>
-    </div>
-    <div class="ctx-item" data-action="wallpaper">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
-      <span>Duvar Kağıdını Değiştir</span>
-    </div>
-    <div class="ctx-divider"></div>
     <div class="ctx-item" data-action="toggle-icons">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
       <span>Masaüstü Simgelerini Gizle / Göster</span>
+    </div>
+    <div class="ctx-divider"></div>
+    <div class="ctx-item" data-action="wallpaper">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+      <span>Duvar Kağıdı &amp; Görünüm</span>
+    </div>
+    <div class="ctx-item" data-action="display">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+      <span>Ekran &amp; Çözünürlük</span>
     </div>
     <div class="ctx-item" data-action="settings">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>

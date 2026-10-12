@@ -64,6 +64,11 @@ jobs:
       - name: NPM Bağımlılıklarını Kur
         run: npm install
 
+      - name: Güvenlik ve Bütünlük Denetimi (DevSecOps SAST & Verification)
+        run: |
+          python3 scratch/verify_all.py
+          npm audit --audit-level=high || echo "::warning::NPM bağımlılık uyarısı"
+
       - name: Ayaz DE Debian Paketini (.deb) Derle
         run: |
           mkdir -p dist

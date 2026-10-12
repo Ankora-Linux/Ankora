@@ -687,13 +687,38 @@ html, body {
   position: absolute;
   top: 16px;
   left: 16px;
-  display: flex;
-  flex-direction: column;
-  flex-wrap: wrap;
-  max-height: calc(100vh - var(--taskbar-height) - 32px);
-  gap: 12px;
+  right: 16px;
+  bottom: calc(var(--taskbar-height) + 16px);
   z-index: 15;
+  pointer-events: none;
+}
+
+/* Simge yerleşimi JS ızgarasıyla yönetilir (DesktopIcons): her simge bir
+   hücreye mutlak konumlanır, sürüklenip bırakıldığı hücrede kalır. */
+#dynamic-desktop-icons {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  inset: 0;
+}
+
+#dynamic-desktop-icons .desktop-item {
+  position: absolute;
   pointer-events: auto;
+  cursor: grab;
+}
+
+#dynamic-desktop-icons .desktop-item.icon-dragging {
+  z-index: 50;
+  opacity: 0.85;
+  transition: none;
+  animation: none;
+  transform: scale(1.05);
+  cursor: grabbing !important;
 }
 
 /* Masaüstü widget katmanı. Simgeler solda durur, kartlar sağda; kapalıyken
@@ -1028,7 +1053,6 @@ html, body {
   pointer-events: none;
   transform: scale(0.96) translate3d(0, 10px, 0);
   transition: opacity 0.16s cubic-bezier(0.16, 1, 0.3, 1), transform 0.16s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.15s ease, border-color 0.15s ease;
-  will-change: transform, opacity;
 }
 
 .window.open {
@@ -1040,7 +1064,7 @@ html, body {
 
 .window.active {
   border-color: var(--border-active-window);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.65), 0 0 0 1px var(--accent-active, #3b82f6);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.65), 0 0 0 1px var(--accent-active, #2563eb);
 }
 
 .window.maximized {
@@ -1057,7 +1081,14 @@ html, body {
   opacity: 0 !important;
   visibility: hidden !important;
   pointer-events: none !important;
+  content-visibility: hidden !important;
   transform: scale(0.9) translate3d(0, 24px, 0) !important;
+}
+
+/* Kapanmış veya gizli pencerelerin WebKit katman bellek yükünü sıfırla */
+.window:not(.open) {
+  content-visibility: hidden !important;
+  pointer-events: none !important;
 }
 
 /* Başka çalışma alanındaki açık pencere bu alanda görünmez, ama açık sayılır. */
@@ -1065,6 +1096,7 @@ html, body {
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
+  content-visibility: hidden !important;
   transform: scale(0.96) translate3d(0, 10px, 0);
 }
 
@@ -1084,7 +1116,7 @@ body.is-dragging button {
 .window.is-dragging {
   will-change: left, top;
   transition: none !important;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5), 0 0 0 1px var(--accent-active, #3b82f6) !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5), 0 0 0 1px var(--accent-active, #2563eb) !important;
 }
 
 .window-header {
@@ -2591,7 +2623,8 @@ body.theme-light .toggle-slider-knob {
   display: flex;
   align-items: center;
   gap: 6px;
-  flex-shrink: 0;
+  max-width: calc(100vw - 320px);
+  min-width: 0;
 }
 
 .start-btn {
@@ -2681,6 +2714,8 @@ body.theme-light .toggle-slider-knob {
   margin-left: 8px;
   overflow-x: auto;
   scrollbar-width: none;
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 .taskbar-running-tabs::-webkit-scrollbar {
@@ -2692,7 +2727,8 @@ body.theme-light .toggle-slider-knob {
   padding: 0 12px;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid transparent;
-  border-radius: 8px;
+  border-bottom: 2px solid transparent;
+  border-radius: 6px;
   font-size: 11.5px;
   color: var(--text-secondary);
   display: flex;
@@ -2713,10 +2749,91 @@ body.theme-light .toggle-slider-knob {
 }
 
 .task-tab.active {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.15);
+  background: rgba(37, 99, 235, 0.16);
+  border-color: rgba(37, 99, 235, 0.35);
+  border-bottom: 2px solid var(--accent-active, #2563eb);
   color: var(--text-primary);
   font-weight: 600;
+}
+
+.task-tab.minimized {
+  opacity: 0.65;
+}
+
+.task-tab-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.task-tab-icon svg {
+  width: 14px;
+  height: 14px;
+  display: block;
+}
+
+.task-tab-letter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  background: rgba(56, 189, 248, 0.18);
+  color: #38bdf8;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.task-tab-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.taskbar-tab-menu {
+  position: fixed;
+  z-index: 100000;
+  display: none;
+  flex-direction: column;
+  min-width: 130px;
+  padding: 4px;
+  background: rgba(18, 22, 28, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.55);
+}
+
+.taskbar-tab-menu.open {
+  display: flex;
+}
+
+.taskbar-tab-menu button {
+  background: transparent;
+  border: none;
+  border-radius: 5px;
+  padding: 6px 10px;
+  font-size: 12px;
+  color: #e2e8f0;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s ease;
+  font-family: inherit;
+}
+
+.taskbar-tab-menu button:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.taskbar-tab-menu button.danger {
+  color: #f87171;
+}
+
+.taskbar-tab-menu button.danger:hover {
+  background: rgba(248, 113, 113, 0.16);
 }
 
 /* Sağ Sistem Tepsisi (Tray) */
@@ -2834,10 +2951,9 @@ body.theme-light .toggle-slider-knob {
 }
 
 .ws-dot.active {
-  background: var(--accent-active, #3b82f6);
+  background: var(--accent-active, #2563eb);
   color: #ffffff;
   border-color: rgba(255, 255, 255, 0.3);
-  box-shadow: 0 0 10px rgba(59, 130, 246, 0.4);
 }
 
 /* Kısayol Düzenleyici ve Çöp Kutusu Stilleri */
@@ -2906,8 +3022,7 @@ body.theme-light .toggle-slider-knob {
   justify-content: center;
   gap: 20px;
   padding: 40px;
-  background: rgba(0, 0, 0, 0.74);
-  backdrop-filter: blur(7px);
+  background: rgba(14, 16, 23, 0.88);
 }
 
 .workspace-overview[hidden] {
@@ -3286,9 +3401,10 @@ body.theme-light .toggle-slider-knob {
 }
 
 .search-result-row:hover,
-.search-result-row:focus-visible {
-  background: rgba(255, 255, 255, 0.07);
-  border-color: rgba(255, 255, 255, 0.09);
+.search-result-row:focus-visible,
+.search-result-row.active {
+  background: rgba(37, 99, 235, 0.18);
+  border-color: rgba(37, 99, 235, 0.35);
 }
 
 .result-glyph {
@@ -4569,18 +4685,15 @@ select.report-select option {
 }
 
 /* Sol Hizalı Görev Çubuğu Modu */
+.taskbar.align-left .taskbar-left-group {
+  display: none;
+}
 .taskbar.align-left .taskbar-center-cluster {
-  left: 200px;
-  transform: none;
+  margin-right: auto;
 }
 
 body.taskbar-align-left .start-flyout {
-  left: 24px;
-  transform: translateY(16px) scale(0.98);
-}
-
-body.taskbar-align-left .start-flyout.open {
-  transform: translateY(0) scale(1);
+  left: 10px;
 }
 
 /* Pencere Saydamlık Modları - Düşük RAM & Yüksek Performans */
@@ -7002,8 +7115,8 @@ body.theme-light .ayaz-toast-notification {
 }
 
 .lock-input:focus {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
+  border-color: var(--accent-active, #2563eb);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.25);
 }
 
 .btn-toggle-eye {
@@ -7467,7 +7580,7 @@ body.theme-light .ayaz-toast-notification {
 
 .window.dragging,
 .window.is-dragging {
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5), 0 0 0 1px var(--accent-active, #3b82f6) !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5), 0 0 0 1px var(--accent-active, #2563eb) !important;
   transition: none !important;
   will-change: left, top;
 }
@@ -7748,49 +7861,46 @@ html[data-iconset='nordic'] .ayaz-desktop-shortcut:hover .item-icon {
 }
 
 /* ==========================================================================
-   MAĞAZA KARTLARI VE KULLANICI ARAYÜZÜ İYİLEŞTİRMELERİ (NORDIC GLASS)
+   MAĞAZA KARTLARI VE KULLANICI ARAYÜZÜ İYİLEŞTİRMELERİ
    ========================================================================== */
 .store-card {
   display: flex !important;
   flex-direction: column !important;
   gap: 12px !important;
   padding: 16px !important;
-  background: rgba(255, 255, 255, 0.04) !important;
-  backdrop-filter: blur(10px) !important;
-  -webkit-backdrop-filter: blur(10px) !important;
-  border: 1px solid rgba(255, 255, 255, 0.09) !important;
-  border-radius: 12px !important;
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.25) !important;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  background: var(--bg-surface) !important;
+  border: 1px solid var(--border-subtle) !important;
+  border-radius: var(--radius-ui) !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25) !important;
+  transition: background 0.16s ease, border-color 0.16s ease !important;
 }
 .store-card:hover {
-  background: rgba(255, 255, 255, 0.07) !important;
-  border-color: rgba(56, 189, 248, 0.4) !important;
-  transform: translateY(-3px) !important;
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45), 0 0 14px rgba(56, 189, 248, 0.18) !important;
+  background: var(--bg-surface-hover) !important;
+  border-color: var(--accent-active, #2563eb) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35) !important;
 }
 .store-card-icon {
-  background: rgba(56, 189, 248, 0.12) !important;
-  border: 1px solid rgba(56, 189, 248, 0.25) !important;
-  color: #38bdf8 !important;
+  background: rgba(37, 99, 235, 0.12) !important;
+  border: 1px solid rgba(37, 99, 235, 0.25) !important;
+  color: var(--accent-active, #2563eb) !important;
   border-radius: 8px !important;
 }
 .btn-pkg {
   padding: 7px 15px !important;
   font-size: 12px !important;
   font-weight: 600 !important;
-  border-radius: 7px !important;
+  border-radius: var(--radius-ui) !important;
   border: 1px solid rgba(255, 255, 255, 0.14) !important;
   background: rgba(255, 255, 255, 0.08) !important;
   color: #f1f5f9 !important;
   cursor: pointer !important;
-  transition: all 0.18s ease !important;
+  transition: all 0.16s ease !important;
 }
 .btn-pkg:hover {
-  background: #0284c7 !important;
+  background: var(--accent-active, #2563eb) !important;
   color: #fff !important;
-  border-color: #38bdf8 !important;
-  box-shadow: 0 0 12px rgba(56, 189, 248, 0.4) !important;
+  border-color: var(--accent-active, #2563eb) !important;
 }
 .btn-pkg.installed {
   background: rgba(239, 68, 68, 0.15) !important;
@@ -7801,7 +7911,6 @@ html[data-iconset='nordic'] .ayaz-desktop-shortcut:hover .item-icon {
   background: #dc2626 !important;
   color: #fff !important;
   border-color: #ef4444 !important;
-  box-shadow: 0 0 12px rgba(239, 68, 68, 0.5) !important;
 }
 .btn-pkg-open {
   background: rgba(16, 185, 129, 0.18) !important;
@@ -7812,7 +7921,6 @@ html[data-iconset='nordic'] .ayaz-desktop-shortcut:hover .item-icon {
   background: #059669 !important;
   color: #fff !important;
   border-color: #10b981 !important;
-  box-shadow: 0 0 12px rgba(16, 185, 129, 0.5) !important;
 }
 
 /* ==========================================================================
@@ -7822,15 +7930,13 @@ html[data-iconset='nordic'] .ayaz-desktop-shortcut:hover .item-icon {
   position: fixed;
   inset: 0;
   z-index: 10000;
-  background: rgba(0, 0, 0, 0.65);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: rgba(0, 0, 0, 0.72);
   display: flex;
   align-items: center;
   justify-content: center;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: opacity 0.16s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .power-modal-backdrop.open {
   opacity: 1;
@@ -7838,17 +7944,17 @@ html[data-iconset='nordic'] .ayaz-desktop-shortcut:hover .item-icon {
 }
 .power-modal-card {
   width: 90%;
-  max-width: 580px;
-  background: rgba(15, 23, 42, 0.94);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 16px;
-  padding: 26px;
-  box-shadow: 0 24px 50px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  max-width: 540px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-window);
+  padding: 24px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.65);
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  transform: scale(0.94);
-  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  gap: 18px;
+  transform: scale(0.96);
+  transition: transform 0.16s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .power-modal-backdrop.open .power-modal-card {
   transform: scale(1);
@@ -7962,14 +8068,12 @@ html[data-iconset='nordic'] .ayaz-desktop-shortcut:hover .item-icon {
 .snap-ghost-indicator {
   position: fixed;
   z-index: 9998;
-  background: rgba(37, 99, 235, 0.24);
-  border: 2px solid var(--accent-active, #3b82f6);
-  border-radius: var(--window-radius, 8px);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: rgba(37, 99, 235, 0.22);
+  border: 2px solid var(--accent-active, #2563eb);
+  border-radius: var(--radius-window, 8px);
   pointer-events: none;
   transition: all 0.16s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 0 24px rgba(59, 130, 246, 0.25);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
 }
 
 /* ==========================================================================
@@ -7997,18 +8101,16 @@ html[data-iconset='nordic'] .ayaz-desktop-shortcut:hover .item-icon {
   position: fixed;
   top: 0;
   right: -390px;
-  width: 370px;
+  width: 360px;
   max-width: 88vw;
   height: calc(100vh - var(--taskbar-h, 44px));
-  background: rgba(15, 23, 42, 0.95);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-left: 1px solid rgba(255, 255, 255, 0.12);
+  background: var(--bg-panel);
+  border-left: 1px solid var(--border-subtle);
   z-index: 9990;
   display: flex;
   flex-direction: column;
-  transition: right 0.24s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: -8px 0 32px rgba(0, 0, 0, 0.5);
+  transition: right 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: -8px 0 24px rgba(0, 0, 0, 0.5);
 }
 
 .notification-center-drawer.open {
@@ -8035,7 +8137,7 @@ html[data-iconset='nordic'] .ayaz-desktop-shortcut:hover .item-icon {
 .notif-header-title svg {
   width: 17px;
   height: 17px;
-  color: var(--accent-active, #3b82f6);
+  color: var(--accent-active, #2563eb);
 }
 
 .notif-header-actions {
@@ -8139,9 +8241,7 @@ html[data-iconset='nordic'] .ayaz-desktop-shortcut:hover .item-icon {
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: rgba(0, 0, 0, 0.65);
   z-index: 9999;
   display: flex;
   align-items: flex-start;
@@ -8150,14 +8250,12 @@ html[data-iconset='nordic'] .ayaz-desktop-shortcut:hover .item-icon {
 }
 
 .spotlight-box {
-  width: 620px;
+  width: 600px;
   max-width: 90vw;
-  background: rgba(18, 24, 38, 0.95);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 12px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-window);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.7);
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -8180,7 +8278,7 @@ html[data-iconset='nordic'] .ayaz-desktop-shortcut:hover .item-icon {
 .spotlight-search-icon {
   width: 20px;
   height: 20px;
-  stroke: var(--accent-active, #3b82f6);
+  stroke: var(--accent-active, #2563eb);
   flex-shrink: 0;
 }
 
