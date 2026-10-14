@@ -102,7 +102,14 @@ awk -v p="$CHROOT_DIR" 'index($2, p "/") == 1 { print $2 }' /proc/mounts 2>/dev/
     | sort -r | while IFS= read -r m; do
         umount -lf "$m" 2>/dev/null || true
     done || true
-rm -rf "$WORK_DIR"
+# WORK_DIR bir bind-mount hedefi olabilir (ör. alanı bol diske bağlanır);
+# dizinin kendisi silinmez, yalnızca içeriği temizlenir. `rm -rf $WORK_DIR`
+# bağlı dizinde "Device or resource busy" ile `set -e` altında ölüyordu.
+if [ -e "$WORK_DIR" ] && [ ! -d "$WORK_DIR" ]; then
+    rm -f "$WORK_DIR"
+fi
+mkdir -p "$WORK_DIR"
+find "$WORK_DIR" -mindepth 1 -maxdepth 1 -exec rm -rf {} + 2>/dev/null || true
 mkdir -p "$CHROOT_DIR" "$IMAGE_DIR/live" "$IMAGE_DIR/isolinux" "$IMAGE_DIR/boot/grub" "$ROOT_DIR/dist"
 
 # 4. Debootstrap ile Temel Devuan Daedalus Sisteminin İndirilmesi
