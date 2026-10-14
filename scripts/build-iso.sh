@@ -690,6 +690,26 @@ case "$CURW" in
     ''|640*|720*|800*|854*|960*) xrandr -s 1280x800 2>/dev/null || xrandr -s 1024x768 2>/dev/null || true ;;
 esac
 
+# Dokunmatik giriş (Faz tahta/IR çerçeve + dokunmatik ped): pedlerde
+# dokun-kaydır, tahta aygıtları her zaman açık. Kalibrasyon Ayarlar'dan.
+if command -v xinput >/dev/null 2>&1; then
+    for _dev in $(xinput --list --id-only 2>/dev/null); do
+        _name=$(xinput --list --name-only "$_dev" 2>/dev/null || true)
+        case "$_name" in
+            *[Tt]ouchpad*|*Synaptics*|*Elan*|*ELAN*)
+                xinput --set-prop "$_dev" "libinput Tapping Enabled" 1 2>/dev/null || true
+                xinput --set-prop "$_dev" "libinput Natural Scroll Enabled" 0 2>/dev/null || true
+                xinput --set-prop "$_dev" "libinput Scroll Method Enabled" 0 0 1 2>/dev/null || true
+                xinput --set-prop "$_dev" "libinput Click Method Enabled" 0 1 2>/dev/null || true
+                ;;
+            *[Tt]ouchscreen*|*[Tt]ouch*|*IR*|*Vestel*|*Arcelik*|*Faz*)
+                xinput --enable "$_dev" 2>/dev/null || true
+                ;;
+        esac
+    done
+    unset _dev _name
+fi
+
 # Ankora Openbox Yapılandırmasını Hazırla ve Başlat
 mkdir -p "$HOME/.config/openbox"
 if [ -f /usr/share/ayaz/openbox-rc.xml ]; then
