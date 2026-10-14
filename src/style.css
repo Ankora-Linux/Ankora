@@ -5001,6 +5001,54 @@ body.anim-none *::after {
   }
 }
 
+/* Faz tahta/IR çerçeveler fare gibi görünebilir; dokunuş algılanırsa aynı
+   büyütmeler body.has-touch üzerinden uygulanır. Ek olarak büyük panellerde
+   parmakla vurulacak hedefler genişletilir. */
+body.has-touch .ctrl-btn {
+  width: 40px;
+  height: 32px;
+}
+
+body.has-touch .window-resize-handle {
+  width: 28px;
+  height: 28px;
+  right: 0;
+  bottom: 0;
+}
+
+body.has-touch .taskbar-pin-btn,
+body.has-touch .store-filter-btn,
+body.has-touch .ai-tag-btn,
+body.has-touch .btn-pill,
+body.has-touch .term-chip-btn,
+body.has-touch .bookmark-chip {
+  min-height: 36px;
+}
+
+body.has-touch .task-tab {
+  min-height: 34px;
+  padding-left: 12px;
+  padding-right: 12px;
+}
+
+body.has-touch .desktop-item {
+  width: 92px;
+}
+
+body.has-touch .item-icon {
+  width: 52px;
+  height: 52px;
+}
+
+body.has-touch .files-item-card {
+  min-height: 96px;
+}
+
+body.has-touch .ws-dot {
+  min-width: 30px;
+  min-height: 30px;
+}
+
 /* ==============================================================================
    ÖZEL MONOKROM KAYDIRMA ÇUBUKLARI (SCROLLBARS)
    ============================================================================== */

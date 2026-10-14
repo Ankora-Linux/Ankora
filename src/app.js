@@ -479,6 +479,69 @@
   };
 
   // ============================================================================
+  // DOKUNMATİK ORTAM (FAZ TAHTA / IR ÇERÇEVE): kaba işaret algısı, genel
+  // uzun-basım sağ tık. Faz tahtalar fare gibi göründüğü için yalnız
+  // pointer:coarse medyasına güvenilmez; dokunuş varsa body.has-touch açılır.
+  // ============================================================================
+  const TouchHelpers = {
+    LONG_PRESS_MS: 550,
+
+    isTouch() {
+      try {
+        return ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+      } catch (e) {
+        return false;
+      }
+    },
+
+    markTouchCapable() {
+      if (this.isTouch()) document.body.classList.add('has-touch');
+    },
+
+    initLongPress() {
+      if (!this.isTouch()) return;
+      const sel = '.desktop-item, .files-item-card, .task-tab, .pinned-app-card, .desktop-wallpaper';
+      let timer = 0;
+      let sx = 0;
+      let sy = 0;
+      document.addEventListener('touchstart', (e) => {
+        if (e.touches.length !== 1) return;
+        const t = e.touches[0];
+        const el = document.elementFromPoint(t.clientX, t.clientY);
+        const hit = el && el.closest ? el.closest(sel) : null;
+        if (!hit) return;
+        sx = t.clientX;
+        sy = t.clientY;
+        clearTimeout(timer);
+        timer = setTimeout(() => {
+          timer = 0;
+          try {
+            hit.dispatchEvent(new MouseEvent('contextmenu', {
+              bubbles: true, cancelable: true, clientX: sx, clientY: sy
+            }));
+            // Basımı bıraktıktan sonra gelecek tıklama işlem tetiklemesin
+            // (mağazada yanlışlıkla Kur'a basılması gibi).
+            const swallow = (ce) => { ce.stopPropagation(); ce.preventDefault(); };
+            hit.addEventListener('click', swallow, { capture: true, once: true });
+            setTimeout(() => hit.removeEventListener('click', swallow, true), 600);
+            if (navigator.vibrate) navigator.vibrate(15);
+          } catch (err) {}
+        }, this.LONG_PRESS_MS);
+      }, { passive: true });
+      document.addEventListener('touchmove', (e) => {
+        if (!timer || !e.touches.length) return;
+        const t = e.touches[0];
+        if (Math.abs(t.clientX - sx) > 12 || Math.abs(t.clientY - sy) > 12) {
+          clearTimeout(timer);
+          timer = 0;
+        }
+      }, { passive: true });
+      document.addEventListener('touchend', () => { clearTimeout(timer); timer = 0; }, { passive: true });
+      document.addEventListener('touchcancel', () => { clearTimeout(timer); timer = 0; }, { passive: true });
+    }
+  };
+
+  // ============================================================================
   // 1. GERÇEK TAURI NATIVE WINDOW MANAGER
   // ============================================================================
   const WindowManager = {
@@ -5454,10 +5517,44 @@
       }
     },
 
+    // --- Dokunmatik Ekran (Faz Tahta): kalibrasyon + ekran klavyesi ---
+    initTouchControls() {
+      const lbl = document.getElementById('label-touch-status');
+      const touch = (typeof TouchHelpers !== 'undefined' && TouchHelpers.isTouch())
+        || (typeof document !== 'undefined' && document.body.classList.contains('has-touch'));
+      if (lbl) {
+        lbl.textContent = touch
+          ? 'Dokunmatik giriş etkin. Uzun basım sağ tık menüsünü açar.'
+          : 'Dokunmatik giriş algılanamadı. USB dokunmatik çerçevenin takılı olduğunu denetleyin.';
+      }
+      const btnCal = document.getElementById('btn-touch-calibrate');
+      if (btnCal) {
+        btnCal.onclick = async () => {
+          try {
+            await TauriBridge.invoke('launch_application', { exec: 'xinput_calibrator' });
+            ReportManager.showToast('Kalibrasyon aracı açıldı; hedeflere parmağınla dokun.');
+          } catch (e) {
+            ReportManager.showToast(`Kalibrasyon açılamadı: ${e.message || e}`, 'error');
+          }
+        };
+      }
+      const btnKb = document.getElementById('btn-touch-keyboard');
+      if (btnKb) {
+        btnKb.onclick = async () => {
+          try {
+            await TauriBridge.invoke('launch_application', { exec: 'onboard' });
+          } catch (e) {
+            ReportManager.showToast(`Ekran klavyesi açılamadı: ${e.message || e}`, 'error');
+          }
+        };
+      }
+    },
+
     async init() {
       // Çözünürlük onay çubuğu düğmeleri (kepçe: tek bağlama, tekrarsız)
       const btnKeep = document.getElementById('btn-display-keep');
       if (btnKeep) btnKeep.addEventListener('click', () => this.confirmDisplayMode());
+      this.initTouchControls();
       const btnRevert = document.getElementById('btn-display-revert');
       if (btnRevert) btnRevert.addEventListener('click', () => this.revertDisplayModeNow());
 
@@ -11433,6 +11530,11 @@
       setInterval(() => {
         if (!document.hidden) DesktopFiles.refresh();
       }, 30000);
+    });
+    // Faz tahta ve dokunmatik dizüstü: parmak hedefleri + uzun-basım sağ tık.
+    safeInit('Touch', () => {
+      TouchHelpers.markTouchCapable();
+      TouchHelpers.initLongPress();
     });
     safeInit('AIAgent', () => AIAgent.init());
     safeInit('WelcomeManager', () => WelcomeManager.init());

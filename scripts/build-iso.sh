@@ -304,6 +304,8 @@ apt-get install -y --no-install-recommends \
     xclip \
     xterm \
     xinput \
+    xinput-calibrator \
+    onboard \
     wmctrl \
     xdotool \
     dunst \

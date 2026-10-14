@@ -13,6 +13,7 @@ Denetlenenler:
 """
 import html.parser
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -158,6 +159,24 @@ def main():
     check("köprü mantık testleri", ok, err if not ok else "")
     ok, err = run(["node", "scratch/test_store_data.js"])
     check("mağaza veri testleri", ok, err if not ok else "")
+
+    # 12. Faz tahta dokunmatik desteği
+    try:
+        app_js = (ROOT / "src/app.js").read_text(encoding="utf-8")
+        html_text = (ROOT / "src/index.html").read_text(encoding="utf-8")
+        css = (ROOT / "src/style.css").read_text(encoding="utf-8")
+        iso = (ROOT / "scripts/build-iso.sh").read_text(encoding="utf-8")
+        xin = (ROOT / "scripts/xinitrc").read_text(encoding="utf-8")
+        check("dokunmatik algı (has-touch)", "has-touch" in app_js and "has-touch" in css)
+        check("uzun-basım sağ tık", "initLongPress" in app_js and "LONG_PRESS_MS" in app_js)
+        check("tahta ayar grubu", "btn-touch-calibrate" in html_text
+              and "btn-touch-keyboard" in html_text
+              and "initTouchControls" in app_js)
+        check("iso: kalibrasyon + ekran klavyesi",
+              "xinput-calibrator" in iso and re.search(r"^\s*onboard\s*\\\\?$", iso, re.M) is not None)
+        check("xinitrc: ped/tahta ayrımı", "ouchpad" in xin and "ouchscreen" in xin)
+    except Exception as e:
+        check("faz tahta dokunmatik desteği", False, str(e)[:200])
 
     print()
     if FAILURES:
