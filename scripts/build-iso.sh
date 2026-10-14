@@ -202,13 +202,26 @@ apt-get install -y --no-install-recommends devuan-keyring || true
 
 # -----------------------------------------------------------------------
 # FARZ 1: Linux Çekirdeği ve temel araçlar (alan kontrolü ile)
+# NOT: live-boot kök dosya sistemini initramfs içinden bulur. squashfs,
+# loop ve iso9660 modülleri initrd'de yoksa açılış "Unable to find a
+# medium containing a live file system" / kernel panic ile durur. Bu
+# yüzden çekirdek + live-boot-initramfs araçları + konsol/klavye.UTF-8
+# paketleri birlikte kurulur, modüller altta initramfs'e enjekte edilir.
 # -----------------------------------------------------------------------
 apt-get install -y --no-install-recommends \
     linux-image-amd64 \
     live-boot \
+    live-boot-initramfs-tools \
     live-config \
     live-config-sysvinit \
     initramfs-tools \
+    busybox \
+    console-setup \
+    console-data \
+    kbd \
+    fonts-dejavu-core \
+    tzdata \
+    chrony \
     ca-certificates \
     curl \
     wget \
@@ -392,11 +405,41 @@ df -h / || true
 
 # -----------------------------------------------------------------------
 # Yerel ayarlar (Türkçe & UTF-8 desteği)
+# Canlı çekirdek komut satırı da locales=tr_TR.UTF-8 + keyboard-layouts=tr
+# taşır (aşağıda isolinux/grub APPEND satırları); burası kurulu sisteme
+# ve konsola UTF-8 klavye/font mirası bırakır.
 # -----------------------------------------------------------------------
 echo "tr_TR.UTF-8 UTF-8" > /etc/locale.gen
 echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen
 locale-gen
-update-locale LANG=tr_TR.UTF-8
+update-locale LANG=tr_TR.UTF-8 LANGUAGE=tr_TR:tr LC_ALL=tr_TR.UTF-8
+
+# Saat dilimi: canlı sistem Europe/Istanbul ile açılır. SysVinit'te
+# systemd-timesyncd yoktur; chrony açılışta saati internetten düzeltir.
+# (Donanım saati UTC varsayılır; /etc/default/rcS içinde UTC=yes.)
+echo "Europe/Istanbul" > /etc/timezone
+ln -sf /usr/share/zoneinfo/Europe/Istanbul /etc/localtime
+DEBIAN_FRONTEND=noninteractive dpkg-reconfigure -f noninteractive tzdata 2>/dev/null || true
+update-rc.d chrony defaults 2>/dev/null || update-rc.d chronyd defaults 2>/dev/null || true
+
+# Konsol ve X11 Türkçe Q klavye + UTF-8 font (boot'taki bozuk karakterlerin
+# sistem tarafındaki karşılığı). live-config çekirdek parametresindeki
+# keyboard-layouts=tr değerini okuyup aynısını uygular.
+mkdir -p /etc/default
+cat << 'KBD' > /etc/default/keyboard
+XKBMODEL="pc105"
+XKBLAYOUT="tr"
+XKBVARIANT=""
+XKBOPTIONS=""
+BACKSPACE="guess"
+KBD
+cat << 'CONSOLE' > /etc/default/console-setup
+CODESET="Lat15"
+FONTFACE="VGA"
+FONTSIZE="16"
+VIDEOMODE=""
+CHARMAP="UTF-8"
+CONSOLE
 
 # -----------------------------------------------------------------------
 # Canlı Oturum Kullanıcısı: ankora
@@ -789,8 +832,23 @@ cp /home/ankora/.profile /etc/skel/.profile
 # -----------------------------------------------------------------------
 # INITRAMFS GÜNCELLEMESİ — live-boot modüllerinin initrd'ye eklenmesi
 # Bu adım olmazsa ISO boot sırasında root dosya sistemi bulunamaz!
+# squashfs/loop/iso9660 çekirdekte gömülü değildir; initrd'ye zorlanır.
+# Aksi halde açılış "Unable to find a medium containing a live file
+# system" hatasıyla kernel panic'e düşer.
 # -----------------------------------------------------------------------
 echo "[KRİTİK] initramfs güncelleniyor (live-boot modülleri enjekte ediliyor)..."
+mkdir -p /etc/initramfs-tools
+for _mod in overlay squashfs loop iso9660 sr_mod sd_mod usb_storage uhci_hcd ohci_hcd ehci_hcd xhci_hcd; do
+    grep -qx "$_mod" /etc/initramfs-tools/modules 2>/dev/null || echo "$_mod" >> /etc/initramfs-tools/modules
+done
+unset _mod
+# İnce (modüler) initramfs yerine tam donanım kapsama: farklı makinelerde
+# disk/usb denetçisi bulunamazsa panic kaçınılmaz olur.
+if grep -q '^MODULES=' /etc/initramfs-tools/initramfs.conf 2>/dev/null; then
+    sed -i 's/^MODULES=.*/MODULES=most/' /etc/initramfs-tools/initramfs.conf
+else
+    echo "MODULES=most" >> /etc/initramfs-tools/initramfs.conf
+fi
 update-initramfs -u -k all
 
 # Canlı imaj için resmi kaynak listesi
@@ -1877,6 +1935,9 @@ def execute_ayaz_command(cmd, args):
         hostname = payload.get('hostname', 'ankora-pc').strip()
         password = payload.get('password', '')
         autologin = payload.get('autologin', True)
+        want_tz = str(payload.get('timezone', '') or '').strip() or 'Europe/Istanbul'
+        want_kb = str(payload.get('keyboard_layout', '') or '').strip() or 'tr'
+        want_lang = str(payload.get('language', '') or '').strip() or 'tr_TR.UTF-8'
 
         if not target or not re.match(r'^/dev/(sd[a-z]|vd[a-z]|nvme[0-9]+n[0-9]+|mmcblk[0-9]+)$', target):
             raise Exception('Geçersiz hedef disk seçimi (Örn: /dev/sda veya /dev/nvme0n1)')
@@ -1886,6 +1947,14 @@ def execute_ayaz_command(cmd, args):
             raise Exception('Geçersiz makine adı')
         if not password or '\0' in password or '\n' in password:
             raise Exception('Geçersiz parola')
+        # Bölge/dil/saat denetimi: izin listesi dışı değer sessizce öntanımlıya döner.
+        if ('..' in want_tz or want_tz.startswith('/') or len(want_tz) > 64
+                or any(c not in 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789/_-+' for c in want_tz)):
+            want_tz = 'Europe/Istanbul'
+        if want_kb not in ('tr', 'tr_f', 'us', 'de', 'fr', 'gb'):
+            want_kb = 'tr'
+        if want_lang not in ('tr_TR.UTF-8', 'en_US.UTF-8'):
+            want_lang = 'tr_TR.UTF-8'
 
         # Canlı USB ortamının kendisi hedef olarak seçilemez
         live_disks = _live_boot_disks()
@@ -2027,6 +2096,18 @@ def execute_ayaz_command(cmd, args):
             _root_write('/target/etc/hosts',
                         f"127.0.0.1\tlocalhost\n127.0.1.1\t{hostname}\n\n"
                         "::1\tlocalhost ip6-localhost ip6-loopback\nff02::1\tip6-allnodes\nff02::2\tip6-allrouters\n")
+
+            # 7b. Bölge / dil / saat hedefe taşınır (sihirbaz seçimleri).
+            _root_write('/target/etc/timezone', f"{want_tz}\n")
+            _root(f"ln -sf /usr/share/zoneinfo/{shlex.quote(want_tz)} /target/etc/localtime", check=False)
+            _root("chroot /target sh -c 'DEBIAN_FRONTEND=noninteractive dpkg-reconfigure -f noninteractive tzdata 2>/dev/null; true'", check=False)
+            _kb_lay, _kb_var = (('tr', 'f') if want_kb == 'tr_f' else (want_kb, ''))
+            _root_write('/target/etc/default/keyboard',
+                        f'XKBMODEL="pc105"\nXKBLAYOUT="{_kb_lay}"\nXKBVARIANT="{_kb_var}"\nXKBOPTIONS=""\nBACKSPACE="guess"\n')
+            _lang_short = want_lang.split('.')[0]
+            _root_write('/target/etc/default/locale',
+                        f'LANG={want_lang}\nLANGUAGE={_lang_short}:{_lang_short.split("_")[0]}\nLC_ALL={want_lang}\n')
+            _root(f"chroot /target sh -c 'command -v update-locale >/dev/null && update-locale LANG={shlex.quote(want_lang)} 2>/dev/null; command -v locale-gen >/dev/null && locale-gen {shlex.quote(want_lang)} en_US.UTF-8 2>/dev/null; true'", check=False)
 
             # 8. /etc/fstab Yapılandırması
             try:
@@ -3446,6 +3527,148 @@ exit 0
         if secs == 0:
             return 'Ekran uyku (DPMS) kapatıldı'
         return f'Ekran uyku zaman aşımı ayarlandı: {secs} sn'
+
+    elif cmd == 'get_region_settings':
+        # Bölge/dil/saat: o anki değerler + arayüzün sunacağı izinli listeler.
+        def _cur_tz():
+            try:
+                link = os.readlink('/etc/localtime')
+                if 'zoneinfo/' in link:
+                    return link.split('zoneinfo/', 1)[1]
+            except Exception:
+                pass
+            try:
+                with open('/etc/timezone') as f:
+                    t = f.read().strip()
+                    if t:
+                        return t
+            except Exception:
+                pass
+            return 'Europe/Istanbul'
+        def _cur_lang():
+            for p in ('/etc/default/locale', '/etc/locale.conf'):
+                try:
+                    with open(p) as f:
+                        for line in f:
+                            t = line.strip()
+                            if t.startswith('LANG='):
+                                v = t[5:].strip().strip('"')
+                                if v in ('tr_TR.UTF-8', 'en_US.UTF-8'):
+                                    return v
+                except Exception:
+                    pass
+            return 'tr_TR.UTF-8'
+        def _cur_kb():
+            try:
+                with open('/etc/default/keyboard') as f:
+                    lay = var = ''
+                    for line in f:
+                        t = line.strip()
+                        if t.startswith('XKBLAYOUT='):
+                            lay = t[10:].strip().strip('"')
+                        elif t.startswith('XKBVARIANT='):
+                            var = t[11:].strip().strip('"')
+                    if lay == 'tr' and var == 'f':
+                        return 'tr_f'
+                    if lay in ('tr', 'tr_f', 'us', 'de', 'fr', 'gb'):
+                        return lay
+            except Exception:
+                pass
+            return 'tr'
+        try:
+            p = subprocess.run(['date', '+%Y-%m-%d %H:%M:%S %Z'],
+                               stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+                               text=True, timeout=10)
+            now = p.stdout.strip()
+        except Exception:
+            now = ''
+        zones = ['Europe/Istanbul', 'Europe/London', 'Europe/Berlin',
+                 'Europe/Paris', 'Europe/Moscow', 'America/New_York',
+                 'America/Chicago', 'America/Los_Angeles', 'Asia/Dubai',
+                 'Asia/Baku', 'Asia/Nicosia', 'UTC']
+        cur = _cur_tz()
+        if cur not in zones:
+            zones.insert(0, cur)
+        return {'timezone': cur, 'local_time': now,
+                'keyboard_layout': _cur_kb(), 'language': _cur_lang(),
+                'available_timezones': zones,
+                'available_keyboards': ['tr', 'tr_f', 'us', 'de', 'fr', 'gb'],
+                'available_languages': ['tr_TR.UTF-8', 'en_US.UTF-8']}
+
+    elif cmd == 'set_timezone':
+        # SysVinit'te timedatectl yoktur: /etc/localtime bağı + /etc/timezone.
+        tz = str(args.get('timezone', '')).strip()
+        if ('..' in tz or tz.startswith('/') or not tz or len(tz) > 64
+                or any(c not in 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789/_-+' for c in tz)):
+            raise Exception('Geçersiz saat dilimi')
+        if not os.path.isfile(os.path.join('/usr/share/zoneinfo', tz)):
+            raise Exception('Desteklenmeyen saat dilimi (zoneinfo kaydı yok)')
+        _root_run(['tee', '/etc/timezone'], stdin_text=tz + '\n')
+        proc = _root_run(['ln', '-sf', f'/usr/share/zoneinfo/{tz}', '/etc/localtime'])
+        if proc.returncode != 0:
+            raise Exception('Saat dilimi bağlanamadı (yönetici yetkisi gerekiyor)')
+        subprocess.run(['sh', '-c', 'DEBIAN_FRONTEND=noninteractive dpkg-reconfigure -f noninteractive tzdata 2>/dev/null; true'],
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=60)
+        return f'Saat dilimi: {tz}'
+
+    elif cmd == 'sync_clock_ntp':
+        # chrony birincil, ntpdate yedek; donanım saati okunamazsa bile
+        # güncel saat döndürülür.
+        subprocess.run(['sh', '-c', 'command -v chronyc >/dev/null && chronyc -a makestep 2>/dev/null; command -v ntpdate >/dev/null && ntpdate -u pool.ntp.org 2>/dev/null; true'],
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=60)
+        try:
+            p = subprocess.run(['date', '+%Y-%m-%d %H:%M:%S %Z'],
+                               stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                               text=True, timeout=10)
+        except Exception as e:
+            raise Exception(f'Saat okunamadı: {e}')
+        return p.stdout.strip()
+
+    elif cmd == 'set_keyboard_layout':
+        # O anki X oturumu + kalıcı kayıt (/etc/default/keyboard ve konsol).
+        lay = str(args.get('layout', '')).strip()
+        if lay not in ('tr', 'tr_f', 'us', 'de', 'fr', 'gb'):
+            raise Exception('Geçersiz veya desteklenmeyen klavye haritası')
+        xkb_lay, xkb_var = (('tr', 'f') if lay == 'tr_f' else (lay, ''))
+        kb_conf = (f'XKBMODEL="pc105"\nXKBLAYOUT="{xkb_lay}"\nXKBVARIANT="{xkb_var}"\n'
+                   'XKBOPTIONS=""\nBACKSPACE="guess"\n')
+        try:
+            _root_run(['tee', '/etc/default/keyboard'], stdin_text=kb_conf)
+            persist = True
+        except Exception:
+            persist = False
+        if persist:
+            subprocess.run(['sh', '-c', 'command -v setupcon >/dev/null && setupcon -k --force 2>/dev/null; service console-setup restart 2>/dev/null; true'],
+                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=30)
+        env = os.environ.copy()
+        if 'DISPLAY' not in env:
+            env['DISPLAY'] = ':0'
+        try:
+            if lay == 'tr_f':
+                subprocess.run(['setxkbmap', 'tr', '-variant', 'f'], env=env,
+                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=10)
+            else:
+                subprocess.run(['setxkbmap', lay], env=env,
+                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=10)
+        except Exception:
+            pass
+        if persist:
+            return f'Klavye: {lay} (kalıcı)'
+        raise Exception('Klavye o anki oturumda değişti, ancak kalıcı kayıt için yönetici yetkisi gerekiyor')
+
+    elif cmd == 'set_system_language':
+        lang = str(args.get('language', '')).strip()
+        if lang not in ('tr_TR.UTF-8', 'en_US.UTF-8'):
+            raise Exception('Geçersiz veya desteklenmeyen sistem dili')
+        short = lang.split('.')[0]
+        conf = f'LANG={lang}\nLANGUAGE={short}:{short.split("_")[0]}\nLC_ALL={lang}\n'
+        try:
+            _root_run(['tee', '/etc/default/locale'], stdin_text=conf)
+        except Exception as e:
+            raise Exception(f'Sistem dili yazılamadı (yönetici yetkisi gerekiyor): {e}')
+        subprocess.run(['sh', '-c', f'command -v update-locale >/dev/null && update-locale LANG={lang} 2>/dev/null; command -v locale-gen >/dev/null && locale-gen {lang} en_US.UTF-8 2>/dev/null; true'],
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=120)
+        return f'Sistem dili: {lang} (oturumu yeniden başlatınca uygulanır)'
 
     elif cmd == 'get_display_modes':
         # Çıktı listelemeyen sunucularda (Xvfb vb.) boş döner; arayüz sabit
@@ -5065,48 +5288,51 @@ mksquashfs "$CHROOT_DIR" "$IMAGE_DIR/live/filesystem.squashfs" -comp xz -b 10485
 
 # 9. Önyükleyici (Bootloader: Syslinux BIOS + GRUB EFI) Yapılandırması
 echo "[6/8] EFI ve BIOS hibrit önyükleyicileri hazırlanıyor..."
-# ISOLINUX (BIOS)
+# ISOLINUX (BIOS) — modern kart görünümlü menü.
+# NOT: vesamenu.c32 CP437 kod sayfası kullanır; ı/ş/ğ/ç UTF-8 glifleri
+# BIOS metin kipinde bozuk çizilir. Bu yüzden BIOS menüsü ASCII kalır;
+# tam Türkçe menü UEFI GRUB tarafındadır (unicode.pf2 UTF-8 destekler).
 cat << 'EOF' > "$IMAGE_DIR/isolinux/isolinux.cfg"
 UI vesamenu.c32
 PROMPT 0
-TIMEOUT 50
+TIMEOUT 100
 DEFAULT ankora
 ALLOWOPTIONS 1
 
-MENU TITLE Ankora Linux 2.0  —  Ayaz Masaüstü
+MENU TITLE Ankora Linux 2.0  —  Ayaz Masaustu
 MENU WIDTH 78
 MENU MARGIN 10
-MENU ROWS 8
+MENU ROWS 9
 MENU TABMSGROW 22
 MENU CMDLINEROW 22
 MENU HELPMSGROW 24
 MENU HELPMSGENDROW 26
 MENU TIMEOUTROW 20
 MENU COLOR border       0 #00000000 #00000000 none
-MENU COLOR title        0 #ffffffff #13141b std
+MENU COLOR title        0 #ffffffff #0f172a std
 MENU COLOR sel          0 #ffffffff #2563eb all
-MENU COLOR unsel        0 #a3a6be #13141b std
-MENU COLOR help         0 #5a687d #13141b std
-MENU COLOR timeout_msg  0 #5a687d #13141b std
-MENU COLOR timeout      0 #f5f6fa #13141b std
-MENU COLOR msg07        0 #5a687d #13141b std
-MENU COLOR tabmsg       0 #5a687d #13141b std
+MENU COLOR unsel        0 #c3c9d8 #0f172a std
+MENU COLOR help         0 #8b93a7 #0f172a std
+MENU COLOR timeout_msg  0 #8b93a7 #0f172a std
+MENU COLOR timeout      0 #f5f6fa #0f172a std
+MENU COLOR msg07        0 #8b93a7 #0f172a std
+MENU COLOR tabmsg       0 #8b93a7 #0f172a std
 
 LABEL ankora
   MENU LABEL ^1. Ankora Linux 2.0 (Canli Masaustu)
-  MENU HELP Ankora Ayaz masaüstünü canlı olarak başlatır. Diske dokunulmaz.
+  MENU HELP Ankora Ayaz masaustunu canli olarak baslatir. Diske dokunulmaz.
   KERNEL /live/vmlinuz
-  APPEND initrd=/live/initrd boot=live quiet splash loglevel=3 components username=ankora
+  APPEND initrd=/live/initrd boot=live live-media-path=/live union=overlay components username=ankora hostname=ankora-live locales=tr_TR.UTF-8 keyboard-layouts=tr timezone=Europe/Istanbul utc=yes noeject quiet splash loglevel=3
 
 LABEL failsafe
   MENU LABEL ^2. Guvenli Mod (Failsafe)
-  MENU HELP Donanım hızlandırma kapalı, uyumluluk bayraklarıyla başlatır.
+  MENU HELP Donanim hizlandirma kapali, uyumluluk bayraklariyla baslatir.
   KERNEL /live/vmlinuz
-  APPEND initrd=/live/initrd boot=live components nomodeset noapic noacpi nosmap nosmep
+  APPEND initrd=/live/initrd boot=live live-media-path=/live union=overlay components username=ankora hostname=ankora-live locales=tr_TR.UTF-8 keyboard-layouts=tr timezone=Europe/Istanbul noeject nomodeset noapic noacpi nosmap nosmep
 
 LABEL meminfo
   MENU LABEL ^3. Bellek Bilgisi
-  MENU HELP Sistem belleğinin boyutunu gösterir.
+  MENU HELP Sistem belleginin boyutunu gosterir.
   COM32 libcom32.c32
   APPEND meminfo.c32
 
@@ -5130,20 +5356,29 @@ for mod_dir in /usr/lib/syslinux/modules/bios /usr/lib/syslinux/bios /usr/lib/sy
     fi
 done
 
-# GRUB (UEFI) — Ankora temalı modern menü. Tema dosyası ISO üzerinde
-# yoksa (ör. bağımsız EFI imajı) renkli yedeğe düşülür, menü bozulmaz.
+# GRUB (UEFI) — Ankora temalı modern menü (tam Türkçe, UTF-8).
+# Tema dosyası ISO üzerinde yoksa renkli yedeğe düşülür, menü bozulmaz.
+# KRİTİK: search satırı kökü ISO etiketine sabitler; yoksa /live/vmlinuz
+# bulunamaz ve açılış "you need to load the kernel first" ile durur.
 cat << 'EOF' > "$IMAGE_DIR/boot/grub/grub.cfg"
 set default="0"
-set timeout="5"
+set timeout="10"
 set timeout_style="menu"
 
 insmod all_video
 insmod gfxterm
 insmod png
 insmod jpeg
+insmod search
+insmod search_label
+insmod iso9660
+insmod gettext
 set gfxmode="1920x1080,1366x768,1024x768,auto"
 set gfxpayload="keep"
 terminal_output gfxterm
+loadfont unicode
+
+search --no-floppy --set=root --label ANKORA_2_0
 
 set color_normal="light-gray/black"
 set color_highlight="white/blue"
@@ -5157,17 +5392,17 @@ elif [ -e "/boot/grub/themes/ankora/theme.txt" ]; then
 fi
 export theme
 
-menuentry "Ankora Linux 2.0  —  Canli Masaustu" {
-    linux /live/vmlinuz boot=live quiet splash loglevel=3 components username=ankora
+menuentry "Ankora Linux 2.0  —  Canlı Masaüstü" {
+    linux /live/vmlinuz boot=live live-media-path=/live union=overlay components username=ankora hostname=ankora-live locales=tr_TR.UTF-8 keyboard-layouts=tr timezone=Europe/Istanbul utc=yes noeject quiet splash loglevel=3
     initrd /live/initrd
 }
 
-menuentry "Ankora Linux 2.0  —  Guvenli Mod (Failsafe)" {
-    linux /live/vmlinuz boot=live components nomodeset noapic noacpi
+menuentry "Ankora Linux 2.0  —  Güvenli Mod (Failsafe)" {
+    linux /live/vmlinuz boot=live live-media-path=/live union=overlay components username=ankora hostname=ankora-live locales=tr_TR.UTF-8 keyboard-layouts=tr timezone=Europe/Istanbul noeject nomodeset noapic noacpi
     initrd /live/initrd
 }
 
-menuentry "Yeniden Baslat" {
+menuentry "Yeniden Başlat" {
     reboot
 }
 
@@ -5189,7 +5424,7 @@ if command -v grub-mkstandalone &>/dev/null; then
         --output="$IMAGE_DIR/EFI/boot/bootx64.efi" \
         --locales="" \
         --fonts="unicode" \
-        --modules="part_gpt part_msdos fat ext2 iso9660 normal configfile linux echo reboot halt all_video gfxterm gfxmenu png jpeg" \
+        --modules="part_gpt part_msdos fat ext2 iso9660 normal configfile linux echo reboot halt search search_label loopback gettext all_video gfxterm gfxmenu png jpeg" \
         "boot/grub/grub.cfg=$IMAGE_DIR/boot/grub/grub.cfg" \
         "boot/grub/themes/ankora/theme.txt=$ROOT_DIR/scripts/grub-theme-ankora/theme.txt" || {
         echo "[HATA] grub-mkstandalone bootx64.efi oluşturamadı!" >&2
@@ -5260,6 +5495,7 @@ XORRISO_CMD=(
     xorriso -as mkisofs
     -iso-level 3
     -full-iso9660-filenames
+    -r -J -l
     -volid "ANKORA_2_0"
     -eltorito-boot isolinux/isolinux.bin
     -eltorito-catalog isolinux/boot.cat

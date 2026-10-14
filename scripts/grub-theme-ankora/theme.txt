@@ -1,35 +1,18 @@
 # Ankora Linux GRUB2 teması ("ankora")
-# Görselsiz, metin tabanlı modern tema: düşük çözünürlüklü UEFI/BIOS
-# konsollarında da bozulmadan çizilir. Harici resim ya da yazıtipi
-# dosyası gerektirmez (unicode.pf2 GRUB ile gelir).
+# Modern kart görünümlü, metin tabanlı tema: düşük çözünürlüklü UEFI/BIOS
+# konsollarında da bozulmadan çizilir. Harici resim dosyası gerektirmez
+# (unicode.pf2 GRUB ile gelir; Türkçe glifler dahildir).
 title-text: ""
 desktop-image: ""
-desktop-color: "#13141b"
+desktop-color: "#0b0e17"
 terminal-font: "unicode"
 terminal-left: "0"
 terminal-top: "0"
 terminal-width: "100%"
 terminal-height: "100%"
 
-+ boot_menu {
-    left = "22%"
-    top = "30%"
-    width = "56%"
-    height = "42%"
-    item_font = "unicode"
-    item_color = "#a3a6be"
-    selected_item_color = "#ffffff"
-    item_height = "32"
-    item_padding = "8"
-    item_spacing = "6"
-    icon_width = "0"
-    icon_height = "0"
-    item_icon_space = "0"
-    scrollbar = "false"
-}
-
 + label {
-    top = "12%"
+    top = "10%"
     left = "0"
     width = "100%"
     align = "center"
@@ -39,22 +22,49 @@ terminal-height: "100%"
 }
 
 + label {
-    top = "18%"
+    top = "15%"
     left = "0"
     width = "100%"
     align = "center"
-    text = "Ayaz Masaüstü Ortamı  •  2.0"
+    text = "Ayaz Masaüstü Ortamı  •  2.0  •  Devuan Daedalus"
     color = "#64748b"
     font = "unicode"
 }
 
++ hbox {
+    top = "24%"
+    left = "22%"
+    width = "56%"
+    height = "8"
+    + label {
+        text = ""
+    }
+}
+
++ boot_menu {
+    left = "22%"
+    top = "27%"
+    width = "56%"
+    height = "44%"
+    item_font = "unicode"
+    item_color = "#c3c9d8"
+    selected_item_color = "#ffffff"
+    item_height = "36"
+    item_padding = "10"
+    item_spacing = "8"
+    icon_width = "0"
+    icon_height = "0"
+    item_icon_space = "12"
+    scrollbar = "false"
+}
+
 + label {
-    top = "88%"
+    top = "74%"
     left = "0"
     width = "100%"
     align = "center"
-    text = "Seçim: ↑ ↓   Açılış: Enter   Düzenle: E"
-    color = "#5a687d"
+    text = "Canlı sistem diske dokunmaz  •  Güvenli Mod donanım sorunlarında kullanılır"
+    color = "#475569"
     font = "unicode"
 }
 
@@ -65,7 +75,17 @@ terminal-height: "100%"
     width = "40%"
     height = "6"
     fg_color = "#2563eb"
-    bg_color = "#242533"
-    border_color = "#242533"
+    bg_color = "#1e293b"
+    border_color = "#1e293b"
     text = ""
+}
+
++ label {
+    top = "85%"
+    left = "0"
+    width = "100%"
+    align = "center"
+    text = "Seçim: ↑ ↓   •   Açılış: Enter   •   Düzenle: E   •   Komut: C"
+    color = "#5a687d"
+    font = "unicode"
 }

@@ -220,6 +220,24 @@
         case 'execute_system_installation':
           throw new Error('Sistem kurulumu yalnızca canlı Ankora Linux ortamında yerel köprü üzerinden çalıştırılabilir. Yerel IPC köprüsüne bağlanılamadı.');
 
+        case 'get_region_settings':
+          return {
+            timezone: 'Europe/Istanbul',
+            local_time: '',
+            keyboard_layout: 'tr',
+            language: 'tr_TR.UTF-8',
+            available_timezones: ['Europe/Istanbul', 'UTC'],
+            available_keyboards: ['tr', 'tr_f', 'us', 'de', 'fr', 'gb'],
+            available_languages: ['tr_TR.UTF-8', 'en_US.UTF-8']
+          };
+
+        case 'set_timezone':
+        case 'set_keyboard_layout':
+        case 'set_system_keyboard':
+        case 'set_system_language':
+        case 'sync_time_ntp':
+          throw new Error('Bölge/dil/saat ayarı için yerel sistem köprüsü gereklidir.');
+
         case 'install_deb_package':
           throw new Error('Paket kurulumu için yerel sistem köprüsü gereklidir.');
 
@@ -4889,6 +4907,16 @@
         if (sumDisk) sumDisk.textContent = this.selectedDisk || 'Seçilmedi';
         if (sumUser) sumUser.textContent = u;
         if (sumHost) sumHost.textContent = h;
+        const sumRegion = document.getElementById('sum-region');
+        if (sumRegion) {
+          const kbSel = document.getElementById('inst-keyboard');
+          const langSel = document.getElementById('inst-language');
+          const tzSel = document.getElementById('inst-timezone');
+          const kbTxt = kbSel ? kbSel.options[kbSel.selectedIndex].text : 'Türkçe Q';
+          const langTxt = langSel ? langSel.options[langSel.selectedIndex].text : 'Türkçe';
+          const tzTxt = tzSel ? tzSel.options[tzSel.selectedIndex].text : 'İstanbul';
+          sumRegion.textContent = `${kbTxt} • ${langTxt} • ${tzTxt}`;
+        }
       }
       document.querySelectorAll('.step-node').forEach((n, idx) => n.classList.toggle('active', idx + 1 === num));
       document.querySelectorAll('.wizard-pane').forEach((p, idx) => p.classList.toggle('active', idx + 1 === num));
@@ -4906,6 +4934,9 @@
       const fn = document.getElementById('inst-fullname')?.value?.trim() || u;
       const hn = document.getElementById('inst-hostname')?.value?.trim() || 'ankora-pc';
       const auto = document.getElementById('inst-autologin')?.checked ?? false;
+      const rLang = document.getElementById('inst-language')?.value || 'tr_TR.UTF-8';
+      const rKb = document.getElementById('inst-keyboard')?.value || 'tr';
+      const rTz = document.getElementById('inst-timezone')?.value || 'Europe/Istanbul';
 
       if (!u || !p) {
         alert('Kullanıcı adı ve parola boş bırakılamaz!');
@@ -4941,7 +4972,10 @@
             username: u,
             hostname: hn,
             password: p,
-            autologin: auto
+            autologin: auto,
+            timezone: rTz,
+            keyboard_layout: rKb,
+            language: rLang
           }
         });
 
@@ -5517,6 +5551,112 @@
       }
     },
 
+    // --- Bölge & Dil: saat dilimi + klavye düzeni + sistem dili ---
+    // Köprü yoksa (önizleme) sessizce yer tutucu bırakılır; hata yutulmaz,
+    // kullanıcıya bildirilir.
+    async loadRegionSettings() {
+      const selLang = document.getElementById('ctrl-region-language');
+      const selKb = document.getElementById('ctrl-region-keyboard');
+      const selTz = document.getElementById('ctrl-region-timezone');
+      const lblTime = document.getElementById('label-region-time');
+      if (!selLang || !selKb || !selTz) return;
+      try {
+        const r = await TauriBridge.invoke('get_region_settings');
+        if (!r) return;
+        if (Array.isArray(r.available_timezones) && r.available_timezones.length) {
+          const cur = selTz.value;
+          selTz.innerHTML = '';
+          r.available_timezones.forEach((z) => {
+            const o = document.createElement('option');
+            o.value = z;
+            o.textContent = z === 'Europe/Istanbul' ? 'İstanbul (Europe/Istanbul)' : z;
+            selTz.appendChild(o);
+          });
+          if (r.timezone && Array.from(selTz.options).some(o => o.value === r.timezone)) {
+            selTz.value = r.timezone;
+          } else if (cur && Array.from(selTz.options).some(o => o.value === cur)) {
+            selTz.value = cur;
+          }
+        } else if (r.timezone && !Array.from(selTz.options).some(o => o.value === r.timezone)) {
+          const o = document.createElement('option');
+          o.value = r.timezone;
+          o.textContent = r.timezone;
+          selTz.appendChild(o);
+          selTz.value = r.timezone;
+        }
+        if (r.language && Array.from(selLang.options).some(o => o.value === r.language)) {
+          selLang.value = r.language;
+        }
+        if (r.keyboard_layout && Array.from(selKb.options).some(o => o.value === r.keyboard_layout)) {
+          selKb.value = r.keyboard_layout;
+        }
+        if (lblTime) lblTime.textContent = r.local_time ? `Şu an: ${r.local_time} (${r.timezone})` : `Bölge: ${r.timezone}`;
+      } catch (e) {
+        if (lblTime) lblTime.textContent = `Bölge bilgisi okunamadı: ${e.message || e}`;
+      }
+    },
+
+    initRegionControls() {
+      const btnSave = document.getElementById('btn-region-save');
+      const btnSync = document.getElementById('btn-region-sync-time');
+      const toast = (msg, kind) => {
+        if (typeof ReportManager !== 'undefined' && ReportManager.showToast) {
+          ReportManager.showToast(msg, kind);
+        }
+      };
+      if (btnSync && !btnSync.dataset.bound) {
+        btnSync.dataset.bound = '1';
+        btnSync.addEventListener('click', async () => {
+          btnSync.disabled = true;
+          btnSync.textContent = 'Eşitleniyor…';
+          try {
+            const now = await TauriBridge.invoke('sync_time_ntp');
+            const lblTime = document.getElementById('label-region-time');
+            if (lblTime) lblTime.textContent = now ? `Şu an: ${now}` : 'Saat eşitlendi.';
+            toast(now ? `Sistem saati: ${now}` : 'Saat eşitlendi.');
+            if (typeof Terminal !== 'undefined') Terminal.log(`[SAAT] NTP eşitleme: ${now}`, 'cmd');
+          } catch (e) {
+            toast(`Saat eşitlenemedi: ${e.message || e}`, 'error');
+          } finally {
+            btnSync.disabled = false;
+            btnSync.textContent = 'İnternet ile Eşitle';
+          }
+        });
+      }
+      if (btnSave && !btnSave.dataset.bound) {
+        btnSave.dataset.bound = '1';
+        btnSave.addEventListener('click', async () => {
+          const selLang = document.getElementById('ctrl-region-language');
+          const selKb = document.getElementById('ctrl-region-keyboard');
+          const selTz = document.getElementById('ctrl-region-timezone');
+          btnSave.disabled = true;
+          btnSave.textContent = 'Kaydediliyor…';
+          const done = [];
+          const failed = [];
+          try {
+            await TauriBridge.invoke('set_timezone', { timezone: selTz ? selTz.value : 'Europe/Istanbul' });
+            done.push('saat dilimi');
+          } catch (e) { failed.push(`saat dilimi: ${e.message || e}`); }
+          try {
+            await TauriBridge.invoke('set_keyboard_layout', { layout: selKb ? selKb.value : 'tr' });
+            done.push('klavye');
+          } catch (e) { failed.push(`klavye: ${e.message || e}`); }
+          try {
+            await TauriBridge.invoke('set_system_language', { language: selLang ? selLang.value : 'tr_TR.UTF-8' });
+            done.push('sistem dili');
+          } catch (e) { failed.push(`dil: ${e.message || e}`); }
+          btnSave.disabled = false;
+          btnSave.textContent = 'Kaydet';
+          if (done.length) toast(`Kaydedildi: ${done.join(', ')}.`);
+          failed.forEach((f) => toast(f, 'error'));
+          if (typeof Terminal !== 'undefined') {
+            Terminal.log(`[BÖLGE] Kaydet: ok=[${done.join(', ')}] hata=[${failed.join('; ')}]`, done.length ? 'cmd' : 'error');
+          }
+          this.loadRegionSettings();
+        });
+      }
+    },
+
     // --- Dokunmatik Ekran (Faz Tahta): kalibrasyon + ekran klavyesi ---
     initTouchControls() {
       const lbl = document.getElementById('label-touch-status');
@@ -5582,6 +5722,7 @@
           if (targetPaneId === 'pane-set-bluetooth' && typeof BluetoothManager !== 'undefined') BluetoothManager.checkStatus();
           if (targetPaneId === 'pane-set-shortcuts' && typeof ShortcutManager !== 'undefined') ShortcutManager.renderSettings();
           if (targetPaneId === 'pane-set-recovery' && typeof SnapshotManager !== 'undefined') SnapshotManager.loadSnapshots();
+          if (targetPaneId === 'pane-set-region') this.loadRegionSettings();
         });
       });
 
@@ -5775,6 +5916,9 @@
 
       // 5. Wi-Fi taraması RadioManager'e bağlı (gerçek nmcli taraması);
       //    buradaki sahte sayaç kaldırıldı.
+
+      // 5b. Bölge & Dil (saat dilimi, klavye düzeni, sistem dili)
+      this.initRegionControls();
 
       // 6. Temizlik Araçları (APT & /tmp)
       const btnCleanApt = document.getElementById('btn-clean-apt');
@@ -10873,6 +11017,7 @@
         { name: 'Ses & Bildirim Ayarları', id: 'pane-set-audio', terms: ['ses', 'audio', 'hoparlor', 'mikrofon', 'volume', 'sound'] },
         { name: 'Bluetooth Aygıtları', id: 'pane-set-bluetooth', terms: ['bluetooth', 'bt', 'kulaklik', 'kablosuz'] },
         { name: 'Klavye Kısayolları', id: 'pane-set-shortcuts', terms: ['kisayol', 'klavye', 'shortcuts', 'tus'] },
+        { name: 'Bölge & Dil (Saat, Klavye, Sistem Dili)', id: 'pane-set-region', terms: ['bolge', 'dil', 'saat', 'zaman', 'klavye duzeni', 'keyboard layout', 'timezone', 'locale', 'language', 'saat dilimi', 'istanbul'] },
         { name: 'Depolama & Disk Yönetimi', id: 'pane-set-storage', terms: ['depolama', 'disk', 'storage', 'hdd', 'ssd'] },
         { name: 'Güç & Kiosk Modu', id: 'pane-set-power', terms: ['guc', 'power', 'pil', 'kiosk', 'uyku'] },
         { name: 'Sistem Bilgisi & Telemetri', id: 'pane-set-about', terms: ['sistem', 'hakkinda', 'surum', 'about', 'ankora'] }

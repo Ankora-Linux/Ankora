@@ -255,6 +255,95 @@ pub struct InstallPayload {
     pub hostname: String,
     pub password: String,
     pub autologin: bool,
+    #[serde(default)]
+    pub timezone: Option<String>,
+    #[serde(default)]
+    pub keyboard_layout: Option<String>,
+    #[serde(default)]
+    pub language: Option<String>,
+}
+
+// Bölge/dil/saat seçimlerinde ortak izin listeleri. Zaman dilimi ayrıca
+// /usr/share/zoneinfo altında gerçekten var olmak zorundadır.
+const ALLOWED_LANGUAGES: &[&str] = &["tr_TR.UTF-8", "en_US.UTF-8"];
+const COMMON_TIMEZONES: &[&str] = &[
+    "Europe/Istanbul",
+    "Europe/London",
+    "Europe/Berlin",
+    "Europe/Paris",
+    "Europe/Moscow",
+    "America/New_York",
+    "America/Chicago",
+    "America/Los_Angeles",
+    "Asia/Dubai",
+    "Asia/Baku",
+    "Asia/Nicosia",
+    "UTC",
+];
+
+fn is_valid_timezone(tz: &str) -> bool {
+    if tz.is_empty() || tz.len() > 64 || tz.contains("..") || tz.starts_with('/') {
+        return false;
+    }
+    if !tz.chars().all(|c| c.is_ascii_alphanumeric() || c == '/' || c == '_' || c == '-' || c == '+') {
+        return false;
+    }
+    std::path::Path::new("/usr/share/zoneinfo").join(tz).is_file()
+}
+
+fn current_timezone() -> String {
+    if let Ok(link) = std::fs::read_link("/etc/localtime") {
+        let s = link.to_string_lossy().into_owned();
+        if let Some(pos) = s.find("zoneinfo/") {
+            return s[pos + 9..].to_string();
+        }
+    }
+    if let Ok(tz) = std::fs::read_to_string("/etc/timezone") {
+        let t = tz.trim().to_string();
+        if !t.is_empty() {
+            return t;
+        }
+    }
+    "Europe/Istanbul".to_string()
+}
+
+fn current_language() -> String {
+    for path in ["/etc/default/locale", "/etc/locale.conf"] {
+        if let Ok(content) = std::fs::read_to_string(path) {
+            for line in content.lines() {
+                let t = line.trim();
+                if let Some(val) = t.strip_prefix("LANG=") {
+                    let v = val.trim().trim_matches('"').to_string();
+                    if ALLOWED_LANGUAGES.contains(&v.as_str()) {
+                        return v;
+                    }
+                }
+            }
+        }
+    }
+    "tr_TR.UTF-8".to_string()
+}
+
+fn current_keyboard_layout() -> String {
+    if let Ok(content) = std::fs::read_to_string("/etc/default/keyboard") {
+        let mut layout = String::new();
+        let mut variant = String::new();
+        for line in content.lines() {
+            let t = line.trim();
+            if let Some(v) = t.strip_prefix("XKBLAYOUT=") {
+                layout = v.trim().trim_matches('"').to_string();
+            } else if let Some(v) = t.strip_prefix("XKBVARIANT=") {
+                variant = v.trim().trim_matches('"').to_string();
+            }
+        }
+        if layout == "tr" && variant == "f" {
+            return "tr_f".to_string();
+        }
+        if ALLOWED_KEYBOARDS.contains(&layout.as_str()) {
+            return layout;
+        }
+    }
+    "tr".to_string()
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -2449,6 +2538,23 @@ fn execute_system_installation_blocking(payload: InstallPayload) -> Result<Strin
             }
         }
 
+        // 10b. Bölge / dil / saat kurulu sisteme taşınır: kurulum sihirbazındaki
+        // seçimler (yoksa canlı oturumun değerleri) hedefe yazılır.
+        let want_tz = payload.timezone.clone().filter(|t| is_valid_timezone(t)).unwrap_or_else(current_timezone);
+        let want_kb = payload.keyboard_layout.clone().filter(|k| ALLOWED_KEYBOARDS.contains(&k.as_str())).unwrap_or_else(current_keyboard_layout);
+        let want_lang = payload.language.clone().filter(|l| ALLOWED_LANGUAGES.contains(&l.as_str())).unwrap_or_else(current_language);
+        let _ = root_write("/target/etc/timezone", &format!("{}\n", want_tz));
+        let _ = root_command("ln", &["-sf", &format!("/usr/share/zoneinfo/{}", want_tz), "/target/etc/localtime"]);
+        let _ = root_command("chroot", &["/target", "sh", "-c", "DEBIAN_FRONTEND=noninteractive dpkg-reconfigure -f noninteractive tzdata 2>/dev/null; true"]);
+        let (kb_layout, kb_variant) = match want_kb.as_str() {
+            "tr_f" => ("tr", "f"),
+            other => (other, ""),
+        };
+        let _ = root_write("/target/etc/default/keyboard", &format!("XKBMODEL=\"pc105\"\nXKBLAYOUT=\"{}\"\nXKBVARIANT=\"{}\"\nXKBOPTIONS=\"\"\nBACKSPACE=\"guess\"\n", kb_layout, kb_variant));
+        let lang_short = want_lang.split('.').next().unwrap_or(&want_lang);
+        let _ = root_write("/target/etc/default/locale", &format!("LANG={}\nLANGUAGE={}:{}\nLC_ALL={}\n", want_lang, lang_short, lang_short.split('_').next().unwrap_or(lang_short), want_lang));
+        let _ = root_command("chroot", &["/target", "sh", "-c", &format!("command -v update-locale >/dev/null && update-locale LANG={} 2>/dev/null; command -v locale-gen >/dev/null && locale-gen {} en_US.UTF-8 2>/dev/null; true", want_lang, want_lang)]);
+
         // ZRAM Takas Servisi ve Optimizasyonunu kurulu sisteme kur
         let _ = root_write("/target/etc/default/rcS", "# Ankora Linux 2.0 Hızlı Paralel Açılış\nCONCURRENCY=makefile\nUTC=yes\nVERBOSE=no\nFSCKFIX=no\n");
         let _ = root_write("/target/etc/sysctl.d/99-zram.conf", "vm.swappiness = 100\nvm.vfs_cache_pressure = 50\nvm.watermark_boost_factor = 0\nvm.dirty_background_ratio = 5\nvm.dirty_ratio = 10\n");
@@ -2958,9 +3064,33 @@ fn set_first_run_completed(dont_show_again: bool) -> Result<(), String> {
 
 #[tauri::command]
 async fn set_system_keyboard(layout: String) -> Result<String, String> {
-    let clean = layout.trim();
+    apply_keyboard_layout(layout.trim())
+}
+
+#[tauri::command]
+async fn set_keyboard_layout(layout: String) -> Result<String, String> {
+    apply_keyboard_layout(layout.trim())
+}
+
+fn apply_keyboard_layout(clean: &str) -> Result<String, String> {
     if !ALLOWED_KEYBOARDS.contains(&clean) {
         return Err("Geçersiz veya desteklenmeyen klavye haritası.".to_string());
+    }
+    // Kalıcılık: X11 ve konsol aynı haritayı kullanır. /etc yazılamazsa
+    // (yetkisiz oturum) yalnızca o anki X oturumu değişir, hata yine de
+    // kullanıcıya söylenir.
+    let (xkb_layout, xkb_variant) = match clean {
+        "tr_f" => ("tr", "f"),
+        other => (other, ""),
+    };
+    let kb_conf = format!(
+        "XKBMODEL=\"pc105\"\nXKBLAYOUT=\"{}\"\nXKBVARIANT=\"{}\"\nXKBOPTIONS=\"\"\nBACKSPACE=\"guess\"\n",
+        xkb_layout, xkb_variant
+    );
+    let persist_ok = root_write("/etc/default/keyboard", &kb_conf).is_ok();
+    if persist_ok {
+        // Konsol haritasını da güncelle ( SysVinit: setupcon / console-setup ).
+        let _ = root_command("sh", &["-c", "command -v setupcon >/dev/null && setupcon -k --force 2>/dev/null; service console-setup restart 2>/dev/null; true"]);
     }
     #[cfg(target_os = "linux")]
     {
@@ -2970,7 +3100,92 @@ async fn set_system_keyboard(layout: String) -> Result<String, String> {
             let _ = Command::new("setxkbmap").arg(clean).output();
         }
     }
-    Ok(format!("Klavye: {}", clean))
+    if persist_ok {
+        Ok(format!("Klavye: {} (kalıcı)", clean))
+    } else {
+        Err("Klavye o anki oturumda değişti, ancak kalıcı kayıt için yönetici yetkisi gerekiyor.".to_string())
+    }
+}
+
+#[derive(Debug, Serialize, Clone)]
+pub struct RegionSettings {
+    pub timezone: String,
+    pub local_time: String,
+    pub keyboard_layout: String,
+    pub language: String,
+    pub available_timezones: Vec<String>,
+    pub available_keyboards: Vec<String>,
+    pub available_languages: Vec<String>,
+}
+
+#[tauri::command]
+async fn get_region_settings() -> Result<RegionSettings, String> {
+    let local_time = Command::new("date")
+        .args(["+%Y-%m-%d %H:%M:%S %Z"])
+        .output()
+        .ok()
+        .and_then(|o| String::from_utf8(o.stdout).ok())
+        .map(|s| s.trim().to_string())
+        .unwrap_or_default();
+    let mut zones: Vec<String> = COMMON_TIMEZONES.iter().map(|s| s.to_string()).collect();
+    let cur = current_timezone();
+    if !zones.contains(&cur) {
+        zones.insert(0, cur.clone());
+    }
+    Ok(RegionSettings {
+        timezone: cur,
+        local_time,
+        keyboard_layout: current_keyboard_layout(),
+        language: current_language(),
+        available_timezones: zones,
+        available_keyboards: ALLOWED_KEYBOARDS.iter().map(|s| s.to_string()).collect(),
+        available_languages: ALLOWED_LANGUAGES.iter().map(|s| s.to_string()).collect(),
+    })
+}
+
+#[tauri::command]
+async fn set_timezone(timezone: String) -> Result<String, String> {
+    let tz = timezone.trim().to_string();
+    if !is_valid_timezone(&tz) {
+        return Err("Geçersiz veya desteklenmeyen saat dilimi.".to_string());
+    }
+    // systemd yok (SysVinit): timedatectl çalışmaz. Klasik yöntem:
+    // /etc/localtime sembolik bağı + /etc/timezone + tzdata yeniden yapılandırma.
+    root_write("/etc/timezone", &format!("{}\n", tz))
+        .map_err(|e| format!("Saat dilimi yazılamadı (yönetici yetkisi gerekiyor): {}", e))?;
+    let link_out = root_command("ln", &["-sf", &format!("/usr/share/zoneinfo/{}", tz), "/etc/localtime"])
+        .map_err(|e| format!("Saat dilimi bağlanamadı: {}", e))?;
+    if !link_out.status.success() {
+        return Err("Saat dilimi bağlanamadı (yönetici yetkisi gerekiyor).".to_string());
+    }
+    let _ = root_command("sh", &["-c", "DEBIAN_FRONTEND=noninteractive dpkg-reconfigure -f noninteractive tzdata 2>/dev/null; true"]);
+    Ok(format!("Saat dilimi: {}", tz))
+}
+
+#[tauri::command]
+async fn sync_time_ntp() -> Result<String, String> {
+    // SysVinit'te systemd-timesyncd yoktur; chrony birincil, ntpdate yedek,
+    // donanım saati son çaredir. En az biri başarısız olsa da güncel saat döndürülür.
+    let _ = root_command("sh", &["-c", "command -v chronyc >/dev/null && chronyc -a makestep 2>/dev/null; command -v ntpdate >/dev/null && ntpdate -u pool.ntp.org 2>/dev/null; true"]);
+    let date_out = Command::new("date")
+        .args(["+%Y-%m-%d %H:%M:%S %Z"])
+        .output()
+        .map_err(|e| format!("Saat okunamadı: {}", e))?;
+    Ok(String::from_utf8_lossy(&date_out.stdout).trim().to_string())
+}
+
+#[tauri::command]
+async fn set_system_language(language: String) -> Result<String, String> {
+    let lang = language.trim();
+    if !ALLOWED_LANGUAGES.contains(&lang) {
+        return Err("Geçersiz veya desteklenmeyen sistem dili.".to_string());
+    }
+    let short = lang.split('.').next().unwrap_or(lang);
+    let locale_conf = format!("LANG={}\nLANGUAGE={}:{}\nLC_ALL={}\n", lang, short, short.split('_').next().unwrap_or(short), lang);
+    root_write("/etc/default/locale", &locale_conf)
+        .map_err(|e| format!("Sistem dili yazılamadı (yönetici yetkisi gerekiyor): {}", e))?;
+    let _ = root_command("sh", &["-c", &format!("command -v update-locale >/dev/null && update-locale LANG={} LANGUAGE={} 2>/dev/null; command -v locale-gen >/dev/null && locale-gen {} en_US.UTF-8 2>/dev/null; true", lang, short, lang)]);
+    Ok(format!("Sistem dili: {} (oturumu yeniden başlatınca uygulanır)", lang))
 }
 
 // ============================================================================
@@ -6399,6 +6614,11 @@ fn main() {
             check_first_run,
             set_first_run_completed,
             set_system_keyboard,
+            set_keyboard_layout,
+            get_region_settings,
+            set_timezone,
+            sync_time_ntp,
+            set_system_language,
             check_de_update,
             download_and_apply_de_update,
             restart_desktop_process,

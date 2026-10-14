@@ -375,6 +375,44 @@
               </label>
             </div>
 
+            <h3 style="margin-top: 14px;">Bölge, Dil & Saat</h3>
+            <p>Kurulu sistem bu ayarlarla açılır:</p>
+
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Sistem Dili:</label>
+                <select id="inst-language" class="input-mono">
+                  <option value="tr_TR.UTF-8" selected>Türkçe</option>
+                  <option value="en_US.UTF-8">English</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Klavye Düzeni:</label>
+                <select id="inst-keyboard" class="input-mono">
+                  <option value="tr" selected>Türkçe Q</option>
+                  <option value="tr_f">Türkçe F</option>
+                  <option value="us">English US</option>
+                  <option value="de">Deutsch</option>
+                  <option value="fr">Français</option>
+                  <option value="gb">English UK</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Saat Dilimi:</label>
+                <select id="inst-timezone" class="input-mono">
+                  <option value="Europe/Istanbul" selected>İstanbul (Europe/Istanbul)</option>
+                  <option value="Europe/London">Londra</option>
+                  <option value="Europe/Berlin">Berlin</option>
+                  <option value="Europe/Paris">Paris</option>
+                  <option value="Europe/Moscow">Moskova</option>
+                  <option value="Asia/Baku">Bakü</option>
+                  <option value="Asia/Dubai">Dubai</option>
+                  <option value="America/New_York">New York</option>
+                  <option value="UTC">UTC</option>
+                </select>
+              </div>
+            </div>
+
             <div class="wizard-nav">
               <button class="btn-pkg prev-step-btn" id="btn-step2-prev">← Geri</button>
               <button class="btn-pkg next-step-btn" id="btn-step2-next">İleri: Onay →</button>
@@ -392,6 +430,7 @@
               <div><span>Hedef Disk:</span> <strong id="sum-disk">Seçilmedi</strong></div>
               <div><span>Kullanıcı Hesabı:</span> <strong id="sum-user">—</strong></div>
               <div><span>Bilgisayar Adı:</span> <strong id="sum-host">ankora-pc</strong></div>
+              <div><span>Bölge / Dil / Saat:</span> <strong id="sum-region">Türkçe Q • Türkçe • İstanbul</strong></div>
               <div><span>Taban Çekirdek:</span> <strong>Devuan Daedalus (SysVinit)</strong></div>
               <div><span>Önyükleyici:</span> <strong>GRUB x86_64-efi</strong></div>
             </div>
@@ -916,6 +955,10 @@
               <button class="settings-nav-item" data-pane="pane-set-shortcuts">
                 <svg class="nav-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="4" width="20" height="16" rx="2"></rect><line x1="6" y1="8" x2="6.01" y2="8"></line><line x1="10" y1="8" x2="10.01" y2="8"></line><line x1="14" y1="8" x2="14.01" y2="8"></line><line x1="18" y1="8" x2="18.01" y2="8"></line><line x1="6" y1="12" x2="6.01" y2="12"></line><line x1="18" y1="12" x2="18.01" y2="12"></line><line x1="9" y1="16" x2="15" y2="16"></line></svg>
                 <span>Klavye Kısayolları</span>
+              </button>
+              <button class="settings-nav-item" data-pane="pane-set-region">
+                <svg class="nav-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                <span>Bölge & Dil</span>
               </button>
               <button class="settings-nav-item" data-pane="pane-set-recovery">
                 <svg class="nav-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>
@@ -1569,7 +1612,68 @@
               </div>
             </div>
 
-            <!-- 11. SİSTEM KURTARMA VE GERİ YÜKLEME (SNAPSHOTS) -->
+            <!-- 11. BÖLGE & DİL (SAAT, KLAVYE, SİSTEM DİLİ) -->
+            <div class="settings-pane" id="pane-set-region">
+              <div class="pane-header">
+                <h3>Bölge & Dil</h3>
+                <p>Sistem dili, klavye düzeni ve saat dilimi. Değişiklikler kalıcıdır, yeniden başlatmada korunur.</p>
+              </div>
+
+              <div class="setting-row-item">
+                <div class="row-desc">
+                  <strong>Sistem Dili</strong>
+                  <span>Arayüz ve sistem iletilerinin dili (oturumu yeniden başlatınca uygulanır)</span>
+                </div>
+                <div class="row-control">
+                  <select id="ctrl-region-language" class="select-mono">
+                    <option value="tr_TR.UTF-8">Türkçe (tr_TR.UTF-8)</option>
+                    <option value="en_US.UTF-8">English (en_US.UTF-8)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="setting-row-item">
+                <div class="row-desc">
+                  <strong>Klavye Düzeni</strong>
+                  <span>Hem grafik oturumda hem konsolda (TTY) geçerli olur</span>
+                </div>
+                <div class="row-control">
+                  <select id="ctrl-region-keyboard" class="select-mono">
+                    <option value="tr">Türkçe Q (tr)</option>
+                    <option value="tr_f">Türkçe F (tr_f)</option>
+                    <option value="us">English US (us)</option>
+                    <option value="de">Deutsch (de)</option>
+                    <option value="fr">Français (fr)</option>
+                    <option value="gb">English UK (gb)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="setting-row-item">
+                <div class="row-desc">
+                  <strong>Saat Dilimi</strong>
+                  <span>Sistem saatinin hangi bölgeye göre gösterileceği</span>
+                </div>
+                <div class="row-control">
+                  <select id="ctrl-region-timezone" class="select-mono">
+                    <option value="Europe/Istanbul">İstanbul (Europe/Istanbul)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="setting-row-item">
+                <div class="row-desc">
+                  <strong>Sistem Saati</strong>
+                  <span id="label-region-time">Okunuyor…</span>
+                </div>
+                <div class="row-control" style="display:flex;gap:8px;">
+                  <button class="btn-pkg" id="btn-region-sync-time">İnternet ile Eşitle</button>
+                  <button class="btn-pkg btn-pkg-primary" id="btn-region-save">Kaydet</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- 12. SİSTEM KURTARMA VE GERİ YÜKLEME (SNAPSHOTS) -->
             <div class="settings-pane" id="pane-set-recovery">
               <div class="pane-header">
                 <h3>Sistem Kurtarma Noktaları (Geri Yükleme)</h3>
