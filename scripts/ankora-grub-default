@@ -1,0 +1,14 @@
+# Ankora Linux — kurulu sistem GRUB öntanımlıları (/etc/default/grub)
+# Kurulum aracı (Rust + Python köprü) bu dosyayı /target/etc/default/grub
+# konumuna yazar; ardından update-grub çalıştırılır.
+GRUB_DEFAULT=0
+GRUB_TIMEOUT_STYLE=menu
+GRUB_TIMEOUT=5
+GRUB_DISTRIBUTOR="Ankora Linux"
+GRUB_CMDLINE_LINUX_DEFAULT="quiet splash loglevel=3"
+GRUB_CMDLINE_LINUX=""
+GRUB_GFXMODE=1920x1080,1366x768,1020x768,auto
+GRUB_GFXPAYLOAD_LINUX=keep
+GRUB_THEME=/boot/grub/themes/ankora/theme.txt
+GRUB_DISABLE_OS_PROBER=false
+GRUB_DISABLE_RECOVERY=true

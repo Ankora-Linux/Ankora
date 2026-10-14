@@ -1,0 +1,71 @@
+# Ankora Linux GRUB2 teması ("ankora")
+# Görselsiz, metin tabanlı modern tema: düşük çözünürlüklü UEFI/BIOS
+# konsollarında da bozulmadan çizilir. Harici resim ya da yazıtipi
+# dosyası gerektirmez (unicode.pf2 GRUB ile gelir).
+title-text: ""
+desktop-image: ""
+desktop-color: "#13141b"
+terminal-font: "unicode"
+terminal-left: "0"
+terminal-top: "0"
+terminal-width: "100%"
+terminal-height: "100%"
+
++ boot_menu {
+    left = "22%"
+    top = "30%"
+    width = "56%"
+    height = "42%"
+    item_font = "unicode"
+    item_color = "#a3a6be"
+    selected_item_color = "#ffffff"
+    item_height = "32"
+    item_padding = "8"
+    item_spacing = "6"
+    icon_width = "0"
+    icon_height = "0"
+    item_icon_space = "0"
+    scrollbar = "false"
+}
+
++ label {
+    top = "12%"
+    left = "0"
+    width = "100%"
+    align = "center"
+    text = "ANKORA LINUX"
+    color = "#f5f6fa"
+    font = "unicode"
+}
+
++ label {
+    top = "18%"
+    left = "0"
+    width = "100%"
+    align = "center"
+    text = "Ayaz Masaüstü Ortamı  •  2.0"
+    color = "#64748b"
+    font = "unicode"
+}
+
++ label {
+    top = "88%"
+    left = "0"
+    width = "100%"
+    align = "center"
+    text = "Seçim: ↑ ↓   Açılış: Enter   Düzenle: E"
+    color = "#5a687d"
+    font = "unicode"
+}
+
++ progress_bar {
+    id = "__timeout__"
+    left = "30%"
+    top = "80%"
+    width = "40%"
+    height = "6"
+    fg_color = "#2563eb"
+    bg_color = "#242533"
+    border_color = "#242533"
+    text = ""
+}

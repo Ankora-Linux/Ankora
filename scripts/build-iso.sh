@@ -303,10 +303,14 @@ apt-get install -y --no-install-recommends \
     scrot \
     xclip \
     xterm \
+    xinput \
     wmctrl \
     xdotool \
     dunst \
     libnotify-bin \
+    plymouth \
+    libnss3-tools \
+    openssl \
     flatpak \
     libvulkan1 \
     mesa-vulkan-drivers \
@@ -1203,10 +1207,8 @@ def execute_ayaz_command(cmd, args):
             "date", "hostname", "id", "free -m", "free -h", "df -h", "df -h /",
             "cat /etc/os-release", "cat /etc/issue", "cat /proc/version",
             "cat /proc/meminfo", "cat /proc/cpuinfo", "ps aux", "top -b -n 1",
-            "apt-get clean", "apt-get update", "apt-get upgrade -y",
-            "apt-get update && apt-get upgrade -y", "rm -rf /tmp/*",
-            "apt-get clean && rm -rf /tmp/*", "df -h / && free -m", "clear", "sync",
-            "echo 3 > /proc/sys/vm/drop_caches"
+            "apt-get clean", "rm -rf /tmp/*",
+            "apt-get clean && rm -rf /tmp/*", "df -h / && free -m", "clear", "sync"
         }
         _ALLOWED_UTILITIES = {
             "uname", "whoami", "uptime", "date", "hostname", "id",
@@ -1422,6 +1424,121 @@ def execute_ayaz_command(cmd, args):
         # kurulum akışının kendisiyle yapılır (apt ikinci çağrıda boştur).
         return execute_ayaz_command('install_deb_package',
                                     {'packageName': vendor_pkgs[vendor]})
+
+    elif cmd == 'install_meb_certificate':
+        # MEB okul ağı kök sertifikası: indirme ve doğrulama yalnızca
+        # root-owned ayaz-pkg-helper içindedir; arayüzden URL alınmaz.
+        helper = '/usr/local/bin/ayaz-pkg-helper'
+        if not os.path.exists(helper):
+            raise Exception('Güvenlik: ayaz-pkg-helper bulunamadı; MEB sertifikası kurulamaz')
+        try:
+            proc = subprocess.run(
+                ['sudo', helper, 'mebcert'],
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                timeout=180
+            )
+        except subprocess.TimeoutExpired:
+            raise Exception('MEB sertifika kurulumu zaman aşımına uğradı (180 sn)')
+        if proc.returncode != 0:
+            err = (proc.stderr or proc.stdout or '').strip()
+            if not err:
+                err = f'çıkış kodu {proc.returncode}'
+            raise Exception(f'MEB sertifikası kurulamadı: {err}')
+        return 'MEB kök sertifikası sisteme ve Brave/Chrome profillerine kuruldu.'
+
+    elif cmd == 'get_xdg_user_dirs':
+        # Gerçek XDG kullanıcı dizinleri (~/.config/user-dirs.dirs öncelikli).
+        # Yerel ad (Downloads) ya da Türkçe ad (İndirilenler) kurulumdaki
+        # dile göre değişir; arayüz varsayım yapmaz, buradan okur.
+        def _xdg_pick(key, fallbacks):
+            cfg = os.path.join(home_dir, '.config/user-dirs.dirs')
+            try:
+                with open(cfg, encoding='utf-8', errors='replace') as fh:
+                    for line in fh:
+                        line = line.strip()
+                        if line.startswith(key + '='):
+                            val = line.split('=', 1)[1].strip().strip('"')
+                            if val.startswith('$HOME'):
+                                val = os.path.join(home_dir, val[5:].lstrip('/'))
+                            if val:
+                                return val
+            except Exception:
+                pass
+            for fb in fallbacks:
+                p = os.path.join(home_dir, fb)
+                if os.path.isdir(p):
+                    return p
+            return os.path.join(home_dir, fallbacks[0])
+        return {
+            'home': home_dir,
+            'desktop': _xdg_pick('XDG_DESKTOP_DIR', ['Desktop', 'Masaüstü']),
+            'download': _xdg_pick('XDG_DOWNLOAD_DIR', ['Downloads', 'İndirilenler']),
+            'documents': _xdg_pick('XDG_DOCUMENTS_DIR', ['Documents', 'Belgeler']),
+            'pictures': _xdg_pick('XDG_PICTURES_DIR', ['Pictures', 'Resimler']),
+            'music': _xdg_pick('XDG_MUSIC_DIR', ['Music', 'Müzik']),
+            'videos': _xdg_pick('XDG_VIDEOS_DIR', ['Videos', 'Videolar']),
+        }
+
+    elif cmd == 'get_app_icon':
+        # Kurulu uygulamanın gerçek simge dosyasını veri URL'si yapar.
+        # Yalnızca resim uzantılı, 512 KB altı dosyalar okunur.
+        import base64 as _b64
+        names = args.get('names', []) or []
+        if isinstance(names, str):
+            names = [names]
+        search_dirs = [
+            os.path.join(home_dir, '.local/share/icons'),
+            os.path.join(home_dir, '.icons'),
+            '/usr/share/icons',
+            '/usr/share/pixmaps',
+            '/usr/local/share/icons',
+            '/usr/local/share/pixmaps',
+        ]
+        found = None
+        for cand in names:
+            c = str(cand).strip()
+            if not c:
+                continue
+            if os.path.isabs(c):
+                if os.path.isfile(c) and c.lower().endswith(('.png', '.svg', '.xpm')):
+                    found = c
+                    break
+                continue
+            base = c.rsplit('/', 1)[-1]
+            rels = [f'{base}.png', f'{base}.svg', f'{base}.xpm',
+                    f'hicolor/48x48/apps/{base}.png',
+                    f'hicolor/scalable/apps/{base}.svg',
+                    f'hicolor/32x32/apps/{base}.png',
+                    f'Adwaita/48x48/apps/{base}.png',
+                    f'Adwaita/scalable/apps/{base}.svg']
+            hit = None
+            for d in search_dirs:
+                for rel in rels:
+                    p = os.path.join(d, rel)
+                    if os.path.isfile(p):
+                        hit = p
+                        break
+                if hit:
+                    break
+            if hit:
+                found = hit
+                break
+        if not found:
+            return None
+        try:
+            if os.path.getsize(found) > 512 * 1024:
+                return None
+            with open(found, 'rb') as fh:
+                raw = fh.read()
+            low = found.lower()
+            mime = 'image/svg+xml' if low.endswith('.svg') else (
+                'image/x-xpixmap' if low.endswith('.xpm') else 'image/png')
+            return f'data:{mime};base64,{_b64.b64encode(raw).decode("ascii")}'
+        except Exception:
+            return None
 
     elif cmd == 'remove_deb_package':
         pkg = args.get('packageName', '').strip()
@@ -2081,6 +2198,20 @@ exit 0
                 else:
                     err_msg = (res_retry.stderr or res_retry.stdout or '').strip()
                     raise Exception(f'Önyükleyici (GRUB) kurulamadı: {err_msg}')
+
+            # 11b. Ankora önyükleyici görünümü: modern GRUB menüsü + açılış
+            # ekranı. Kaynaklar canlı sistemdeki /usr/share/ayaz altındadır
+            # (ISO derleyici oraya koyar); yoksa sessizce atlanır.
+            _root("mkdir -p /target/boot/grub/themes/ankora "
+                  "/target/usr/share/plymouth/themes/ankora", check=False)
+            _root("cp -f /usr/share/ayaz/grub-theme-ankora/theme.txt "
+                  "/target/boot/grub/themes/ankora/theme.txt 2>/dev/null; true", check=False)
+            _root("cp -f /usr/share/ayaz/ankora-grub-default "
+                  "/target/etc/default/grub 2>/dev/null; true", check=False)
+            _root("cp -rf /usr/share/ayaz/plymouth-theme-ankora/. "
+                  "/target/usr/share/plymouth/themes/ankora/ 2>/dev/null; true", check=False)
+            _root("chroot /target plymouth-set-default-theme -R ankora "
+                  "2>/dev/null; true", check=False)
 
             res_ug = subprocess.run(
                 _root_pre + ['chroot', '/target', 'update-grub'],
@@ -4138,7 +4269,7 @@ exit 0
             if found_bad:
                 raise Exception(f'Güvenlik Hatası: Komutta yasaklı karakter tespit edildi ({list(found_bad)[0]})')
             first_word = cmd_str.split()[0]
-            if first_word in _FORBIDDEN_BINARIES and first_word not in ('bash', 'sh'):
+            if first_word in _FORBIDDEN_BINARIES:
                 raise Exception(f"Güvenlik Hatası: '{first_word}' doğrudan başlatılamaz")
             for pat in _SENSITIVE_PATTERNS:
                 if pat.lower() in cmd_str.lower():
@@ -4512,6 +4643,11 @@ class AyazDesktop(Gtk.Window):
         # XFO kuralıyla boş kalır. Bütün geçişler burada toplanır: köprü
         # dışındaki hedefler iptal edilip arayüze bildirilir.
         self.webview.connect('decide-policy', self.on_decide_policy)
+        try:
+            dl_ctx = self.webview.get_context()
+            dl_ctx.connect('download-started', self.on_download_started)
+        except Exception as e:
+            print(f"[INDIRME] download-started sinyali baglanamadi: {e}", flush=True)
 
         content_mgr = self.webview.get_user_content_manager()
         content_mgr.register_script_message_handler("ayazIpc")
@@ -4601,6 +4737,70 @@ class AyazDesktop(Gtk.Window):
         time.sleep(0.3)
         Gtk.main_quit()
 
+    def on_download_started(self, context, download):
+        # Tarayıcı çerçevesinden gelen indirmeler XDG İndirilenler dizinine
+        # yazılır; bitince arayüze bildirilir ki Dosyalar ve Masaüstü
+        # kendini yenilesin. Hedef yolu yalnız bu fonksiyon belirler.
+        try:
+            dest_dir = None
+            try:
+                proc = subprocess.run(['xdg-user-dir', 'DOWNLOAD'],
+                                      stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+                                      text=True, timeout=5)
+                cand = (proc.stdout or '').strip()
+                if cand and os.path.isdir(cand):
+                    dest_dir = cand
+            except Exception:
+                dest_dir = None
+            if not dest_dir:
+                home = os.path.expanduser('~')
+                for fb in ('Downloads', 'İndirilenler'):
+                    p = os.path.join(home, fb)
+                    if os.path.isdir(p):
+                        dest_dir = p
+                        break
+            if not dest_dir:
+                dest_dir = os.path.join(os.path.expanduser('~'), 'Downloads')
+            os.makedirs(dest_dir, exist_ok=True)
+
+            raw_name = ''
+            try:
+                raw_name = download.get_suggested_filename() or ''
+            except Exception:
+                raw_name = ''
+            fname = os.path.basename(raw_name).strip().strip('.') or 'indirilen-dosya'
+            fname = fname.replace('\x00', '')[:180] or 'indirilen-dosya'
+            target = os.path.join(dest_dir, fname)
+            if os.path.exists(target):
+                stem, dot, ext = fname.rpartition('.')
+                if not stem:
+                    stem, ext = fname, ''
+                i = 1
+                while os.path.exists(target) and i < 1000:
+                    nm = f"{stem}-{i}.{ext}" if ext else f"{stem}-{i}"
+                    target = os.path.join(dest_dir, nm)
+                    i += 1
+            download.set_destination('file://' + target)
+
+            def _done(_dl):
+                try:
+                    js = 'window.__AYAZ_DOWNLOAD_DONE__ && window.__AYAZ_DOWNLOAD_DONE__(%s);' % json.dumps(target)
+                    self.webview.run_javascript(js, None, None, None)
+                except Exception as e:
+                    print(f"[INDIRME] bildirim gonderilemedi: {e}", flush=True)
+
+            def _failed(_dl, _err):
+                print(f"[INDIRME] başarısız: {target}", flush=True)
+
+            try:
+                download.connect('finished', _done)
+                download.connect('failed', _failed)
+            except Exception:
+                pass
+            print(f"[INDIRME] hedef: {target}", flush=True)
+        except Exception as e:
+            print(f"[INDIRME] hazırlanamadı: {e}", flush=True)
+
     def on_decide_policy(self, view, decision, decision_type):
         # Köprüye giden her şey olduğu gibi geçer; http/https olan diğer her
         # hedef iptal edilir ve hedef adres arayüze bildirilir. Arayüz adresi
@@ -4662,6 +4862,19 @@ fi
 # XDG ve Desktop Entegrasyonu
 mkdir -p "$CHROOT_DIR/etc/xdg/openbox" "$CHROOT_DIR/usr/share/ayaz" "$CHROOT_DIR/etc/skel/.config/openbox" "$CHROOT_DIR/home/ankora/.config/openbox"
 cp "$ROOT_DIR/scripts/openbox-rc.xml" "$CHROOT_DIR/etc/xdg/openbox/rc.xml" || true
+# Ankora önyükleyici ve açılış temaları (canlı sistem + kurulum hedefi için
+# /usr/share/ayaz altında; kurulum aracı buradan /target altına taşır).
+mkdir -p "$CHROOT_DIR/usr/share/ayaz/grub-theme-ankora" "$CHROOT_DIR/usr/share/ayaz/plymouth-theme-ankora"
+cp "$ROOT_DIR/scripts/grub-theme-ankora/theme.txt" "$CHROOT_DIR/usr/share/ayaz/grub-theme-ankora/theme.txt" || true
+cp "$ROOT_DIR/scripts/ankora-grub-default" "$CHROOT_DIR/usr/share/ayaz/ankora-grub-default" || true
+cp "$ROOT_DIR/scripts/plymouth-theme-ankora/ankora.plymouth" "$CHROOT_DIR/usr/share/ayaz/plymouth-theme-ankora/ankora.plymouth" || true
+cp "$ROOT_DIR/scripts/plymouth-theme-ankora/ankora.script" "$CHROOT_DIR/usr/share/ayaz/plymouth-theme-ankora/ankora.script" || true
+# Canlı sistemin kendi açılış teması da Ankora olur (plymouth varsa).
+mkdir -p "$CHROOT_DIR/usr/share/plymouth/themes/ankora"
+cp "$ROOT_DIR/scripts/plymouth-theme-ankora/ankora.plymouth" "$CHROOT_DIR/usr/share/plymouth/themes/ankora/ankora.plymouth" || true
+cp "$ROOT_DIR/scripts/plymouth-theme-ankora/ankora.script" "$CHROOT_DIR/usr/share/plymouth/themes/ankora/ankora.script" || true
+chroot "$CHROOT_DIR" plymouth-set-default-theme -R ankora 2>/dev/null || \
+    chroot "$CHROOT_DIR" plymouth-set-default-theme ankora 2>/dev/null || true
 cp "$ROOT_DIR/scripts/openbox-rc.xml" "$CHROOT_DIR/usr/share/ayaz/openbox-rc.xml" || true
 cp "$ROOT_DIR/scripts/openbox-rc.xml" "$CHROOT_DIR/etc/skel/.config/openbox/rc.xml" || true
 cp "$ROOT_DIR/scripts/openbox-rc.xml" "$CHROOT_DIR/home/ankora/.config/openbox/rc.xml" || true
@@ -4836,21 +5049,49 @@ UI vesamenu.c32
 PROMPT 0
 TIMEOUT 50
 DEFAULT ankora
+ALLOWOPTIONS 1
 
-MENU TITLE Ankora Linux 2.0 (Ayaz DE) Live Boot
-MENU COLOR border       30;44   #40ffffff #a0000000 std
-MENU COLOR title        1;36;44 #ffffffff #a0000000 std
-MENU COLOR sel          7;37;40 #e0000000 #20ffffff all
+MENU TITLE Ankora Linux 2.0  —  Ayaz Masaüstü
+MENU WIDTH 78
+MENU MARGIN 10
+MENU ROWS 8
+MENU TABMSGROW 22
+MENU CMDLINEROW 22
+MENU HELPMSGROW 24
+MENU HELPMSGENDROW 26
+MENU TIMEOUTROW 20
+MENU COLOR border       0 #00000000 #00000000 none
+MENU COLOR title        0 #ffffffff #13141b std
+MENU COLOR sel          0 #ffffffff #2563eb all
+MENU COLOR unsel        0 #a3a6be #13141b std
+MENU COLOR help         0 #5a687d #13141b std
+MENU COLOR timeout_msg  0 #5a687d #13141b std
+MENU COLOR timeout      0 #f5f6fa #13141b std
+MENU COLOR msg07        0 #5a687d #13141b std
+MENU COLOR tabmsg       0 #5a687d #13141b std
 
 LABEL ankora
-  MENU LABEL ^1. Ankora Linux 2.0 (Canli Masaustu / Kiosk)
+  MENU LABEL ^1. Ankora Linux 2.0 (Canli Masaustu)
+  MENU HELP Ankora Ayaz masaüstünü canlı olarak başlatır. Diske dokunulmaz.
   KERNEL /live/vmlinuz
-  APPEND initrd=/live/initrd boot=live quiet splash components username=ankora
+  APPEND initrd=/live/initrd boot=live quiet splash loglevel=3 components username=ankora
 
 LABEL failsafe
-  MENU LABEL ^2. Ankora Linux (Failsafe Guvenli Mod)
+  MENU LABEL ^2. Guvenli Mod (Failsafe)
+  MENU HELP Donanım hızlandırma kapalı, uyumluluk bayraklarıyla başlatır.
   KERNEL /live/vmlinuz
   APPEND initrd=/live/initrd boot=live components nomodeset noapic noacpi nosmap nosmep
+
+LABEL meminfo
+  MENU LABEL ^3. Bellek Bilgisi
+  MENU HELP Sistem belleğinin boyutunu gösterir.
+  COM32 libcom32.c32
+  APPEND meminfo.c32
+
+TEXT HELP
+  Yukari/Asagi tuslariyla secin, Enter ile baslatin.
+  1: Canli Masaustu   2: Guvenli Mod   3: Bellek Bilgisi
+ENDTEXT
 EOF
 
 # Gerekli syslinux modülleri
@@ -4867,24 +5108,54 @@ for mod_dir in /usr/lib/syslinux/modules/bios /usr/lib/syslinux/bios /usr/lib/sy
     fi
 done
 
-# GRUB (UEFI)
+# GRUB (UEFI) — Ankora temalı modern menü. Tema dosyası ISO üzerinde
+# yoksa (ör. bağımsız EFI imajı) renkli yedeğe düşülür, menü bozulmaz.
 cat << 'EOF' > "$IMAGE_DIR/boot/grub/grub.cfg"
 set default="0"
-set timeout=5
+set timeout="5"
+set timeout_style="menu"
 
 insmod all_video
 insmod gfxterm
+insmod png
+insmod jpeg
+set gfxmode="1920x1080,1366x768,1024x768,auto"
+set gfxpayload="keep"
+terminal_output gfxterm
 
-menuentry "Ankora Linux 2.0 (Ayaz DE - Canli Masaustu)" {
-    linux /live/vmlinuz boot=live quiet splash components username=ankora
+set color_normal="light-gray/black"
+set color_highlight="white/blue"
+set menu_color_normal="light-gray/black"
+set menu_color_highlight="white/blue"
+
+if [ -e "$prefix/themes/ankora/theme.txt" ]; then
+    set theme="$prefix/themes/ankora/theme.txt"
+elif [ -e "/boot/grub/themes/ankora/theme.txt" ]; then
+    set theme="/boot/grub/themes/ankora/theme.txt"
+fi
+export theme
+
+menuentry "Ankora Linux 2.0  —  Canli Masaustu" {
+    linux /live/vmlinuz boot=live quiet splash loglevel=3 components username=ankora
     initrd /live/initrd
 }
 
-menuentry "Ankora Linux 2.0 (Guvenli Mod / Failsafe)" {
+menuentry "Ankora Linux 2.0  —  Guvenli Mod (Failsafe)" {
     linux /live/vmlinuz boot=live components nomodeset noapic noacpi
     initrd /live/initrd
 }
+
+menuentry "Yeniden Baslat" {
+    reboot
+}
+
+menuentry "Kapat" {
+    halt
+}
 EOF
+# GRUB teması ISO içine de konur (normal EFI yolundan okunur).
+mkdir -p "$IMAGE_DIR/boot/grub/themes/ankora"
+cp "$ROOT_DIR/scripts/grub-theme-ankora/theme.txt" "$IMAGE_DIR/boot/grub/themes/ankora/theme.txt" || true
 
 # EFI Bağımsız Önyükleyici ve efi.img Üretimi (Modern UEFI Boot Desteği)
 mkdir -p "$IMAGE_DIR/EFI/BOOT" "$IMAGE_DIR/EFI/boot" "$IMAGE_DIR/boot/grub/x86_64-efi"
@@ -4895,9 +5166,10 @@ if command -v grub-mkstandalone &>/dev/null; then
         --format=x86_64-efi \
         --output="$IMAGE_DIR/EFI/boot/bootx64.efi" \
         --locales="" \
-        --fonts="" \
-        --modules="part_gpt part_msdos fat ext2 iso9660 normal configfile linux" \
-        "boot/grub/grub.cfg=$IMAGE_DIR/boot/grub/grub.cfg" || {
+        --fonts="unicode" \
+        --modules="part_gpt part_msdos fat ext2 iso9660 normal configfile linux echo reboot halt all_video gfxterm gfxmenu png jpeg" \
+        "boot/grub/grub.cfg=$IMAGE_DIR/boot/grub/grub.cfg" \
+        "boot/grub/themes/ankora/theme.txt=$ROOT_DIR/scripts/grub-theme-ankora/theme.txt" || {
         echo "[HATA] grub-mkstandalone bootx64.efi oluşturamadı!" >&2
         exit 1
     }

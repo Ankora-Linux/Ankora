@@ -1298,6 +1298,157 @@ body.is-dragging button {
   height: 20px;
 }
 
+/* Kurulu uygulamanın gerçek simgesi (backend veri URL'si). */
+.store-card-icon .real-app-icon,
+.item-icon .real-app-icon,
+.pinned-icon-box .real-app-icon {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 6px;
+}
+
+.store-card-icon:has(.real-app-icon),
+.item-icon:has(.real-app-icon),
+.pinned-icon-box:has(.real-app-icon) {
+  background: transparent;
+  border-color: transparent;
+}
+
+/* Masaüstündeki gerçek dosyalar uygulama simgeleriyle aynı ızgaradadır. */
+.desktop-item.file-item .item-icon {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.desktop-item.file-item .item-name {
+  color: #e2e8f0;
+}
+
+/* ==============================================================================
+   AÇIK TEMA EKSİK UYARLAMALAR (koyu sabit renkli bileşenler)
+   Kural: sabit koyu zeminli yüzeyler açık temada açık zemine döner; bilinçli
+   koyu kalan tek yüzey terminal ve kod bloklarıdır.
+   ============================================================================== */
+body.theme-light .office-text-frame {
+  color: #0f172a;
+}
+
+body.theme-light .files-sidebar {
+  background: #f1f5f9;
+  border-right-color: rgba(0, 0, 0, 0.08);
+}
+
+body.theme-light .files-sidebar-item {
+  color: #475569;
+}
+
+body.theme-light .files-sidebar-item:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: #0f172a;
+}
+
+body.theme-light .files-content-area {
+  background: #ffffff;
+}
+
+body.theme-light .files-item-card {
+  background: rgba(0, 0, 0, 0.02);
+  border-color: rgba(0, 0, 0, 0.06);
+  color: #0f172a;
+}
+
+body.theme-light .files-item-card:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+body.theme-light .files-path-bar {
+  background: #f1f5f9;
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+body.theme-light .files-crumb {
+  color: #475569;
+}
+
+body.theme-light .files-crumb:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: #0f172a;
+}
+
+body.theme-light .files-crumb-sep {
+  color: rgba(0, 0, 0, 0.3);
+}
+
+/* Mağaza kaynak düğmeleri satır içi stillidir; açık temada ezilir. */
+body.theme-light .store-source-btn {
+  background: rgba(0, 0, 0, 0.03) !important;
+  border-color: rgba(0, 0, 0, 0.1) !important;
+  color: #475569 !important;
+}
+
+body.theme-light .store-source-btn.active {
+  background: rgba(37, 99, 235, 0.1) !important;
+  border-color: rgba(37, 99, 235, 0.35) !important;
+  color: #2563eb !important;
+}
+
+/* Yüzen menüler açık temada açık zemine döner. */
+body.theme-light .desktop-context-menu,
+body.theme-light .shortcut-context-menu,
+body.theme-light .taskbar-tab-menu,
+body.theme-light .snap-layouts-menu {
+  background: #ffffff !important;
+  border-color: rgba(0, 0, 0, 0.12) !important;
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.16) !important;
+  color: #0f172a;
+}
+
+body.theme-light .action-proposal-card {
+  background: #f8fafc;
+}
+
+body.theme-light .action-proposal-card strong {
+  color: #0f172a;
+}
+
+body.theme-light .action-proposal-card code {
+  background: #0f172a;
+  color: #a3e635;
+}
+
+/* Terminal bilinçli koyu kalır; araç çubuğu açık zemine uyum sağlar. */
+body.theme-light .term-toolbar {
+  background: #f1f5f9;
+}
+
+body.theme-light .term-chip-btn {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.12);
+  color: #475569;
+}
+
+body.theme-light .term-chip-btn:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+body.theme-light .term-clear-action-btn,
+body.theme-light .term-action-btn {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.12);
+  color: #475569;
+}
+
+/* Açık duvar kağıdında masaüstü etiketleri koyu okunur. */
+body.theme-light .item-name {
+  color: #0f172a;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.7);
+}
+
+body.theme-light .desktop-item.file-item .item-name {
+  color: #0f172a;
+}
+
 .store-card-titles {
   display: flex;
   flex-direction: column;
@@ -4810,6 +4961,44 @@ body.anim-none *::after {
 
 .window.maximized .window-resize-handle {
   display: none !important;
+}
+
+/* ==============================================================================
+   DOKUNMATİK DESTEK (TOUCH)
+   Başlık ve tutamaçta tarayıcı kaydırma/yakınlaştırma devralmasın diye
+   touch-action kapatılır; JS dokunmatik sürüklemeyi üstlenir. Kaba işaret
+   uçlarında (parmak) denetim hedefleri büyür.
+   ============================================================================== */
+.window-header,
+.window-resize-handle {
+  touch-action: none;
+}
+
+.window-view,
+.term-viewport,
+.store-grid-wrap,
+.ai-feed {
+  touch-action: pan-x pan-y;
+}
+
+@media (pointer: coarse) {
+  .ctrl-btn {
+    width: 36px;
+    height: 30px;
+  }
+
+  .window-resize-handle {
+    width: 24px;
+    height: 24px;
+    right: 0;
+    bottom: 0;
+  }
+
+  .taskbar-pin-btn,
+  .store-filter-btn,
+  .ai-tag-btn {
+    min-height: 32px;
+  }
 }
 
 /* ==============================================================================

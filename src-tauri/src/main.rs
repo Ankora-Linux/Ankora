@@ -41,15 +41,11 @@ const EXACT_ALLOWED_COMMANDS: &[&str] = &[
     "ps aux",
     "top -b -n 1",
     "apt-get clean",
-    "apt-get update",
-    "apt-get upgrade -y",
-    "apt-get update && apt-get upgrade -y",
     "rm -rf /tmp/*",
     "apt-get clean && rm -rf /tmp/*",
     "df -h / && free -m",
     "clear",
     "sync",
-    "echo 3 > /proc/sys/vm/drop_caches",
 ];
 
 /// Tekil parametreli komutlarda izin verilen ikili (binary) programlar
@@ -79,7 +75,6 @@ const ALLOWED_AGENT_ACTIONS: &[&str] = &[
     "free -m",
     "uptime",
     "sync",
-    "echo 3 > /proc/sys/vm/drop_caches",
 ];
 
 /// Ankora Office tarafından okunabilecek güvenli belge uzantıları (.docx ikili dosya olduğundan metin/pdf listesinde yer almaz)
@@ -1132,6 +1127,188 @@ fn install_vendor_package_blocking(vendor: String) -> Result<XdgApplication, Str
 }
 
 #[tauri::command]
+async fn install_meb_certificate() -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(install_meb_certificate_blocking)
+        .await
+        .map_err(|e| format!("MEB sertifika kurulumu yürütülemedi: {}", e))?
+}
+
+fn install_meb_certificate_blocking() -> Result<String, String> {
+    #[cfg(target_os = "linux")]
+    {
+        let helper = Path::new("/usr/local/bin/ayaz-pkg-helper");
+        if !helper.exists() {
+            return Err(
+                "Güvenlik İlkesi: MEB sertifikası yalnızca ayaz-pkg-helper üzerinden kurulabilir."
+                    .to_string(),
+            );
+        }
+        let res = match root_command("/usr/local/bin/ayaz-pkg-helper", &["mebcert"]) {
+            Ok(o) => o,
+            Err(e) => return Err(format!("Paket yardımcısı çalıştırılamadı: {}", e)),
+        };
+        if !res.status.success() {
+            let err = String::from_utf8_lossy(&res.stderr);
+            let out = String::from_utf8_lossy(&res.stdout);
+            let msg = if err.trim().is_empty() { out } else { err };
+            return Err(format!("MEB sertifikası kurulamadı: {}", msg.trim()));
+        }
+        Ok("MEB kök sertifikası sisteme ve Brave/Chrome profillerine kuruldu.".to_string())
+    }
+
+    #[cfg(not(target_os = "linux"))]
+    {
+        Err("Bu platformda MEB sertifika kurulumu desteklenmez.".to_string())
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct XdgUserDirs {
+    pub home: String,
+    pub desktop: String,
+    pub download: String,
+    pub documents: String,
+    pub pictures: String,
+    pub music: String,
+    pub videos: String,
+}
+
+fn read_user_dirs_file(home: &Path) -> std::collections::HashMap<String, String> {
+    let mut map = std::collections::HashMap::new();
+    let cfg = home.join(".config/user-dirs.dirs");
+    if let Ok(content) = fs::read_to_string(&cfg) {
+        for line in content.lines() {
+            let line = line.trim();
+            if line.is_empty() || line.starts_with('#') {
+                continue;
+            }
+            if let Some((k, v)) = line.split_once('=') {
+                let key = k.trim().to_string();
+                let mut val = v.trim().trim_matches('"').to_string();
+                if val.starts_with("$HOME") {
+                    val = val.replacen("$HOME", &home.to_string_lossy(), 1);
+                }
+                map.insert(key, val);
+            }
+        }
+    }
+    map
+}
+
+#[tauri::command]
+fn get_xdg_user_dirs() -> Result<XdgUserDirs, String> {
+    let home = dirs::home_dir().unwrap_or_else(|| PathBuf::from("/home/ankora"));
+    let map = read_user_dirs_file(&home);
+    let pick = |xdg_key: &str, fallbacks: &[&str]| -> String {
+        if let Some(v) = map.get(xdg_key) {
+            if !v.is_empty() {
+                return v.clone();
+            }
+        }
+        for fb in fallbacks {
+            let p = home.join(fb);
+            if p.is_dir() {
+                return p.to_string_lossy().to_string();
+            }
+        }
+        home.join(fallbacks.first().unwrap_or(&"Downloads")).to_string_lossy().to_string()
+    };
+    Ok(XdgUserDirs {
+        home: home.to_string_lossy().to_string(),
+        desktop: pick("XDG_DESKTOP_DIR", &["Desktop", "Masaüstü"]),
+        download: pick("XDG_DOWNLOAD_DIR", &["Downloads", "İndirilenler"]),
+        documents: pick("XDG_DOCUMENTS_DIR", &["Documents", "Belgeler"]),
+        pictures: pick("XDG_PICTURES_DIR", &["Pictures", "Resimler"]),
+        music: pick("XDG_MUSIC_DIR", &["Music", "Müzik"]),
+        videos: pick("XDG_VIDEOS_DIR", &["Videos", "Videolar"]),
+    })
+}
+
+fn find_icon_file(candidates: &[String]) -> Option<(PathBuf, &'static str)> {
+    let mut search_dirs: Vec<PathBuf> = Vec::new();
+    if let Some(home) = dirs::home_dir() {
+        search_dirs.push(home.join(".local/share/icons"));
+        search_dirs.push(home.join(".icons"));
+    }
+    search_dirs.push(PathBuf::from("/usr/share/icons"));
+    search_dirs.push(PathBuf::from("/usr/share/pixmaps"));
+    search_dirs.push(PathBuf::from("/usr/local/share/icons"));
+    search_dirs.push(PathBuf::from("/usr/local/share/pixmaps"));
+
+    for cand in candidates {
+        let c = cand.trim();
+        if c.is_empty() {
+            continue;
+        }
+        // Mutlak yol doğrudan denenir (güvenli uzantılarla sınırlı).
+        let as_path = Path::new(c);
+        if as_path.is_absolute() {
+            if as_path.is_file() {
+                if let Some(ext) = as_path.extension().and_then(|s| s.to_str()) {
+                    let mime: Option<&'static str> = match ext.to_lowercase().as_str() {
+                        "png" => Some("image/png"),
+                        "svg" => Some("image/svg+xml"),
+                        "xpm" => Some("image/x-xpixmap"),
+                        _ => None,
+                    };
+                    if let Some(m) = mime {
+                        return Some((as_path.to_path_buf(), m));
+                    }
+                }
+            }
+            continue;
+        }
+        let base = c.rsplit('/').next().unwrap_or(c);
+        for dir in &search_dirs {
+            // Önce tema/simgesiz düz ad, sonra yaygın tema alt yolları.
+            let rels = [
+                format!("{}.png", base),
+                format!("{}.svg", base),
+                format!("{}.xpm", base),
+                format!("hicolor/48x48/apps/{}.png", base),
+                format!("hicolor/scalable/apps/{}.svg", base),
+                format!("hicolor/32x32/apps/{}.png", base),
+                format!("Adwaita/48x48/apps/{}.png", base),
+                format!("Adwaita/scalable/apps/{}.svg", base),
+            ];
+            for rel in &rels {
+                let p = dir.join(rel);
+                if p.is_file() {
+                    let mime = if rel.ends_with(".svg") {
+                        "image/svg+xml"
+                    } else if rel.ends_with(".xpm") {
+                        "image/x-xpixmap"
+                    } else {
+                        "image/png"
+                    };
+                    return Some((p, mime));
+                }
+            }
+        }
+    }
+    None
+}
+
+/// Kurulmuş uygulamanın gerçek simgesini veri URL'si olarak döndürür.
+/// Aday adlar sırayla denenir; dosya 512 KB'ı aşarsa reddedilir.
+#[tauri::command]
+fn get_app_icon(names: Vec<String>) -> Result<Option<String>, String> {
+    let found = find_icon_file(&names);
+    if let Some((path, mime)) = found {
+        let bytes = fs::read(&path).map_err(|e| e.to_string())?;
+        if bytes.len() > 512 * 1024 {
+            return Ok(None);
+        }
+        return Ok(Some(format!(
+            "data:{};base64,{}",
+            mime,
+            base64::engine::general_purpose::STANDARD.encode(&bytes)
+        )));
+    }
+    Ok(None)
+}
+
+#[tauri::command]
 async fn remove_deb_package(package_name: String) -> Result<String, String> {
     tauri::async_runtime::spawn_blocking(move || remove_deb_package_blocking(package_name))
         .await
@@ -1379,7 +1556,7 @@ async fn launch_interactive_terminal(command: Option<String>) -> Result<String, 
                 }
             }
             let first_word = cmd_str.split_whitespace().next().unwrap_or("");
-            if FORBIDDEN_LAUNCH_BINARIES.contains(&first_word) && first_word != "bash" && first_word != "sh" {
+            if FORBIDDEN_LAUNCH_BINARIES.contains(&first_word) {
                 return Err(format!("Güvenlik İlkesi İhlali: '{}' komutu doğrudan başlatılamaz.", first_word));
             }
             for pat in SENSITIVE_FILE_PATTERNS {
@@ -2288,6 +2465,35 @@ fn execute_system_installation_blocking(payload: InstallPayload) -> Result<Strin
             let _ = root_command("chroot", &["/target", "grub-install", "--target=i386-pc", "--recheck", target]);
         } else {
             run_step("chroot", &["/target", "grub-install", "--target=i386-pc", "--recheck", target])?;
+        }
+        // 11b. Ankora önyükleyici görünümü: modern GRUB menüsü + açılış ekranı.
+        // Tema ve varsayılanlar canlı sistemden (/usr/share/ayaz) hedefe
+        // taşınır; eksiklerse kurulum durmaz, yalnızca varsayılan GRUB kalır.
+        let grub_theme_src = "/usr/share/ayaz/grub-theme-ankora/theme.txt";
+        let grub_default_src = "/usr/share/ayaz/ankora-grub-default";
+        let plymouth_src_dir = "/usr/share/ayaz/plymouth-theme-ankora";
+        let theme_ok = Path::new(grub_theme_src).is_file();
+        if theme_ok {
+            let _ = root_command("mkdir", &["-p", "/target/boot/grub/themes/ankora"]);
+            let _ = root_command("cp", &[grub_theme_src, "/target/boot/grub/themes/ankora/theme.txt"]);
+        }
+        if Path::new(grub_default_src).is_file() {
+            let _ = root_command("cp", &[grub_default_src, "/target/etc/default/grub"]);
+        } else {
+            let grub_defaults = "GRUB_DEFAULT=0\nGRUB_TIMEOUT_STYLE=menu\nGRUB_TIMEOUT=5\nGRUB_DISTRIBUTOR=\"Ankora Linux\"\nGRUB_CMDLINE_LINUX_DEFAULT=\"quiet splash loglevel=3\"\nGRUB_CMDLINE_LINUX=\"\"\nGRUB_GFXMODE=1920x1080,1366x768,auto\nGRUB_GFXPAYLOAD_LINUX=keep\nGRUB_DISABLE_OS_PROBER=false\nGRUB_DISABLE_RECOVERY=true\n";
+            let with_theme = if theme_ok {
+                format!("{}GRUB_THEME=/boot/grub/themes/ankora/theme.txt\n", grub_defaults)
+            } else {
+                grub_defaults.to_string()
+            };
+            let _ = root_write("/target/etc/default/grub", &with_theme);
+        }
+        // Plymouth açılış ekranı: tema hedefe kopyalanır, varsayılan yapılır.
+        // initramfs yeniden derlemesi 12. adımda zaten çalışır.
+        if Path::new(&format!("{}/ankora.plymouth", plymouth_src_dir)).is_file() {
+            let _ = root_command("mkdir", &["-p", "/target/usr/share/plymouth/themes/ankora"]);
+            let _ = root_command("sh", &["-c", "cp -r /usr/share/ayaz/plymouth-theme-ankora/* /target/usr/share/plymouth/themes/ankora/ 2>/dev/null || true"]);
+            let _ = root_command("chroot", &["/target", "plymouth-set-default-theme", "-R", "ankora"]);
         }
         run_step("chroot", &["/target", "update-grub"])?;
 
@@ -6165,6 +6371,9 @@ fn main() {
             scan_xdg_applications,
             install_deb_package,
             install_vendor_package,
+            install_meb_certificate,
+            get_xdg_user_dirs,
+            get_app_icon,
             remove_deb_package,
             run_terminal_command,
             read_document_file,
@@ -6421,11 +6630,33 @@ mod tests {
     }
 
     #[test]
+    fn test_root_requiring_commands_not_in_terminal_whitelist() {
+        // Root gerektiren komutlar terminalden doğrudan çalıştırılamaz;
+        // kurulum ve bakım yalnızca onaylı yardımcılar üzerinden yapılır.
+        assert!(is_terminal_command_permitted("apt-get update").is_err());
+        assert!(is_terminal_command_permitted("apt-get upgrade -y").is_err());
+        assert!(is_terminal_command_permitted("apt-get update && apt-get upgrade -y").is_err());
+        assert!(is_terminal_command_permitted("echo 3 > /proc/sys/vm/drop_caches").is_err());
+        // Temizlik ve durum komutları kullanıcı bağlamında zararsızdır.
+        assert!(is_terminal_command_permitted("apt-get clean").is_ok());
+        assert!(is_terminal_command_permitted("df -h / && free -m").is_ok());
+    }
+
+    #[test]
     fn test_pbkdf2_derivation() {
         let key = pbkdf2_hmac_sha256(b"password", b"salt", 100);
         let key2 = pbkdf2_hmac_sha256(b"password", b"salt", 100);
         let key3 = pbkdf2_hmac_sha256(b"password", b"salt2", 100);
         assert_eq!(key, key2);
         assert_ne!(key, key3);
+    }
+
+    #[test]
+    fn test_icon_candidate_safety() {
+        // Boş ve desteksiz adaylar dosya aramasını patlatmamalı.
+        assert!(find_icon_file(&[]).is_none());
+        assert!(find_icon_file(&["".to_string()]).is_none());
+        assert!(find_icon_file(&["/etc/shadow".to_string()]).is_none());
+        assert!(find_icon_file(&["kurulu-olmayan-ikon-xyz".to_string()]).is_none());
     }
 }

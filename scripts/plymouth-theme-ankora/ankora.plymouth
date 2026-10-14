@@ -1,0 +1,8 @@
+[Plymouth Theme]
+Name=Ankora
+Description=Ankora Linux açılış ekranı (Ayaz DE)
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/ankora
+ScriptFile=/usr/share/plymouth/themes/ankora/ankora.script

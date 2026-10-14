@@ -19,7 +19,12 @@ dist/
 .agents/
 .edge-temp/
 .edge-temp-clean/
-scratch/
+# scratch/ genelde yereldir; ancak CI'da koşan doğrulama betikleri istisnadır
+# (build-iso.yml: python3 scratch/verify_all.py).
+scratch/*
+!scratch/verify_all.py
+!scratch/test_bridge_logic.py
+!scratch/test_store_data.js
 
 # OS specific
 .DS_Store

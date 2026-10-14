@@ -439,9 +439,10 @@
       <div class="window-view">
         <div class="store-container">
           <div class="store-toolbar">
-            <input type="text" id="store-search" class="store-search" placeholder="Paket adı, Flathub veya açıklama ara...">
+            <input type="text" id="store-search" class="store-search" placeholder="Uygulama ara... (ör. tarayıcı, müzik, ders)">
             <div class="store-nav">
-              <button class="store-filter-btn active" data-cat="all">Tümü</button>
+              <button class="store-filter-btn active" data-cat="featured">Öne Çıkanlar</button>
+              <button class="store-filter-btn" data-cat="all">Tümü</button>
               <button class="store-filter-btn" data-cat="dev">Geliştirici</button>
               <button class="store-filter-btn" data-cat="media">Medya</button>
               <button class="store-filter-btn" data-cat="graphics">Grafik</button>
@@ -463,7 +464,7 @@
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
                 Ankora Evrensel Yazılım Mağazası
               </div>
-              <div style="font-size:11px;color:#94a3b8;margin-top:2px;">Flathub ve Devuan depolarından 2.000+ modern uygulama tek tıkla kurulabilir.</div>
+              <div style="font-size:11px;color:#94a3b8;margin-top:2px;">Günlük uygulamalar tek tıkla kurulur. Arama çubuğuna yazman yeterli.</div>
             </div>
             <div style="display:flex;align-items:center;gap:8px;">
               <span style="font-size:11px;padding:4px 8px;border-radius:20px;background:rgba(56,189,248,0.2);color:#38bdf8;font-weight:600;">Flathub Hazır</span>
@@ -494,7 +495,7 @@
       <div class="window-view">
         <div class="term-toolbar">
           <div class="term-quick-chips">
-            <button class="term-chip-btn" data-cmd="sudo apt update"><svg class="glyph" aria-hidden="true"><use href="#ico-zap"></use></svg> sudo apt update</button>
+            <button class="term-chip-btn" data-cmd="apt-cache policy"><svg class="glyph" aria-hidden="true"><use href="#ico-zap"></use></svg> apt-cache policy</button>
             <button class="term-chip-btn" data-cmd="free -h"><svg class="glyph" aria-hidden="true"><use href="#ico-zap"></use></svg> free -h</button>
             <button class="term-chip-btn" data-cmd="df -h /"><svg class="glyph" aria-hidden="true"><use href="#ico-disk"></use></svg> df -h</button>
             <button class="term-chip-btn" data-cmd="uptime"><svg class="glyph" aria-hidden="true"><use href="#ico-clock"></use></svg> uptime</button>
@@ -510,7 +511,7 @@
         <div class="term-viewport" id="term-viewport">
           <div class="term-logs" id="term-logs">
             <div class="term-row muted">Ankora Linux 2.0 (Devuan Daedalus) x86_64 - Native Linux Core</div>
-            <div class="term-row muted">Ankora Linux AyazDE Terminali (bash). Root ve sudo yetkisi aktiftir. Tüm sistem komutları yürütülebilir.</div>
+            <div class="term-row muted">Ankora Linux AyazDE Terminali. Yalnızca güvenli listedeki komutlar çalışır; paket kurulumu Yazılım Mağazası üzerinden yapılır.</div>
           </div>
           <div class="term-cmdline">
             <span class="term-lead" id="term-lead-prompt">ankora@ankora-os:~$</span>
@@ -675,7 +676,7 @@
             <div class="browser-loading-bar" id="browser-loading-bar"></div>
             <!-- Köprü içeriği uygulama kökeninden izole edilir: allow-same-origin
                  olmadan çerçevedeki sayfa üst belgeye (ve yerel depoya) erişemez. -->
-            <iframe id="browser-iframe" class="browser-iframe" sandbox="allow-scripts allow-forms allow-popups" referrerpolicy="no-referrer"></iframe>
+            <iframe id="browser-iframe" class="browser-iframe" sandbox="allow-scripts allow-forms allow-popups allow-downloads" referrerpolicy="no-referrer"></iframe>
             <!-- Köprü yanıt verene kadar boş beyaz alan yerine yükleniyor
                  ekranı gösterilir; süre dolarsa hata kartına düşülür. -->
             <div class="browser-load-mask" id="browser-load-mask" style="display: none;" aria-hidden="true">

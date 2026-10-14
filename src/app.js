@@ -109,6 +109,27 @@
             p.reject(new Error(payload.error || 'Bilinmeyen IPC hatası'));
           }
         };
+        // İndirme tamam bildirimi (yerel köprüden gelir).
+        window.__AYAZ_DOWNLOAD_DONE__ = (path) => {
+          try {
+            const name = String(path || '').split('/').pop() || 'dosya';
+            if (typeof ReportManager !== 'undefined' && ReportManager.showToast) {
+              ReportManager.showToast(`İndirildi: ${name}`);
+            }
+            if (typeof Terminal !== 'undefined' && Terminal.log) {
+              Terminal.log(`[İNDİRME] Tamamlandı: ${path}`, 'success');
+            }
+          } catch (e) {}
+          try {
+            const fw = document.getElementById('win-files');
+            if (fw && fw.classList.contains('open') && typeof FileManager !== 'undefined' && FileManager.refresh) {
+              FileManager.refresh();
+            }
+          } catch (e) {}
+          try {
+            if (typeof DesktopFiles !== 'undefined' && DesktopFiles.refresh) DesktopFiles.refresh();
+          } catch (e) {}
+        };
       }
     },
 
@@ -201,6 +222,25 @@
 
         case 'install_deb_package':
           throw new Error('Paket kurulumu için yerel sistem köprüsü gereklidir.');
+
+        case 'install_meb_certificate':
+          throw new Error('MEB sertifikası için yerel sistem köprüsü gereklidir.');
+
+        case 'get_app_icon':
+          return null;
+
+        case 'get_xdg_user_dirs': {
+          const home = '/home/ankora';
+          return {
+            home,
+            desktop: home + '/Masaüstü',
+            download: home + '/İndirilenler',
+            documents: home + '/Belgeler',
+            pictures: home + '/Resimler',
+            music: home + '/Müzik',
+            videos: home + '/Videolar'
+          };
+        }
 
         case 'remove_deb_package':
           throw new Error('Paket kaldırma için yerel sistem köprüsü gereklidir.');
@@ -357,6 +397,86 @@
   window.addEventListener('securitypolicyviolation', (ev) => {
     consoleReport('csp', `${ev.violatedDirective || ''} ${ev.blockedURI || ''}`.trim());
   });
+
+  // ============================================================================
+  // GERÇEK UYGULAMA SİMGELERİ (kurulu paketlerin hicolor/Adwaita ikonları
+  // backend üzerinden veri URL'si olarak çözülür; bulunamazsa mevcut çizgi
+  // simge yerinde kalır).
+  // ============================================================================
+  const IconResolver = {
+    _cache: new Map(),
+    _pending: new Map(),
+
+    candidatesFor(app) {
+      const out = [];
+      const push = (v) => {
+        if (v && typeof v === 'string') {
+          const s = v.trim();
+          if (s && !out.includes(s)) out.push(s);
+        }
+      };
+      push(app.icon);
+      const exec = String(app.exec || '');
+      const base = exec.split(/\s+/)[0].split('/').pop();
+      if (base && base !== 'flatpak') push(base);
+      if (app.flatpak) {
+        const tail = String(app.flatpak).split('.').pop();
+        push(tail && tail.toLowerCase());
+        push(tail);
+      }
+      push(app.deb);
+      push(app.id);
+      return out.slice(0, 6);
+    },
+
+    resolve(names) {
+      const key = names.join('|');
+      if (this._cache.has(key)) return Promise.resolve(this._cache.get(key));
+      if (this._pending.has(key)) return this._pending.get(key);
+      const p = TauriBridge.invoke('get_app_icon', { names })
+        .then(url => {
+          const ok = (typeof url === 'string' && url.startsWith('data:image/')) ? url : null;
+          this._cache.set(key, ok);
+          this._pending.delete(key);
+          return ok;
+        })
+        .catch(() => {
+          this._cache.set(key, null);
+          this._pending.delete(key);
+          return null;
+        });
+      this._pending.set(key, p);
+      return p;
+    },
+
+    tagIcon(el, app) {
+      try {
+        el.dataset.iconNames = JSON.stringify(this.candidatesFor(app));
+      } catch (e) {}
+    },
+
+    upgradeScope(root) {
+      if (!root || !root.querySelectorAll) return;
+      root.querySelectorAll('[data-icon-names]').forEach(el => {
+        if (el.dataset.iconDone) return;
+        el.dataset.iconDone = '1';
+        let names = [];
+        try { names = JSON.parse(el.dataset.iconNames) || []; } catch (e) { return; }
+        if (!names.length) return;
+        this.resolve(names).then(url => {
+          if (url && el.isConnected) {
+            el.innerHTML = '';
+            const img = document.createElement('img');
+            img.src = url;
+            img.alt = '';
+            img.draggable = false;
+            img.className = 'real-app-icon';
+            el.appendChild(img);
+          }
+        });
+      });
+    }
+  };
 
   // ============================================================================
   // 1. GERÇEK TAURI NATIVE WINDOW MANAGER
@@ -613,6 +733,37 @@
             document.addEventListener('mousemove', onMouseMove, { passive: true });
             document.addEventListener('mouseup', onMouseUp, { once: true });
           });
+
+          // Dokunmatik sürükleme: tek parmak başlıkta pencereyi taşır.
+          // Fare yolu aynen korunur; dokunmatik yalnızca konum uygular
+          // (kenetleme fareye özeldir). touch-action: none CSS'te tanımlı.
+          header.addEventListener('touchstart', (e) => {
+            if (e.target.closest('.window-controls')) return;
+            if (e.touches.length !== 1) return;
+            this.bringToFront(win);
+            const t = e.touches[0];
+            const rect = win.getBoundingClientRect();
+            const offX = t.clientX - rect.left;
+            const offY = t.clientY - rect.top;
+            let moved = false;
+            const onTouchMove = (me) => {
+              if (me.touches.length !== 1) return;
+              if (me.cancelable) me.preventDefault();
+              const m = me.touches[0];
+              moved = true;
+              const maxLeft = Math.max(0, window.innerWidth - 80);
+              const maxTop = Math.max(0, window.innerHeight - 80);
+              win.style.left = `${Math.max(0, Math.min(m.clientX - offX, maxLeft))}px`;
+              win.style.top = `${Math.max(0, Math.min(m.clientY - offY, maxTop))}px`;
+            };
+            const onTouchEnd = () => {
+              header.removeEventListener('touchmove', onTouchMove);
+              if (moved && typeof SessionManager !== 'undefined') SessionManager.touch();
+            };
+            header.addEventListener('touchmove', onTouchMove, { passive: false });
+            header.addEventListener('touchend', onTouchEnd, { once: true });
+            header.addEventListener('touchcancel', onTouchEnd, { once: true });
+          }, { passive: true });
         }
 
         // Pencere Boyutlandırma Tutamacı (Resize Handle)
@@ -659,6 +810,32 @@
             document.addEventListener('mousemove', onResizeMove, { passive: true });
             document.addEventListener('mouseup', onResizeUp, { once: true });
           });
+
+          // Dokunmatik boyutlandırma: tutamaç tek parmakla sürüklenir.
+          handle.addEventListener('touchstart', (e) => {
+            if (e.touches.length !== 1 || win.classList.contains('maximized')) return;
+            e.preventDefault();
+            this.bringToFront(win);
+            const t = e.touches[0];
+            const startW = win.offsetWidth;
+            const startH = win.offsetHeight;
+            const startX = t.clientX;
+            const startY = t.clientY;
+            const onTouchMove = (me) => {
+              if (me.touches.length !== 1) return;
+              if (me.cancelable) me.preventDefault();
+              const m = me.touches[0];
+              win.style.width = `${Math.max(300, startW + (m.clientX - startX))}px`;
+              win.style.height = `${Math.max(260, startH + (m.clientY - startY))}px`;
+            };
+            const onTouchEnd = () => {
+              handle.removeEventListener('touchmove', onTouchMove);
+              if (typeof SessionManager !== 'undefined') SessionManager.touch();
+            };
+            handle.addEventListener('touchmove', onTouchMove, { passive: false });
+            handle.addEventListener('touchend', onTouchEnd, { once: true });
+            handle.addEventListener('touchcancel', onTouchEnd, { once: true });
+          }, { passive: false });
         }
       });
 
@@ -1480,6 +1657,8 @@
           </div>
           <span class="item-name">${escapeHtml(app.name)}</span>
         `;
+        const deskIcon = item.querySelector('.item-icon');
+        if (deskIcon) IconResolver.tagIcon(deskIcon, app);
 
         // Tek tık: Odak / Seçim
         item.addEventListener('click', (e) => {
@@ -1513,6 +1692,7 @@
       });
       container.appendChild(frag);
       this.layoutDesktopIcons(container);
+      IconResolver.upgradeScope(container);
     },
 
     // Masaüstü simge ızgarası. Konumlar uygulama kimliğine göre {c, r} hücresi
@@ -1690,6 +1870,8 @@
             <span class="app-desc">${escapeHtml(app.comment || (app.exec + ' yazılımı'))}</span>
           </div>
         `;
+        const pinIcon = card.querySelector('.pinned-icon-box');
+        if (pinIcon) IconResolver.tagIcon(pinIcon, app);
 
         card.addEventListener('click', () => {
           this.launchApp(app);
@@ -1719,6 +1901,7 @@
         frag.appendChild(card);
       });
       container.appendChild(frag);
+      IconResolver.upgradeScope(container);
     },
 
     getAppSvgIcon(app) {
@@ -1730,6 +1913,125 @@
       }
       if (id === 'ankora-welcome' || id.includes('welcome')) {
         return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="5" r="3"></circle><line x1="12" y1="22" x2="12" y2="8"></line><path d="M5 12H2a10 10 0 0 0 20 0h-3"></path></svg>`;
+      }
+      // Son kullanıcı uygulamaları: her biri ayırt edici çizgi simge alır.
+      // (Kuruluysa IconResolver gerçek simgeyle yükseltir; bu yedek kalır.)
+      if (id.includes('firefox')) {
+        return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"></circle><path d="M12 3a9 9 0 0 1 8.5 6c-2 1-4 1.5-6 1.5-3.5 0-6.5-2-7.5-5.5C8.5 3.7 10 3 12 3z"></path><circle cx="12" cy="12" r="3.5"></circle></svg>`;
+      }
+      if (id.includes('chromium')) {
+        return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="3.5"></circle><path d="M12 3v5.5M4.2 16.5l4.8-2.7M19.8 16.5l-4.8-2.7"></path></svg>`;
+      }
+      if (id.includes('telegram')) {
+        return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 2L11 13"></path><path d="M22 2l-7 20-4-9-9-4z"></path></svg>`;
+      }
+      if (id.includes('discord')) {
+        return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="7" width="20" height="11" rx="5"></rect><path d="M7 11v4M5 13h4"></path><circle cx="16" cy="12" r="0.6"></circle><circle cx="18" cy="14" r="0.6"></circle></svg>`;
+      }
+      if (id.includes('spotify')) {
+        return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"></circle><path d="M8 10.5c2.7-.8 5.5-.4 8 1.2M8.5 13.5c2-.6 4-.3 5.8.9M9 16.3c1.5-.4 3-.2 4.3.7"></path></svg>`;
+      }
+      if (id.includes('vscode') || id.includes('vscodium')) {
+        return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2"></rect><path d="M10 9l-3 3 3 3M14 9l3 3-3 3"></path></svg>`;
+      }
+      if (id.includes('heroic') || id.includes('lutris')) {
+        return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 9h12a5 5 0 0 1 5 5c0 2.5-2 4-3.5 4-1 0-1.8-.7-2.3-1.7L15.5 13h-7l-1.7 3.3c-.5 1-1.3 1.7-2.3 1.7C3 18 1 16.5 1 14a5 5 0 0 1 5-5z"></path><path d="M7 12v3M5.5 13.5h3"></path></svg>`;
+      }
+      if (id.includes('steam')) {
+        return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="10" cy="14" r="5"></circle><circle cx="18" cy="6" r="3"></circle><path d="M13 11l2.5-2.5"></path></svg>`;
+      }
+      if (id.includes('vlc')) {
+        return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2L7 22h10z"></path><path d="M12 2c-3 4-4.5 9-4.5 14M12 2c3 4 4.5 9 4.5 14"></path><path d="M5 22h14"></path></svg>`;
+      }
+      if (id.includes('onlyoffice')) {
+        return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2l9 5-9 5-9-5z"></path><path d="M3 12l9 5 9-5"></path><path d="M3 17l9 5 9-5"></path></svg>`;
+      }
+      if (id.includes('obsidian')) {
+        return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h12l4 6-10 12L2 9z"></path><path d="M2 9h20M12 21L8 9l4-6 4 6z"></path></svg>`;
+      }
+      if (id.includes('libreoffice-writer')) {
+        return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path><path d="M9 15l4-4 3 3-4 4H9z"></path></svg>`;
+      }
+      if (id.includes('libreoffice-calc')) {
+        return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M3 9h18M3 14.5h18M10 9v11M15 9v11"></path></svg>`;
+      }
+      if (id.includes('libreoffice-impress')) {
+        return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="4" width="20" height="13" rx="2"></rect><path d="M12 17v4M8 21h8"></path></svg>`;
+      }
+      if (id.includes('wine')) {
+        return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 2h8v6a4 4 0 0 1-8 0z"></path><path d="M12 12v9M8 21h8"></path></svg>`;
+      }
+      if (id.includes('gimp')) {
+        return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 5l5 5L8 21l-5-5z"></path><path d="M13 6l5 5"></path></svg>`;
+      }
+      if (id.includes('krita')) {
+        return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2s6 7 6 12a6 6 0 0 1-12 0c0-5 6-12 6-12z"></path></svg>`;
+      }
+      if (id.includes('inkscape')) {
+        return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2l4 8-4 12-4-12z"></path><circle cx="12" cy="10" r="1"></circle></svg>`;
+      }
+      if (id.includes('blender')) {
+        return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2l9 5v10l-9 5-9-5V7z"></path><path d="M12 12l9-5M12 12L3 7M12 12v10"></path></svg>`;
+      }
+      if (id.includes('kdenlive') || id.includes('shotcut')) {
+        return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="4" width="20" height="16" rx="2"></rect><path d="M7 4v16M17 4v16M2 9h5M2 15h5M17 9h5M17 15h5"></path></svg>`;
+      }
+      if (id.includes('obs')) {
+        return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="2"></circle><path d="M7.5 7.5a6.4 6.4 0 0 0 0 9M16.5 7.5a6.4 6.4 0 0 1 0 9M4.6 4.6a10.5 10.5 0 0 0 0 14.8M19.4 4.6a10.5 10.5 0 0 1 0 14.8"></path></svg>`;
+      }
+      if (id.includes('audacity') || id.includes('sox')) {
+        return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 12h20"></path><path d="M5 12v0M7 9v6M11 4v16M15 8v8M19 10v4"></path></svg>`;
+      }
+      if (id.includes('thunderbird')) {
+        return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="4" width="20" height="16" rx="2"></rect><path d="M22 7l-10 6L2 7"></path></svg>`;
+      }
+      if (id.includes('filezilla')) {
+        return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path><path d="M12 10v6M9.5 13.5L12 16l2.5-2.5"></path></svg>`;
+      }
+      if (id.includes('qbittorrent') || id.includes('transmission') || id.includes('aria2')) {
+        return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v7M8.5 11.5L12 15l3.5-3.5"></path></svg>`;
+      }
+      if (id.includes('gparted')) {
+        return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="6" width="20" height="12" rx="2"></rect><circle cx="7" cy="14" r="1"></circle><path d="M18 8v4"></path></svg>`;
+      }
+      if (id.includes('timeshift')) {
+        return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12a9 9 0 1 0 3-6.7"></path><path d="M3 4v5h5"></path><path d="M12 7v5l3 2"></path></svg>`;
+      }
+      if (id.includes('htop') || id.includes('btop') || id.includes('glances') || id.includes('iotop') || id.includes('iftop')) {
+        return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 20v-6M12 20V6M19 20v-9"></path></svg>`;
+      }
+      if (id.includes('neofetch') || id.includes('fastfetch') || id.includes('inxi')) {
+        return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="4" width="20" height="16" rx="2"></rect><path d="M7 9l3 3-3 3M13 15h4"></path></svg>`;
+      }
+      if (id.includes('scratch')) {
+        return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 2h4v3a2 2 0 1 0 2 2h3v4h-3a2 2 0 1 0-2 2v3h-4v-3a2 2 0 1 0-2-2H5V7h3a2 2 0 1 0 2-2z"></path></svg>`;
+      }
+      if (id.includes('meb')) {
+        return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="9" r="6"></circle><path d="M8.5 13.5L7 22l5-2.5L17 22l-1.5-8.5"></path><path d="M10 9l1.5 1.5L15 7"></path></svg>`;
+      }
+      if (id.includes('gcompris')) {
+        return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="8" cy="8" r="4"></circle><rect x="13" y="13" width="8" height="8" rx="1"></rect></svg>`;
+      }
+      if (id.includes('tuxmath')) {
+        return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="5" y="2" width="14" height="20" rx="2"></rect><path d="M8 6h8"></path><path d="M8 11h.01M12 11h.01M16 11h.01M8 15h.01M12 15h.01M16 15h.01M8 19h.01M12 19h.01M16 19h.01"></path></svg>`;
+      }
+      if (id.includes('tuxtype')) {
+        return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="6" width="20" height="12" rx="2"></rect><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"></path></svg>`;
+      }
+      if (id.includes('stellarium')) {
+        return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8-6.1-3.4-6.1 3.4 1.4-6.8L2.2 9.1l6.9-.8z"></path></svg>`;
+      }
+      if (id.includes('geogebra')) {
+        return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l10 18H2z"></path><circle cx="12" cy="15" r="2.5"></circle></svg>`;
+      }
+      if (id.includes('xournal')) {
+        return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 3l4 4L8 20l-5 1 1-5z"></path><path d="M15 5l4 4"></path></svg>`;
+      }
+      if (id.includes('evince') || id.includes('calibre') || id.includes('zathura')) {
+        return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V2H6.5A2.5 2.5 0 0 0 4 4.5z"></path><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"></path></svg>`;
+      }
+      if (id.includes('antigravity') || id.includes('opencode')) {
+        return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"></path></svg>`;
       }
       if (id === 'ayaz-files' || id.includes('file')) {
         return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>`;
@@ -1902,29 +2204,116 @@
   };
 
   // ============================================================================
+  // 2b. MASAÜSTÜ DOSYALARI (~/Desktop içindeki gerçek dosyalar simge olarak
+  // dizilir; indirilen dosya Masaüstüne düştüğünde burada görünür).
+  // ============================================================================
+  const DesktopFiles = {
+    dir: null,
+
+    fileGlyph(name, isDir) {
+      if (isDir) return 'ico-folder';
+      const ext = String(name).split('.').pop().toLowerCase();
+      if (['png', 'jpg', 'jpeg', 'webp', 'gif', 'svg', 'bmp'].includes(ext)) return 'ico-image';
+      if (['pdf', 'txt', 'md', 'doc', 'docx', 'odt'].includes(ext)) return 'ico-file-text';
+      if (['mp3', 'ogg', 'wav', 'flac'].includes(ext)) return 'ico-music';
+      if (['mp4', 'mkv', 'webm', 'avi'].includes(ext)) return 'ico-film';
+      return 'ico-file';
+    },
+
+    async refresh() {
+      const container = document.getElementById('dynamic-desktop-icons');
+      if (!container) return;
+      container.querySelectorAll('.desktop-item.file-item').forEach(el => el.remove());
+      try {
+        if (!this.dir) {
+          const d = await TauriBridge.invoke('get_xdg_user_dirs', {});
+          if (d && d.desktop) this.dir = d.desktop;
+        }
+        if (!this.dir) return;
+        const res = await TauriBridge.invoke('list_directory', { path: this.dir });
+        const items = (res && res.items ? res.items : []).filter(it => !it.is_hidden);
+        if (!items.length) return;
+        const frag = document.createDocumentFragment();
+        items.forEach(it => {
+          const el = document.createElement('div');
+          el.className = 'desktop-item file-item cat-util';
+          el.tabIndex = 0;
+          el.setAttribute('role', 'button');
+          el.setAttribute('data-app-id', `file:${it.path}`);
+          el.title = `${it.name}\n• Çift tıkla aç`;
+          const glyph = this.fileGlyph(it.name, it.is_dir);
+          el.innerHTML = `
+            <div class="item-icon">
+              <svg class="glyph" aria-hidden="true"><use href="#${glyph}"></use></svg>
+            </div>
+            <span class="item-name">${escapeHtml(it.name)}</span>
+          `;
+          el.addEventListener('click', (e) => {
+            e.stopPropagation();
+            document.querySelectorAll('.desktop-item').forEach(x => x.classList.remove('selected'));
+            el.classList.add('selected');
+          });
+          el.addEventListener('dblclick', (e) => {
+            e.stopPropagation();
+            this.openItem(it);
+          });
+          el.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              this.openItem(it);
+            }
+          });
+          frag.appendChild(el);
+        });
+        container.appendChild(frag);
+        if (typeof XdgDesktopEngine !== 'undefined' && XdgDesktopEngine.layoutDesktopIcons) {
+          XdgDesktopEngine.layoutDesktopIcons(container);
+        }
+      } catch (e) {}
+    },
+
+    async openItem(it) {
+      try {
+        if (it.is_dir) {
+          if (typeof FileManager !== 'undefined' && FileManager.loadDirectory) {
+            FileManager.loadDirectory(it.path);
+          }
+          WindowManager.open('win-files');
+        } else {
+          await TauriBridge.invoke('open_path', { path: it.path });
+        }
+      } catch (err) {
+        if (typeof ReportManager !== 'undefined' && ReportManager.showToast) {
+          ReportManager.showToast(`Açılamadı: ${err.message || err}`, 'error');
+        }
+      }
+    }
+  };
+
+  // ============================================================================
   // 3. YAZILIM MAĞAZASI (GERÇEK DEBIAN .DEB & XDG ENTEGRASYONU)
   // ============================================================================
   const StoreManager = {
     packages: [
       // 0. FLATHUB MODERN UYGULAMALAR (SANDBOX)
-      { id: 'flatpak-spotify', name: 'Spotify Müzik & Podcast', flatpak: 'com.spotify.Client', desc: 'Milyonlarca şarkı, albüm ve podcast dinleme akış platformu', cat: 'media', size: '180 MB', installed: false },
+      { id: 'flatpak-spotify', name: 'Spotify Müzik & Podcast', flatpak: 'com.spotify.Client', desc: 'Milyonlarca şarkı, albüm ve podcast dinleme akış platformu', cat: 'media', size: '180 MB', featured: true, installed: false },
       { id: 'flatpak-discord', name: 'Discord Sesli & Yazılı Sohbet', flatpak: 'com.discordapp.Discord', desc: 'Oyuncular ve topluluklar için kristal netliğinde sesli ve yazılı iletişim', cat: 'net', size: '120 MB', installed: false },
-      { id: 'flatpak-vscode', name: 'Visual Studio Code IDE', flatpak: 'com.visualstudio.code', desc: 'Gelişmiş eklenti ve hata ayıklama destekli modern kod editörü', cat: 'dev', size: '240 MB', installed: false },
-      { id: 'flatpak-telegram', name: 'Telegram Desktop', flatpak: 'org.telegram.desktop', desc: 'Hızlı, şifreli ve senkronize bulut mesajlaşma istemcisi', cat: 'net', size: '85 MB', installed: false },
+      { id: 'flatpak-vscode', name: 'Visual Studio Code IDE', flatpak: 'com.visualstudio.code', desc: 'Gelişmiş eklenti ve hata ayıklama destekli modern kod editörü', cat: 'dev', size: '240 MB', featured: true, installed: false },
+      { id: 'flatpak-telegram', name: 'Telegram Desktop', flatpak: 'org.telegram.desktop', desc: 'Hızlı, şifreli ve senkronize bulut mesajlaşma istemcisi', cat: 'net', size: '85 MB', featured: true, installed: false },
       { id: 'flatpak-heroic', name: 'Heroic Games Launcher (Epic & GOG)', flatpak: 'com.heroicgameslauncher.hgl', desc: 'Epic Games ve GOG kütüphaneleri için açık kaynak Linux başlatıcı', cat: 'util', size: '110 MB', installed: false },
       { id: 'flatpak-lutris', name: 'Lutris Açık Oyun Yöneticisi', flatpak: 'net.lutris.Lutris', desc: 'Tüm emülatör, Windows ve Linux oyunlarını tek çatıda toplayan kütüphane', cat: 'util', size: '95 MB', installed: false },
       { id: 'flatpak-onlyoffice', name: 'ONLYOFFICE Desktop Editors', flatpak: 'org.onlyoffice.desktopeditors', desc: 'Microsoft Office belgeleriyle %100 uyumlu modern ofis paketi', cat: 'office', size: '320 MB', installed: false },
       { id: 'flatpak-obsidian', name: 'Obsidian Not & Bilgi Tabanı', flatpak: 'md.obsidian.Obsidian', desc: 'Markdown tabanlı, bağlantılı ikinci beyin ve kişisel not bankası', cat: 'office', size: '130 MB', installed: false },
 
       // 1. POPÜLER & TEMEL UYGULAMALAR (FLAGSHIP)
-      { id: 'firefox-esr', name: 'Firefox ESR Web Tarayıcısı', deb: 'firefox-esr', desc: 'Mozilla güvenli, gizlilik odaklı ve hızlı web tarayıcısı', cat: 'net', size: '78 MB', installed: false },
-      { id: 'chromium', name: 'Chromium Web Tarayıcı', deb: 'chromium', desc: 'Google açık kaynak motorlu yüksek performanslı modern tarayıcı', cat: 'net', size: '124 MB', installed: false },
-      { id: 'vlc', name: 'VLC Media Player', deb: 'vlc', desc: 'Tüm ses ve video formatlarını sorunsuz oynatan evrensel medya oynatıcısı', cat: 'media', size: '64 MB', installed: false },
+      { id: 'firefox-esr', name: 'Firefox ESR Web Tarayıcısı', deb: 'firefox-esr', desc: 'Mozilla güvenli, gizlilik odaklı ve hızlı web tarayıcısı', cat: 'net', size: '78 MB', featured: true, installed: false },
+      { id: 'chromium', name: 'Chromium Web Tarayıcı', deb: 'chromium', desc: 'Google açık kaynak motorlu yüksek performanslı modern tarayıcı', cat: 'net', size: '124 MB', featured: true, installed: false },
+      { id: 'vlc', name: 'VLC Media Player', deb: 'vlc', desc: 'Tüm ses ve video formatlarını sorunsuz oynatan evrensel medya oynatıcısı', cat: 'media', size: '64 MB', featured: true, installed: false },
       { id: 'mpv', name: 'MPV Video Oynatıcı', deb: 'mpv', desc: 'Donanım hızlandırmalı, düşük sistem kaynağı tüketen minimalist oynatıcı', cat: 'media', size: '22 MB', installed: false },
       { id: 'gimp', name: 'GIMP Profesyonel Görsel Düzenleyici', deb: 'gimp', desc: 'Katman, fırça ve filtre destekli açık kaynak Photoshop alternatifi', cat: 'graphics', size: '112 MB', installed: false },
       { id: 'inkscape', name: 'Inkscape Vektörel Çizim & İllüstrasyon', deb: 'inkscape', desc: 'SVG standartlarında profesyonel vektör grafik ve logo tasarım stüdyosu', cat: 'graphics', size: '98 MB', installed: false },
       { id: 'blender', name: 'Blender 3D Modelleme & Animasyon', deb: 'blender', desc: 'Endüstri standardı 3D modelleme, render, VFX ve animasyon paketi', cat: 'graphics', size: '310 MB', installed: false },
-      { id: 'libreoffice', name: 'LibreOffice Eksiksiz Ofis Paketi', deb: 'libreoffice', desc: 'Kelime işlemci (Writer), hesap tablosu (Calc) ve sunum (Impress)', cat: 'office', size: '340 MB', installed: false },
+      { id: 'libreoffice', name: 'LibreOffice Eksiksiz Ofis Paketi', deb: 'libreoffice', desc: 'Kelime işlemci (Writer), hesap tablosu (Calc) ve sunum (Impress)', cat: 'office', size: '340 MB', featured: true, installed: false },
       { id: 'audacity', name: 'Audacity Ses Kayıt & Düzenleyici', deb: 'audacity', desc: 'Çok kanallı profesyonel podcast, müzik ve ses düzenleme aracı', cat: 'media', size: '42 MB', installed: false },
       { id: 'obs-studio', name: 'OBS Studio Canlı Yayın & Ekran Kaydedici', deb: 'obs-studio', desc: 'YouTube/Twitch canlı yayın ve ekran yakalama yazılımı', cat: 'media', size: '92 MB', installed: false },
       { id: 'kdenlive', name: 'Kdenlive Video Kurgu & Montaj', deb: 'kdenlive', desc: 'Çok kanallı profesyonel zaman çizelgeli video montaj stüdyosu', cat: 'media', size: '115 MB', installed: false },
@@ -1933,13 +2322,13 @@
       { id: 'transmission-gtk', name: 'Transmission Torrent İndirici', deb: 'transmission-gtk', desc: 'Sistemi yormayan sade ve güvenli BitTorrent istemcisi', cat: 'net', size: '10 MB', installed: false },
       { id: 'filezilla', name: 'FileZilla FTP/SFTP İstemcisi', deb: 'filezilla', desc: 'Sunuculara güvenli dosya yükleme ve indirme arayüzü', cat: 'net', size: '16 MB', installed: false },
       { id: 'flameshot', name: 'Flameshot Gelişmiş Ekran Görüntüsü', deb: 'flameshot', desc: 'Ekran kesiti alıp ok, metin ve bulanıklık ekleyen pratik araç', cat: 'graphics', size: '18 MB', installed: false },
-      { id: 'evince', name: 'Evince PDF & Belge Okuyucu', deb: 'evince', desc: 'PDF, PostScript ve e-kitapları anında açan hafif görüntüleyici', cat: 'office', size: '18 MB', installed: false },
+      { id: 'evince', name: 'Evince PDF & Belge Okuyucu', deb: 'evince', desc: 'PDF, PostScript ve e-kitapları anında açan hafif görüntüleyici', cat: 'office', size: '18 MB', featured: true, installed: false },
       { id: 'htop', name: 'Htop Renkli Süreç Monitörü', deb: 'htop', desc: 'İşlemci çekirdekleri, bellek ve çalışan süreçleri canlı izleme', cat: 'sys', size: '2 MB', installed: false },
       { id: 'btop', name: 'Btop Zengin Donanım Monitörü', deb: 'btop', desc: 'Modern görsel grafiklerle donanım yükünü gösteren monitör', cat: 'sys', size: '6 MB', installed: false },
       { id: 'git', name: 'Git Kaynak Kod Sürüm Kontrolü', deb: 'git', desc: 'Yazılım geliştiriciler için endüstri standardı kod versiyon kontrol sistemi', cat: 'dev', size: '36 MB', installed: false },
       { id: 'python3', name: 'Python 3 Programlama Dili', deb: 'python3', desc: 'Modern yapay zeka, veri analitiği ve otomasyon dili', cat: 'dev', size: '16 MB', installed: false },
       { id: 'p7zip-full', name: '7-Zip Yüksek Sıkıştırmalı Arşivleyici', deb: 'p7zip-full', desc: 'ZIP, 7z, TAR ve RAR arşivlerini açma ve sıkıştırma aracı', cat: 'util', size: '5 MB', installed: false },
-      { id: 'brave', name: 'Brave Hızlı & Gizli Tarayıcı', deb: 'brave-browser', vendor: 'brave', desc: 'Reklam ve izleyici engelleyicisi yerleşik; resmî deposundan kurulur', cat: 'net', size: '150 MB', installed: false },
+      { id: 'brave', name: 'Brave Hızlı & Gizli Tarayıcı', deb: 'brave-browser', vendor: 'brave', desc: 'Reklam ve izleyici engelleyicisi yerleşik; resmî deposundan kurulur', cat: 'net', size: '150 MB', featured: true, installed: false },
       { id: 'helium', name: 'Helium Hafif Web Tarayıcı', deb: 'helium-bin', vendor: 'helium', desc: 'ungoogle-chromium temelli, gizlilik odaklı hafif masaüstü tarayıcısı', cat: 'net', size: '130 MB', installed: false },
       { id: 'timeshift', name: 'Timeshift Sistem Yedekleme & Anlık Görüntü', deb: 'timeshift', desc: 'Sistem kararsızlığına karşı tek tıkla geri dönüş ve kurtarma noktası oluşturucu', cat: 'sys', size: '15 MB', installed: false },
       { id: 'steam', name: 'Steam Dijital Oyun Platformu', deb: 'steam-installer', desc: 'Valve resmi Linux oyun mağazası, Proton ve topluluk kütüphanesi', cat: 'util', size: '22 MB', installed: false },
@@ -1948,13 +2337,17 @@
       { id: 'antigravity', name: 'Antigravity Yapay Zekâ IDE', deb: 'antigravity', vendor: 'antigravity', desc: 'Google’ın ajan öncesi dönem için tasarladığı ajan destekli kod editörü', cat: 'dev', size: '420 MB', installed: false },
       { id: 'opencode-desktop', name: 'OpenCode Masaüstü (AI Kod Ajanı)', deb: '', extUrl: 'https://opencode.ai', desc: 'Terminal, masaüstü ve IDE eklentisi olarak çalışan açık kaynak yapay zekâ kod ajanı', cat: 'dev', size: 'Site', installed: false },
 
+      // 1b. OKUL & EĞİTİM (sınıfta doğrudan işe yarar)
+      { id: 'meb-cert', name: 'MEB Okul Ağı Sertifikası', action: 'meb-cert', desc: 'Okul internetindeki güvenlik uyarılarını bitirir; resmi MEB adresinden indirip sisteme ve Brave profiline kurar', cat: 'net', size: '1 MB', featured: true, installed: false },
+      { id: 'scratch', name: 'Scratch 3 (Güncel Sürüm)', flatpak: 'org.scratch.Scratch', desc: 'Blok tabanlı kodlama ile oyun ve animasyon yapmayı öğreten güncel Scratch masaüstü sürümü', cat: 'dev', size: '180 MB', featured: true, installed: false },
+      { id: 'gcompris', name: 'GCompris Eğitim Paketi', deb: 'gcompris', desc: '2-10 yaş için 100ü aşkın eğitsel etkinlik: okuma, matematik, fen ve bilgisayar kullanımı', cat: 'util', size: '95 MB', featured: true, installed: false },
+      { id: 'tuxmath', name: 'TuxMath Matematik Oyunu', deb: 'tuxmath', desc: 'Dört işlemi arcade oyunuyla öğreten eğlenceli matematik alıştırması', cat: 'util', size: '18 MB', installed: false },
+      { id: 'stellarium', name: 'Stellarium planetaryumu', deb: 'stellarium', desc: 'Fen ve astronomi dersleri için gerçek zamanlı gökyüzü ve gezegen simülasyonu', cat: 'graphics', size: '110 MB', installed: false },
+      { id: 'geogebra', name: 'GeoGebra Matematik', flatpak: 'org.geogebra.GeoGebra', desc: 'Geometri, cebir ve grafik çizimleri için ders standardı etkileşimli matematik aracı', cat: 'office', size: '120 MB', installed: false },
+      { id: 'tuxtype', name: 'TuxTyping Klavye Öğretmeni', deb: 'tuxtype', desc: 'On parmak hızlı yazmayı oyunla öğreten klavye alıştırma programı', cat: 'util', size: '22 MB', installed: false },
+
 
       // 2. ORTAM & MEDYA (MEDIA)
-      { id: 'vlc', name: 'VLC Media Player', deb: 'vlc', desc: 'Evrensel video, ses, DVD ve ağ akışı yürütücüsü', cat: 'media', size: '64 MB', installed: false },
-      { id: 'mpv', name: 'MPV Minimalist Oynatıcı', deb: 'mpv', desc: 'GPU hızlandırmalı, düşük kaynak tüketen modern medya yürütücü', cat: 'media', size: '22 MB', installed: false },
-      { id: 'audacity', name: 'Audacity Ses Düzenleyici', deb: 'audacity', desc: 'Çok kanallı profesyonel ses kaydetme, kesme ve efekt stüdyosu', cat: 'media', size: '42 MB', installed: false },
-      { id: 'kdenlive', name: 'Kdenlive Video Kurgu', deb: 'kdenlive', desc: 'Çok parçalı timeline destekli açık kaynak profesyonel video kurgu stüdyosu', cat: 'media', size: '115 MB', installed: false },
-      { id: 'obs-studio', name: 'OBS Studio Canlı Yayın', deb: 'obs-studio', desc: 'Ekran yakalama, sahne karıştırma ve Twitch/YouTube canlı yayın yazılımı', cat: 'media', size: '92 MB', installed: false },
       { id: 'handbrake', name: 'HandBrake Video Dönüştürücü', deb: 'handbrake', desc: 'Videoları optimize edilmiş modern biçimlere (H.264, H.265, AV1) dönüştürücü', cat: 'media', size: '36 MB', installed: false },
       { id: 'ffmpeg', name: 'FFmpeg Multimedya Çatısı', deb: 'ffmpeg', desc: 'Her türlü ses ve video biçimini çözme, kodlama ve dönüştürme kiti', cat: 'media', size: '48 MB', installed: false },
       { id: 'sox', name: 'SoX Ses İşleme Çatısı', deb: 'sox', desc: 'Ses dosyalarını dönüştürme ve efekt uygulama komut satırı isviçre çakısı', cat: 'media', size: '6 MB', installed: false },
@@ -1967,28 +2360,20 @@
       { id: 'vorbis-tools', name: 'Ogg Vorbis Ses Araçları', deb: 'vorbis-tools', desc: 'Ogg formatında ses kodlama, etiketleme ve oynatma araçları', cat: 'media', size: '4 MB', installed: false },
 
       // 3. GRAFİK & TASARIM (GRAPHICS)
-      { id: 'gimp', name: 'GIMP Görsel Düzenleyici', deb: 'gimp', desc: 'Katman destekli, zengin filtreli açık kaynak grafik ve fotoğraf düzenleyici', cat: 'graphics', size: '112 MB', installed: false },
-      { id: 'inkscape', name: 'Inkscape Vektörel Çizim', deb: 'inkscape', desc: 'Profesyonel SVG standartlarında illüstrasyon ve vektör grafik stüdyosu', cat: 'graphics', size: '98 MB', installed: false },
-      { id: 'blender', name: 'Blender 3D Modelleme', deb: 'blender', desc: '3D modelleme, render motoru, heykel ve animasyon üretim yazılımı', cat: 'graphics', size: '310 MB', installed: false },
       { id: 'krita', name: 'Krita Dijital Boyama', deb: 'krita', desc: 'İllüstratörler ve konsept sanatçıları için çizim ve doku fırçaları', cat: 'graphics', size: '140 MB', installed: false },
       { id: 'darktable', name: 'Darktable Fotoğraf İşleme', deb: 'darktable', desc: 'Fotoğrafçılar için profesyonel RAW görüntü geliştirme ve kataloglama', cat: 'graphics', size: '64 MB', installed: false },
       { id: 'rawtherapee', name: 'RawTherapee RAW Geliştirici', deb: 'rawtherapee', desc: 'Yüksek bit derinliğinde tahribatsız RAW fotoğraf renk laboratuvarı', cat: 'graphics', size: '52 MB', installed: false },
       { id: 'imagemagick', name: 'ImageMagick Görsel Kiti', deb: 'imagemagick', desc: 'Toplu resim boyutlandırma, dönüştürme ve işleme komut satırı aracı', cat: 'graphics', size: '36 MB', installed: false },
       { id: 'graphviz', name: 'Graphviz Grafik Çizici', deb: 'graphviz', desc: 'DOT dili ile ağ şemaları, algoritmik diyagramlar ve soy ağaçları çizme', cat: 'graphics', size: '14 MB', installed: false },
       { id: 'scrot', name: 'Scrot Ekran Yakalayıcı', deb: 'scrot', desc: 'X11 ekran görüntüsü alma komut satırı aracı', cat: 'graphics', size: '1 MB', installed: false },
-      { id: 'flameshot', name: 'Flameshot Ekran Görüntüsü', deb: 'flameshot', desc: 'Seçili alana ok, metin, bulanıklık ekleyebilen gelişmiş ekran aracı', cat: 'graphics', size: '18 MB', installed: false },
       { id: 'feh', name: 'Feh Hafif Resim Görüntüleyici', deb: 'feh', desc: 'Düşük bellek tüketen hızlı fotoğraf slayt ve masaüstü aracı', cat: 'graphics', size: '3 MB', installed: false },
       { id: 'viewnior', name: 'Viewnior Hızlı Görsel Görüntüleyici', deb: 'viewnior', desc: 'Zarif ve sade GTK fotoğraf albümü görüntüleyicisi', cat: 'graphics', size: '4 MB', installed: false },
       { id: 'dia', name: 'Dia Teknik Diyagram Çizici', deb: 'dia', desc: 'UML, elektronik devre ve ağ mimarisi çizim yazılımı', cat: 'graphics', size: '26 MB', installed: false },
       { id: 'mypaint', name: 'MyPaint Dijital Eskiz', deb: 'mypaint', desc: 'Basınca duyarlı sonsuz tuval eskiz ve fırça simülasyonu', cat: 'graphics', size: '30 MB', installed: false },
 
       // 4. AĞ & İNTERNET (NET)
-      { id: 'firefox-esr', name: 'Firefox ESR Web Tarayıcısı', deb: 'firefox-esr', desc: 'Mozilla güvenli ve uzun vadeli kararlı internet tarayıcısı', cat: 'net', size: '78 MB', installed: false },
-      { id: 'chromium', name: 'Chromium Açık Kaynak Tarayıcı', deb: 'chromium', desc: 'Hızlı, çok süreçli modern web teknolojileri tarayıcısı', cat: 'net', size: '124 MB', installed: false },
       { id: 'thunderbird', name: 'Thunderbird E-Posta İstemcisi', deb: 'thunderbird', desc: 'E-posta, takvim, adres defteri ve RSS besleme yöneticisi', cat: 'net', size: '82 MB', installed: false },
-      { id: 'filezilla', name: 'FileZilla FTP/SFTP İstemcisi', deb: 'filezilla', desc: 'Güvenli dosya aktarımı için çift panelli grafiksel FTP/SFTP arayüzü', cat: 'net', size: '16 MB', installed: false },
       { id: 'qbittorrent', name: 'qBittorrent İndirme Yöneticisi', deb: 'qbittorrent', desc: 'Reklamsız, açık kaynaklı, hafif BitTorrent dosya paylaşım istemcisi', cat: 'net', size: '28 MB', installed: false },
-      { id: 'transmission-gtk', name: 'Transmission Torrent', deb: 'transmission-gtk', desc: 'Sistem kaynağı tüketmeyen minimalist BitTorrent istemcisi', cat: 'net', size: '10 MB', installed: false },
       { id: 'curl', name: 'cURL Veri Aktarım Aracı', deb: 'curl', desc: 'HTTP, HTTPS, FTP ve onlarca protokol üzerinden veri çekme aracı', cat: 'net', size: '4 MB', installed: false },
       { id: 'wget', name: 'Wget Ağ İndiricisi', deb: 'wget', desc: 'Web sitelerinden dosya ve ayna indirme komut satırı aracı', cat: 'net', size: '3 MB', installed: false },
       { id: 'aria2', name: 'Aria2 Hızlı İndirici', deb: 'aria2', desc: 'Çoklu bağlantı ve parçalı yüksek hızlı indirme motoru', cat: 'net', size: '6 MB', installed: false },
@@ -2003,26 +2388,21 @@
       { id: 'openssh-client', name: 'OpenSSH Güvenli Kabuk İstemcisi', deb: 'openssh-client', desc: 'Uzak sunuculara şifreli terminal erişimi ve tünelleme', cat: 'net', size: '8 MB', installed: false },
 
       // 5. OFİS & ÜRETKENLİK (OFFICE)
-      { id: 'libreoffice', name: 'LibreOffice Ofis Paketi', deb: 'libreoffice', desc: 'Metin, hesap tablosu ve sunum içeren tam donanımlı ofis yazılımı', cat: 'office', size: '340 MB', installed: false },
       { id: 'libreoffice-writer', name: 'LibreOffice Writer', deb: 'libreoffice-writer', desc: 'DOCX ve ODT belgeleri için profesyonel kelime işlemci', cat: 'office', size: '88 MB', installed: false },
       { id: 'libreoffice-calc', name: 'LibreOffice Calc', deb: 'libreoffice-calc', desc: 'XLSX ve ODS tabloları için gelişmiş formül ve grafik hesap tablosu', cat: 'office', size: '76 MB', installed: false },
       { id: 'libreoffice-impress', name: 'LibreOffice Impress', deb: 'libreoffice-impress', desc: 'Etkileyici görsel geçişlere sahip sunum hazırlama yazılımı', cat: 'office', size: '54 MB', installed: false },
-      { id: 'evince', name: 'Evince Belge Görüntüleyici', deb: 'evince', desc: 'PDF, PostScript, DjVu ve DVI belgelerini hızlıca açan okuyucu', cat: 'office', size: '18 MB', installed: false },
       { id: 'zathura', name: 'Zathura Minimalist PDF Okuyucu', deb: 'zathura', desc: 'Vim klavye kısayollarına sahip düşük bellek tüketen PDF okuyucu', cat: 'office', size: '6 MB', installed: false },
       { id: 'calibre', name: 'Calibre E-Kitap Yöneticisi', deb: 'calibre', desc: 'EPUB, MOBI ve PDF kütüphane arşivi ve format dönüştürücüsü', cat: 'office', size: '110 MB', installed: false },
-      { id: 'xournalpp', name: 'Xournal++ Not Alma & El Yazısı', deb: 'xournalpp', desc: 'Kalem desteği ile PDF üzerine çizim ve serbest el yazısı not aracı', cat: 'office', size: '24 MB', installed: false },
+      { id: 'xournalpp', name: 'Xournal++ Not Alma & El Yazısı', deb: 'xournalpp', desc: 'Kalem desteği ile PDF üzerine çizim ve serbest el yazısı not aracı', cat: 'office', size: '24 MB', featured: true, installed: false },
       { id: 'tesseract-ocr', name: 'Tesseract OCR Optik Karakter Tanıma', deb: 'tesseract-ocr', desc: 'Taranan görsel ve resimlerden metinleri otomatik çıkaran yapay zeka aracı', cat: 'office', size: '32 MB', installed: false },
       { id: 'pandoc', name: 'Pandoc Evrensel Belge Dönüştürücü', deb: 'pandoc', desc: 'Markdown, LaTeX, DOCX, HTML ve PDF arasında biçim dönüştürme', cat: 'office', size: '44 MB', installed: false },
       { id: 'ghostscript', name: 'Ghostscript PDF/PS İşleme Motoru', deb: 'ghostscript', desc: 'PDF sıkıştırma, birleştirme ve PostScript yorumlayıcı aracı', cat: 'office', size: '36 MB', installed: false },
 
       // 6. SİSTEM & YÖNETİM (SYS)
-      { id: 'htop', name: 'Htop Süreç Monitörü', deb: 'htop', desc: 'Canlı renkli süreç listesi, bellek ve CPU yük durum paneli', cat: 'sys', size: '2 MB', installed: false },
-      { id: 'btop', name: 'Btop Zengin Kaynak Monitörü', deb: 'btop', desc: 'Modern görsel grafiklerle CPU, GPU, RAM, disk ve ağ yükü izleyici', cat: 'sys', size: '6 MB', installed: false },
       { id: 'iotop', name: 'Iotop Disk Girdi/Çıktı Monitörü', deb: 'iotop', desc: 'Hangi sürecin diski ne kadar okuyup yazdığını canlı izleyen araç', cat: 'sys', size: '2 MB', installed: false },
       { id: 'iftop', name: 'Iftop Ağ Bant Genişliği Monitörü', deb: 'iftop', desc: 'Ağ bağlantılarında IP bazında anlık veri transferi takipçisi', cat: 'sys', size: '2 MB', installed: false },
       { id: 'ncdu', name: 'Ncdu Disk Alan Analizörü', deb: 'ncdu', desc: 'Dizinlerin diskte ne kadar yer kapladığını hızla gösteren konsol aracı', cat: 'sys', size: '1 MB', installed: false },
       { id: 'fastfetch', name: 'Fastfetch Hızlı Sistem Bilgisi', deb: 'fastfetch', desc: 'C ile yazılmış, milisaniyeler içinde donanım ve OS özeti çıkaran araç', cat: 'sys', size: '4 MB', installed: false },
-      { id: 'neofetch', name: 'Neofetch Bilgi Görüntüleyici', deb: 'neofetch', desc: 'Masaüstü ve terminalde Ankora Linux logosuyla sistem dökümü', cat: 'sys', size: '1 MB', installed: false },
       { id: 'inxi', name: 'Inxi Donanım Raporlama Aracı', deb: 'inxi', desc: 'İşlemci, ekran kartı, anakart ve ses yongaları hakkında ayrıntılı rapor', cat: 'sys', size: '3 MB', installed: false },
       { id: 'lshw', name: 'Lshw Donanım Listesi', deb: 'lshw', desc: 'Tüm donanım bileşenlerini XML veya JSON biçiminde döken teftiş aracı', cat: 'sys', size: '4 MB', installed: false },
       { id: 'pciutils', name: 'PCI Araçları (lspci)', deb: 'pciutils', desc: 'Anakart üzerindeki tüm PCI ve PCIe donanımlarını listeleme', cat: 'sys', size: '2 MB', installed: false },
@@ -2039,7 +2419,6 @@
       { id: 'screen', name: 'GNU Screen Oturum Yöneticisi', deb: 'screen', desc: 'Kopmayan SSH oturumları ve arka plan terminal yönetimi', cat: 'util', size: '3 MB', installed: false },
       { id: 'zsh', name: 'Zsh Gelişmiş Kabuk', deb: 'zsh', desc: 'Gelişmiş sekme tamamlama, tema ve eklenti destekli güçlü kabuk', cat: 'util', size: '12 MB', installed: false },
       { id: 'fish', name: 'Fish Akıllı Etkileşimli Kabuk', deb: 'fish', desc: 'Yazarken syntax highlighting ve otomatik öneriler sunan modern kabuk', cat: 'util', size: '16 MB', installed: false },
-      { id: 'p7zip-full', name: '7-Zip Arşiv Yöneticisi', deb: 'p7zip-full', desc: '7z, ZIP, TAR, GZ formatlarında yüksek oranlı dosya sıkıştırma', cat: 'util', size: '5 MB', installed: false },
       { id: 'unrar-free', name: 'Unrar Çıkarıcı', deb: 'unrar-free', desc: 'RAR arşiv paketlerini dizine açma ve çıkarma aracı', cat: 'util', size: '1 MB', installed: false },
       { id: 'zip', name: 'Zip Arşivleyici', deb: 'zip', desc: 'Standart ZIP arşivleri oluşturma ve şifreleme komut satırı aracı', cat: 'util', size: '2 MB', installed: false },
       { id: 'unzip', name: 'Unzip Arşiv Açıcı', deb: 'unzip', desc: 'ZIP arşivlerini hızlıca dışa aktarma aracı', cat: 'util', size: '2 MB', installed: false },
@@ -2052,10 +2431,10 @@
       { id: 'fd-find', name: 'FD Hızlı Dosya Arama', deb: 'fd-find', desc: 'Find komutuna kıyasla kat kat hızlı ve kullanıcı dostu arama aracı', cat: 'util', size: '3 MB', installed: false },
       { id: 'midnight-commander', name: 'Midnight Commander (MC)', deb: 'midnight-commander', desc: 'Klasik Norton Commander tarzı çift panelli konsol dosya yöneticisi', cat: 'util', size: '10 MB', installed: false },
       { id: 'ranger', name: 'Ranger Konsol Dosya Yöneticisi', deb: 'ranger', desc: 'Vim tuş takımı ve önizleme panellerine sahip terminal dosya tarayıcısı', cat: 'util', size: '6 MB', installed: false },
-      { id: 'gparted', name: 'GParted Disk Bölüm Editörü', deb: 'gparted', desc: 'EXT4, NTFS, FAT32 bölümlerini güvenle yeniden boyutlandırma ve biçimlendirme', cat: 'util', size: '24 MB', installed: false }
     ],
     tableBody: null,
-    currentCat: 'all',
+    // Açılışta kafa karıştırmayan kısa liste; tamamı "Tümü" sekmesinde.
+    currentCat: 'featured',
     currentSource: 'all',
 
     init() {
@@ -2165,7 +2544,9 @@
         const matchSource = this.currentSource === 'all'
           || (this.currentSource === 'flathub' && Boolean(p.flatpak))
           || (this.currentSource === 'apt' && Boolean(!p.flatpak));
-        const matchCat = this.currentCat === 'all' || p.cat === this.currentCat;
+        const matchCat = this.currentCat === 'all'
+          || (this.currentCat === 'featured' && Boolean(p.featured))
+          || p.cat === this.currentCat;
         const matchQ = p.name.toLowerCase().includes(q)
           || (p.deb && p.deb.toLowerCase().includes(q))
           || (p.flatpak && p.flatpak.toLowerCase().includes(q))
@@ -2180,13 +2561,15 @@
         const card = document.createElement('article');
         card.className = 'store-card';
         const isFlatpak = Boolean(pkg.flatpak);
-        const pkgSub = pkg.flatpak || pkg.deb || '';
+        const pkgSub = pkg.flatpak || pkg.deb || (pkg.action === 'meb-cert' ? 'mebcert' : '');
         const repoLabel = isFlatpak
-          ? 'Flathub Resmî Sandbox'
-          : (pkg.vendor ? `${pkg.vendor} resmî deposu` : (pkg.extUrl ? 'Harici kaynak' : 'Devuan resmî deposu'));
+          ? 'Flathub'
+          : (pkg.vendor ? 'Resmi site deposu' : (pkg.extUrl ? 'Harici kaynak' : (pkg.action ? 'Sistem ayarı' : 'Ankora deposu')));
         const badgeHtml = isFlatpak
           ? '<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;background:rgba(56,189,248,0.18);color:#38bdf8;border:1px solid rgba(56,189,248,0.3);letter-spacing:0.5px;">FLATHUB</span>'
-          : '<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;background:rgba(16,185,129,0.18);color:#10b981;border:1px solid rgba(16,185,129,0.3);letter-spacing:0.5px;">APT DEPO</span>';
+          : (pkg.action
+            ? '<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;background:rgba(37,99,235,0.18);color:#93b4fd;border:1px solid rgba(37,99,235,0.4);letter-spacing:0.5px;">SİSTEM</span>'
+            : '<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;background:rgba(16,185,129,0.18);color:#10b981;border:1px solid rgba(16,185,129,0.3);letter-spacing:0.5px;">APT DEPO</span>');
 
         card.innerHTML = `
           <div class="store-card-head">
@@ -2196,7 +2579,6 @@
                 ${escapeHtml(pkg.name)}
                 ${badgeHtml}
               </span>
-              <span class="store-card-pkg">${escapeHtml(pkgSub)}</span>
             </span>
           </div>
           <p class="store-card-desc">${escapeHtml(pkg.desc)}</p>
@@ -2216,6 +2598,9 @@
             `}
           </div>
         `;
+
+        const iconBox = card.querySelector('.store-card-icon');
+        if (iconBox) IconResolver.tagIcon(iconBox, { id: pkg.id, exec: pkgSub, deb: pkg.deb, flatpak: pkg.flatpak });
 
         const btn = card.querySelector('.btn-pkg:not(.btn-pkg-open):not(.btn-pkg-site)');
         if (btn) {
@@ -2246,11 +2631,17 @@
         frag.appendChild(card);
       });
       this.tableBody.appendChild(frag);
+      IconResolver.upgradeScope(this.tableBody);
     },
 
     async launchPackage(pkg) {
       Terminal.log(`[UYGULAMA BAŞLATILIYOR] ${pkg.name}...`, 'cmd');
       try {
+        if (pkg.action === 'meb-cert') {
+          await TauriBridge.invoke('install_meb_certificate', {});
+          Terminal.log(`[BAŞARILI] ${pkg.name} yenilendi.`, 'success');
+          return;
+        }
         if (pkg.flatpak) {
           await TauriBridge.invoke('launch_application', { exec: `flatpak run ${pkg.flatpak}` });
         } else {
@@ -2275,6 +2666,32 @@
                       : document.getElementById(`btn-pkg-${pkg.id}`);
       const prog = row ? row.querySelector('.pkg-progress-bar')
                        : document.getElementById(`prog-${pkg.id}`);
+
+      // Sistem eylemleri (MEB sertifikası): paket yok, onaylı yardımcı
+      // betik çalışır. Kaldırma, yalnızca yerel durumu sıfırlar.
+      if (pkg.action === 'meb-cert') {
+        if (pkg.installed) {
+          this.syncInstalledState(pkg.id, false);
+          this.saveInstalledState();
+          this.render(document.getElementById('store-search')?.value || '');
+          return;
+        }
+        if (btn) { btn.disabled = true; btn.textContent = 'Kuruluyor...'; }
+        Terminal.log('[SİSTEM] MEB okul ağı sertifikası resmi adresten kuruluyor...', 'cmd');
+        try {
+          const msg = await TauriBridge.invoke('install_meb_certificate', {});
+          this.syncInstalledState(pkg.id, true);
+          this.saveInstalledState();
+          Terminal.log(`[BAŞARILI] ${msg || 'MEB sertifikası kuruldu.'}`, 'success');
+          ReportManager.showToast('MEB sertifikası kuruldu; Brave hazır.');
+          this.render(document.getElementById('store-search')?.value || '');
+        } catch (err) {
+          if (btn) { btn.disabled = false; btn.textContent = 'Kur'; }
+          Terminal.log(`[ERR] MEB sertifika hatası: ${err}`, 'error');
+          ReportManager.showToast(`Kurulum hatası: ${err.message || err}`, 'error');
+        }
+        return;
+      }
 
       if (pkg.flatpak) {
         if (pkg.installed) {
@@ -2633,8 +3050,12 @@
     userHome: '',
     items: [],
     selectedItem: null,
+    // Gerçek XDG kullanıcı dizinleri (yerel ad/Türkçe ad farkını kapatır).
+    xdgDirs: null,
 
     init() {
+      // Gerçek klasör adları önden çözülür (İndirilenler/Downloads farkı).
+      this.prefetchXdgDirs();
       const btnUp = document.getElementById('btn-files-up');
       const btnRefresh = document.getElementById('btn-files-refresh');
       const btnNewFolder = document.getElementById('btn-files-new-folder');
@@ -2654,6 +3075,14 @@
           else if (p === 'trash') this.loadTrash();
           else if (p === 'network') this.promptNetworkShare();
           else if (['desktop', 'downloads', 'docs', 'pics', 'music', 'videos'].includes(p)) {
+            // XDG dizinleri backend'den okunur; sistem dili İngilizce de olsa
+            // Türkçe de olsa kenar çubuğu gerçek klasöre gider.
+            const key = { desktop: 'desktop', downloads: 'download', docs: 'documents', pics: 'pictures', music: 'music', videos: 'videos' }[p];
+            const hit = this.xdgDirs && this.xdgDirs[key];
+            if (hit) {
+              this.loadDirectory(hit);
+              return;
+            }
             const trMap = {
               desktop: 'Masaüstü',
               downloads: 'İndirilenler',
@@ -2670,6 +3099,20 @@
       });
 
       this.loadDirectory('');
+    },
+
+    // XDG dizinlerini önden çeker; Dosyalar açılmadan hazır olur.
+    prefetchXdgDirs() {
+      if (this.xdgDirs) return Promise.resolve(this.xdgDirs);
+      return TauriBridge.invoke('get_xdg_user_dirs', {})
+        .then(d => {
+          if (d && d.home) {
+            this.xdgDirs = d;
+            this.userHome = d.home;
+          }
+          return this.xdgDirs;
+        })
+        .catch(() => null);
     },
 
     async loadDirectory(dirPath) {
@@ -10984,6 +11427,13 @@
     safeInit('Terminal', () => Terminal.init());
     safeInit('OfficeManager', () => OfficeManager.init());
     safeInit('FileManager', () => FileManager.init());
+    safeInit('DesktopFiles', () => {
+      DesktopFiles.refresh();
+      // Masaüstü dosyaları (indirilenler dahil) en geç 30 sn içinde belirir.
+      setInterval(() => {
+        if (!document.hidden) DesktopFiles.refresh();
+      }, 30000);
+    });
     safeInit('AIAgent', () => AIAgent.init());
     safeInit('WelcomeManager', () => WelcomeManager.init());
     safeInit('InstallerWizard', () => InstallerWizard.init());

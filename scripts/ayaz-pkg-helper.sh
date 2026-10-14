@@ -8,7 +8,18 @@ set -euo pipefail
 ACTION="${1:-}"
 PKG="${2:-}"
 
-if [[ -z "$ACTION" || -z "$PKG" ]]; then
+if [[ -z "$ACTION" ]]; then
+    echo "[HATA] Kullanım: ayaz-pkg-helper <install|remove|vendor|mebcert> <paket_adi>" >&2
+    exit 1
+fi
+
+# mebcert eylemi paket adı almaz; tek argümanla çalışır.
+if [[ "$ACTION" == "mebcert" ]]; then
+    meb_install_cert
+    exit $?
+fi
+
+if [[ -z "$PKG" ]]; then
     echo "[HATA] Kullanım: ayaz-pkg-helper <install|remove|vendor> <paket_adi>" >&2
     exit 1
 fi
@@ -79,6 +90,112 @@ vendor_antigravity() {
     exec /usr/bin/apt-get install -y --no-install-recommends -- antigravity
 }
 
+# ---------------------------------------------------------------------
+# MEB OKUL AĞI SERTİFİKASI (mebcert)
+# Okul ağlarında (MEB filtreli internet) HTTPS denetimi MEB kök
+# sertifikasıyla yapılır; sertifika yoksa tarayıcılar "güvenli değil"
+# hatası verir. Bu eylem:
+#   1. Sertifikayı YALNIZCA resmi MEB adresinden indirir,
+#      openssl ile X.509 geçerliliğini doğrular (konu satırında MEB aranır).
+#   2. Sistem deposuna (/usr/local/share/ca-certificates) kurar.
+#   3. Brave / Chrome / Chromium NSS veritabanlarına (her kullanıcı için)
+#      "MEB" adıyla işler; böylece ek adım gerekmeden Brave'te geçerli olur.
+# URL ve sertifika adı bu betiğin İÇİNDE sabittir, arayüzden alınmaz.
+# ---------------------------------------------------------------------
+meb_install_cert() {
+    need_net_tools
+    local workdir cert_file
+    workdir="$(mktemp -d /tmp/mebcert-XXXXXX)"
+    cert_file="$workdir/meb.crt"
+    # shellcheck disable=SC2064
+    trap "rm -rf '$workdir'" RETURN
+
+    local urls=(
+        "https://sertifika.meb.gov.tr/MEB_SERTIFIKASI.cer"
+        "https://sertifika.meb.gov.tr/MEB_SERTIFIKASI.crt"
+    )
+    local ok=0
+    local u
+    for u in "${urls[@]}"; do
+        if curl -fsSL --retry 2 --max-time 60 -o "$cert_file" "$u" && [ -s "$cert_file" ]; then
+            ok=1
+            break
+        fi
+    done
+    if [[ "$ok" != "1" ]]; then
+        echo "[HATA] MEB sertifikası resmi adresten indirilemedi (sertifika.meb.gov.tr)." >&2
+        return 6
+    fi
+
+    # DER gelirse PEM'e çevir; zaten PEM ise aynen kalır.
+    if ! head -c 10 "$cert_file" | grep -q "BEGIN CERT"; then
+        if command -v openssl >/dev/null 2>&1 && openssl x509 -inform DER -in "$cert_file" -out "$workdir/meb.pem" 2>/dev/null; then
+            cert_file="$workdir/meb.pem"
+        fi
+    fi
+
+    if ! command -v openssl >/dev/null 2>&1; then
+        echo "[HATA] openssl bulunamadı; sertifika doğrulanamıyor." >&2
+        return 6
+    fi
+    local subject issuer
+    subject="$(openssl x509 -in "$cert_file" -noout -subject 2>/dev/null || true)"
+    issuer="$(openssl x509 -in "$cert_file" -noout -issuer 2>/dev/null || true)"
+    if [[ -z "$subject" ]]; then
+        echo "[HATA] İndirilen dosya geçerli bir X.509 sertifikası değil." >&2
+        return 6
+    fi
+    if ! printf '%s\n%s\n' "$subject" "$issuer" | grep -qi "meb\|mill.*e[ğg]itim\|egitim"; then
+        echo "[HATA] Sertifika MEB kök sertifikasına benzemiyor (özne: $subject). Kurulum durduruldu." >&2
+        return 6
+    fi
+
+    # 1. Sistem deposu
+    cp -f "$cert_file" /usr/local/share/ca-certificates/meb-kok.crt
+    chmod 0644 /usr/local/share/ca-certificates/meb-kok.crt
+    /usr/sbin/update-ca-certificates >/dev/null 2>&1 || update-ca-certificates >/dev/null 2>&1 || true
+
+    # 2. Tarayıcı NSS veritabanları (Brave öncelikli)
+    local injected=0
+    if command -v certutil >/dev/null 2>&1; then
+        local home
+        for home in /home/* /root; do
+            [ -d "$home" ] || continue
+            local user
+            user="$(basename "$home")"
+            local db
+            for db in "$home/.config/BraveSoftware/Brave-Browser" \
+                      "$home/.config/google-chrome" \
+                      "$home/.config/chromium"; do
+                [ -d "$db" ] || continue
+                if certutil -d "sql:$db" -A -t "C,," -n "MEB" -i "$cert_file" 2>/dev/null \
+                   || certutil -d "$db" -A -t "C,," -n "MEB" -i "$cert_file" 2>/dev/null; then
+                    injected=1
+                    if id "$user" >/dev/null 2>&1; then
+                        chown -R "$user" "$db" 2>/dev/null || true
+                    fi
+                else
+                    # Eski kayıt varsa silip yeniden dene (süresi dolmuş olabilir).
+                    certutil -d "sql:$db" -D -n "MEB" 2>/dev/null || true
+                    if certutil -d "sql:$db" -A -t "C,," -n "MEB" -i "$cert_file" 2>/dev/null; then
+                        injected=1
+                    fi
+                fi
+            done
+        done
+    else
+        echo "[UYARI] certutil (libnss3-tools) yok; tarayıcı NSS kurulumu atlandı, sistem deposu kuruldu." >&2
+    fi
+
+    echo "[AYAZ] MEB kök sertifikası kuruldu (özne: $subject)."
+    if [[ "$injected" == "1" ]]; then
+        echo "[AYAZ] Brave/Chrome NSS veritabanlarına işlendi."
+    else
+        echo "[AYAZ] Not: Brave profili bulunamadı; Brave ilk açılışta sistem deposunu kullanır."
+    fi
+    return 0
+}
+
 case "$ACTION" in
     install)
         # Sadece resmi depolardan güvenli kurulum (asla --allow-unauthenticated kabul edilmez).
@@ -104,7 +221,7 @@ case "$ACTION" in
         esac
         ;;
     *)
-        echo "[HATA] Bilinmeyen işlem: '$ACTION'. Yalnızca 'install', 'remove' veya 'vendor' kabul edilir." >&2
+        echo "[HATA] Bilinmeyen işlem: '$ACTION'. Yalnızca 'install', 'remove', 'vendor' veya 'mebcert' kabul edilir." >&2
         exit 4
         ;;
 esac

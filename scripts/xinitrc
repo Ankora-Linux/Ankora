@@ -51,6 +51,18 @@ elif command -v stalonetray >/dev/null 2>&1; then
     stalonetray --geometry 1x1-10+10 --grow-gravity NE --icon-gravity NE --kludges force_icons_size --transparent --tint-color "#0f172a" &
 fi
 
+# Dokunmatik giriş (libinput): dokun-kaydır kaydırsın, tek parmak
+# dokunuş tıklasın; iki parmak sağ tık. Hepsi korumalı: araç yoksa atlanır.
+if command -v xinput >/dev/null 2>&1; then
+    for _dev in $(xinput --list --id-only 2>/dev/null); do
+        xinput --set-prop "$_dev" "libinput Tapping Enabled" 1 2>/dev/null || true
+        xinput --set-prop "$_dev" "libinput Natural Scroll Enabled" 0 2>/dev/null || true
+        xinput --set-prop "$_dev" "libinput Scroll Method Enabled" 0 0 1 2>/dev/null || true
+        xinput --set-prop "$_dev" "libinput Click Method Enabled" 0 1 2>/dev/null || true
+    done
+    unset _dev
+fi
+
 # Ayaz DE Masaüstü Ortamını çalıştır
 if [ -x /usr/bin/ayaz ]; then
     exec /usr/bin/ayaz
