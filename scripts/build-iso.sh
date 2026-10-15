@@ -5409,10 +5409,11 @@ insmod search
 insmod search_label
 insmod iso9660
 insmod gettext
-# VM uyumluluğu: sabit yüksek çözünürlük + gfxpayload=keep, VirtualBox/VMware
-# sanal GPU'da bozuk framebuffer (GRUB sonrası renkli garip karakterler)
-# bırakıyordu. auto kip + taşıyıcı yok: çekirdek KMS ile doğru kipi seçer.
-set gfxmode="auto"
+# VM uyumluluğu: sabit yüksek çözünürlük + framebuffer devri, VirtualBox/VMware
+# sanal GPU'da bozuk zemin (GRUB sonrası renkli garip karakterler) bırakıyordu.
+# Metin taşıyıcı zorunludur: çekirdek metin kipinde başlar, KMS/X kipi devralır.
+set gfxmode="1024x768,800x600,auto"
+set gfxpayload="text"
 terminal_output gfxterm
 if loadfont unicode; then true; else echo "yazi tipi yuklenemedi"; fi
 
