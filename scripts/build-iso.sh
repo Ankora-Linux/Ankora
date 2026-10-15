@@ -5352,7 +5352,7 @@ LABEL ankora
   MENU LABEL ^1. Ankora Linux 2.0 (Canli Masaustu)
   MENU HELP Ankora Ayaz masaustunu canli olarak baslatir. Diske dokunulmaz.
   KERNEL /live/vmlinuz
-  APPEND initrd=/live/initrd boot=live live-media-path=/live union=overlay components username=ankora hostname=ankora-live locales=tr_TR.UTF-8 keyboard-layouts=tr timezone=Europe/Istanbul utc=yes noeject quiet splash loglevel=3
+  APPEND initrd=/live/initrd boot=live live-media-path=/live union=overlay components username=ankora hostname=ankora-live locales=tr_TR.UTF-8 keyboard-layouts=tr timezone=Europe/Istanbul utc=yes noeject quiet loglevel=3
 
 LABEL failsafe
   MENU LABEL ^2. Guvenli Mod (Failsafe)
@@ -5409,8 +5409,10 @@ insmod search
 insmod search_label
 insmod iso9660
 insmod gettext
-set gfxmode="1920x1080,1366x768,1024x768,auto"
-set gfxpayload="keep"
+# VM uyumluluğu: sabit yüksek çözünürlük + gfxpayload=keep, VirtualBox/VMware
+# sanal GPU'da bozuk framebuffer (GRUB sonrası renkli garip karakterler)
+# bırakıyordu. auto kip + taşıyıcı yok: çekirdek KMS ile doğru kipi seçer.
+set gfxmode="auto"
 terminal_output gfxterm
 if loadfont unicode; then true; else echo "yazi tipi yuklenemedi"; fi
 
@@ -5435,7 +5437,7 @@ fi
 export theme
 
 menuentry "Ankora Linux 2.0  —  Canlı Masaüstü" {
-    linux /live/vmlinuz boot=live live-media-path=/live union=overlay components username=ankora hostname=ankora-live locales=tr_TR.UTF-8 keyboard-layouts=tr timezone=Europe/Istanbul utc=yes noeject quiet splash loglevel=3
+    linux /live/vmlinuz boot=live live-media-path=/live union=overlay components username=ankora hostname=ankora-live locales=tr_TR.UTF-8 keyboard-layouts=tr timezone=Europe/Istanbul utc=yes noeject quiet loglevel=3
     initrd /live/initrd
 }
 
