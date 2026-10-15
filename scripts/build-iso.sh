@@ -5198,9 +5198,17 @@ rm -f "$CHROOT_DIR/etc/apt/apt.conf.d/02-build-forceipv4"
 
 # 8. SquashFS Sıkıştırılmış Kök Dosya Sisteminin Üretilmesi
 echo "[5/8] SquashFS kök dosya sistemi sıkıştırılıyor (filesystem.squashfs)..."
-# Çekirdek ve initrd dosyalarını çıkar
-KERNEL_FILE=$(find "$CHROOT_DIR/boot" -name "vmlinuz*" | sort -V | tail -n 1)
-INITRD_FILE=$(find "$CHROOT_DIR/boot" -name "initrd.img*" | sort -V | tail -n 1)
+# Çekirdek ve initrd dosyalarını çıkar (sürüm eşleşmeli: vmlinuz-X ↔ initrd.img-X).
+# Bağımsız `sort -V | tail` seçimi dist-upgrade sonrası eski/yeni çekirdeği
+# eşleştirmeden seçip "kernel panic / VFS mount" ile GRUB sonrası düşürüyordu.
+KERNEL_FILE=$(ls -1v "$CHROOT_DIR/boot/vmlinuz-"* 2>/dev/null | tail -n 1 || true)
+KVER="${KERNEL_FILE##*/vmlinuz-}"
+INITRD_FILE=""
+if [ -n "$KVER" ] && [ -f "$CHROOT_DIR/boot/initrd.img-${KVER}" ]; then
+    INITRD_FILE="$CHROOT_DIR/boot/initrd.img-${KVER}"
+else
+    INITRD_FILE=$(find "$CHROOT_DIR/boot" -name "initrd.img*" | sort -V | tail -n 1 || true)
+fi
 
 if [ -z "$KERNEL_FILE" ] || [ -z "$INITRD_FILE" ]; then
     echo "[HATA] Çekirdek (vmlinuz) veya initrd dosyası bulunamadı!" >&2
@@ -5208,6 +5216,16 @@ if [ -z "$KERNEL_FILE" ] || [ -z "$INITRD_FILE" ]; then
     ls -la "$CHROOT_DIR/boot/" >&2
     exit 2
 fi
+
+# Eşleşme doğrulaması: vmlinuz-6.1.0-53 ↔ initrd.img-6.1.0-53 olmalı
+K_BASE="${KERNEL_FILE##*/vmlinuz-}"
+I_BASE="${INITRD_FILE##*/initrd.img-}"
+if [ "$K_BASE" != "$I_BASE" ]; then
+    echo "[HATA] Çekirdek/initrd sürümleri eşleşmiyor: $K_BASE vs $I_BASE" >&2
+    ls -la "$CHROOT_DIR/boot/" >&2
+    exit 2
+fi
+echo "[OK] Çekirdek/initrd çifti: $K_BASE"
 
 cp -v "$KERNEL_FILE" "$IMAGE_DIR/live/vmlinuz"
 cp -v "$INITRD_FILE" "$IMAGE_DIR/live/initrd"
@@ -5291,7 +5309,12 @@ umount -lf "$CHROOT_DIR/dev" 2>/dev/null || true
 umount -lf "$CHROOT_DIR/proc" 2>/dev/null || true
 umount -lf "$CHROOT_DIR/sys" 2>/dev/null || true
 
-mksquashfs "$CHROOT_DIR" "$IMAGE_DIR/live/filesystem.squashfs" -comp xz -b 1048576 -noappend
+# Not: boot DAHİL tutulur — kurucu squashfs'i /target'a açıp GRUB'u
+# oradaki çekirdekle kurar; boot dışlanırsa kurulu sistem çekirdeksiz kalır.
+mksquashfs "$CHROOT_DIR" "$IMAGE_DIR/live/filesystem.squashfs" -comp xz -b 1048576 -noappend \
+    -e proc sys dev run tmp mnt media var/tmp var/cache/apt/archives var/lib/apt/lists 2>/dev/null || \
+mksquashfs "$CHROOT_DIR" "$IMAGE_DIR/live/filesystem.squashfs" -comp xz -b 1048576 -noappend \
+    -e proc sys dev run tmp mnt media
 
 # 9. Önyükleyici (Bootloader: Syslinux BIOS + GRUB EFI) Yapılandırması
 echo "[6/8] EFI ve BIOS hibrit önyükleyicileri hazırlanıyor..."
@@ -5376,6 +5399,12 @@ insmod all_video
 insmod gfxterm
 insmod png
 insmod jpeg
+insmod part_gpt
+insmod part_msdos
+insmod fat
+insmod ext2
+insmod loopback
+insmod test
 insmod search
 insmod search_label
 insmod iso9660
@@ -5383,9 +5412,15 @@ insmod gettext
 set gfxmode="1920x1080,1366x768,1024x768,auto"
 set gfxpayload="keep"
 terminal_output gfxterm
-loadfont unicode
+if loadfont unicode; then true; else echo "yazi tipi yuklenemedi"; fi
 
-search --no-floppy --set=root --label ANKORA_2_0
+# ISO kökü etiketle bulunur; etiket okunamazsa (bazı USB yazıcılar /
+# büyük-küçük harf farkı) dosya varlığıyla yedeğe düşülür. Yedek yoksa
+# /live/vmlinuz bulunamaz ve "you need to load the kernel first" verir.
+if search --no-floppy --set=root --label ANKORA_2_0; then true; fi
+if [ ! -e "/live/vmlinuz" ]; then
+    if search --no-floppy --set=root --file /live/vmlinuz; then true; fi
+fi
 
 set color_normal="light-gray/black"
 set color_highlight="white/blue"
@@ -5431,7 +5466,7 @@ if command -v grub-mkstandalone &>/dev/null; then
         --output="$IMAGE_DIR/EFI/boot/bootx64.efi" \
         --locales="" \
         --fonts="unicode" \
-        --modules="part_gpt part_msdos fat ext2 iso9660 normal configfile linux echo reboot halt search search_label loopback gettext all_video gfxterm gfxmenu png jpeg" \
+        --modules="part_gpt part_msdos fat ext2 iso9660 normal configfile linux test echo reboot halt search search_label search_fs_uuid loopback gettext all_video gfxterm gfxmenu png jpeg" \
         "boot/grub/grub.cfg=$IMAGE_DIR/boot/grub/grub.cfg" \
         "boot/grub/themes/ankora/theme.txt=$ROOT_DIR/scripts/grub-theme-ankora/theme.txt" || {
         echo "[HATA] grub-mkstandalone bootx64.efi oluşturamadı!" >&2
