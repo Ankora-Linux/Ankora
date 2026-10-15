@@ -110,7 +110,7 @@ if [ -e "$WORK_DIR" ] && [ ! -d "$WORK_DIR" ]; then
 fi
 mkdir -p "$WORK_DIR"
 find "$WORK_DIR" -mindepth 1 -maxdepth 1 -exec rm -rf {} + 2>/dev/null || true
-mkdir -p "$CHROOT_DIR" "$IMAGE_DIR/live" "$IMAGE_DIR/isolinux" "$IMAGE_DIR/boot/grub" "$ROOT_DIR/dist"
+mkdir -p "$CHROOT_DIR" "$IMAGE_DIR/live" "$IMAGE_DIR/boot/grub" "$ROOT_DIR/dist"
 
 # 4. Debootstrap ile Temel Devuan Daedalus Sisteminin İndirilmesi
 echo "[2/8] Devuan Daedalus SysVinit temel tabanı kuruluyor (debootstrap)..."
@@ -5311,80 +5311,45 @@ umount -lf "$CHROOT_DIR/sys" 2>/dev/null || true
 
 # Not: boot DAHİL tutulur — kurucu squashfs'i /target'a açıp GRUB'u
 # oradaki çekirdekle kurar; boot dışlanırsa kurulu sistem çekirdeksiz kalır.
+# KRİTİK: -e 'dizin' dizinin KENDİSİNİ siler; /dev /proc /sys /run yoksa
+# switch_root hedefe geçemez ve açılış "Attempted to kill init" ile ölür.
+# Bu yüzden 'dizin/*' kalıbı kullanılır: içerik atılır, boş dizin kalır.
+# /proc /sys /dev olduğu gibi tutulur (boş/statik, zararsız).
 mksquashfs "$CHROOT_DIR" "$IMAGE_DIR/live/filesystem.squashfs" -comp xz -b 1048576 -noappend \
-    -e proc sys dev run tmp mnt media var/tmp var/cache/apt/archives var/lib/apt/lists 2>/dev/null || \
-mksquashfs "$CHROOT_DIR" "$IMAGE_DIR/live/filesystem.squashfs" -comp xz -b 1048576 -noappend \
-    -e proc sys dev run tmp mnt media
+    -e 'tmp/*' 'run/*' 'mnt/*' 'media/*' 'var/tmp/*' 'var/cache/apt/archives/*' 'var/lib/apt/lists/*' 2>/dev/null || \
+mksquashfs "$CHROOT_DIR" "$IMAGE_DIR/live/filesystem.squashfs" -comp xz -b 1048576 -noappend
 
-# 9. Önyükleyici (Bootloader: Syslinux BIOS + GRUB EFI) Yapılandırması
+# 9. Önyükleyici (Bootloader: GRUB BIOS El Torito + GRUB EFI) Yapılandırması
 echo "[6/8] EFI ve BIOS hibrit önyükleyicileri hazırlanıyor..."
-# ISOLINUX (BIOS) — modern kart görünümlü menü.
-# NOT: vesamenu.c32 CP437 kod sayfası kullanır; ı/ş/ğ/ç UTF-8 glifleri
-# BIOS metin kipinde bozuk çizilir. Bu yüzden BIOS menüsü ASCII kalır;
-# tam Türkçe menü UEFI GRUB tarafındadır (unicode.pf2 UTF-8 destekler).
-cat << 'EOF' > "$IMAGE_DIR/isolinux/isolinux.cfg"
-UI vesamenu.c32
-PROMPT 0
-TIMEOUT 100
-DEFAULT ankora
-ALLOWOPTIONS 1
-
-MENU TITLE Ankora Linux 2.0  —  Ayaz Masaustu
-MENU WIDTH 78
-MENU MARGIN 10
-MENU ROWS 9
-MENU TABMSGROW 22
-MENU CMDLINEROW 22
-MENU HELPMSGROW 24
-MENU HELPMSGENDROW 26
-MENU TIMEOUTROW 20
-MENU COLOR border       0 #00000000 #00000000 none
-MENU COLOR title        0 #ffffffff #0f172a std
-MENU COLOR sel          0 #ffffffff #2563eb all
-MENU COLOR unsel        0 #c3c9d8 #0f172a std
-MENU COLOR help         0 #8b93a7 #0f172a std
-MENU COLOR timeout_msg  0 #8b93a7 #0f172a std
-MENU COLOR timeout      0 #f5f6fa #0f172a std
-MENU COLOR msg07        0 #8b93a7 #0f172a std
-MENU COLOR tabmsg       0 #8b93a7 #0f172a std
-
-LABEL ankora
-  MENU LABEL ^1. Ankora Linux 2.0 (Canli Masaustu)
-  MENU HELP Ankora Ayaz masaustunu canli olarak baslatir. Diske dokunulmaz.
-  KERNEL /live/vmlinuz
-  APPEND initrd=/live/initrd boot=live live-media-path=/live union=overlay components username=ankora hostname=ankora-live locales=tr_TR.UTF-8 keyboard-layouts=tr timezone=Europe/Istanbul utc=yes noeject quiet loglevel=3
-
-LABEL failsafe
-  MENU LABEL ^2. Guvenli Mod (Failsafe)
-  MENU HELP Donanim hizlandirma kapali, uyumluluk bayraklariyla baslatir.
-  KERNEL /live/vmlinuz
-  APPEND initrd=/live/initrd boot=live live-media-path=/live union=overlay components username=ankora hostname=ankora-live locales=tr_TR.UTF-8 keyboard-layouts=tr timezone=Europe/Istanbul noeject nomodeset noapic noacpi nosmap nosmep
-
-LABEL meminfo
-  MENU LABEL ^3. Bellek Bilgisi
-  MENU HELP Sistem belleginin boyutunu gosterir.
-  COM32 libcom32.c32
-  APPEND meminfo.c32
-
-TEXT HELP
-  Yukari/Asagi tuslariyla secin, Enter ile baslatin.
-  1: Canli Masaustu   2: Guvenli Mod   3: Bellek Bilgisi
-ENDTEXT
+# GRUB (BIOS) — ISOLINUX yerine i386-pc El Torito imajı.
+# Gerekçe: ISOLINUX 6.04 + COM32 zinciri bu çekirdekte kurulumu PARAMETRESİZ
+# (cmdline/initrd'siz) ham başlatıyordu → "VFS: Unable to mount root fs".
+# UEFI tarafında kanıtlanmış GRUB artık iki firmware'de de tek yükleyicidir
+# (Fedora canlı ISO'larıyla aynı mimari). Ortak menü: boot/grub/grub.cfg.
+# Erken yapılandırma: ISO'yu dosya ile bulur, ortak menüye dallanır.
+cat << 'EOF' > "$IMAGE_DIR/boot/grub/early-bios.cfg"
+if search --file --set=root /boot/grub/grub.cfg; then true; fi
+if [ ! -e /boot/grub/grub.cfg ]; then set root=(cd); fi
+set prefix=($root)/boot/grub
+configfile /boot/grub/grub.cfg
 EOF
 
-# Gerekli syslinux modülleri
-mkdir -p "$IMAGE_DIR/isolinux"
-for src_iso in /usr/lib/ISOLINUX/isolinux.bin /usr/lib/syslinux/isolinux.bin /usr/lib/syslinux/modules/bios/isolinux.bin; do
-    if [ -f "$src_iso" ]; then
-        cp -f "$src_iso" "$IMAGE_DIR/isolinux/isolinux.bin"
-        break
-    fi
-done
-for mod_dir in /usr/lib/syslinux/modules/bios /usr/lib/syslinux/bios /usr/lib/syslinux /usr/lib/ISOLINUX; do
-    if [ -d "$mod_dir" ]; then
-        cp -f "$mod_dir"/*.c32 "$IMAGE_DIR/isolinux/" 2>/dev/null || true
-    fi
-done
+if command -v grub-mkimage &>/dev/null; then
+    echo "[BIOS] grub-mkimage ile i386-pc El Torito imajı üretiliyor..."
+    grub-mkimage \
+        -O i386-pc-eltorito \
+        -o "$IMAGE_DIR/boot/grub/i386-pc-eltorito.img" \
+        -p /boot/grub \
+        -c "$IMAGE_DIR/boot/grub/early-bios.cfg" \
+        biosdisk part_msdos part_gpt fat ext2 iso9660 normal configfile linux linux16 search search_label search_fs_uuid search_fs_file loopback echo reboot halt test gettext all_video gfxterm gfxmenu png jpeg || {
+        echo "[HATA] grub-mkimage i386-pc-eltorito.img oluşturamadı!" >&2
+        exit 1
+    }
+else
+    echo "[HATA] grub-mkimage bulunamadı (grub-pc-bin gerekli)!" >&2
+    exit 1
+fi
+# early-bios.cfg hem ISO'da durur hem imaja gömülür; önyükleme gömülü kopyayla başlar.
 
 # GRUB (UEFI) — Ankora temalı modern menü (tam Türkçe, UTF-8).
 # Tema dosyası ISO üzerinde yoksa renkli yedeğe düşülür, menü bozulmaz.
@@ -5516,8 +5481,7 @@ add_manifest_hash() {
 
 add_manifest_hash "$IMAGE_DIR/live/vmlinuz" "/live/vmlinuz"
 add_manifest_hash "$IMAGE_DIR/live/initrd" "/live/initrd"
-add_manifest_hash "$IMAGE_DIR/isolinux/isolinux.bin" "/isolinux/isolinux.bin"
-add_manifest_hash "$IMAGE_DIR/isolinux/isolinux.cfg" "/isolinux/isolinux.cfg"
+add_manifest_hash "$IMAGE_DIR/boot/grub/i386-pc-eltorito.img" "/boot/grub/i386-pc-eltorito.img"
 add_manifest_hash "$IMAGE_DIR/boot/grub/grub.cfg" "/boot/grub/grub.cfg"
 add_manifest_hash "$IMAGE_DIR/EFI/boot/bootx64.efi" "/EFI/boot/bootx64.efi"
 add_manifest_hash "$IMAGE_DIR/boot/grub/efi.img" "/boot/grub/efi.img"
@@ -5542,8 +5506,8 @@ XORRISO_CMD=(
     -full-iso9660-filenames
     -r -J -l
     -volid "ANKORA_2_0"
-    -eltorito-boot isolinux/isolinux.bin
-    -eltorito-catalog isolinux/boot.cat
+    -eltorito-boot boot/grub/i386-pc-eltorito.img
+    -eltorito-catalog boot/grub/boot.cat
     -no-emul-boot -boot-load-size 4 -boot-info-table
 )
 
@@ -5565,7 +5529,7 @@ XORRISO_CMD+=(-output "$ROOT_DIR/dist/$ISO_NAME" "$IMAGE_DIR")
 "${XORRISO_CMD[@]}" 2>/dev/null || {
     echo "[UYARI] Hibrit xorriso komutu tamamlanamadı, standart mod ile deneniyor..."
     xorriso -as mkisofs -r -V "ANKORA_2_0" \
-        -b isolinux/isolinux.bin -c isolinux/boot.cat \
+        -b boot/grub/i386-pc-eltorito.img -c boot/grub/boot.cat \
         -no-emul-boot -boot-load-size 4 -boot-info-table \
         -o "$ROOT_DIR/dist/$ISO_NAME" "$IMAGE_DIR"
 }
