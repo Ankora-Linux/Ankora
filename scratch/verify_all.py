@@ -242,13 +242,18 @@ def main():
             check("grub cfg: grub-script-check", True, "atlandı (araç yok)")
         ply = (ROOT / "scripts/plymouth-theme-ankora/ankora.script").read_text(encoding="utf-8")
         check("plymouth: Math.Min yok", re.search(r"Math\.Min\s*\(", ply) is None)
-        check("plymouth: kare-başı img yok",
-              "refresh_callback" in ply and ply.split("fun refresh_callback")[1].count("Image.New") == 0)
-        check("plymouth: SetClip ilerleme", "SetClip" in ply)
-        check("kurulu sistem: splash+keep", 'quiet splash loglevel=3' in
-              (ROOT / "scripts/ankora-grub-default").read_text(encoding="utf-8")
-              and "GRUB_GFXPAYLOAD_LINUX=keep" in
-              (ROOT / "scripts/ankora-grub-default").read_text(encoding="utf-8"))
+        refresh_body = ply.split("fun refresh_callback")[1].split("fun boot_progress_callback")[0]
+        check("plymouth: kare-başı sprite yok", refresh_body.count("Sprite (") == 0,
+              "Sprite.SetImage ile güncellenir, yeni sprite oluşturulmaz")
+        check("plymouth: SetImage ilerleme", "SetImage" in ply
+              and "SetClip" not in ply)
+        check("plymouth: yalnız stok-tema API'si",
+              all(f in ply for f in ("Sprite.SetImage", "Math.Int", "Window.GetWidth"))
+              and "SetClip" not in ply)
+        grubdef = (ROOT / "scripts/ankora-grub-default").read_text(encoding="utf-8")
+        check("kurulu sistem: splash + gfxpayload zinciri",
+              "quiet splash loglevel=3" in grubdef
+              and "GRUB_GFXPAYLOAD_LINUX=1024x768,800x600,auto" in grubdef)
     except Exception as e:
         check("önyükleme zinciri", False, str(e)[:200])
 

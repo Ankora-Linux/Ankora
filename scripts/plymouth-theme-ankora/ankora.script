@@ -1,10 +1,10 @@
 # Ankora Linux Plymouth açılış betiği (script eklentisi).
-# Düz koyu zemin, ortada marka ve ince ilerleme çubuğu. Harici resim yok;
-# tüm imgeler bir kez kurulur, ilerleme SetClip ile gösterilir (kare başına
-# img üretimi bellek sızıntısı ve titreme yapıyordu). Yazılar ASCII tutulur:
-# initrd yazı tipi Türkçe glif içermeyebilir.
-screen_w = Window.GetX ();
-screen_h = Window.GetY ();
+# Düz koyu zemin, ortada marka ve ince ilerleme çubuğu. Harici resim yok.
+# API: yalnızca stok "script" temasının da kullandığı işlevler — Sprite.SetImage
+# ile aynı sprite güncellenir (kare başına yeni sprite YOK), Math.Int güvenli.
+# Yazılar ASCII tutulur: initrd yazı tipi Türkçe glif içermeyebilir.
+screen_w = Window.GetWidth ();
+screen_h = Window.GetHeight ();
 if (screen_w <= 0) screen_w = 1024;
 if (screen_h <= 0) screen_h = 768;
 
@@ -14,27 +14,35 @@ bar_fg_r = 0.145; bar_fg_g = 0.388; bar_fg_b = 0.922;
 txt_r = 0.961; txt_g = 0.965; txt_b = 0.980;
 sub_r = 0.396; sub_g = 0.455; sub_b = 0.545;
 
-bar_w = Math.Minimum (480, screen_w * 0.5);
+bar_w = screen_w * 0.5;
+if (bar_w > 480) bar_w = 480;
 bar_h = 6;
 bar_x = (screen_w - bar_w) / 2;
 bar_y = screen_h * 0.62;
+bar_bg_img = Image.New (bar_w, bar_h, bar_bg_r, bar_bg_g, bar_bg_b, 1);
+bar_x = Window.GetX () + bar_x;
+bar_y = Window.GetY () + bar_y;
 
 title_img = Image.Text ("ANKORA", txt_r, txt_g, txt_b, "Sans 42");
 title_spr = Sprite (title_img);
-title_spr.SetPosition ((screen_w - title_img.GetWidth ()) / 2, screen_h * 0.44, 10);
+title_spr.SetPosition (Window.GetX () + (screen_w - title_img.GetWidth ()) / 2,
+                       Window.GetY () + screen_h * 0.44, 10);
 
 sub_img = Image.Text ("Ayaz Masaustu Ortami aciliyor", sub_r, sub_g, sub_b, "Sans 14");
 sub_spr = Sprite (sub_img);
-sub_spr.SetPosition ((screen_w - sub_img.GetWidth ()) / 2, screen_h * 0.44 + 64, 10);
+sub_spr.SetPosition (Window.GetX () + (screen_w - sub_img.GetWidth ()) / 2,
+                     Window.GetY () + screen_h * 0.44 + 64, 10);
 
-bar_bg_spr = Sprite (Image.New (bar_w, bar_h, bar_bg_r, bar_bg_g, bar_bg_b, 1));
+bar_bg_spr = Sprite (bar_bg_img);
 bar_bg_spr.SetPosition (bar_x, bar_y, 5);
 
-bar_fg_spr = Sprite (Image.New (bar_w, bar_h, bar_fg_r, bar_fg_g, bar_fg_b, 1));
+bar_fg_img = Image.New (bar_w, bar_h, bar_fg_r, bar_fg_g, bar_fg_b, 1);
+bar_fg_spr = Sprite (bar_fg_img);
 bar_fg_spr.SetPosition (bar_x, bar_y, 6);
-bar_fg_spr.SetClip (0, 0, 0, bar_h);
+bar_fg_spr.SetOpacity (0);
 
-msg_spr = null;
+Plymouth.SetBackgroundTopColor (bg_red, bg_green, bg_blue);
+Plymouth.SetBackgroundBottomColor (bg_red, bg_green, bg_blue);
 
 fun refresh_callback () {
     progress = Plymouth.GetProgress ();
@@ -44,7 +52,13 @@ fun refresh_callback () {
     fill_w = Math.Int (bar_w * progress);
     if (fill_w < 0) fill_w = 0;
     if (fill_w > bar_w) fill_w = bar_w;
-    bar_fg_spr.SetClip (0, 0, fill_w, bar_h);
+    if (fill_w > 0) {
+        bar_fg_img = Image.New (fill_w, bar_h, bar_fg_r, bar_fg_g, bar_fg_b, 1);
+        bar_fg_spr.SetImage (bar_fg_img);
+        bar_fg_spr.SetOpacity (1);
+    } else {
+        bar_fg_spr.SetOpacity (0);
+    }
 }
 
 fun boot_progress_callback (duration, progress) {
@@ -53,8 +67,8 @@ fun boot_progress_callback (duration, progress) {
 
 fun message_callback (text) {
     msg_img = Image.Text (text, sub_r, sub_g, sub_b, "Sans 11");
-    msg_spr = Sprite (msg_img);
-    msg_spr.SetPosition ((screen_w - msg_img.GetWidth ()) / 2, screen_h * 0.80, 10);
+    bar_msg_spr = Sprite (msg_img);
+    bar_msg_spr.SetPosition ((screen_w - msg_img.GetWidth ()) / 2, screen_h * 0.80, 10);
 }
 
 Plymouth.SetBootProgressFunction (boot_progress_callback);

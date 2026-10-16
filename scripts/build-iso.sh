@@ -5411,13 +5411,12 @@ insmod search
 insmod search_label
 insmod iso9660
 insmod gettext
-# Framebuffer devri: çekirdek GRUB'un grafik kipini devralır (keep).
-# "text" kipi UEFI/GOP sistemlerde metin kipine dönemeyip GRUB artıklarını
-# (renkli zemin + yarım yazılar) bırakarak açılışa devam ediyordu.
-# Plymouth grafik teması + KMS temiz devir ister; metin konsolu
-# Güvenli Mod (Failsafe) girdisinde korunur.
+# Framebuffer devri: 'keep' menü kipini aynen çekirdeğe taşır; bazı
+# UEFI/VGA adapterler menü kipini devralamayıp "video error" üretiyordu.
+# Bilinen iyi kip zinciri: çekirdek açılışta 1024x768 gibi güvenli bir moda
+# düşer, Plymouth KMS ile kendi ekranını kurar. Metin konsolu Failsafe'tedir.
 set gfxmode="1024x768,800x600,auto"
-set gfxpayload="keep"
+set gfxpayload="1024x768,800x600,auto"
 terminal_output gfxterm
 # Yazı tipi: önce ISO'daki gerçek yol, sonra gömülü ad. Tema YALNIZCA yazı
 # tipi yüklenirse seçilir; yoksa renkli yedek menüde kalınır. Yüklenmemiş
@@ -5453,6 +5452,8 @@ menuentry "Ankora Linux 2.0  —  Canlı Masaüstü" {
 }
 
 menuentry "Ankora Linux 2.0  —  Güvenli Mod (Failsafe)" {
+    # Metin kipi: grafik devri olmadan düz konsol logları (donanım sorunlarında)
+    set gfxpayload="text"
     linux /live/vmlinuz boot=live live-media-path=/live union=overlay components username=ankora hostname=ankora-live locales=tr_TR.UTF-8 keyboard-layouts=tr timezone=Europe/Istanbul noeject nomodeset noapic noacpi
     initrd /live/initrd
 }
