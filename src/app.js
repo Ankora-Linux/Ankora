@@ -5688,6 +5688,17 @@
           }
         };
       }
+      const btnEta = document.getElementById('btn-touch-eta');
+      if (btnEta) {
+        btnEta.onclick = async () => {
+          try {
+            await TauriBridge.invoke('launch_application', { exec: 'eta-touchdrv --calibrate-gui' });
+            ReportManager.showToast('ETA dokunmatik sürücüsü açıldı.');
+          } catch (e) {
+            ReportManager.showToast(`ETA sürücüsü açılamadı: ${e.message || e}`, 'error');
+          }
+        };
+      }
     },
 
     async init() {

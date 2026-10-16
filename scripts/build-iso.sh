@@ -325,12 +325,19 @@ apt-get install -y --no-install-recommends \
     xterm \
     xinput \
     xinput-calibrator \
+    xserver-xorg-input-libinput \
+    xserver-xorg-input-evdev \
+    xserver-xorg-input-wacom \
+    evtest \
+    usbutils \
+    input-utils \
     onboard \
     wmctrl \
     xdotool \
     dunst \
     libnotify-bin \
     plymouth \
+    plymouth-themes \
     libnss3-tools \
     openssl \
     flatpak \
@@ -742,6 +749,10 @@ esac
 
 # Dokunmatik giriş (Faz tahta/IR çerçeve + dokunmatik ped): pedlerde
 # dokun-kaydır, tahta aygıtları her zaman açık. Kalibrasyon Ayarlar'dan.
+# ETA sürücü varsa önce o koşar (Faz1-3/IR/eGalax/HID eşleşmesi + matris).
+if [ -x /usr/bin/eta-touchdrv ]; then
+    /usr/bin/eta-touchdrv --enable 2>/dev/null || true
+fi
 if command -v xinput >/dev/null 2>&1; then
     for _dev in $(xinput --list --id-only 2>/dev/null); do
         _name=$(xinput --list --name-only "$_dev" 2>/dev/null || true)
@@ -2321,7 +2332,17 @@ exit 0
             _root("cp -rf /usr/share/ayaz/plymouth-theme-ankora/. "
                   "/target/usr/share/plymouth/themes/ankora/ 2>/dev/null; true", check=False)
             _root("chroot /target plymouth-set-default-theme -R ankora "
-                  "2>/dev/null; true", check=False)
+                  "2>/dev/null || chroot /target plymouth-set-default-theme ankora "
+                  "2>/dev/null || true; chroot /target update-initramfs -u -k all 2>/dev/null || true", check=False)
+            # Faz tahta dokunmatik sürücüsü kurulu sisteme taşınır.
+            _root("cp -f /usr/bin/eta-touchdrv /target/usr/bin/eta-touchdrv 2>/dev/null; "
+                  "cp -f /usr/share/applications/eta-touchdrv.desktop "
+                  "/target/usr/share/applications/eta-touchdrv.desktop 2>/dev/null; "
+                  "cp -f /lib/udev/rules.d/99-faz-touch.rules "
+                  "/target/lib/udev/rules.d/99-faz-touch.rules 2>/dev/null; "
+                  "mkdir -p /target/usr/share/X11/xorg.conf.d && cp -f "
+                  "/usr/share/X11/xorg.conf.d/99-faz-touch.conf "
+                  "/target/usr/share/X11/xorg.conf.d/99-faz-touch.conf 2>/dev/null; true", check=False)
 
             res_ug = subprocess.run(
                 _root_pre + ['chroot', '/target', 'update-grub'],
@@ -5125,8 +5146,23 @@ cp "$ROOT_DIR/scripts/plymouth-theme-ankora/ankora.script" "$CHROOT_DIR/usr/shar
 mkdir -p "$CHROOT_DIR/usr/share/plymouth/themes/ankora"
 cp "$ROOT_DIR/scripts/plymouth-theme-ankora/ankora.plymouth" "$CHROOT_DIR/usr/share/plymouth/themes/ankora/ankora.plymouth" || true
 cp "$ROOT_DIR/scripts/plymouth-theme-ankora/ankora.script" "$CHROOT_DIR/usr/share/plymouth/themes/ankora/ankora.script" || true
-chroot "$CHROOT_DIR" plymouth-set-default-theme -R ankora 2>/dev/null || \
+if chroot "$CHROOT_DIR" plymouth-set-default-theme -R ankora 2>"$WORK_DIR/plymouth-theme.log"; then
+    echo "[OK] Plymouth teması: ankora"
+else
+    echo "[UYARI] plymouth-set-default-theme başarısız, ayrıntı: $WORK_DIR/plymouth-theme.log" >&2
     chroot "$CHROOT_DIR" plymouth-set-default-theme ankora 2>/dev/null || true
+    chroot "$CHROOT_DIR" update-initramfs -u -k all 2>/dev/null || true
+fi
+# Faz tahta dokunmatik sürücüsü (varsayılan): ETA yardımcısı + udev + Xorg.
+cp "$ROOT_DIR/scripts/eta-touchdrv" "$CHROOT_DIR/usr/bin/eta-touchdrv" || true
+chmod +x "$CHROOT_DIR/usr/bin/eta-touchdrv" || true
+mkdir -p "$CHROOT_DIR/usr/share/applications" "$CHROOT_DIR/usr/share/ayaz"
+cp "$ROOT_DIR/scripts/eta-touchdrv.desktop" "$CHROOT_DIR/usr/share/applications/eta-touchdrv.desktop" || true
+cp "$ROOT_DIR/scripts/eta-touchdrv" "$CHROOT_DIR/usr/share/ayaz/eta-touchdrv" || true
+mkdir -p "$CHROOT_DIR/lib/udev/rules.d"
+cp "$ROOT_DIR/scripts/99-faz-touch.rules" "$CHROOT_DIR/lib/udev/rules.d/99-faz-touch.rules" || true
+mkdir -p "$CHROOT_DIR/usr/share/X11/xorg.conf.d" "$CHROOT_DIR/etc/X11/xorg.conf.d"
+cp "$ROOT_DIR/scripts/99-faz-touch.conf" "$CHROOT_DIR/usr/share/X11/xorg.conf.d/99-faz-touch.conf" || true
 cp "$ROOT_DIR/scripts/openbox-rc.xml" "$CHROOT_DIR/usr/share/ayaz/openbox-rc.xml" || true
 cp "$ROOT_DIR/scripts/openbox-rc.xml" "$CHROOT_DIR/etc/skel/.config/openbox/rc.xml" || true
 cp "$ROOT_DIR/scripts/openbox-rc.xml" "$CHROOT_DIR/home/ankora/.config/openbox/rc.xml" || true
@@ -5362,6 +5398,7 @@ set timeout_style="menu"
 
 insmod all_video
 insmod gfxterm
+insmod gfxmenu
 insmod png
 insmod jpeg
 insmod part_gpt
@@ -5374,13 +5411,17 @@ insmod search
 insmod search_label
 insmod iso9660
 insmod gettext
-# VM uyumluluğu: sabit yüksek çözünürlük + framebuffer devri, VirtualBox/VMware
-# sanal GPU'da bozuk zemin (GRUB sonrası renkli garip karakterler) bırakıyordu.
-# Metin taşıyıcı zorunludur: çekirdek metin kipinde başlar, KMS/X kipi devralır.
+# Framebuffer devri: çekirdek GRUB'un grafik kipini devralır (keep).
+# "text" kipi UEFI/GOP sistemlerde metin kipine dönemeyip GRUB artıklarını
+# (renkli zemin + yarım yazılar) bırakarak açılışa devam ediyordu.
+# Plymouth grafik teması + KMS temiz devir ister; metin konsolu
+# Güvenli Mod (Failsafe) girdisinde korunur.
 set gfxmode="1024x768,800x600,auto"
-set gfxpayload="text"
+set gfxpayload="keep"
 terminal_output gfxterm
-if loadfont unicode; then true; else echo "yazi tipi yuklenemedi"; fi
+# Yazı tipi: önce ISO'daki gerçek yol, sonra gömülü ad. Hiçbiri yoksa
+# tema atlanır, menü renkli yedeğe düşer (bozuk tema yerine okunur menü).
+if loadfont ($root)/boot/grub/fonts/unicode.pf2; then true; elif loadfont unicode; then true; else echo "yazi tipi yuklenemedi"; fi
 
 # ISO kökü etiketle bulunur; etiket okunamazsa (bazı USB yazıcılar /
 # büyük-küçük harf farkı) dosya varlığıyla yedeğe düşülür. Yedek yoksa
@@ -5403,7 +5444,7 @@ fi
 export theme
 
 menuentry "Ankora Linux 2.0  —  Canlı Masaüstü" {
-    linux /live/vmlinuz boot=live live-media-path=/live union=overlay components username=ankora hostname=ankora-live locales=tr_TR.UTF-8 keyboard-layouts=tr timezone=Europe/Istanbul utc=yes noeject quiet loglevel=3
+    linux /live/vmlinuz boot=live live-media-path=/live union=overlay components username=ankora hostname=ankora-live locales=tr_TR.UTF-8 keyboard-layouts=tr timezone=Europe/Istanbul utc=yes noeject splash quiet loglevel=3
     initrd /live/initrd
 }
 
@@ -5420,9 +5461,16 @@ menuentry "Kapat" {
     halt
 }
 EOF
-# GRUB teması ISO içine de konur (normal EFI yolundan okunur).
-mkdir -p "$IMAGE_DIR/boot/grub/themes/ankora"
+# GRUB teması + yazı tipi ISO içine de konur (normal EFI yolundan okunur).
+mkdir -p "$IMAGE_DIR/boot/grub/themes/ankora" "$IMAGE_DIR/boot/grub/fonts"
 cp "$ROOT_DIR/scripts/grub-theme-ankora/theme.txt" "$IMAGE_DIR/boot/grub/themes/ankora/theme.txt" || true
+for _pf2 in /usr/share/grub/unicode.pf2 /usr/share/grub/fonts/unicode.pf2; do
+    if [ -f "$_pf2" ]; then
+        cp -f "$_pf2" "$IMAGE_DIR/boot/grub/fonts/unicode.pf2" || true
+        break
+    fi
+done
+unset _pf2
 
 # EFI Bağımsız Önyükleyici ve efi.img Üretimi (Modern UEFI Boot Desteği)
 mkdir -p "$IMAGE_DIR/EFI/BOOT" "$IMAGE_DIR/EFI/boot" "$IMAGE_DIR/boot/grub/x86_64-efi"
@@ -5434,7 +5482,7 @@ if command -v grub-mkstandalone &>/dev/null; then
         --output="$IMAGE_DIR/EFI/boot/bootx64.efi" \
         --locales="" \
         --fonts="unicode" \
-        --modules="part_gpt part_msdos fat ext2 iso9660 normal configfile linux test echo reboot halt search search_label search_fs_uuid loopback gettext all_video gfxterm gfxmenu png jpeg" \
+        --modules="part_gpt part_msdos fat ext2 iso9660 normal configfile linux test echo reboot halt search search_label search_fs_uuid search_fs_file loopback gettext all_video gfxterm gfxmenu png jpeg" \
         "boot/grub/grub.cfg=$IMAGE_DIR/boot/grub/grub.cfg" \
         "boot/grub/themes/ankora/theme.txt=$ROOT_DIR/scripts/grub-theme-ankora/theme.txt" || {
         echo "[HATA] grub-mkstandalone bootx64.efi oluşturamadı!" >&2

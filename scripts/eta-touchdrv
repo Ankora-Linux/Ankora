@@ -1,0 +1,114 @@
+#!/bin/bash
+# ==============================================================================
+# eta-touchdrv — Faz Etkileşimli Tahta Dokunmatik Sürücü Yardımcısı
+# Vestel / Arçelik Faz1-Faz2-Faz3, IR çerçeve, eGalax, HID multitouch.
+# Deps: xinput, xrandr (zorunlu değil; yoksa güvenli çıkar).
+# Kullanım: eta-touchdrv [--status] [--enable] [--calibrate-gui] [--test]
+# ==============================================================================
+set -u
+
+log() { echo "[eta-touchdrv] $*"; }
+
+have() { command -v "$1" >/dev/null 2>&1; }
+
+# Faz tahtalarda görülen dokunmatik adları + yaygın USB çerçeveler.
+is_touch_name() {
+    case "$1" in
+        *[Tt]ouchscreen*|*[Tt]ouch*|*IR*|*IRTOUCH*|*Vestel*|*VESTEL*|*Arcelik*|*Arçelik*|*ARÇELİK*|*Faz*|*FAZ*|*ETA*|*Eta*|*eGalax*|*EGALAX*|*NextWindow*|*Quanta*|*Weida*|*Sahara*|*HID*touch*|*ILITEK*|*Elan*Touch*|*ELAN*Touch*|*Wacom*Finger*|*Atmel*|*Synaptics*Touch*|*Goodix*) return 0 ;;
+    esac
+    return 1
+}
+
+list_touch_ids() {
+    have xinput || return 0
+    xinput --list --id-only 2>/dev/null | while IFS= read -r id; do
+        [ -n "$id" ] || continue
+        name="$(xinput --list --name-only "$id" 2>/dev/null || true)"
+        if is_touch_name "$name"; then
+            echo "$id $name"
+        fi
+    done
+}
+
+do_enable() {
+    if ! have xinput; then
+        log "HATA: xinput kurulu değil (xserver-xorg-input-* eksik)."
+        return 1
+    fi
+    count=0
+    while IFS= read -r line; do
+        [ -n "$line" ] || continue
+        id="${line%% *}"
+        name="${line#* }"
+        xinput --enable "$id" 2>/dev/null || true
+        # Dokunuş = sol tık, sürükleme çalışsın: libinput + evdev güvenle denenir.
+        xinput --set-prop "$id" "libinput Calibration Matrix" 1 0 0 0 1 0 0 0 1 2>/dev/null || true
+        xinput --set-prop "$id" "Evdev Axis Calibration" 2>/dev/null || true
+        xinput --set-prop "$id" "Evdev Axes Swap" 0 2>/dev/null || true
+        # Tek parmak tıklasın, sağ tık iki parmak/uzun basım ile gelsin.
+        xinput --set-prop "$id" "libinput Tapping Enabled" 1 2>/dev/null || true
+        log "etkin: [$id] $name"
+        count=$((count + 1))
+    done <<EOF
+$(list_touch_ids)
+EOF
+    if [ "$count" -eq 0 ]; then
+        log "dokunmatik aygıt bulunamadı. USB çerçevenin takılı olduğunu denetleyin."
+        log "ipucu: 'lsusb' çıktısında 0eef / 0408 / 1926 / 0596 VID'leri arayın."
+        return 2
+    fi
+    log "$count dokunmatik aygıt etkin."
+    return 0
+}
+
+do_status() {
+    echo "== ETA dokunmatik durumu =="
+    if have xinput; then
+        echo "-- xinput listesi --"
+        xinput --list 2>/dev/null | grep -i -E "touch|vestel|arçelik|arcelik|faz|ir |irto|egalax|hid" || echo "(ad eşleşmesi yok — tam liste aşağıda)"
+        xinput --list 2>/dev/null || true
+    else
+        echo "xinput yok"
+    fi
+    echo "-- usb --"
+    if have lsusb; then lsusb 2>/dev/null || true; else echo "lsusb yok"; fi
+    echo "-- eşleşen dokunmatikler --"
+    list_touch_ids || true
+}
+
+do_calibrate() {
+    do_enable || true
+    if have xinput_calibrator; then
+        log "kalibrasyon açılıyor (xinput_calibrator)..."
+        exec xinput_calibrator
+    elif have xinput-calibrator; then
+        exec xinput-calibrator
+    else
+        log "HATA: xinput-calibrator kurulu değil."
+        return 1
+    fi
+}
+
+do_test() {
+    do_enable
+    rc=$?
+    if have xinput; then
+        echo "--- xinput test: parmağınla dokun, imleç oynamalı ---"
+        xinput --test-xi2 --root 2>/dev/null | head -n 40 || xinput --test "pointer" 2>/dev/null | head -n 40 || true
+    fi
+    return $rc
+}
+
+case "${1:---enable}" in
+    --status|-s) do_status ;;
+    --enable|-e) do_enable ;;
+    --calibrate-gui|--calibrate|-c) do_calibrate ;;
+    --test|-t) do_test ;;
+    --help|-h)
+        echo "Kullanım: eta-touchdrv [--status|--enable|--calibrate-gui|--test]"
+        ;;
+    *)
+        echo "Kullanım: eta-touchdrv [--status|--enable|--calibrate-gui|--test]" >&2
+        exit 1
+        ;;
+esac

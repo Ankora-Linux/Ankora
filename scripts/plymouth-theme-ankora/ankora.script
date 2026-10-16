@@ -11,7 +11,7 @@ bar_fg_r = 0.145; bar_fg_g = 0.388; bar_fg_b = 0.922;
 txt_r = 0.961; txt_g = 0.965; txt_b = 0.980;
 sub_r = 0.396; sub_g = 0.455; sub_b = 0.545;
 
-bar_w = Math.Min (480, screen_w * 0.5);
+bar_w = Math.Minimum (480, screen_w * 0.5);
 bar_h = 6;
 bar_x = (screen_w - bar_w) / 2;
 bar_y = screen_h * 0.62;
@@ -22,15 +22,21 @@ title_y = screen_h * 0.44;
 title_spr = Sprite (title_img);
 title_spr.SetPosition (title_x, title_y, 10);
 
-sub_img = Image.Text ("Ayaz Masaüstü Ortamı açılıyor", sub_r, sub_g, sub_b, "Sans 14");
+sub_img = Image.Text ("Ayaz Masaustu Ortami aciliyor", sub_r, sub_g, sub_b, "Sans 14");
 sub_spr = Sprite (sub_img);
 sub_spr.SetPosition ((screen_w - sub_img.GetWidth ()) / 2, screen_h * 0.44 + 64, 10);
 
+bar_bg_img = Image.New (bar_w, bar_h, bar_bg_r, bar_bg_g, bar_bg_b, 1);
+bar_bg_spr = Sprite (bar_bg_img);
+bar_bg_spr.SetPosition (bar_x, bar_y, 5);
+
+bar_fg_spr = null;
+msg_spr = null;
+
 fun refresh_callback () {
     progress = Plymouth.GetMode () == "suspend" ? 0 : Plymouth.GetProgress ();
-    bar_bg = Image.New (bar_w, bar_h, bar_bg_r, bar_bg_g, bar_bg_b, 1);
-    bar_bg_spr = Sprite (bar_bg);
-    bar_bg_spr.SetPosition (bar_x, bar_y, 5);
+    if (progress < 0) progress = 0;
+    if (progress > 1) progress = 1;
     fill_w = Math.Int (bar_w * progress);
     if (fill_w > 0) {
         bar_fg = Image.New (fill_w, bar_h, bar_fg_r, bar_fg_g, bar_fg_b, 1);
@@ -47,8 +53,6 @@ fun message_callback (text) {
     msg = Image.Text (text, sub_r, sub_g, sub_b, "Sans 11");
     msg_spr = Sprite (msg);
     msg_spr.SetPosition ((screen_w - msg.GetWidth ()) / 2, screen_h * 0.80, 10);
-    msg_spr.SetClip (0, 0, msg.GetWidth (), msg.GetHeight ());
-    Plymouth.SetRefreshFunction (refresh_callback);
 }
 
 Plymouth.SetBootProgressFunction (boot_progress_callback);

@@ -17,6 +17,9 @@ fi
 
 # Dokunmatik giriş (Faz tahta/IR çerçeve + dokunmatik ped): pedlerde
 # dokun-kaydır, tahta aygıtları her zaman açık. Kalibrasyon Ayarlar'dan.
+if [ -x /usr/bin/eta-touchdrv ]; then
+    /usr/bin/eta-touchdrv --enable 2>/dev/null || true
+fi
 if command -v xinput >/dev/null 2>&1; then
     for _dev in $(xinput --list --id-only 2>/dev/null); do
         _name=$(xinput --list --name-only "$_dev" 2>/dev/null || true)

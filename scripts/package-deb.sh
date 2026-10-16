@@ -108,6 +108,19 @@ if [ -n "$DEB_FILE" ] && [ -f "$DEB_FILE" ]; then
     ls -lh "$DEB_FILE"
     
     mkdir -p dist
+    # 3b. Tauri 1.5 bundler, otomatik bağımlılıkları kontrol satırının sonuna
+    # bare olarak tekrar ekler (", libwebkit2gtk-4.0-37, libgtk-3-0").
+    # Sondaki bare 4.0-37, noble (Ubuntu 24.04 / Zorin 18) depolarında
+    # bulunmadığından kurulumu engeller; baştaki "4.0-37 | 4.1-0"
+    # dönüşümü zaten yeterli olduğu için yinelenen kuyruk temizlenir.
+    REPACK_DIR="$(mktemp -d)"
+    dpkg-deb -R "$DEB_FILE" "$REPACK_DIR"
+    sed -i 's/, libwebkit2gtk-4\.0-37, libgtk-3-0$//' "$REPACK_DIR/DEBIAN/control"
+    chmod 755 "$REPACK_DIR/DEBIAN"
+    dpkg-deb -b "$REPACK_DIR" "$DEB_FILE"
+    rm -rf "$REPACK_DIR"
+    echo "[3b/4] Depends yinelenen kuyruktan arındırıldı:"
+    dpkg-deb -f "$DEB_FILE" Depends
     cp -v "$DEB_FILE" dist/ayaz-de-latest-amd64.deb
     echo "[4/4] Çıktı: dist/ayaz-de-latest-amd64.deb"
     echo "Tebrikler! .deb paketi ISO derleme adımına hazır."

@@ -52,6 +52,10 @@ elif command -v stalonetray >/dev/null 2>&1; then
 fi
 
 # Dokunmatik giriş (libinput): Faz tahta/IR çerçeve ve dokunmatik pedler.
+# ETA sürücü varsa önce o koşar (Faz1-3/IR/eGalax/HID eşleşmesi).
+if [ -x /usr/bin/eta-touchdrv ]; then
+    /usr/bin/eta-touchdrv --enable 2>/dev/null || true
+fi
 # Dokun-kaydır kaydırsın, tek parmak dokunuş tıklasın; iki parmak sağ tık.
 # Hepsi korumalı: araç yoksa atlanır. Dokunma ayarları yalnız dokunmatik
 # pedlere uygulanır; tahta kalibrasyonu Ayarlar > Ekran üzerinden yapılır.

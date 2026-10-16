@@ -1,0 +1,11 @@
+# Faz etkileşimli tahta dokunmatik çerçeveleri: takınca giriş izni + udev etiketi.
+# Vestel/Arçelik Faz1-3, eGalax, IRTOUCH, NextWindow, Quanta, Weida, ILITEK, Atmel.
+ACTION=="add|change", SUBSYSTEM=="input", ATTRS{idVendor}=="0eef", ENV{ID_INPUT_TOUCHSCREEN}="1", MODE="0666"
+ACTION=="add|change", SUBSYSTEM=="input", ATTRS{idVendor}=="0408", ENV{ID_INPUT_TOUCHSCREEN}="1", MODE="0666"
+ACTION=="add|change", SUBSYSTEM=="input", ATTRS{idVendor}=="1926", ENV{ID_INPUT_TOUCHSCREEN}="1", MODE="0666"
+ACTION=="add|change", SUBSYSTEM=="input", ATTRS{idVendor}=="0596", ENV{ID_INPUT_TOUCHSCREEN}="1", MODE="0666"
+ACTION=="add|change", SUBSYSTEM=="input", ATTRS{idVendor}=="1bfd", ENV{ID_INPUT_TOUCHSCREEN}="1", MODE="0666"
+ACTION=="add|change", SUBSYSTEM=="input", ATTRS{idVendor}=="222a", ENV{ID_INPUT_TOUCHSCREEN}="1", MODE="0666"
+ACTION=="add|change", SUBSYSTEM=="input", ATTRS{idVendor}=="03eb", ENV{ID_INPUT_TOUCHSCREEN}="1", MODE="0666"
+ACTION=="add|change", SUBSYSTEM=="input", ATTRS{idVendor}=="27c0", ENV{ID_INPUT_TOUCHSCREEN}="1", MODE="0666"
+ACTION=="add|change", SUBSYSTEM=="input", ENV{ID_INPUT_TOUCHSCREEN}=="1", MODE="0666"

@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=ETA Dokunmatik Sürücü
+Comment=Faz etkileşimli tahta dokunmatik çerçevesini etkinleştir, kalibre et
+Exec=eta-touchdrv --calibrate-gui
+Icon=input-touchscreen
+Terminal=false
+Categories=Settings;HardwareSettings;
+StartupNotify=true
+X-Ayaz-BuiltIn=true
