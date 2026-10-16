@@ -13,7 +13,9 @@ Denetlenenler:
 """
 import html.parser
 import json
+import os
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -171,12 +173,84 @@ def main():
         check("uzun-basım sağ tık", "initLongPress" in app_js and "LONG_PRESS_MS" in app_js)
         check("tahta ayar grubu", "btn-touch-calibrate" in html_text
               and "btn-touch-keyboard" in html_text
+              and "btn-touch-eta" in html_text
               and "initTouchControls" in app_js)
         check("iso: kalibrasyon + ekran klavyesi",
               "xinput-calibrator" in iso and re.search(r"^\s*onboard\s*\\\\?$", iso, re.M) is not None)
         check("xinitrc: ped/tahta ayrımı", "ouchpad" in xin and "ouchscreen" in xin)
     except Exception as e:
         check("faz tahta dokunmatik desteği", False, str(e)[:200])
+
+    # 13. ETA dokunmatik sürücüsü (son eklenen sistem)
+    try:
+        eta = (ROOT / "scripts/eta-touchdrv").read_text(encoding="utf-8")
+        check("eta: --enable/--status/--calibrate-gui/--test",
+              all(f in eta for f in ("--enable", "--status", "--calibrate", "--test")))
+        check("eta: Faz ad eşleşmesi", all(k in eta for k in ("Vestel", "eGalax", "IRTOUCH", "Faz")))
+        check("eta: chroot kurulumu", all(k in iso for k in (
+            "usr/bin/eta-touchdrv", "99-faz-touch.rules", "99-faz-touch.conf",
+            "eta-touchdrv.desktop")))
+        check("eta: kurulu hedefe taşınır", "target/usr/bin/eta-touchdrv" in iso)
+        check("eta: oturumda otomatik", "eta-touchdrv --enable" in xin
+              and "eta-touchdrv --enable" in (ROOT / "scripts/ayaz-session").read_text(encoding="utf-8"))
+        import subprocess as _sp
+        r = _sp.run(["bash", "-n", "scripts/eta-touchdrv"], cwd=ROOT)
+        check("eta: bash -n", r.returncode == 0)
+        r = _sp.run(["bash", "scripts/eta-touchdrv", "--help"], cwd=ROOT,
+                    capture_output=True, text=True)
+        check("eta: --help çalışır", r.returncode == 0 and "Kullanım" in r.stdout)
+        r = _sp.run(["bash", "scripts/eta-touchdrv", "--kötü-arg"], cwd=ROOT,
+                    capture_output=True, text=True)
+        check("eta: kötü argüman reddi", r.returncode == 1)
+        udev = (ROOT / "scripts/99-faz-touch.rules").read_text(encoding="utf-8")
+        check("udev: eşleşme=çift-esittir atama=tek",
+              'ACTION=="add|change"' in udev and 'MODE="0666"' in udev
+              and re.search(r'ACTION[^=]=[^=]', udev) is None)
+        xorg = (ROOT / "scripts/99-faz-touch.conf").read_text(encoding="utf-8")
+        check("xorg: Section dengesi",
+              xorg.count("Section ") == xorg.count("EndSection")
+              and 'MatchIsTouchscreen "on"' in xorg)
+    except Exception as e:
+        check("eta dokunmatik sürücüsü", False, str(e)[:200])
+
+    # 14. GRUB + Plymouth önyükleme zinciri
+    try:
+        theme = (ROOT / "scripts/grub-theme-ankora/theme.txt").read_text(encoding="utf-8")
+        check("grub tema: küme dengesi", theme.count("{") == theme.count("}")
+              and theme.count("{") > 0)
+        check("grub tema: boş resim yolu yok", 'desktop-image: ""' not in theme)
+        check("grub tema: gerekli anahtarlar",
+              all(k in theme for k in ("desktop-color", "terminal-font", "boot_menu",
+                                       "item_font", "selected_item_color", "__timeout__")))
+        check("grub cfg: gfxmenu + font kapılı tema",
+              "insmod gfxmenu" in iso and 'have_font="1"' in iso
+              and '"$have_font" = "1"' in iso)
+        check("grub cfg: unicode.pf2 ISO'da", "boot/grub/fonts/unicode.pf2" in iso)
+        import subprocess as _sp2
+        cfg_src = re.search(
+            r"cat << 'EOF' > \"\$IMAGE_DIR/boot/grub/grub\.cfg\"\n(.*?)\nEOF\n",
+            iso, re.S)
+        if cfg_src and shutil.which("grub-script-check"):
+            import tempfile as _tf
+            with _tf.NamedTemporaryFile("w", suffix=".cfg", delete=False) as fh:
+                fh.write(cfg_src.group(1))
+                tmp_cfg = fh.name
+            r = _sp2.run(["grub-script-check", tmp_cfg], capture_output=True, text=True)
+            check("grub cfg: grub-script-check", r.returncode == 0, r.stderr[:200])
+            os.unlink(tmp_cfg)
+        else:
+            check("grub cfg: grub-script-check", True, "atlandı (araç yok)")
+        ply = (ROOT / "scripts/plymouth-theme-ankora/ankora.script").read_text(encoding="utf-8")
+        check("plymouth: Math.Min yok", re.search(r"Math\.Min\s*\(", ply) is None)
+        check("plymouth: kare-başı img yok",
+              "refresh_callback" in ply and ply.split("fun refresh_callback")[1].count("Image.New") == 0)
+        check("plymouth: SetClip ilerleme", "SetClip" in ply)
+        check("kurulu sistem: splash+keep", 'quiet splash loglevel=3' in
+              (ROOT / "scripts/ankora-grub-default").read_text(encoding="utf-8")
+              and "GRUB_GFXPAYLOAD_LINUX=keep" in
+              (ROOT / "scripts/ankora-grub-default").read_text(encoding="utf-8"))
+    except Exception as e:
+        check("önyükleme zinciri", False, str(e)[:200])
 
     print()
     if FAILURES:

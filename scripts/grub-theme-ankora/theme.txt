@@ -1,20 +1,18 @@
 # Ankora Linux GRUB2 teması ("ankora")
-# Modern kart görünümlü, metin tabanlı tema: düşük çözünürlüklü UEFI/BIOS
-# konsollarında da bozulmadan çizilir. Harici resim dosyası gerektirmez
-# (unicode.pf2 GRUB ile gelir; Türkçe glifler dahildir).
+# GRUB gfxmenu kılavuzuna birebir uyumlu, resimsiz düz renk tema:
+# düşük çözünürlüklü UEFI/BIOS konsollarında da bozulmadan çizilir.
+# Kurallar: boyutlar çıplak sayı/yüzde, dizgiler tırnaklı; resim yoksa
+# desktop-image satırı yazılmaz (boş yol tema yükleyiciyi düşürür).
+# Yazı tipi "unicode": grub.cfg önce /boot/grub/fonts/unicode.pf2 dosyasını
+# yükler, tema ancak bundan sonra seçilir (Türkçe glifler dahildir).
 title-text: ""
-desktop-image: ""
 desktop-color: "#0b0e17"
 terminal-font: "unicode"
-terminal-left: "0"
-terminal-top: "0"
-terminal-width: "100%"
-terminal-height: "100%"
 
 + label {
-    top = "10%"
-    left = "0"
-    width = "100%"
+    top = 10%
+    left = 0
+    width = 100%
     align = "center"
     text = "ANKORA LINUX"
     color = "#f5f6fa"
@@ -22,58 +20,46 @@ terminal-height: "100%"
 }
 
 + label {
-    top = "15%"
-    left = "0"
-    width = "100%"
+    top = 15%
+    left = 0
+    width = 100%
     align = "center"
-    text = "Ayaz Masaüstü Ortamı  •  2.0  •  Devuan Daedalus"
+    text = "Ayaz Masaustu Ortami  •  2.0  •  Devuan Daedalus"
     color = "#64748b"
     font = "unicode"
 }
 
-+ hbox {
-    top = "24%"
-    left = "22%"
-    width = "56%"
-    height = "8"
-    + label {
-        text = ""
-    }
-}
-
 + boot_menu {
-    left = "22%"
-    top = "27%"
-    width = "56%"
-    height = "44%"
+    left = 22%
+    top = 27%
+    width = 56%
+    height = 44%
     item_font = "unicode"
     item_color = "#c3c9d8"
     selected_item_color = "#ffffff"
-    item_height = "36"
-    item_padding = "10"
-    item_spacing = "8"
-    icon_width = "0"
-    icon_height = "0"
-    item_icon_space = "12"
-    scrollbar = "false"
+    item_height = 32
+    item_padding = 8
+    item_spacing = 6
+    icon_width = 0
+    icon_height = 0
 }
 
 + label {
-    top = "74%"
-    left = "0"
-    width = "100%"
+    top = 74%
+    left = 0
+    width = 100%
     align = "center"
-    text = "Canlı sistem diske dokunmaz  •  Güvenli Mod donanım sorunlarında kullanılır"
+    text = "Canli sistem diske dokunmaz  •  Guvenli Mod donanim sorunlarinda kullanilir"
     color = "#475569"
     font = "unicode"
 }
 
 + progress_bar {
     id = "__timeout__"
-    left = "30%"
-    top = "80%"
-    width = "40%"
-    height = "6"
+    left = 30%
+    top = 80%
+    width = 40%
+    height = 6
     fg_color = "#2563eb"
     bg_color = "#1e293b"
     border_color = "#1e293b"
@@ -81,11 +67,11 @@ terminal-height: "100%"
 }
 
 + label {
-    top = "85%"
-    left = "0"
-    width = "100%"
+    top = 85%
+    left = 0
+    width = 100%
     align = "center"
-    text = "Seçim: ↑ ↓   •   Açılış: Enter   •   Düzenle: E   •   Komut: C"
+    text = "Secim: yukari/asagi  •  Acilis: Enter  •  Duzenle: E  •  Komut: C"
     color = "#5a687d"
     font = "unicode"
 }

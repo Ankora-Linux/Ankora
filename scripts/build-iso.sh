@@ -5419,9 +5419,11 @@ insmod gettext
 set gfxmode="1024x768,800x600,auto"
 set gfxpayload="keep"
 terminal_output gfxterm
-# Yazı tipi: önce ISO'daki gerçek yol, sonra gömülü ad. Hiçbiri yoksa
-# tema atlanır, menü renkli yedeğe düşer (bozuk tema yerine okunur menü).
-if loadfont ($root)/boot/grub/fonts/unicode.pf2; then true; elif loadfont unicode; then true; else echo "yazi tipi yuklenemedi"; fi
+# Yazı tipi: önce ISO'daki gerçek yol, sonra gömülü ad. Tema YALNIZCA yazı
+# tipi yüklenirse seçilir; yoksa renkli yedek menüde kalınır. Yüklenmemiş
+# yazı tipiyle tema seçmek gfxmenu'yü hata ile konsola düşürüyordu.
+have_font="0"
+if loadfont ($root)/boot/grub/fonts/unicode.pf2; then have_font="1"; elif loadfont unicode; then have_font="1"; else echo "yazi tipi yuklenemedi"; fi
 
 # ISO kökü etiketle bulunur; etiket okunamazsa (bazı USB yazıcılar /
 # büyük-küçük harf farkı) dosya varlığıyla yedeğe düşülür. Yedek yoksa
@@ -5436,10 +5438,12 @@ set color_highlight="white/blue"
 set menu_color_normal="light-gray/black"
 set menu_color_highlight="white/blue"
 
-if [ -e "$prefix/themes/ankora/theme.txt" ]; then
-    set theme="$prefix/themes/ankora/theme.txt"
-elif [ -e "/boot/grub/themes/ankora/theme.txt" ]; then
-    set theme="/boot/grub/themes/ankora/theme.txt"
+if [ "$have_font" = "1" ]; then
+    if [ -e "$prefix/themes/ankora/theme.txt" ]; then
+        set theme="$prefix/themes/ankora/theme.txt"
+    elif [ -e "/boot/grub/themes/ankora/theme.txt" ]; then
+        set theme="/boot/grub/themes/ankora/theme.txt"
+    fi
 fi
 export theme
 
@@ -5461,6 +5465,25 @@ menuentry "Kapat" {
     halt
 }
 EOF
+# Derleme kapısı: bozuk GRUB sözdizimi ISO'ya giremez.
+if command -v grub-script-check &>/dev/null; then
+    if ! grub-script-check "$IMAGE_DIR/boot/grub/grub.cfg"; then
+        echo "[HATA] grub.cfg sözdizimi bozuk, ISO durduruldu!" >&2
+        exit 1
+    fi
+    echo "[OK] grub.cfg sözdizimi doğrulandı."
+fi
+# Tema kapısı: boş resim yolu ve dengesiz küme menüyü hata ile düşürür.
+THEME_TXT="$ROOT_DIR/scripts/grub-theme-ankora/theme.txt"
+if grep -q 'desktop-image: *""' "$THEME_TXT"; then
+    echo "[HATA] GRUB temasında boş desktop-image yolu var!" >&2
+    exit 1
+fi
+if [ "$(tr -cd '{' < "$THEME_TXT" | wc -c)" != "$(tr -cd '}' < "$THEME_TXT" | wc -c)" ]; then
+    echo "[HATA] GRUB temasında dengesiz küme parantezi!" >&2
+    exit 1
+fi
+echo "[OK] GRUB teması doğrulandı."
 # GRUB teması + yazı tipi ISO içine de konur (normal EFI yolundan okunur).
 mkdir -p "$IMAGE_DIR/boot/grub/themes/ankora" "$IMAGE_DIR/boot/grub/fonts"
 cp "$ROOT_DIR/scripts/grub-theme-ankora/theme.txt" "$IMAGE_DIR/boot/grub/themes/ankora/theme.txt" || true
