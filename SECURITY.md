@@ -48,6 +48,6 @@ Tauri ve kiosk arka uçlarında `run_terminal_command` çağrısı doğrudan key
 ## 4. Güvenlik Açığı Bildirimi (Vulnerability Disclosure)
 
 Ankora Linux projesinde tespit ettiğiniz güvenlik açıklarını lütfen herkese açık bir sorun kaydı (issue) olarak açmak yerine:
-- **E-posta:** `security@ankora.org` veya proje yöneticisine doğrudan iletiniz.
+- **E-posta:** `linuxankora@gmail.com` veya proje yöneticisine doğrudan iletiniz.
 - Raporunuzda etkilenen bileşeni, yeniden üretim adımlarını (PoC) ve mümkünse önerilen yamayı belirtiniz.
 - Güvenlik açıkları sorumlu bildirim (coordinated disclosure) ilkelerine uygun olarak incelenir ve 48 saat içinde yanıtlanır.
