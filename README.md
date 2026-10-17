@@ -1,8 +1,8 @@
 <div align="center">
   <img src="assets/logo.png" alt="Ayaz DE Logo" width="200" style="border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.8);">
   <br><br>
-  <h1>Ayaz Desktop Environment (Ayaz DE)</h1>
-  <p><b>Ankora Linux için hafif, kiosk odaklı masaüstü ortamı</b></p>
+  <h1>Ankora Linux — Ana Depo</h1>
+  <p><b>Bu depo Ankora Linux projesinin resmi ana deposudur. Ayaz Desktop Environment (Ayaz DE) bu repoda geliştirilir ve paketlenir.</b></p>
 
   <p>
     <img src="https://img.shields.io/badge/S%C3%9CR%C3%9CM-2.0.0-ffffff?style=for-the-badge&labelColor=111111" alt="Sürüm">
@@ -12,9 +12,15 @@
   </p>
 </div>
 
+## Bu depo hakkında
+
+Bu depo, Ankora Linux projesinin merkezi kaynak deposudur. İçinde Ayaz Desktop Environment (Ayaz DE) kaynak kodu, ISO derleme betikleri, paketleme yardımcıları ve üçüncü parti bileşenler bulunur. Ayaz DE, Devuan tabanlı Ankora Linux için geliştirilmiş, SysVinit tabanlı, hafif ve kiosk odaklı bir masaüstü ortamıdır.
+
+> Kısa özet: Bu repo artık Ankora Linux'un ana deposudur; Ayaz DE burada geliştirilir, .deb paketleri oluşturulur ve canlı ISO'lar burada derlenir.
+
 ## Ayaz DE nedir?
 
-Ayaz DE, **Ankora Linux** için geliştirilmiş, SysVinit tabanlı masaüstü ortamıdır. GNOME ve KDE'nin aksine arayüzü Rust ve WebKitGTK (Tauri 1.5) ile çalışır; boşta ~80-120 MB RAM harcar. Kiosk kullanımı için monokrom cam görünüm ve ortalanmış görev çubuğu kullanır.
+Ayaz DE, **Ankora Linux** için geliştirilmiş, SysVinit tabanlı masaüstü ortamıdır. GNOME ve KDE'nin aksine arayüzü Rust ve WebKitGTK (Tauri 1.5) ile çalışır; boşta ~80-120 MB RAM harcar.
 
 ## Özellikler
 
@@ -55,10 +61,19 @@ Ayaz/
 │   ├── tauri.conf.json          # Kiosk pencere kuralları ve CSP
 │   └── src/main.rs              # Sistem telemetrisi, IPC, güncelleme motoru
 ├── my-linux-orchestrator/       # Yapılandırma orkestratörü ve beceri tanımları
+├── third_party/                 # Üçüncü parti paketler ve keyring'ler
 ├── AGENTS.md
 ├── LICENSE                      # GPL-3.0
 └── package.json
 ```
+
+## Bakımcılar
+
+Bu repoyu güncelleme yetkisine sahip ana bakımcılar:
+
+* @Parsozkn (repo sahibi/sorumlu)
+
+İsterseniz daha fazla maintainer ekleyin; bana kullanıcı adlarını verin, ben AGENTS.md ve README.md'ye eklerim.
 
 ## Geliştirme ve derleme
 
