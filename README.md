@@ -1,41 +1,47 @@
 <div align="center">
   <img src="assets/logo.png" alt="Ayaz DE Logo" width="200" style="border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.8);">
   <br><br>
-  <h1>Ankora Linux — Ana Depo</h1>
-  <p><b>Bu depo Ankora Linux projesinin resmi ana deposudur. Ayaz Desktop Environment (Ayaz DE) bu repoda geliştirilir ve paketlenir.</b></p>
+  <h1>Ankora Linux</h1>
+  <p><b>Resmî ana depo · Ayaz Desktop Environment (Ayaz DE)</b></p>
 
   <p>
     <img src="https://img.shields.io/badge/S%C3%9CR%C3%9CM-2.0.0-ffffff?style=for-the-badge&labelColor=111111" alt="Sürüm">
     <img src="https://img.shields.io/badge/%C3%87EK%C4%B0RDEK-TAURI_%2B_RUST-059669?style=for-the-badge&labelColor=111111" alt="Çekirdek">
     <img src="https://img.shields.io/badge/HEDEF-ANKORA_LINUX-2563eb?style=for-the-badge&labelColor=111111" alt="Dağıtım">
-    <img src="https://img.shields.io/badge/L%C3%B0SANS-GPL--3.0-41a013?style=for-the-badge&labelColor=111111" alt="Lisans">
+    <img src="https://img.shields.io/badge/L%C3%9CSANS-GPL--3.0-41a013?style=for-the-badge&labelColor=111111" alt="Lisans">
   </p>
 </div>
 
-## Bu depo hakkında
+## Ana depo
 
-Bu depo, Ankora Linux projesinin merkezi kaynak deposudur. İçinde Ayaz Desktop Environment (Ayaz DE) kaynak kodu, ISO derleme betikleri, paketleme yardımcıları ve üçüncü parti bileşenler bulunur. Ayaz DE, Devuan tabanlı Ankora Linux için geliştirilmiş, SysVinit tabanlı, hafif ve kiosk odaklı bir masaüstü ortamıdır.
+Bu repository, Ankora Linux projesinin resmî ana deposudur. Tüm canlı ISO üretimi, sistem paketleme, Ayaz DE geliştirme akışı ve dağıtım altyapısı burada yönetilir.
 
-> Kısa özet: Bu repo artık Ankora Linux'un ana deposudur; Ayaz DE burada geliştirilir, .deb paketleri oluşturulur ve canlı ISO'lar burada derlenir.
+Bu depoda yer alan temel bileşenler:
+
+- Ayaz Desktop Environment (Ayaz DE)
+- Ankora Linux için masaüstü arayüzü ve güvenlik katmanı
+- Devuan tabanlı sistem yapılandırmaları
+- `.deb` paket üretimi ve dağıtım iş akışları
+- ISO üretim betikleri ve yardımcı araçlar
 
 ## Ayaz DE nedir?
 
-Ayaz DE, **Ankora Linux** için geliştirilmiş, SysVinit tabanlı masaüstü ortamıdır. GNOME ve KDE'nin aksine arayüzü Rust ve WebKitGTK (Tauri 1.5) ile çalışır; boşta ~80-120 MB RAM harcar.
+Ayaz DE, Ankora Linux için geliştirilmiş, SysVinit tabanlı hafif ve kiosk odaklı bir masaüstü ortamıdır. GNOME ve KDE'nin aksine arayüzü Rust + WebKitGTK (Tauri 1.5) üzerine kurulur. Boşta RAM kullanımı yaklaşık 80–120 MB civarındadır.
 
 ## Özellikler
 
-* Gereksiz arka plan servisleri olmadan çalışır; boşta ~80-120 MB RAM harcar.
-* Ayaz Güncelleyici, `.deb` güncellemelerini terminale girmeden masaüstünden denetler, indirir ve kurar.
-* Yapay zeka ajanı Ollama (localhost), Google Gemini ve Groq ile çalışır; `apt-get clean`, `df -h` gibi komutları onayınızla çalıştırır.
-* Üç tema (Nordik Açık, Modern Grafit, Derin Gece) ve 8 vektörel monokrom duvar kağıdı gelir.
+* Gereksiz arka plan servisleri olmadan çalışır; boşta yaklaşık 80–120 MB RAM kullanır.
+* Ayaz Güncelleyici, `.deb` güncellemelerini masaüstünden yönetir; kurulum ve güncelleme işlemleri terminale ihtiyaç duymadan yapılır.
+* Yapay zeka ajanı Ollama (localhost), Google Gemini ve Groq ile çalışır; `apt-get clean`, `df -h` gibi işlemlerin onaylı çalıştırılmasını sağlar.
+* Üç tema (Nordik Açık, Modern Grafit, Derin Gece) ve 8 vektörel monokrom duvar kağıdı içerir.
 * Görev çubuğu ve başlat menüsü ortalanır; düzen Windows 11 ve Chrome OS Flex'ten esinlenir.
 * İkili kara liste, `sudo`, `su`, `pkexec`, `dd` gibi araçların yetkisiz çalıştırılmasını engeller.
-* Belge görüntüleyici hardlink ve path traversal'a karşı korumalıdır; PDF, Markdown ve metin dosyalarını açar.
-* Devuan SysVinit ve X11 `nodm` oto-oturumuyla uyumludur
+* Belge görüntüleyici, hardlink ve path traversal saldırılarına karşı korunur; PDF, Markdown ve metin dosyalarını açar.
+* Devuan SysVinit ve X11 `nodm` oturum yönetimiyle uyumludur.
 
 ## Dizin yapısı
 
-```
+```text
 Ayaz/
 ├── .github/workflows/
 │   ├── build-iso.yml            # Ankora Linux canlı ISO derleme iş akışı (manuel tetiklemeli)
@@ -64,22 +70,18 @@ Ayaz/
 ├── third_party/                 # Üçüncü parti paketler ve keyring'ler
 ├── AGENTS.md
 ├── LICENSE                      # GPL-3.0
-└── package.json
+├── package.json
+└── README.md
 ```
-
-## Bakımcılar
-
-Bu repoyu güncelleme yetkisine sahip ana bakımcılar:
-
-* @Parsozkn (repo sahibi/sorumlu)
-
-İsterseniz daha fazla maintainer ekleyin; bana kullanıcı adlarını verin, ben AGENTS.md ve README.md'ye eklerim.
 
 ## Geliştirme ve derleme
 
 ### Gereksinimler
 
-* Rust: `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
+* Rust:
+  ```bash
+  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+  ```
 * Node.js v18 veya v20
 * Debian/Devuan kütüphaneleri:
   ```bash
@@ -99,7 +101,7 @@ cargo tauri dev
 cargo tauri build --bundles deb
 ```
 
-Paket `src-tauri/target/release/bundle/deb/ayaz-de_2.0.0_amd64.deb` dizininde oluşur.
+Paket, `src-tauri/target/release/bundle/deb/ayaz-de_2.0.0_amd64.deb` dizininde oluşur.
 
 ## Sürüm dağıtımı
 
@@ -110,8 +112,10 @@ git tag v2.0.1
 git push origin v2.0.1
 ```
 
-`release-de.yml` iş akışı derlemeyi Ubuntu üzerinde tamamlar ve `.deb` paketini GitHub Releases sayfasına yükler. Güncellemeler masaüstündeki **Ayaz Güncelleyici** ile kurulur.
+`release-de.yml` iş akışı derlemeyi Ubuntu üzerinde tamamlar ve `.deb` paketini GitHub Releases sayfasına yükler. Güncellemeler masaüstündeki Ayaz Güncelleyici ile kurulur.
 
 ## Lisans
 
-Bu proje **GNU General Public License v3.0** ile lisanslıdır; tam metin `LICENSE` dosyasındadır. Ankora Linux projesinin parçasıdır.
+Bu proje GNU General Public License v3.0 ile lisanslıdır; tam metin `LICENSE` dosyasındadır.
+
+Ankora Linux projesinin ana deposu olarak bu repo, proje için merkezî geliştirme ve dağıtım noktasıdır.
