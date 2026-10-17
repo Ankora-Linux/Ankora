@@ -16,6 +16,10 @@ on:
     tags:
       - 'v*'
 
+# Sürüm yükleme (gh-release) GITHUB_TOKEN ikle yazma izni ister.
+permissions:
+  contents: write
+
 jobs:
   build-iso:
     name: Ankora Linux Hibrit Live ISO Derle
