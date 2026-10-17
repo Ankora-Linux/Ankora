@@ -1093,6 +1093,24 @@ def _root_run(cmd_args, stdin_text=None, timeout=30):
             raise Exception('Bu ayar için yönetici (root) yetkisi gerekiyor: sudo parola soruyor.')
     return proc
 
+def _snap_helper_json(action, arg):
+    """Kurtarma noktası yazımları root-owned ayaz-pkg-helper üzerinden
+    yapılır (sudoers NOPASSWD). Masaüstü oturumu /var/backups altına
+    doğrudan yazamaz; 'yetki yok' hatasının köküdü bu köprünün eski
+    doğrudan-yazma davranışıydı. Helper JSON döner, hata olursa Türkçe
+    mesajıyla Exception yükselir."""
+    helper = '/usr/local/bin/ayaz-pkg-helper'
+    if not os.path.exists(helper):
+        raise Exception('Kurtarma noktası yardımcısı (ayaz-pkg-helper) bulunamadı; sistem kurulumu eksik.')
+    proc = _root_run([helper, action, arg], timeout=900)
+    if proc.returncode != 0:
+        raise Exception((proc.stderr or proc.stdout or '').strip() or 'Kurtarma noktası işlemi başarısız oldu')
+    out = (proc.stdout or '').strip()
+    try:
+        return json.loads(out)
+    except Exception:
+        return out
+
 def _live_boot_disks():
     """Canlı ISO'nun açıldığı disk(ler). Kurulum hedefi olarak sunulmaz:
     USB'den açılan sistemde ilk disk çoğu zaman USB'nin kendisidir ve
@@ -4458,48 +4476,10 @@ exit 0
         raw_name = str(args.get('name', 'Snapshot'))
         name = re.sub(r'[^a-zA-Z0-9_\-]', '', raw_name) or 'Snapshot'
         desc = str(args.get('description', ''))
-        now = int(time.time())
-        base_dir = '/var/backups/ankora-snapshots'
-        os.makedirs(base_dir, exist_ok=True)
-        snap_id = f"{now}_{name}"
-        snap_path = os.path.join(base_dir, snap_id)
-        os.makedirs(snap_path, exist_ok=True)
-
-        pkg_list_path = os.path.join(snap_path, 'packages.list')
-        try:
-            with open(pkg_list_path, 'w') as pf:
-                subprocess.run(['dpkg', '--get-selections'], stdout=pf, stderr=subprocess.DEVNULL)
-        except Exception:
-            pass
-
-        tar_path = os.path.join(snap_path, 'etc-backup.tar.gz')
-        subprocess.run(['tar', '-czf', tar_path, '--exclude=/etc/mtab', '/etc'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-
-        size_bytes = os.path.getsize(tar_path) if os.path.exists(tar_path) else 0
-        size_human = f"{size_bytes / 1024:.1f} KB" if size_bytes < 1024**2 else f"{size_bytes / (1024**2):.1f} MB"
-        date_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(now))
-
-        snap_info = {
-            'id': snap_id,
-            'name': name,
-            'description': desc,
-            'timestamp': now,
-            'date_str': date_str,
-            'size_human': size_human,
-            'is_btrfs': False
-        }
-
-        meta_file = os.path.join(base_dir, 'snapshots.json')
-        snaps = []
-        if os.path.exists(meta_file):
-            try:
-                with open(meta_file, 'r', encoding='utf-8') as f:
-                    snaps = json.load(f)
-            except Exception:
-                pass
-        snaps.append(snap_info)
-        with open(meta_file, 'w', encoding='utf-8') as f:
-            json.dump(snaps, f, indent=2, ensure_ascii=False)
+        snap_info = _snap_helper_json('snapshot-create', name)
+        if isinstance(snap_info, dict):
+            snap_info.setdefault('description', desc)
+            snap_info.setdefault('is_btrfs', False)
         return snap_info
 
     elif cmd == 'list_system_snapshots':
@@ -4516,32 +4496,14 @@ exit 0
         snap_id = args.get('snapshotId', args.get('snapshot_id', ''))
         if not snap_id or '..' in snap_id or '/' in snap_id or '\\' in snap_id:
             raise Exception('Geçersiz snapshot kimliği')
-        tar_path = os.path.join('/var/backups/ankora-snapshots', snap_id, 'etc-backup.tar.gz')
-        if not os.path.exists(tar_path):
-            raise Exception('Snapshot arşiv dosyası bulunamadı')
-        res = subprocess.run(['tar', '-xzf', tar_path, '-C', '/'])
-        if res.returncode == 0:
-            return 'Sistem yapılandırması başarıyla geri yüklendi.'
-        raise Exception('Geri yükleme başarısız oldu')
+        _snap_helper_json('snapshot-restore', snap_id)
+        return 'Sistem yapılandırması başarıyla geri yüklendi.'
 
     elif cmd == 'delete_system_snapshot':
         snap_id = args.get('snapshotId', args.get('snapshot_id', ''))
         if not snap_id or '..' in snap_id or '/' in snap_id or '\\' in snap_id:
             raise Exception('Geçersiz snapshot kimliği')
-        base_dir = '/var/backups/ankora-snapshots'
-        snap_dir = os.path.join(base_dir, snap_id)
-        if os.path.exists(snap_dir) and os.path.abspath(snap_dir).startswith(base_dir):
-            shutil.rmtree(snap_dir, ignore_errors=True)
-        meta_file = '/var/backups/ankora-snapshots/snapshots.json'
-        if os.path.exists(meta_file):
-            try:
-                with open(meta_file, 'r', encoding='utf-8') as f:
-                    snaps = json.load(f)
-                snaps = [s for s in snaps if s.get('id') != snap_id]
-                with open(meta_file, 'w', encoding='utf-8') as f:
-                    json.dump(snaps, f, indent=2, ensure_ascii=False)
-            except Exception:
-                pass
+        _snap_helper_json('snapshot-delete', snap_id)
         return 'Kurtarma noktası silindi'
 
     elif cmd == 'launch_interactive_terminal':
@@ -5437,13 +5399,14 @@ insmod search
 insmod search_label
 insmod iso9660
 insmod gettext
-# Kip devri: 'auto' önce koyulur; çekirdek ekran kartının desteklediği
-# ana modu kendisi seçer. Sabit 1024x768 zinciri desteklemeyen UEFI/VGA
-# aygıtlarda "video error" üretiyordu; 'keep' de menü kipini devralamayan
-# adapterlerde aynı hatayı veriyordu. auto başarısızsa zincir güvenli
-# moda düşer. Metin konsolu Failsafe'tedir.
-set gfxmode="auto,1024x768,800x600"
-set gfxpayload="auto,1024x768,800x600"
+# Kip devri: menü bilinen-iyi sabit zincirle açılır (1024x768 neredeyse
+# her VGA/UEFI aygıtta desteklenir; menü düzenli çizilir). Çekirdeğe
+# devirde gfxpayload=auto: çekirdek KMS ile ekran kartının gerçekten
+# desteklediği ana modu kendisi seçer. Sabit payload zinciri devralma
+# yapamayan adapterlerde "video error" üretiyordu. Metin konsolu
+# Failsafe'tedir.
+set gfxmode="1024x768,800x600,auto"
+set gfxpayload="auto"
 terminal_output gfxterm
 # Yazı tipi: önce ISO'daki gerçek yol, sonra gömülü ad. Tema YALNIZCA yazı
 # tipi yüklenirse seçilir; yoksa renkli yedek menüde kalınır. Yüklenmemiş

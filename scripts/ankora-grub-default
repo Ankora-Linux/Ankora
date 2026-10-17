@@ -7,7 +7,7 @@ GRUB_TIMEOUT=5
 GRUB_DISTRIBUTOR="Ankora Linux"
 GRUB_CMDLINE_LINUX_DEFAULT="quiet splash loglevel=3"
 GRUB_CMDLINE_LINUX=""
-GRUB_GFXMODE=auto,1024x768,800x600
+GRUB_GFXMODE=1024x768,800x600,auto
 # 'auto' çekirdeğin desteklediği ana modu seçer; sabit mod zorlamak bazı
 # UEFI/VGA aygıtlarında Enter sonrası "video error" veriyordu.
 GRUB_GFXPAYLOAD_LINUX=auto

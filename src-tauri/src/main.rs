@@ -6443,82 +6443,57 @@ fn format_usb_drive(target_device: String, filesystem: String, label: String) ->
     }
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Default)]
 pub struct SystemSnapshotInfo {
     pub id: String,
     pub name: String,
+    #[serde(default)]
     pub description: String,
+    #[serde(default)]
     pub timestamp: u64,
+    #[serde(default)]
     pub date_str: String,
+    #[serde(default)]
     pub size_human: String,
+    #[serde(default)]
     pub is_btrfs: bool,
+}
+
+// Kurtarma noktası yardımcısı: root-owned ayaz-pkg-helper (ankora-updater
+// sudoers NOPASSWD). /var/backups altındaki TÜM yazımlar bu betikle yapılır;
+// masaüstü oturumunun doğrudan yazması "Permission denied" üretiyordu.
+pub const SNAP_HELPER: &str = "/usr/local/bin/ayaz-pkg-helper";
+
+fn snap_helper(action: &str, arg: &str) -> Result<String, String> {
+    if !Path::new(SNAP_HELPER).exists() {
+        return Err("Kurtarma noktası yardımcısı (ayaz-pkg-helper) bulunamadı; sistem kurulumu eksik.".into());
+    }
+    let out = root_command(SNAP_HELPER, &[action, arg])
+        .map_err(|e| format!("Yardımcı çalıştırılamadı: {}", e))?;
+    if !out.status.success() {
+        let err = String::from_utf8_lossy(&out.stderr);
+        let fallback = String::from_utf8_lossy(&out.stdout);
+        let msg = if err.trim().is_empty() { fallback.trim() } else { err.trim() };
+        return Err(if msg.is_empty() {
+            "Kurtarma noktası işlemi başarısız oldu".to_string()
+        } else {
+            msg.to_string()
+        });
+    }
+    Ok(String::from_utf8_lossy(&out.stdout).trim().to_string())
 }
 
 #[tauri::command]
 fn create_system_snapshot(name: String, description: String) -> Result<SystemSnapshotInfo, String> {
-    let now = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_secs();
-
-    let base_dir = Path::new("/var/backups/ankora-snapshots");
-    fs::create_dir_all(base_dir).map_err(|e| format!("Dizin oluşturulamadı: {}", e))?;
-
     let clean_name = name.chars().filter(|c| c.is_alphanumeric() || *c == '_' || *c == '-').collect::<String>();
     let safe_name = if clean_name.is_empty() { "snapshot".to_string() } else { clean_name };
-    let snap_id = format!("{}_{}", now, safe_name);
-    let snap_path = base_dir.join(&snap_id);
-    fs::create_dir_all(&snap_path).map_err(|e| format!("Snapshot dizini oluşturulamadı: {}", e))?;
 
-    let pkg_list_path = snap_path.join("packages.list");
-    if let Ok(file) = fs::File::create(&pkg_list_path) {
-        let _ = Command::new("dpkg")
-            .arg("--get-selections")
-            .stdout(std::process::Stdio::from(file))
-            .output();
+    let output = snap_helper("snapshot-create", &safe_name)?;
+    let mut snap: SystemSnapshotInfo = serde_json::from_str(&output)
+        .map_err(|e| format!("Kurtarma noktası yanıtı çözümlenemedi: {}", e))?;
+    if snap.description.is_empty() {
+        snap.description = description;
     }
-
-    let etc_tar = snap_path.join("etc-backup.tar.gz");
-    let etc_tar_str = etc_tar.to_string_lossy().to_string();
-    let _ = Command::new("tar")
-        .args(["-czf", &etc_tar_str, "--exclude=/etc/mtab", "/etc"])
-        .output();
-
-    let size_bytes = fs::metadata(&etc_tar).map(|m| m.len()).unwrap_or(0);
-    let size_human = format_file_size(size_bytes);
-
-    let secs_day = 86400;
-    let days = now / secs_day;
-    let rem = now % secs_day;
-    let hours = rem / 3600;
-    let mins = (rem % 3600) / 60;
-    let date_str = format!("Gün #{} ({:02}:{:02})", days, hours, mins);
-
-    let snap = SystemSnapshotInfo {
-        id: snap_id.clone(),
-        name,
-        description,
-        timestamp: now,
-        date_str,
-        size_human,
-        is_btrfs: false,
-    };
-
-    let meta_file = base_dir.join("snapshots.json");
-    let mut all_snaps: Vec<SystemSnapshotInfo> = if meta_file.exists() {
-        fs::read_to_string(&meta_file)
-            .ok()
-            .and_then(|s| serde_json::from_str(&s).ok())
-            .unwrap_or_default()
-    } else {
-        Vec::new()
-    };
-
-    all_snaps.push(snap.clone());
-    if let Ok(ser) = serde_json::to_string_pretty(&all_snaps) {
-        let _ = fs::write(&meta_file, ser);
-    }
-
     Ok(snap)
 }
 
@@ -6540,27 +6515,11 @@ fn restore_system_snapshot(snapshot_id: String) -> Result<String, String> {
     if snapshot_id.is_empty() || snapshot_id.contains("..") || snapshot_id.contains('/') || snapshot_id.contains('\\') {
         return Err("Geçersiz snapshot kimliği".into());
     }
-    let base_dir = Path::new("/var/backups/ankora-snapshots");
-    let snap_path = base_dir.join(&snapshot_id);
-    if !snap_path.starts_with(base_dir) {
-        return Err("Güvenlik ihlali: Geçersiz snapshot konumu".into());
+    if !snapshot_id.chars().all(|c| c.is_alphanumeric() || c == '_' || c == '-') {
+        return Err("Geçersiz snapshot kimliği".into());
     }
-    let etc_tar = snap_path.join("etc-backup.tar.gz");
-
-    if !etc_tar.exists() {
-        return Err("Snapshot arşiv dosyası bulunamadı".into());
-    }
-
-    let etc_tar_str = etc_tar.to_string_lossy().to_string();
-    let res = Command::new("tar")
-        .args(["-xzf", &etc_tar_str, "-C", "/"])
-        .status();
-
-    match res {
-        Ok(s) if s.success() => Ok("Sistem yapılandırması başarıyla geri yüklendi.".into()),
-        Ok(_) => Err("Geri yükleme işlemi başarısız oldu".into()),
-        Err(e) => Err(format!("Hata: {}", e)),
-    }
+    let _ = snap_helper("snapshot-restore", &snapshot_id)?;
+    Ok("Sistem yapılandırması başarıyla geri yüklendi.".into())
 }
 
 #[tauri::command]
@@ -6568,25 +6527,10 @@ fn delete_system_snapshot(snapshot_id: String) -> Result<String, String> {
     if snapshot_id.is_empty() || snapshot_id.contains("..") || snapshot_id.contains('/') || snapshot_id.contains('\\') {
         return Err("Geçersiz snapshot kimliği".into());
     }
-    let base_dir = Path::new("/var/backups/ankora-snapshots");
-    let snap_path = base_dir.join(&snapshot_id);
-
-    if snap_path.exists() && snap_path.starts_with(base_dir) {
-        let _ = fs::remove_dir_all(&snap_path);
+    if !snapshot_id.chars().all(|c| c.is_alphanumeric() || c == '_' || c == '-') {
+        return Err("Geçersiz snapshot kimliği".into());
     }
-
-    let meta_file = base_dir.join("snapshots.json");
-    if meta_file.exists() {
-        if let Ok(content) = fs::read_to_string(&meta_file) {
-            if let Ok(mut snaps) = serde_json::from_str::<Vec<SystemSnapshotInfo>>(&content) {
-                snaps.retain(|s| s.id != snapshot_id);
-                if let Ok(ser) = serde_json::to_string_pretty(&snaps) {
-                    let _ = fs::write(&meta_file, ser);
-                }
-            }
-        }
-    }
-
+    let _ = snap_helper("snapshot-delete", &snapshot_id)?;
     Ok("Kurtarma noktası silindi".into())
 }
 

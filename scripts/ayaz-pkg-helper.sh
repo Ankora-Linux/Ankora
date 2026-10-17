@@ -9,13 +9,22 @@ ACTION="${1:-}"
 PKG="${2:-}"
 
 if [[ -z "$ACTION" ]]; then
-    echo "[HATA] Kullanım: ayaz-pkg-helper <install|remove|vendor|mebcert> <paket_adi>" >&2
+    echo "[HATA] Kullanım: ayaz-pkg-helper <install|remove|vendor|mebcert|snapshot-create|snapshot-restore|snapshot-delete> [argüman]" >&2
     exit 1
 fi
 
 # mebcert eylemi paket adı almaz; tek argümanla çalışır.
 if [[ "$ACTION" == "mebcert" ]]; then
     meb_install_cert
+    exit $?
+fi
+
+# Kurtarma noktası (snapshot) eylemleri: snapshot-create|snapshot-restore|
+# snapshot-delete <kimlik/ad>. Masaüstü oturumu root olmadığı için /var
+# altındaki yazımlar BÜTÜNÜYLE bu root-owned betik üzerinden yapılır;
+# arayüz yalnızca sudo -n ile burayı çağırır (ankora-updater sudoers).
+if [[ "$ACTION" == "snapshot-create" || "$ACTION" == "snapshot-restore" || "$ACTION" == "snapshot-delete" ]]; then
+    run_snapshot_action "$ACTION" "$PKG"
     exit $?
 fi
 
@@ -196,6 +205,120 @@ meb_install_cert() {
     return 0
 }
 
+# ---------------------------------------------------------------------
+# KURTARMA NOKTALARΙ (snapshot)
+# /var/backups/ankora-snapshots altına paket listesi + /etc arşivi
+# yazar. Dizin ve meta JSON root sahipliğinde kalır; okuma herkese
+# açıktır (listeleme için root gerekmez). Kimlik/ad yalnızca
+# [a-zA-Z0-9_-] kabul edilir; yol geçişi imkânsızdır.
+# ---------------------------------------------------------------------
+SNAP_BASE="/var/backups/ankora-snapshots"
+
+snap_meta_python() { # $1=op(add|remove) $2=id $3=ad $4=date_str $5=timestamp $6=size $7=size_human
+    python3 - "$@" <<'PYEOF'
+import json, os, sys
+path = '/var/backups/ankora-snapshots/snapshots.json'
+op, sid = sys.argv[1], sys.argv[2]
+snaps = []
+if os.path.exists(path):
+    try:
+        with open(path) as f:
+            snaps = json.load(f)
+        if not isinstance(snaps, list):
+            snaps = []
+    except Exception:
+        snaps = []
+snaps = [s for s in snaps if isinstance(s, dict) and s.get('id') != sid]
+entry = None
+if op == 'add':
+    entry = {
+        'id': sid,
+        'name': sys.argv[3],
+        'date_str': sys.argv[4],
+        'timestamp': int(sys.argv[5]),
+        'size_bytes': int(sys.argv[6]),
+        'size_human': sys.argv[7],
+    }
+    snaps.append(entry)
+with open(path, 'w') as f:
+    json.dump(snaps, f, ensure_ascii=False, indent=1)
+os.chmod(path, 0o644)
+if entry:
+    print(json.dumps(entry, ensure_ascii=False))
+PYEOF
+}
+
+snapshot_create() { # $1 = ad
+    local raw="$1"
+    if [[ -z "$raw" ]]; then
+        echo "[HATA] Kullanım: snapshot-create <ad>" >&2
+        return 2
+    fi
+    local clean
+    clean="$(printf '%s' "$raw" | tr -cd 'a-zA-Z0-9_-')"
+    [[ -n "$clean" ]] || clean="Snapshot"
+    local now id dir
+    now="$(date +%s)"
+    id="${now}_${clean}"
+    dir="$SNAP_BASE/$id"
+    mkdir -p "$dir"
+    chmod 0755 "$SNAP_BASE"
+    /usr/bin/dpkg --get-selections > "$dir/packages.list" 2>/dev/null || true
+    /bin/tar -czf "$dir/etc-backup.tar.gz" --exclude=/etc/mtab -C / etc 2>/dev/null || true
+    if [ ! -s "$dir/etc-backup.tar.gz" ]; then
+        echo "[HATA] /etc arşivi oluşturulamadı." >&2
+        return 7
+    fi
+    chmod 0644 "$dir/etc-backup.tar.gz"
+    local size_bytes size_human date_str
+    size_bytes="$(stat -c '%s' "$dir/etc-backup.tar.gz" 2>/dev/null || echo 0)"
+    date_str="$(date '+%Y-%m-%d %H:%M')"
+    size_human="$(awk -v b="$size_bytes" 'BEGIN{printf (b<1048576) ? int(b/1024)" KB" : sprintf("%.1f MB", b/1048576)}')"
+    snap_meta_python add "$id" "$clean" "$date_str" "$now" "$size_bytes" "$size_human"
+}
+
+snapshot_restore() { # $1 = kimlik
+    local sid="$1"
+    if [[ -z "$sid" || ! "$sid" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+        echo "[HATA] Geçersiz snapshot kimliği" >&2
+        return 2
+    fi
+    local dir
+    dir="$SNAP_BASE/$sid"
+    if [[ ! -d "$dir" || ! -s "$dir/etc-backup.tar.gz" ]]; then
+        echo "[HATA] Snapshot bulunamadı: $sid" >&2
+        return 7
+    fi
+    if ! /bin/tar -xzf "$dir/etc-backup.tar.gz" -C /; then
+        echo "[HATA] /etc geri yükleme başarısız oldu." >&2
+        return 8
+    fi
+    echo "[AYAZ] Kurtarma noktası geri yüklendi: $sid (/etc önceki haline döndü)"
+}
+
+snapshot_delete() { # $1 = kimlik
+    local sid="$1"
+    if [[ -z "$sid" || ! "$sid" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+        echo "[HATA] Geçersiz snapshot kimliği" >&2
+        return 2
+    fi
+    local dir
+    dir="$SNAP_BASE/$sid"
+    if [[ -d "$dir" ]]; then
+        rm -rf "$dir"
+    fi
+    snap_meta_python remove "$sid"
+    echo "[AYAZ] Kurtarma noktası silindi: $sid"
+}
+
+run_snapshot_action() { # $1 = eylem, $2 = argüman
+    case "$1" in
+        snapshot-create)  snapshot_create "$2" ;;
+        snapshot-restore) snapshot_restore "$2" ;;
+        snapshot-delete)  snapshot_delete "$2" ;;
+    esac
+}
+
 case "$ACTION" in
     install)
         # Sadece resmi depolardan güvenli kurulum (asla --allow-unauthenticated kabul edilmez).
@@ -221,7 +344,7 @@ case "$ACTION" in
         esac
         ;;
     *)
-        echo "[HATA] Bilinmeyen işlem: '$ACTION'. Yalnızca 'install', 'remove', 'vendor' veya 'mebcert' kabul edilir." >&2
+        echo "[HATA] Bilinmeyen işlem: '$ACTION'. Kabul edilenler: install, remove, vendor, mebcert, snapshot-create, snapshot-restore, snapshot-delete" >&2
         exit 4
         ;;
 esac
