@@ -1,7 +1,7 @@
 {
-  "name": "ankora-de",
+  "name": "ankora-linux",
   "version": "2.0.0",
-  "description": "Ankora Linux Minimalist Kiosk Desktop Environment (Tauri + Rust)",
+  "description": "Ankora Linux official main repo for Ayaz DE (Tauri + Rust) desktop environment",
   "private": true,
   "scripts": {
     "tauri": "tauri",
