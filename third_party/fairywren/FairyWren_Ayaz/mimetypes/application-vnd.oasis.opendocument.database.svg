@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   width="64"
+   height="64"
+   version="1.1"
+   id="svg4"
+   sodipodi:docname="application-vnd.oasis.opendocument.database.svg"
+   inkscape:version="1.4.4 (dcaf3e7d9e, 2026-05-05)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview4"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:zoom="18.984375"
+     inkscape:cx="31.973663"
+     inkscape:cy="32"
+     inkscape:current-layer="svg4" />
+  <defs
+     id="defs2">
+    <radialGradient
+       xlink:href="#a"
+       id="b"
+       cx="17.386"
+       cy="47.039"
+       r="22"
+       fx="17.386"
+       fy="47.039"
+       gradientTransform="rotate(-45 -113.287 148.239)scale(2.8598 3.63975)"
+       gradientUnits="userSpaceOnUse" />
+    <linearGradient
+       id="a">
+      <stop
+         offset="0"
+         style="stop-color:#ff4f54;stop-opacity:1"
+         id="stop1" />
+      <stop
+         offset="1"
+         style="stop-color:#fa7e6a;stop-opacity:1"
+         id="stop2" />
+    </linearGradient>
+    <radialGradient
+       xlink:href="#radialGradient11-4"
+       id="b-3"
+       cx="9.9931231"
+       cy="49.673992"
+       r="22"
+       fx="9.9931231"
+       fy="49.673992"
+       gradientTransform="matrix(2.8788734,0,0,3.6640218,-42.574353,-133.13937)"
+       gradientUnits="userSpaceOnUse" />
+    <radialGradient
+       id="radialGradient11-4"
+       cx="-159.431"
+       cy="15.463"
+       r="64.707001"
+       fx="-159.431"
+       fy="15.463"
+       gradientTransform="matrix(-0.89413,0,0,0.96305,-80.754,49.33)"
+       gradientUnits="userSpaceOnUse">
+      <stop
+         offset="0"
+         style="stop-color:#bd3639;stop-opacity:1;"
+         id="stop10-3" />
+      <stop
+         offset="1"
+         style="stop-color:#ff6c6d;stop-opacity:1;"
+         id="stop11-0" />
+    </radialGradient>
+  </defs>
+  <g
+     id="g6"
+     transform="translate(14,15)">
+    <path
+       d="M -1.25,-11 C -2.773,-11 -4,-9.751 -4,-8.2 v 50.4 c 0,1.55 1.227,2.8 2.75,2.8 h 38.5 C 38.772,45 40,43.75 40,42.2 V 7 L 22,-11 Z"
+       style="fill:url(#b-3)"
+       id="path2" />
+    <path
+       d="M 40,7 22,-11 V 4.188 A 2.806,2.806 0 0 0 24.813,7 Z"
+       style="opacity:0.448535;fill:#ffffff;fill-opacity:1"
+       id="path3" />
+  </g>
+  <path
+     d="M32 29c-4.195 0-7.777 1.553-9.262 3.75a5 5 0 0 0-.328.566q-.136.275-.226.559a10 6 0 0 0-.043.176c-.035.129-.074.259-.094.39A10 6 0 0 0 22 35q.002.293.05.582a10 6 0 0 0 .137.563 10 6 0 0 0 .231.562 10 6 0 0 0 .32.543A10 6 0 0 0 32 41a10 6 0 0 0 9.266-3.75 10 6 0 0 0 0-.008 10 6 0 0 0 .273-.46l.047-.09a10 6 0 0 0 .168-.399c.023-.063.05-.124.07-.188a10 6 0 0 0 .082-.335q.03-.131.051-.262A10 6 0 0 0 42 35a10 6 0 0 0-.055-.598 4.15 4.15 0 0 0-.683-1.652C39.777 30.552 36.194 29 32 29m-9.406 10.004c-.062.104-.132.206-.184.312q-.136.275-.226.559a10 6 0 0 0-.043.176c-.035.129-.074.259-.094.39A10 6 0 0 0 22 41q.002.293.05.582a10 6 0 0 0 .137.563 10 6 0 0 0 .231.562 10 6 0 0 0 .32.543A10 6 0 0 0 32 47a10 6 0 0 0 9.266-3.75 10 6 0 0 0 0-.008 10 6 0 0 0 .273-.46l.047-.09a10 6 0 0 0 .168-.399c.023-.063.05-.124.07-.188a10 6 0 0 0 .082-.335q.03-.131.051-.262A10 6 0 0 0 42 41a10 6 0 0 0-.055-.598c-.08-.486-.28-.946-.543-1.39a10 6 0 0 1-.136.23 10 6 0 0 1 0 .008A10 6 0 0 1 32 43a10 6 0 0 1-9.262-3.75 10 6 0 0 1-.144-.246m0 6c-.062.104-.132.206-.184.312q-.136.275-.226.559a10 6 0 0 0-.043.176c-.035.129-.074.259-.094.39A10 6 0 0 0 22 47q.002.293.05.582a10 6 0 0 0 .137.563 10 6 0 0 0 .231.562 10 6 0 0 0 .32.543A10 6 0 0 0 32 53a10 6 0 0 0 9.266-3.75 10 6 0 0 0 0-.008 10 6 0 0 0 .273-.46l.047-.09a10 6 0 0 0 .168-.399c.023-.063.05-.124.07-.188a10 6 0 0 0 .082-.335q.03-.131.051-.262A10 6 0 0 0 42 47a10 6 0 0 0-.055-.598c-.08-.486-.28-.946-.543-1.39a10 6 0 0 1-.136.23 10 6 0 0 1 0 .008A10 6 0 0 1 32 49a10 6 0 0 1-9.262-3.75 10 6 0 0 1-.144-.246"
+     style="fill:#fff"
+     id="path4" />
+</svg>

@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   width="64"
+   height="64"
+   version="1.1"
+   id="svg4"
+   sodipodi:docname="text-x-eiffel.svg"
+   inkscape:version="1.4.4 (dcaf3e7d9e, 2026-05-05)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview4"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:zoom="18.984375"
+     inkscape:cx="31.973663"
+     inkscape:cy="32"
+     inkscape:current-layer="svg4" />
+  <defs
+     id="defs2">
+    <radialGradient
+       xlink:href="#a"
+       id="b"
+       cx="20.238"
+       cy="45.446"
+       r="22"
+       fx="20.238"
+       fy="45.446"
+       gradientTransform="rotate(-30 -198.014 154.066)scale(2.62906 3.34608)"
+       gradientUnits="userSpaceOnUse" />
+    <linearGradient
+       id="a">
+      <stop
+         offset="0"
+         style="stop-color:#00b1ff;stop-opacity:1"
+         id="stop1" />
+      <stop
+         offset="1"
+         style="stop-color:#136dff;stop-opacity:1"
+         id="stop2" />
+    </linearGradient>
+    <radialGradient
+       xlink:href="#a-6-3"
+       id="b-3"
+       cx="10.083904"
+       cy="49.742599"
+       r="22"
+       fx="10.083904"
+       fy="49.742599"
+       gradientTransform="matrix(2.9094236,0,0,3.7029038,-42.952355,-135.01632)"
+       gradientUnits="userSpaceOnUse" />
+    <radialGradient
+       id="a-6-3"
+       cx="-159.431"
+       cy="15.463"
+       r="64.707001"
+       fx="-159.431"
+       fy="15.463"
+       gradientTransform="matrix(-0.89413,0,0,0.96305,-80.754,49.33)"
+       gradientUnits="userSpaceOnUse">
+      <stop
+         offset="0"
+         style="stop-color:#006fff;stop-opacity:1"
+         id="stop1-7-6" />
+      <stop
+         offset="1"
+         style="stop-color:#15baff;stop-opacity:1"
+         id="stop2-5-7" />
+    </radialGradient>
+  </defs>
+  <g
+     id="g6"
+     transform="translate(14,15)">
+    <path
+       d="M -1.25,-11 C -2.773,-11 -4,-9.751 -4,-8.2 v 50.4 c 0,1.55 1.227,2.8 2.75,2.8 h 38.5 C 38.772,45 40,43.75 40,42.2 V 7 L 22,-11 Z"
+       style="fill:url(#b-3)"
+       id="path2" />
+    <path
+       d="M 40,7 22,-11 V 4.188 A 2.806,2.806 0 0 0 24.813,7 Z"
+       style="opacity:0.448535;fill:#ffffff;fill-opacity:1"
+       id="path3" />
+  </g>
+  <path
+     d="M39.216 28c-1.88.43-4.548 1.077-6.603 1.42l1.661 1.938zm2.362.13 1.224 4.692 3.41-1.507zm-.744.3-2.755 6.415 3.936-1.722zm-.919.087L34.8 32.004l2.406 2.84zm-7.958 1.377-3.106 5.252 4.767-3.272zm14.343 2.24-3.323 1.462 1.268 4.95zm-12.157.343-5.073 3.487 7.434-.689zm8.09 1.42-4.067 1.766 5.38 3.4zm-6.34 2.153-7.61.689 2.099 3.185zm2.098.344 1.356 5.295 4.023-1.894zm-1.574.259-5.598 3.917 2.362 3.572.088-.171v.043zm.831.129-3.193 7.404 4.549-2.152zm-9.62.387-4.767 8.05 6.865-4.821zm16.005 3.358-4.111 1.937 1.574 6.07zm-13.47.516-6.997 4.95 9.402-1.29Zm8.66 1.765-4.724 2.239 6.297 3.874zm-6.998 2.712-9.489 1.292 2.668 3.701zm2.23.301 2.012 6.07 4.33-2.153zm-.786.215L29.945 54h1.924l3.498-1.765zm-.875.043-6.91 5.08L27.496 54h1.443zM21.68 47.242 17.7 54h2.537l4.11-3.013zm18.804 3.314-4.154 2.11.437 1.334h2.668zm-15.656 1.076L21.592 54h4.942zm10.758 1.378-1.968.99h2.318z"
+     style="fill:#fff"
+     id="path4" />
+</svg>

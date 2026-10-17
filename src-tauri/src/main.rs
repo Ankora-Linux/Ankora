@@ -1354,6 +1354,14 @@ fn find_icon_file(candidates: &[String]) -> Option<(PathBuf, &'static str)> {
                 format!("{}.png", base),
                 format!("{}.svg", base),
                 format!("{}.xpm", base),
+                // FairyWren Ayaz seçkisi (ISO ile kurulur, düz dizin).
+                format!("FairyWren_Ayaz/apps/{}.svg", base),
+                format!("FairyWren_Ayaz/apps/{}.png", base),
+                // Papirus (FairyWren seçkisinin taban seti, ISO paketi).
+                format!("Papirus-Dark/scalable/apps/{}.svg", base),
+                format!("Papirus/scalable/apps/{}.svg", base),
+                format!("Papirus-Dark/48x48/apps/{}.svg", base),
+                format!("Papirus/48x48/apps/{}.svg", base),
                 format!("hicolor/48x48/apps/{}.png", base),
                 format!("hicolor/scalable/apps/{}.svg", base),
                 format!("hicolor/32x32/apps/{}.png", base),
@@ -5395,7 +5403,16 @@ fn sync_desktop_theme(isDark: bool, _accent: String) -> Result<bool, String> {
     {
         let home = dirs::home_dir().unwrap_or_else(|| PathBuf::from("/home/ankora"));
         let theme_name = if isDark { "Adwaita-dark" } else { "Adwaita" };
-        let icon_name = if isDark { "Papirus-Dark" } else { "Papirus" };
+        // İkon teması: FairyWren Ayaz seçkisi ISO ile kurulur; yoksa Papirus
+        // paketinden devralınır. Papirus da yoksa GTK kendi yedeğine düşer.
+        let fairywren_installed = fs::metadata("/usr/share/icons/FairyWren_Ayaz").is_ok();
+        let icon_name = if fairywren_installed {
+            "FairyWren_Ayaz"
+        } else if isDark {
+            "Papirus-Dark"
+        } else {
+            "Papirus"
+        };
         let prefer_dark = if isDark { "1" } else { "0" };
         let color_scheme = if isDark { "prefer-dark" } else { "default" };
 

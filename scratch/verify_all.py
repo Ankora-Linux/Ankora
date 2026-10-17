@@ -134,7 +134,7 @@ def main():
             ("body.theme-light .office-text-frame", "açık tema: office metni"),
             ("body.theme-light .files-sidebar", "açık tema: dosya kenar çubuğu"),
             ("body.theme-light .files-content-area", "açık tema: dosya içeriği"),
-            ("body.theme-light .store-source-btn", "açık tema: mağaza kaynak düğmesi"),
+            ("body.theme-light .store-card", "açık tema: mağaza kartı"),
             ("body.theme-light .desktop-context-menu", "açık tema: bağlam menüsü"),
             ("body.theme-light .term-toolbar", "açık tema: terminal çubuğu"),
             ("body.theme-light .item-name", "açık tema: masaüstü etiketi"),
@@ -251,9 +251,9 @@ def main():
               all(f in ply for f in ("Sprite.SetImage", "Math.Int", "Window.GetWidth"))
               and "SetClip" not in ply)
         grubdef = (ROOT / "scripts/ankora-grub-default").read_text(encoding="utf-8")
-        check("kurulu sistem: splash + gfxpayload zinciri",
+        check("kurulu sistem: splash + gfxpayload auto",
               "quiet splash loglevel=3" in grubdef
-              and "GRUB_GFXPAYLOAD_LINUX=1024x768,800x600,auto" in grubdef)
+              and "GRUB_GFXPAYLOAD_LINUX=auto" in grubdef)
     except Exception as e:
         check("önyükleme zinciri", False, str(e)[:200])
 

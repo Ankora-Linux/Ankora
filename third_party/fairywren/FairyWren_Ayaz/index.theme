@@ -1,0 +1,48 @@
+[Icon Theme]
+Name=FairyWren Ayaz
+Comment=FairyWren ikon seti Ayaz Masaüstü seçkisi (FairyWren Icons projesinden uyarlama)
+Inherits=Papirus,breeze,Adwaita,hicolor
+
+Example=distributor-logo-fairywren
+
+FollowsColorScheme=true
+
+DesktopDefault=64
+DesktopSizes=16,22,24,32,48,64
+ToolbarDefault=24
+ToolbarSizes=16,22,24,32,48
+MainToolbarDefault=24
+MainToolbarSizes=16,22,24,32,48
+SmallDefault=16
+SmallSizes=16,22,24,32,48
+PanelDefault=32
+PanelSizes=16,22,24,32,48,64
+DialogDefault=64
+DialogSizes=16,22,24,32,48,64
+
+# Ayaz seçkisi: yalnızca ISO'daki özgün uygulamalar ve dosya türleri.
+# Tam FairyWren seti 54 MB'dir; burada Ayaz DE'nin kurduğu yazılımların
+# simgeleri vardır. Seçkide olmayan simgeler Papirus'tan devralınır
+# (Papirus, FairyWren'in taban setidir; ISO'ya kurulur).
+Directories=apps,devices,mimetypes
+
+[apps]
+Context=Applications
+MinSize=33
+Size=64
+MaxSize=512
+Type=Scalable
+
+[devices]
+Context=Devices
+MinSize=33
+Size=64
+MaxSize=512
+Type=Scalable
+
+[mimetypes]
+Context=MimeTypes
+MinSize=33
+Size=64
+MaxSize=512
+Type=Scalable

@@ -2643,30 +2643,15 @@
         card.className = 'store-card';
         const isFlatpak = Boolean(pkg.flatpak);
         const pkgSub = pkg.flatpak || pkg.deb || (pkg.action === 'meb-cert' ? 'mebcert' : '');
-        const repoLabel = isFlatpak
-          ? 'Flathub'
-          : (pkg.vendor ? 'Resmi site deposu' : (pkg.extUrl ? 'Harici kaynak' : (pkg.action ? 'Sistem ayarı' : 'Ankora deposu')));
-        const badgeHtml = isFlatpak
-          ? '<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;background:rgba(56,189,248,0.18);color:#38bdf8;border:1px solid rgba(56,189,248,0.3);letter-spacing:0.5px;">FLATHUB</span>'
-          : (pkg.action
-            ? '<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;background:rgba(37,99,235,0.18);color:#93b4fd;border:1px solid rgba(37,99,235,0.4);letter-spacing:0.5px;">SİSTEM</span>'
-            : '<span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;background:rgba(16,185,129,0.18);color:#10b981;border:1px solid rgba(16,185,129,0.3);letter-spacing:0.5px;">APT DEPO</span>');
 
         card.innerHTML = `
           <div class="store-card-head">
             <span class="store-card-icon">${XdgDesktopEngine.getAppSvgIcon({ id: pkg.id, exec: pkgSub, cat: pkg.cat })}</span>
             <span class="store-card-titles">
-              <span class="store-card-name" style="display:flex;align-items:center;gap:6px;">
-                ${escapeHtml(pkg.name)}
-                ${badgeHtml}
-              </span>
+              <span class="store-card-name">${escapeHtml(pkg.name)}</span>
             </span>
           </div>
           <p class="store-card-desc">${escapeHtml(pkg.desc)}</p>
-          <div class="store-card-meta">
-            <span class="store-card-size">${escapeHtml(pkg.size)}</span>
-            <span class="store-card-repo">${escapeHtml(repoLabel)}</span>
-          </div>
           <div class="pkg-progress-bar" id="prog-${pkg.id}"></div>
           <div class="store-card-actions">
             ${pkg.extUrl ? `

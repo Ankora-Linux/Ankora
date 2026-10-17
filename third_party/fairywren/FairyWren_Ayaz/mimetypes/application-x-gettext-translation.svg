@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   width="64"
+   height="64"
+   version="1.1"
+   id="svg4"
+   sodipodi:docname="application-x-gettext-translation.svg"
+   inkscape:version="1.4.4 (dcaf3e7d9e, 2026-05-05)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview4"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:zoom="18.984375"
+     inkscape:cx="31.973663"
+     inkscape:cy="32"
+     inkscape:current-layer="svg4" />
+  <defs
+     id="defs2">
+    <radialGradient
+       xlink:href="#a"
+       id="b"
+       cx="21.477"
+       cy="23.352"
+       r="22"
+       fx="21.477"
+       fy="23.352"
+       gradientTransform="matrix(5.24376 0 0 4.28655 -93.169 -54.972)"
+       gradientUnits="userSpaceOnUse" />
+    <linearGradient
+       id="a">
+      <stop
+         offset="0"
+         style="stop-color:#ededed;stop-opacity:1"
+         id="stop1" />
+      <stop
+         offset="1"
+         style="stop-color:#b7b7b7;stop-opacity:1"
+         id="stop2" />
+    </linearGradient>
+    <radialGradient
+       xlink:href="#a-6"
+       id="b-3"
+       cx="10.145585"
+       cy="49.64682"
+       r="22"
+       fx="10.145585"
+       fy="49.64682"
+       gradientTransform="matrix(2.8980279,0,0,3.6884001,-43.036613,-134.31133)"
+       gradientUnits="userSpaceOnUse" />
+    <linearGradient
+       id="a-6">
+      <stop
+         offset="0"
+         style="stop-color:#e9e9e9;stop-opacity:1;"
+         id="stop1-7" />
+      <stop
+         offset="1"
+         style="stop-color:#b8b8b8;stop-opacity:1;"
+         id="stop2-5" />
+    </linearGradient>
+  </defs>
+  <g
+     id="g6"
+     transform="translate(14,15)">
+    <path
+       d="M -1.25,-11 C -2.773,-11 -4,-9.751 -4,-8.2 v 50.4 c 0,1.55 1.227,2.8 2.75,2.8 h 38.5 C 38.772,45 40,43.75 40,42.2 V 7 L 22,-11 Z"
+       style="fill:url(#b-3)"
+       id="path2" />
+    <path
+       d="M 40,7 22,-11 V 4.188 A 2.806,2.806 0 0 0 24.813,7 Z"
+       style="opacity:0.448535;fill:#ffffff;fill-opacity:1"
+       id="path3" />
+  </g>
+  <path
+     d="M22.509 26.28c-1.44.885-4.336 2.125-6.722 2.817l.075.21a53 53 0 0 0 3.485-.466v2.9h-3.542l.096.32h2.896c-.568 2.333-1.61 4.815-3.105 6.619l.226.21c1.404-1.015 2.537-2.19 3.426-3.528v6.026h.36c.966 0 1.592-.371 1.609-.486v-6.8c.72.65 1.399 1.679 1.533 2.485.245.208.512.309.758.309.51 0 .945-.371.945-.886 0-.698-.796-1.613-3.236-2.161v-1.786h2.651c.512 0 .758-.082.89-.29l-1.835-1.24-.988 1.205h-.718v-3.285a36 36 0 0 0 2.29-.58c.245.067.457.1.645.1.23 0 .416-.05.53-.146zm8.722 2.238-.832.952h-3.29l-2.106-.776v12.368c1.78 0 2.007-.643 2.007-.676V39.21h3.577v1.545c1.498 0 2.025-.433 2.025-.465V30.24c.397-.08.7-.208.814-.355zm-4.221 1.274h3.577v9.099H27.01zM43.077 42.98q-3.139 0-4.557 1.465c-.785.806-1.225 2.039-1.358 3.656h-3.594v-3.065q.001-.603.185-.863.18-.258.591-.286l.558-.033q.31-.027.31-.307 0-.208-.048-.257-.051-.049-.26-.05-.05-.002-.29.015a41 41 0 0 1-3.665 0 4 4 0 0 0-.272-.015c-.134 0-.22.02-.257.05q-.053.048-.053.257-.001.282.328.307l.523.033q.431.025.61.28.182.258.182.869v8.22q0 .604-.178.866c-.118.173-.315.263-.594.283l-.543.033a.2.2 0 0 1-.05.01q-.278.014-.278.279 0 .218.06.269.058.053.25.053.05 0 .26-.009.97-.046 1.877-.047a41 41 0 0 1 1.8.04c.153.012.246.016.288.016q.201 0 .256-.053.053-.051.054-.27 0-.263-.26-.279c-.023-.004-.035-.009-.047-.009l-.541-.033q-.432-.027-.61-.28-.185-.256-.186-.869v-3.394h3.571c.09 1.786.5 3.134 1.27 3.994.873.973 2.284 1.459 4.224 1.459q3.169 0 4.625-1.47 1.454-1.474 1.455-4.696 0-3.262-1.33-4.716c-.886-.973-2.322-1.453-4.306-1.453m-.184.585q2.172 0 3.135 1.303c.639.868.958 2.297.958 4.278q.001 2.95-.964 4.254-.964 1.304-3.13 1.304t-3.135-1.304q-.96-1.305-.96-4.281c0-1.943.325-3.358.975-4.236q.977-1.318 3.12-1.318"
+     style="opacity:.5;stroke-width:1.52732"
+     id="path4" />
+</svg>

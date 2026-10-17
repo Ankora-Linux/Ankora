@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   width="64"
+   height="64"
+   version="1.1"
+   id="svg4"
+   sodipodi:docname="application-vnd.oasis.opendocument.formula.svg"
+   inkscape:version="1.4.4 (dcaf3e7d9e, 2026-05-05)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview4"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:zoom="18.984375"
+     inkscape:cx="36.451029"
+     inkscape:cy="32"
+     inkscape:current-layer="svg4" />
+  <defs
+     id="defs2">
+    <radialGradient
+       xlink:href="#a"
+       id="b"
+       cx="11.2"
+       cy="52.256"
+       r="22"
+       fx="11.2"
+       fy="52.256"
+       gradientTransform="rotate(-15 -387.04 174.175)scale(2.4782 3.15406)"
+       gradientUnits="userSpaceOnUse" />
+    <linearGradient
+       id="a">
+      <stop
+         offset="0"
+         style="stop-color:#28a268;stop-opacity:1"
+         id="stop1" />
+      <stop
+         offset="1"
+         style="stop-color:#1fc327;stop-opacity:1"
+         id="stop2" />
+    </linearGradient>
+    <radialGradient
+       xlink:href="#radialGradient12"
+       id="b-3"
+       cx="10.138871"
+       cy="49.667797"
+       r="22"
+       fx="10.138871"
+       fy="49.667797"
+       gradientTransform="matrix(2.8958792,0,0,3.6856655,-42.974949,-134.18111)"
+       gradientUnits="userSpaceOnUse" />
+    <radialGradient
+       id="radialGradient12"
+       cx="-159.431"
+       cy="15.463"
+       r="64.707001"
+       fx="-159.431"
+       fy="15.463"
+       gradientTransform="matrix(-0.89413,0,0,0.96305,-80.754,49.33)"
+       gradientUnits="userSpaceOnUse">
+      <stop
+         offset="0"
+         style="stop-color:#42752d;stop-opacity:1;"
+         id="stop11" />
+      <stop
+         offset="1"
+         style="stop-color:#a1d369;stop-opacity:1;"
+         id="stop12" />
+    </radialGradient>
+    <radialGradient
+       xlink:href="#linearGradient6"
+       id="b-3-9"
+       cx="10.138871"
+       cy="49.667797"
+       r="22"
+       fx="10.138871"
+       fy="49.667797"
+       gradientTransform="matrix(2.8958792,0,0,3.6856655,-42.974949,-134.18111)"
+       gradientUnits="userSpaceOnUse" />
+    <linearGradient
+       id="linearGradient6">
+      <stop
+         offset="0"
+         style="stop-color:#2eb16f;stop-opacity:1;"
+         id="stop6" />
+      <stop
+         offset="1"
+         style="stop-color:#31e078;stop-opacity:1;"
+         id="stop5" />
+    </linearGradient>
+    <radialGradient
+       xlink:href="#linearGradient6-2"
+       id="b-3-91"
+       cx="10.138871"
+       cy="49.667797"
+       r="22"
+       fx="10.138871"
+       fy="49.667797"
+       gradientTransform="matrix(2.8958792,0,0,3.6856655,-42.974949,-134.18111)"
+       gradientUnits="userSpaceOnUse" />
+    <linearGradient
+       id="linearGradient6-2">
+      <stop
+         offset="0"
+         style="stop-color:#2e8b5c;stop-opacity:1;"
+         id="stop6-7" />
+      <stop
+         offset="1"
+         style="stop-color:#31e078;stop-opacity:1;"
+         id="stop5-0" />
+    </linearGradient>
+  </defs>
+  <g
+     id="g6"
+     transform="translate(14,15)">
+    <path
+       d="M -1.25,-11 C -2.773,-11 -4,-9.751 -4,-8.2 v 50.4 c 0,1.55 1.227,2.8 2.75,2.8 h 38.5 C 38.772,45 40,43.75 40,42.2 V 7 L 22,-11 Z"
+       style="fill:url(#b-3-91)"
+       id="path2" />
+    <path
+       d="M 40,7 22,-11 V 4.188 A 2.806,2.806 0 0 0 24.813,7 Z"
+       style="opacity:0.448535;fill:#ffffff;fill-opacity:1"
+       id="path3" />
+  </g>
+  <path
+     d="M30.628 34.4 27.52 45.315l-2.252-5.798A3.94 3.94 34.39 0 0 21.592 37h-1.935A1.657 1.657 135 0 0 18 38.657 1.51 1.51 39.01 0 0 19.657 40h2.212a.86.86 34.164 0 1 .8.543l3.824 9.624A1.32 1.32 34.164 0 0 27.72 51h.138a1.19 1.19 143.024 0 0 1.144-.861l4.28-14.881A3.12 3.12 143.024 0 1 36.281 33h4.98a1.63 1.63 135 0 0 1.63-1.63A1.506 1.506 40.053 0 0 41.26 30h-4.805a6.06 6.06 142.948 0 0-5.828 4.4m3.815 3.6 4.764 6.197L34 51h.933a3.36 3.36 153.696 0 0 2.673-1.321l2.892-3.784 2.893 3.784A3.36 3.36 26.304 0 0 46.063 51H47l-5.102-6.672L46.748 38h-.937a3.37 3.37 153.742 0 0-2.675 1.32l-2.54 3.313-2.544-3.314A3.37 3.37 26.243 0 0 35.376 38Z"
+     style="fill:#fff"
+     id="path4" />
+</svg>

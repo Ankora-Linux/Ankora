@@ -338,6 +338,7 @@ apt-get install -y --no-install-recommends \
     libnotify-bin \
     plymouth \
     plymouth-themes \
+    papirus-icon-theme \
     libnss3-tools \
     openssl \
     flatpak \
@@ -713,6 +714,12 @@ SYSCTL_ZRAM
 # -----------------------------------------------------------------------
 cat << 'XINIT' > /home/ankora/.xinitrc
 #!/bin/sh
+# Açılış ekranından X'e sessiz geçiş: plymouth açılış bitmeden kalırsa
+# arkasında biriken boot metinleri ([FAIL] satırları) kullanıcıya görünür.
+if command -v plymouth >/dev/null 2>&1 && plymouth --ping >/dev/null 2>&1; then
+    plymouth quit 2>/dev/null || true
+fi
+
 # Loopback ağ arabirimini ayağa kaldır
 ip link set lo up 2>/dev/null || ifconfig lo 127.0.0.1 up 2>/dev/null || true
 
@@ -832,9 +839,11 @@ if [ ! -f /etc/inittab ] && [ -f /usr/share/sysvinit/inittab ]; then
 fi
 if [ -f /etc/inittab ]; then
     if grep -q "tty1" /etc/inittab; then
-        sed -i -E 's|^[0-9a-zA-Z]+:([0-9]+):respawn:/sbin/getty.*tty1.*|1:\1:respawn:/sbin/getty --autologin ankora --noclear 38400 tty1 linux|' /etc/inittab
+        # --noclear kullanılmaz: plymouth sonrası konsolda kalan boot
+        # metinleri (servis hataları) otomatik girişte temizlenir.
+        sed -i -E 's|^[0-9a-zA-Z]+:([0-9]+):respawn:/sbin/getty.*tty1.*|1:\1:respawn:/sbin/getty --autologin ankora 38400 tty1 linux|' /etc/inittab
     else
-        echo "1:2345:respawn:/sbin/getty --autologin ankora --noclear 38400 tty1 linux" >> /etc/inittab
+        echo "1:2345:respawn:/sbin/getty --autologin ankora 38400 tty1 linux" >> /etc/inittab
     fi
 fi
 
@@ -2257,7 +2266,9 @@ exit 0
                 try:
                     with open(inittab_path, 'r') as f:
                         content = f.read()
-                    tty1_line = f'1:2345:respawn:/sbin/getty --autologin {username} --noclear 38400 tty1 linux' if autologin else '1:2345:respawn:/sbin/getty 38400 tty1 linux'
+                    # --noclear yok: plymouth sonrası kalan boot metinleri
+                    # otomatik girişte temizlenir.
+                    tty1_line = f'1:2345:respawn:/sbin/getty --autologin {username} 38400 tty1 linux' if autologin else '1:2345:respawn:/sbin/getty 38400 tty1 linux'
                     if re.search(r'^[0-9a-zA-Z]+:[0-9]+:respawn:/sbin/getty.*tty1.*', content, flags=re.MULTILINE):
                         content = re.sub(r'^[0-9a-zA-Z]+:[0-9]+:respawn:/sbin/getty.*tty1.*', tty1_line, content, flags=re.MULTILINE)
                     else:
@@ -3239,7 +3250,12 @@ exit 0
     elif cmd == 'sync_desktop_theme':
         is_dark = bool(args.get('isDark', args.get('is_dark', True)))
         tname = 'Adwaita-dark' if is_dark else 'Adwaita'
-        iname = 'Papirus-Dark' if is_dark else 'Papirus'
+        # İkon teması: FairyWren Ayaz seçkisi ISO ile kurulur; yoksa Papirus
+        # paketinden devralınır. Papirus da yoksa GTK kendi yedeğine düşer.
+        if os.path.isdir('/usr/share/icons/FairyWren_Ayaz'):
+            iname = 'FairyWren_Ayaz'
+        else:
+            iname = 'Papirus-Dark' if is_dark else 'Papirus'
         pdark = '1' if is_dark else '0'
         cscheme = 'prefer-dark' if is_dark else 'default'
         # GTK3
@@ -5159,6 +5175,16 @@ chmod +x "$CHROOT_DIR/usr/bin/eta-touchdrv" || true
 mkdir -p "$CHROOT_DIR/usr/share/applications" "$CHROOT_DIR/usr/share/ayaz"
 cp "$ROOT_DIR/scripts/eta-touchdrv.desktop" "$CHROOT_DIR/usr/share/applications/eta-touchdrv.desktop" || true
 cp "$ROOT_DIR/scripts/eta-touchdrv" "$CHROOT_DIR/usr/share/ayaz/eta-touchdrv" || true
+# FairyWren ikon setinin Ayaz seçkisi: tam set 54 MB olduğu için seçki
+# depoyla gelir, devralma zinciri Papirus'a bağlanır (paket yukarıda kurulur).
+if [ -d "$ROOT_DIR/third_party/fairywren/FairyWren_Ayaz" ]; then
+    mkdir -p "$CHROOT_DIR/usr/share/icons"
+    cp -r "$ROOT_DIR/third_party/fairywren/FairyWren_Ayaz" "$CHROOT_DIR/usr/share/icons/" || true
+    chroot "$CHROOT_DIR" gtk-update-icon-cache -f /usr/share/icons/FairyWren_Ayaz 2>/dev/null || true
+    echo "[OK] İkon teması: FairyWren_Ayaz"
+else
+    echo "[UYARI] third_party/fairywren yok; yedek ikon teması Papirus kalır" >&2
+fi
 mkdir -p "$CHROOT_DIR/lib/udev/rules.d"
 cp "$ROOT_DIR/scripts/99-faz-touch.rules" "$CHROOT_DIR/lib/udev/rules.d/99-faz-touch.rules" || true
 mkdir -p "$CHROOT_DIR/usr/share/X11/xorg.conf.d" "$CHROOT_DIR/etc/X11/xorg.conf.d"
@@ -5411,12 +5437,13 @@ insmod search
 insmod search_label
 insmod iso9660
 insmod gettext
-# Framebuffer devri: 'keep' menü kipini aynen çekirdeğe taşır; bazı
-# UEFI/VGA adapterler menü kipini devralamayıp "video error" üretiyordu.
-# Bilinen iyi kip zinciri: çekirdek açılışta 1024x768 gibi güvenli bir moda
-# düşer, Plymouth KMS ile kendi ekranını kurar. Metin konsolu Failsafe'tedir.
-set gfxmode="1024x768,800x600,auto"
-set gfxpayload="1024x768,800x600,auto"
+# Kip devri: 'auto' önce koyulur; çekirdek ekran kartının desteklediği
+# ana modu kendisi seçer. Sabit 1024x768 zinciri desteklemeyen UEFI/VGA
+# aygıtlarda "video error" üretiyordu; 'keep' de menü kipini devralamayan
+# adapterlerde aynı hatayı veriyordu. auto başarısızsa zincir güvenli
+# moda düşer. Metin konsolu Failsafe'tedir.
+set gfxmode="auto,1024x768,800x600"
+set gfxpayload="auto,1024x768,800x600"
 terminal_output gfxterm
 # Yazı tipi: önce ISO'daki gerçek yol, sonra gömülü ad. Tema YALNIZCA yazı
 # tipi yüklenirse seçilir; yoksa renkli yedek menüde kalınır. Yüklenmemiş
