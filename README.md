@@ -21,8 +21,12 @@ Bu depoda yer alan temel bileşenler:
 - Ayaz Desktop Environment (Ayaz DE)
 - Ankora Linux için masaüstü arayüzü ve güvenlik katmanı
 - Devuan tabanlı sistem yapılandırmaları
-- `.deb` paket üretimi ve dağıtım iş akışları
 - ISO üretim betikleri ve yardımcı araçlar
+
+Ayaz DE, yalnız **Ankora Linux** ile dağıtılır: arayüzü ayrı bir `.deb`
+paket olarak dış dünyaya sunulmaz. ISO içi paket, yalnızca canlı sisteme
+`ayaz-de` ikilisini ve masaüstü güncelleyicisinin paket kimliğini
+enjekte etmek için derlem sırasında üretilir.
 
 ## Ayaz DE nedir?
 
@@ -31,7 +35,7 @@ Ayaz DE, Ankora Linux için geliştirilmiş, SysVinit tabanlı hafif ve kiosk od
 ## Özellikler
 
 * Gereksiz arka plan servisleri olmadan çalışır; boşta yaklaşık 80–120 MB RAM kullanır.
-* Ayaz Güncelleyici, `.deb` güncellemelerini masaüstünden yönetir; kurulum ve güncelleme işlemleri terminale ihtiyaç duymadan yapılır.
+* Ayaz Güncelleyici, sistemi masaüstünden günceller; kurulum ve güncelleme işlemleri terminale ihtiyaç duymadan yapılır.
 * Yapay zeka ajanı Ollama (localhost), Google Gemini ve Groq ile çalışır; `apt-get clean`, `df -h` gibi işlemlerin onaylı çalıştırılmasını sağlar.
 * Üç tema (Nordik Açık, Modern Grafit, Derin Gece) ve 8 vektörel monokrom duvar kağıdı içerir.
 * Görev çubuğu ve başlat menüsü ortalanır; düzen Windows 11 ve Chrome OS Flex'ten esinlenir.
@@ -44,8 +48,7 @@ Ayaz DE, Ankora Linux için geliştirilmiş, SysVinit tabanlı hafif ve kiosk od
 ```text
 Ayaz/
 ├── .github/workflows/
-│   ├── build-iso.yml            # Ankora Linux canlı ISO derleme iş akışı (manuel tetiklemeli)
-│   └── release-de.yml           # Etiket push'ında otomatik .deb derleme
+│   └── build-iso.yml            # Ankora Linux canlı ISO derleme iş akışı (manuel/etiket tetiklemeli)
 ├── assets/                      # Logo ve masaüstü önizleme görselleri
 ├── scripts/
 │   ├── ankora-updater-sudoers   # Helper'lar için sudoers izni
@@ -55,7 +58,7 @@ Ayaz/
 │   ├── ayaz.desktop             # Uygulama kısayolu
 │   ├── build-iso.sh             # Hibrit canlı ISO derleme betiği
 │   ├── build-on-windows.ps1     # Windows'tan ISO derleme yardımcısı
-│   ├── package-deb.sh           # Yerel .deb paketleme betiği
+│   ├── package-deb.sh           # ISO içi paketleme (dış dağıtım yok)
 │   └── xinitrc                  # X oturum başlangıç betiği
 ├── src/                         # Arayüz
 │   ├── app.js                   # Pencere yöneticisi, güncelleyici, yapay zeka ajanı
@@ -95,13 +98,16 @@ cargo install tauri-cli --version "^1.5"
 cargo tauri dev
 ```
 
-### Üretim `.deb` paketini derleme
+### Üretim derlemesi (Canlı ISO)
 
 ```bash
-cargo tauri build --bundles deb
+sudo bash scripts/build-iso.sh
 ```
 
-Paket, `src-tauri/target/release/bundle/deb/ayaz-de_2.0.0_amd64.deb` dizininde oluşur.
+ISO, `dist/ankora-linux-2.0-ayaz-amd64.iso` dizininde oluşur. Ayaz DE bu
+ISO ile dağıtılır; ayrı `.deb` paketi üretilmez ve yayınlanmaz. ISO
+içindeki paket (`scripts/package-deb.sh`) yalnızca canlı sisteme DE
+bileşenlerini enjekte etmek için derleyici tarafından kullanılır.
 
 ## Sürüm dağıtımı
 
@@ -112,7 +118,10 @@ git tag v2.0.1
 git push origin v2.0.1
 ```
 
-`release-de.yml` iş akışı derlemeyi Ubuntu üzerinde tamamlar ve `.deb` paketini GitHub Releases sayfasına yükler. Güncellemeler masaüstündeki Ayaz Güncelleyici ile kurulur.
+`build-iso.yml` iş akışı ISO'yu derler ve GitHub Releases sayfasına
+yükler. Sürümler yalnızca canlı ISO içerir; `.deb` paketi yayınlanmaz.
+Güncellemeler kurulu Ankora sistemlerinde masaüstündeki Ayaz Güncelleyici
+ile kurulur (iç güncelleme kanalı ayrı çalışır).
 
 ## Lisans
 

@@ -1,6 +1,9 @@
 #!/bin/bash
 # ==============================================================================
-# Ankora Linux — Ayaz DE .deb Paket Derleme Betiği
+# Ankora Linux — Ayaz DE İç Paket Derleme Betiği
+# UYARI: Ayaz DE yalnız Ankora Linux ile dağıtılır; bu betiğin çıktısı
+# dış dünyaya yayınlanmaz. Yalnızca canlı ISO derleyicisi (build-iso.sh)
+# ayaz-de ikilisini ve güncelleyici kimliğini enjekte etmek için kullanır.
 # Target: Devuan 5 (Daedalus) / Debian 12 (Bookworm) x86_64
 # ==============================================================================
 

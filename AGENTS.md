@@ -7,7 +7,7 @@ Bu depo, Ankora Linux projesinin resmî ana deposudur. Burada Ayaz Desktop Envir
 - Ana kullanım amacı: Devuan tabanlı Ankora Linux için hafif, kiosk odaklı masaüstü ortamı.
 - Teknoloji yığını: Tauri 1.5 + Rust + WebKitGTK
 - Sistem modeli: SysVinit tabanlı çalışma, systemd yerine
-- Paketleme: `.deb` dağıtımı ve ISO üretimi
+- Paketleme: yalnızca ISO üretimi; Ayaz DE ayrı `.deb` olarak dış dünyaya dağıtılmaz
 
 ## Kaynak haritası
 
@@ -36,7 +36,7 @@ Bu depo, Ankora Linux projesinin resmî ana deposudur. Burada Ayaz Desktop Envir
 
 ## Altyapı ve paketleme
 
-- ISO üretimi, `.deb` paketlemesi ve güncelleme akışı için mevcut betikler ve iş akışları korunmalı, desteklenmelidir.
+- ISO üretimi ve iç güncelleme akışı için mevcut betikler ve iş akışları korunmalı, desteklenmelidir.
 - Değişiklikler dağıtım akışını etkileyecekse, ilgili betik veya workflow dosyası da güncellenmelidir.
 
 ## Not

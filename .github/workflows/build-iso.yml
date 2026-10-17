@@ -73,16 +73,19 @@ jobs:
           python3 scratch/verify_all.py
           npm audit --audit-level=high || echo "::warning::NPM bağımlılık uyarısı"
 
-      - name: Ayaz DE Debian Paketini (.deb) Derle
+      - name: Ayaz DE İç Paketini Derle (yalnızca ISO içi enjeksiyon)
         run: |
+          # Ayaz DE yalnız Ankora Linux ile dağıtılır; .deb dış dünyaya
+          # yayınlanmaz. Paket, canlı sisteme ayaz-de ikilisi + güncelleyici
+          # paket kimliği enjekte etmek için burada derlenir.
           mkdir -p dist
           cargo tauri build --bundles deb
           DEB_FILE=$(find src-tauri/target/release/bundle/deb/ -name "*.deb" | head -n 1)
           if [ -n "$DEB_FILE" ] && [ -f "$DEB_FILE" ]; then
             cp -v "$DEB_FILE" dist/ayaz-de-latest-amd64.deb
-            echo "Paket hazırlandı: dist/ayaz-de-latest-amd64.deb"
+            echo "İç paket hazır: dist/ayaz-de-latest-amd64.deb (yayınlanmaz)"
           else
-            echo "::error::Debian paketi üretilemedi!"
+            echo "::error::İç paket üretilemedi!"
             exit 1
           fi
 
@@ -109,7 +112,6 @@ jobs:
           path: |
             dist/ankora-linux-2.0-ayaz-amd64.iso
             dist/ankora-linux-2.0-ayaz-amd64.iso.sha256
-            dist/ayaz-de-latest-amd64.deb
           retention-days: 14
 
       - name: Sürüm (Release) Varsa ISO'yu Ekle
@@ -119,7 +121,6 @@ jobs:
           files: |
             dist/ankora-linux-2.0-ayaz-amd64.iso
             dist/ankora-linux-2.0-ayaz-amd64.iso.sha256
-            dist/ayaz-de-latest-amd64.deb
           generate_release_notes: true
           name: Ankora Linux 2.0 (${{ github.ref_name }})
           draft: false
