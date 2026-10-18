@@ -1,6 +1,6 @@
 name: Ankora Linux Canlı ISO Derleme (Live ISO Build)
 
-# Bu iş akışı Ankora Linux 2.0 (Ayaz DE - Devuan Daedalus SysVinit) 
+# Bu iş akışı Ankora Linux 3.1 (Ayaz DE - Devuan Daedalus SysVinit) 
 # canlı ISO imajını (.iso) ve Debian paketini (.deb) bulutta otomatik olarak derler.
 # Manuel olarak GitHub arayüzünden (Actions -> Run workflow) veya v* etiketleriyle tetiklenebilir.
 
@@ -97,9 +97,9 @@ jobs:
       - name: ISO Bütünlük ve Boyut Denetimi
         run: |
           ls -lh dist/
-          if [ -f "dist/ankora-linux-2.0-ayaz-amd64.iso" ]; then
+          if [ -f "dist/ankora-linux-3.1-ayaz-amd64.iso" ]; then
             echo "ISO başarıyla üretildi:"
-            sha256sum dist/ankora-linux-2.0-ayaz-amd64.iso
+            sha256sum dist/ankora-linux-3.1-ayaz-amd64.iso
           else
             echo "::error::ISO dosyası dist dizininde bulunamadı!"
             exit 2
@@ -108,10 +108,10 @@ jobs:
       - name: ISO ve Sağlama Toplamını GitHub Artifact Olarak Yükle
         uses: actions/upload-artifact@v4
         with:
-          name: ankora-linux-2.0-ayaz-amd64
+          name: ankora-linux-3.1-ayaz-amd64
           path: |
-            dist/ankora-linux-2.0-ayaz-amd64.iso
-            dist/ankora-linux-2.0-ayaz-amd64.iso.sha256
+            dist/ankora-linux-3.1-ayaz-amd64.iso
+            dist/ankora-linux-3.1-ayaz-amd64.iso.sha256
           retention-days: 14
 
       - name: Sürüm (Release) Varsa ISO'yu Ekle
@@ -119,10 +119,10 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            dist/ankora-linux-2.0-ayaz-amd64.iso
-            dist/ankora-linux-2.0-ayaz-amd64.iso.sha256
+            dist/ankora-linux-3.1-ayaz-amd64.iso
+            dist/ankora-linux-3.1-ayaz-amd64.iso.sha256
           generate_release_notes: true
-          name: Ankora Linux 2.0 (${{ github.ref_name }})
+          name: Ankora Linux 3.1 (${{ github.ref_name }})
           draft: false
           prerelease: false
         env:

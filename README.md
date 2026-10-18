@@ -5,7 +5,7 @@
   <p><b>Resmî ana depo · Ayaz Desktop Environment (Ayaz DE)</b></p>
 
   <p>
-    <img src="https://img.shields.io/badge/S%C3%9CR%C3%9CM-2.0.0-ffffff?style=for-the-badge&labelColor=111111" alt="Sürüm">
+    <img src="https://img.shields.io/badge/S%C3%9CR%C3%9CM-3.1.0-ffffff?style=for-the-badge&labelColor=111111" alt="Sürüm">
     <img src="https://img.shields.io/badge/%C3%87EK%C4%B0RDEK-TAURI_%2B_RUST-059669?style=for-the-badge&labelColor=111111" alt="Çekirdek">
     <img src="https://img.shields.io/badge/HEDEF-ANKORA_LINUX-2563eb?style=for-the-badge&labelColor=111111" alt="Dağıtım">
     <img src="https://img.shields.io/badge/L%C3%9CSANS-GPL--3.0-41a013?style=for-the-badge&labelColor=111111" alt="Lisans">
@@ -104,7 +104,7 @@ cargo tauri dev
 sudo bash scripts/build-iso.sh
 ```
 
-ISO, `dist/ankora-linux-2.0-ayaz-amd64.iso` dizininde oluşur. Ayaz DE bu
+ISO, `dist/ankora-linux-3.1-ayaz-amd64.iso` dizininde oluşur. Ayaz DE bu
 ISO ile dağıtılır; ayrı `.deb` paketi üretilmez ve yayınlanmaz. ISO
 içindeki paket (`scripts/package-deb.sh`) yalnızca canlı sisteme DE
 bileşenlerini enjekte etmek için derleyici tarafından kullanılır.
@@ -114,8 +114,8 @@ bileşenlerini enjekte etmek için derleyici tarafından kullanılır.
 Depoda yeni bir etiket push edildiğinde:
 
 ```bash
-git tag v2.0.1
-git push origin v2.0.1
+git tag v3.1.0
+git push origin v3.1.0
 ```
 
 `build-iso.yml` iş akışı ISO'yu derler ve GitHub Releases sayfasına

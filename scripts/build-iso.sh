@@ -1,13 +1,13 @@
 #!/bin/bash
 # ==============================================================================
-# Ankora Linux 2.0 (Daedalus) — Canlı (Live) ISO Derleme Betiği
+# Ankora Linux 3.1 (Daedalus) — Canlı (Live) ISO Derleme Betiği
 # Masaüstü Ortamı: Ayaz DE (Tauri + WebKitGTK + SysVinit Core)
 # Mimari: x86_64 (UEFI + BIOS Hibrit Boot)
 # ==============================================================================
 
 set -euo pipefail
 
-ISO_NAME="ankora-linux-2.0-ayaz-amd64.iso"
+ISO_NAME="ankora-linux-3.1-ayaz-amd64.iso"
 WORK_DIR="/var/tmp/ankora-iso-build"
 CHROOT_DIR="$WORK_DIR/chroot"
 IMAGE_DIR="$WORK_DIR/image"
@@ -16,9 +16,9 @@ DEVUAN_SUITE="daedalus"
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 echo "======================================================================"
-echo "      ANKORA LINUX 2.0 (AYAZ DE) CANLI ISO DERLEME SİSTEMİ            "
+echo "      ANKORA LINUX 3.1 (AYAZ DE) CANLI ISO DERLEME SİSTEMİ            "
 echo "======================================================================"
-echo "Sürüm: 2.0.0 (Daedalus / SysVinit Core)"
+echo "Sürüm: 3.1.0 (Daedalus / SysVinit Core)"
 echo "Çıktı Hedefi: $ROOT_DIR/dist/$ISO_NAME"
 echo "======================================================================"
 
@@ -271,6 +271,44 @@ apt-get install -y --no-install-recommends \
     openbox \
     x11-xserver-utils \
     dbus-x11
+
+# -----------------------------------------------------------------------
+# KABLOSUZ (Wi-Fi) DONANIM KAPSAMA — gerçek donanımda ağ kartı sürücüsü
+# -----------------------------------------------------------------------
+# Kernel sürücü modülleri (iwlwifi, rtw88/89, ath9k/ath10k, brcmfmac,
+# mt76, b43...) çekirdekte kurulu; FATAL olan FİRMWARE eksikliğidir.
+# VM'de sanal ağ kartı (e1000/virtio) firmware'siz çalıştığı için sorun
+# görünmez; gerçek donanımda Intel/Realtek/Broadcom kartları firmware
+# olmadan hiç tanınmaz ve "Wi-Fi ağları bulunamıyor" yaşanır.
+# Bu yüzden tüm yaygın aileler için non-free-firmware paketleri kurulur.
+# -----------------------------------------------------------------------
+apt-get install -y --no-install-recommends \
+    firmware-iwlwifi \
+    firmware-realtek \
+    firmware-atheros \
+    firmware-brcm80211 \
+    firmware-libertas \
+    firmware-ath9k-htc \
+    firmware-ti-connectivity \
+    firmware-misc-nonfree \
+    wireless-regdb \
+    rfkill \
+    b43-fwcutter
+
+# Taban sürümünde bulunmayan firmware paketleri (ralink misc-nonfree'ye
+# girdi/bölündü; intel-misc + mediatek trixie'de ayrıldı) varsa kurulur;
+# yoksa derleme kırılmaz, kapsama misc-nonfree ile sağlanır.
+for _fw_extra in firmware-ralink firmware-intel-misc firmware-mediatek; do
+    if apt-cache show "$_fw_extra" >/dev/null 2>&1; then
+        apt-get install -y --no-install-recommends "$_fw_extra" 2>/dev/null || true
+    fi
+done
+unset _fw_extra
+
+# Eski Broadcom b43 kartları için firmware paketi sürücü yükleyicisiyle
+# gelir ve postinst ağdan firmware indirir; ağ yokluğunda paket postinst'i
+# patlayabilir — derlemeyi durdurmasın (kalan kartlar yukarıda kapsanır).
+apt-get install -y --no-install-recommends firmware-b43-installer 2>/dev/null || true
 
 # Ara temizlik
 apt-get clean
@@ -634,6 +672,22 @@ if [ -f /etc/init.d/networking ]; then
 fi
 
 # -----------------------------------------------------------------------
+# Ağ Yönetimi Servisleri (SysVinit Etkinleştirme)
+# -----------------------------------------------------------------------
+# NetworkManager kurulur ama SysVinit kurallarına bağlanmazsa canlı
+# oturumda hiç başlamaz: Ayaz'daki nmcli tabanlı Wi-Fi taraması
+# "NetworkManager (nmcli) kurulu olmalı" hatası verir ve ağ kartları
+# görünmez. dbus iş istasyonu servisi de NM'nin ön koşuludur.
+if [ -f /etc/init.d/dbus ]; then
+    update-rc.d dbus defaults 2>/dev/null || true
+fi
+if [ -f /etc/init.d/network-manager ]; then
+    update-rc.d network-manager defaults 2>/dev/null || true
+fi
+# D-Bus başlamazsa NM de başlamaz; dbus init betiği $network tesisatına
+# bağlantı bile olmadan kendi saatini bekler, bu yüzden düz kademe yeterli.
+
+# -----------------------------------------------------------------------
 # ZRAM: Sıkıştırılmış RAM Takas Alanı (SysVinit Servisi & Optimizasyon)
 # -----------------------------------------------------------------------
 cat << 'ZRAMINIT' > /etc/init.d/zram-swap
@@ -692,7 +746,7 @@ update-rc.d zram-swap defaults 05 95 2>/dev/null || true
 # SysVinit Hızlı Paralel Açılış (Fast Parallel Boot)
 mkdir -p /etc/default
 cat << 'RCS_CONF' > /etc/default/rcS
-# Ankora Linux 2.0 Hızlı Paralel Açılış
+# Ankora Linux 3.1 Hızlı Paralel Açılış
 CONCURRENCY=makefile
 UTC=yes
 VERBOSE=no
@@ -920,7 +974,7 @@ else
     rm -f "$BDIR/ankora-sistem-rehberi.pdf"
 fi
 cat << 'KIOSKTXT' > "$BDIR/kiosk-ayarlari.txt"
-Ankora Linux 2.0 — Kiosk Yapılandırma Raporu
+Ankora Linux 3.1 — Kiosk Yapılandırma Raporu
 =============================================
 
 Taban            : Devuan GNU/Linux 5 (daedalus)
@@ -936,7 +990,7 @@ Bu dosya Ayaz Dosyalar ve Ofis uygulamalarından açılabilir.
 Kiosk kilit ekranı ve widget ayarları Ayarlar penceresinden yönetilir.
 KIOSKTXT
 cat << 'KIOSKMD' > "$BDIR/kiosk-ayarlari.md"
-# Ankora Linux 2.0 — Kiosk Yapılandırma Raporu
+# Ankora Linux 3.1 — Kiosk Yapılandırma Raporu
 
 - Taban: Devuan Daedalus (SysVinit, systemd-free)
 - Çekirdek: Linux 6.1 LTS
@@ -2218,7 +2272,7 @@ tmpfs /tmp tmpfs defaults,noatime,mode=1777 0 0
 
             # Hızlı Paralel Açılış ve ZRAM Swap Servisi Optimizasyonlarını Kurulu Sisteme Aktar
             _root_write('/target/etc/default/rcS',
-                        "# Ankora Linux 2.0 Hızlı Paralel Açılış\nCONCURRENCY=makefile\nUTC=yes\nVERBOSE=no\nFSCKFIX=no\n")
+                        "# Ankora Linux 3.1 Hızlı Paralel Açılış\nCONCURRENCY=makefile\nUTC=yes\nVERBOSE=no\nFSCKFIX=no\n")
             _root_write('/target/etc/sysctl.d/99-zram.conf',
                         "vm.swappiness = 100\nvm.vfs_cache_pressure = 50\nvm.watermark_boost_factor = 0\nvm.dirty_background_ratio = 5\nvm.dirty_ratio = 10\n")
             zram_target_script = """#!/bin/sh
@@ -2389,7 +2443,7 @@ exit 0
             _root("umount -l /target/boot/efi 2>/dev/null || true", check=False)
             _root("umount -l /target 2>/dev/null || true", check=False)
 
-        return "Ankora Linux 2.0 başarıyla kuruldu! Sistemi yeniden başlatabilirsiniz."
+        return "Ankora Linux 3.1 başarıyla kuruldu! Sistemi yeniden başlatabilirsiniz."
 
     elif cmd == 'get_system_telemetry':
         mem_total = 4096
@@ -4043,13 +4097,13 @@ exit 0
         return True
 
     elif cmd == 'check_de_update':
-        current_ver = '2.0.0'
+        current_ver = '3.1.0'
         result = {
             'has_update': False,
             'current_version': current_ver,
             'latest_version': current_ver,
-            'release_name': 'Ankora Linux 2.0 (AyazDE)',
-            'release_notes': 'Sisteminiz güncel. AyazDE v2.0 kararlı sürüm devrededir.',
+            'release_name': 'Ankora Linux 3.1 (AyazDE)',
+            'release_notes': 'Sisteminiz güncel. AyazDE v3.1 kararlı sürüm devrededir.',
             'download_url': None,
             'published_at': '2026-10-03',
             'package_size_bytes': 0,
@@ -4093,7 +4147,7 @@ exit 0
         os.makedirs(staging, exist_ok=True)
         target_deb = os.path.join(staging, 'ayaz-update.deb')
         try:
-            req = urllib.request.Request(download_url, headers={'User-Agent': 'ayaz-updater/2.0.0'})
+            req = urllib.request.Request(download_url, headers={'User-Agent': 'ayaz-updater/3.1.0'})
             with urllib.request.urlopen(req, timeout=120) as resp, open(target_deb, 'wb') as f:
                 content = resp.read()
                 f.write(content)
@@ -5285,7 +5339,7 @@ echo "[MANIFEST] Sistem künyesi yazılıyor..."
 AYAZ_VERSION=$(sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' "$ROOT_DIR/src-tauri/tauri.conf.json")
 AYAZ_VERSION="${AYAZ_VERSION%%$'\n'*}"
 if [ -z "$AYAZ_VERSION" ]; then
-    AYAZ_VERSION="2.0.0"
+    AYAZ_VERSION="3.1.0"
 fi
 # git yoksa (ör. WSL) .git/HEAD + ref dosyaları doğrudan okunur; revizyon
 # manifestte hiçbir koşulda boş kalmaz.
@@ -5417,7 +5471,7 @@ if loadfont ($root)/boot/grub/fonts/unicode.pf2; then have_font="1"; elif loadfo
 # ISO kökü etiketle bulunur; etiket okunamazsa (bazı USB yazıcılar /
 # büyük-küçük harf farkı) dosya varlığıyla yedeğe düşülür. Yedek yoksa
 # /live/vmlinuz bulunamaz ve "you need to load the kernel first" verir.
-if search --no-floppy --set=root --label ANKORA_2_0; then true; fi
+if search --no-floppy --set=root --label ANKORA_3_1; then true; fi
 if [ ! -e "/live/vmlinuz" ]; then
     if search --no-floppy --set=root --file /live/vmlinuz; then true; fi
 fi
@@ -5436,17 +5490,38 @@ if [ "$have_font" = "1" ]; then
 fi
 export theme
 
-menuentry "Ankora Linux 2.0  —  Canlı Masaüstü" {
+menuentry "Ankora Linux 3.1  —  Canlı Masaüstü" {
     linux /live/vmlinuz boot=live live-media-path=/live union=overlay components username=ankora hostname=ankora-live locales=tr_TR.UTF-8 keyboard-layouts=tr timezone=Europe/Istanbul utc=yes noeject splash quiet loglevel=3
     initrd /live/initrd
 }
 
-menuentry "Ankora Linux 2.0  —  Güvenli Mod (Failsafe)" {
+menuentry "Ankora Linux 3.1  —  Canlı Masaüstü (RAM'den Açılış / Ventoy)" {
+    # Ventoy/USB giriş akışı: live-boot toram ile RO medyanın tamamını
+    # RAM'e kopyalayıp oradan açar; flakey USB okuma/slow enumeration
+    # sınıfı sorunlar bypass edilir. RAM ihtiyacı ≈ squashfs + ~1 GB
+    # (8 GB önerilir). toram + noeject birlikte: açılıştan sonra stick
+    # sökülebilir, canlı oturum etkilenmez.
+    linux /live/vmlinuz boot=live live-media-path=/live union=overlay components username=ankora hostname=ankora-live locales=tr_TR.UTF-8 keyboard-layouts=tr timezone=Europe/Istanbul utc=yes noeject toram splash quiet loglevel=3
+    initrd /live/initrd
+}
+
+menuentry "Ankora Linux 3.1  —  Güvenli Mod (Failsafe)" {
     # Metin kipi: grafik devri olmadan düz konsol logları (donanım sorunlarında)
     set gfxpayload="text"
     linux /live/vmlinuz boot=live live-media-path=/live union=overlay components username=ankora hostname=ankora-live locales=tr_TR.UTF-8 keyboard-layouts=tr timezone=Europe/Istanbul noeject nomodeset noapic noacpi
     initrd /live/initrd
 }
+
+menuentry "Ankora Linux 3.1  —  Donanım Teşhisi (Ayrıntılı Günlük)" {
+    # Ventoy/USB'de "Devuan..." yazısından sonra donan açılış (VM'de düzgün)
+    # durumunda sorunun hangi aşamada takıldığını açık konsoldan görmek için:
+    # plymouth yok, loglevel=7. Takılan son satırı fotoğraflayıp hata
+    # raporuna ekleyin; kök neden o satırdan belirlenir.
+    set gfxpayload="text"
+    linux /live/vmlinuz boot=live live-media-path=/live union=overlay components username=ankora hostname=ankora-live locales=tr_TR.UTF-8 keyboard-layouts=tr timezone=Europe/Istanbul utc=yes noeject verbose loglevel=7
+    initrd /live/initrd
+}
+
 
 menuentry "Yeniden Başlat" {
     reboot
@@ -5567,7 +5642,7 @@ XORRISO_CMD=(
     -iso-level 3
     -full-iso9660-filenames
     -r -J -l
-    -volid "ANKORA_2_0"
+    -volid "ANKORA_3_1"
     -eltorito-boot boot/grub/i386-pc-eltorito.img
     -eltorito-catalog boot/grub/boot.cat
     -no-emul-boot -boot-load-size 4 -boot-info-table
@@ -5590,7 +5665,7 @@ XORRISO_CMD+=(-output "$ROOT_DIR/dist/$ISO_NAME" "$IMAGE_DIR")
 
 "${XORRISO_CMD[@]}" 2>/dev/null || {
     echo "[UYARI] Hibrit xorriso komutu tamamlanamadı, standart mod ile deneniyor..."
-    xorriso -as mkisofs -r -V "ANKORA_2_0" \
+    xorriso -as mkisofs -r -V "ANKORA_3_1" \
         -b boot/grub/i386-pc-eltorito.img -c boot/grub/boot.cat \
         -no-emul-boot -boot-load-size 4 -boot-info-table \
         -o "$ROOT_DIR/dist/$ISO_NAME" "$IMAGE_DIR"
