@@ -1,13 +1,13 @@
 #!/bin/bash
 # ==============================================================================
-# Ankora Linux 3.1 (Daedalus) — Canlı (Live) ISO Derleme Betiği
+# Ankora Linux 3.2 (Daedalus) — Canlı (Live) ISO Derleme Betiği
 # Masaüstü Ortamı: Ayaz DE (Tauri + WebKitGTK + SysVinit Core)
 # Mimari: x86_64 (UEFI + BIOS Hibrit Boot)
 # ==============================================================================
 
 set -euo pipefail
 
-ISO_NAME="ankora-linux-3.1-ayaz-amd64.iso"
+ISO_NAME="ankora-linux-3.2-ayaz-amd64.iso"
 WORK_DIR="/var/tmp/ankora-iso-build"
 CHROOT_DIR="$WORK_DIR/chroot"
 IMAGE_DIR="$WORK_DIR/image"
@@ -16,9 +16,9 @@ DEVUAN_SUITE="daedalus"
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 echo "======================================================================"
-echo "      ANKORA LINUX 3.1 (AYAZ DE) CANLI ISO DERLEME SİSTEMİ            "
+echo "      ANKORA LINUX 3.2 (AYAZ DE) CANLI ISO DERLEME SİSTEMİ            "
 echo "======================================================================"
-echo "Sürüm: 3.1.0 (Daedalus / SysVinit Core)"
+echo "Sürüm: 3.2.0 (Daedalus / SysVinit Core)"
 echo "Çıktı Hedefi: $ROOT_DIR/dist/$ISO_NAME"
 echo "======================================================================"
 
@@ -271,6 +271,20 @@ apt-get install -y --no-install-recommends \
     openbox \
     x11-xserver-utils \
     dbus-x11
+
+# -----------------------------------------------------------------------
+# GPU FİRMWARE — gerçek donanımda test bulgusu: Radeon (amdgpu/r600/ati)
+# kartları non-free firmware olmadan siyah ekran/büyütülmüş boyut veriyor.
+# xserver-xorg-video-amdgpu + mesa kurulu olsa bile kart firmware beklemeden
+# init etmiyor; bu yüzden AMD ve genel non-free firmware seti kurulur.
+# -----------------------------------------------------------------------
+apt-get install -y --no-install-recommends \
+    firmware-linux-nonfree \
+    firmware-amd-graphics \
+    firmware-radeon 2>/dev/null || true
+
+# Güncel depolarda firmware-radeon firmware-amd-graphics içine katıldıysa
+# derleme kırılmaz (yukarıdaki "|| true" kapsar).
 
 # -----------------------------------------------------------------------
 # KABLOSUZ (Wi-Fi) DONANIM KAPSAMA — gerçek donanımda ağ kartı sürücüsü
@@ -746,7 +760,7 @@ update-rc.d zram-swap defaults 05 95 2>/dev/null || true
 # SysVinit Hızlı Paralel Açılış (Fast Parallel Boot)
 mkdir -p /etc/default
 cat << 'RCS_CONF' > /etc/default/rcS
-# Ankora Linux 3.1 Hızlı Paralel Açılış
+# Ankora Linux 3.2 Hızlı Paralel Açılış
 CONCURRENCY=makefile
 UTC=yes
 VERBOSE=no
@@ -974,7 +988,7 @@ else
     rm -f "$BDIR/ankora-sistem-rehberi.pdf"
 fi
 cat << 'KIOSKTXT' > "$BDIR/kiosk-ayarlari.txt"
-Ankora Linux 3.1 — Kiosk Yapılandırma Raporu
+Ankora Linux 3.2 — Kiosk Yapılandırma Raporu
 =============================================
 
 Taban            : Devuan GNU/Linux 5 (daedalus)
@@ -990,7 +1004,7 @@ Bu dosya Ayaz Dosyalar ve Ofis uygulamalarından açılabilir.
 Kiosk kilit ekranı ve widget ayarları Ayarlar penceresinden yönetilir.
 KIOSKTXT
 cat << 'KIOSKMD' > "$BDIR/kiosk-ayarlari.md"
-# Ankora Linux 3.1 — Kiosk Yapılandırma Raporu
+# Ankora Linux 3.2 — Kiosk Yapılandırma Raporu
 
 - Taban: Devuan Daedalus (SysVinit, systemd-free)
 - Çekirdek: Linux 6.1 LTS
@@ -2272,7 +2286,7 @@ tmpfs /tmp tmpfs defaults,noatime,mode=1777 0 0
 
             # Hızlı Paralel Açılış ve ZRAM Swap Servisi Optimizasyonlarını Kurulu Sisteme Aktar
             _root_write('/target/etc/default/rcS',
-                        "# Ankora Linux 3.1 Hızlı Paralel Açılış\nCONCURRENCY=makefile\nUTC=yes\nVERBOSE=no\nFSCKFIX=no\n")
+                        "# Ankora Linux 3.2 Hızlı Paralel Açılış\nCONCURRENCY=makefile\nUTC=yes\nVERBOSE=no\nFSCKFIX=no\n")
             _root_write('/target/etc/sysctl.d/99-zram.conf',
                         "vm.swappiness = 100\nvm.vfs_cache_pressure = 50\nvm.watermark_boost_factor = 0\nvm.dirty_background_ratio = 5\nvm.dirty_ratio = 10\n")
             zram_target_script = """#!/bin/sh

@@ -280,7 +280,7 @@
                 </div>
                 <div class="feature-labels">
                   <span class="feature-name">Ayaz Güncelleyici</span>
-                  <span class="feature-desc">Ankora Linux 2.0 sistem yamaları</span>
+                  <span class="feature-desc">Ankora Linux 3.2 sistem yamaları</span>
                 </div>
               </div>
               <div class="feature-right">
@@ -536,7 +536,7 @@
         </div>
         <div class="term-viewport" id="term-viewport">
           <div class="term-logs" id="term-logs">
-            <div class="term-row muted">Ankora Linux 2.0 (Devuan Daedalus) x86_64 - Native Linux Core</div>
+            <div class="term-row muted">Ankora Linux 3.2 (Devuan Daedalus) x86_64 - Native Linux Core</div>
             <div class="term-row muted">Ankora Linux AyazDE Terminali. Yalnızca güvenli listedeki komutlar çalışır; paket kurulumu Yazılım Mağazası üzerinden yapılır.</div>
           </div>
           <div class="term-cmdline">
@@ -887,7 +887,7 @@
       <div class="window-header" data-tauri-drag-region>
         <div class="window-meta">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width: 16px; height: 16px;"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-          <span id="settings-header-title">Sistem Ayarları — Ankora Linux 2.0</span>
+          <span id="settings-header-title">Sistem Ayarları — Ankora Linux 3.2</span>
         </div>
         <div class="window-controls">
           <button class="ctrl-btn min" title="Küçült">−</button>
@@ -910,6 +910,10 @@
               <button class="settings-nav-item" data-pane="pane-set-display">
                 <svg class="nav-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="3" width="20" height="14" rx="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
                 <span>Ekran & Görüntü</span>
+              </button>
+              <button class="settings-nav-item" data-pane="pane-set-panel">
+                <svg class="nav-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="3" y1="19" x2="21" y2="19"></line><rect x="6" y="15" width="3" height="4" rx="0.5"></rect><rect x="11" y="15" width="3" height="4" rx="0.5"></rect><rect x="16" y="15" width="3" height="4" rx="0.5"></rect></svg>
+                <span>Alt Panel & Saat</span>
               </button>
               <button class="settings-nav-item" data-pane="pane-set-audio">
                 <svg class="nav-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
@@ -957,7 +961,51 @@
           <!-- Ayarlar Sağ Panel İçerikleri -->
           <div class="settings-panes-view">
             
-            <!-- 1. PANE: GÖRÜNÜM & TEMA -->
+            <!-- PANE: ALT PANEL & SAAT (Panel Kişiselleştirme) -->
+            <div class="settings-pane" id="pane-set-panel">
+              <div class="pane-header">
+                <h3>Alt Panel & Saat</h3>
+                <p>Görev çubuğunun yüksekliğini ve paneldeki ögeleri kendinize göre ayarlayın; değişiklikler anında uygulanır ve kalıcıdır.</p>
+              </div>
+
+              <div class="settings-card-group">
+                <span class="card-group-title">Panel Boyutu</span>
+                <div class="panel-pref-row">
+                  <label for="panel-height-range">Yükseklik</label>
+                  <input type="range" id="panel-height-range" min="32" max="60" step="2">
+                  <span class="panel-pref-value" id="panel-height-value">44 px</span>
+                </div>
+              </div>
+
+              <div class="settings-card-group">
+                <span class="card-group-title">Saat Penceresi</span>
+                <div class="panel-pref-row">
+                  <label for="panel-clock24-toggle">24 Saat Biçimi</label>
+                  <input type="checkbox" id="panel-clock24-toggle" role="switch" aria-label="24 saat biçimi">
+                </div>
+                <div class="panel-pref-row">
+                  <label for="panel-seconds-toggle">Saniyeyi Göster</label>
+                  <input type="checkbox" id="panel-seconds-toggle" role="switch" aria-label="Saniyeyi göster">
+                </div>
+              </div>
+
+              <div class="settings-card-group">
+                <span class="card-group-title">Panel İçeriği</span>
+                <div class="panel-pref-row">
+                  <label for="panel-pins-toggle">Hızlı Başlatıcı Simgeleri</label>
+                  <input type="checkbox" id="panel-pins-toggle" role="switch" aria-label="Hızlı başlatıcılar">
+                </div>
+                <div class="panel-pref-row">
+                  <label for="panel-wsdots-toggle">Çalışma Alanı Noktaları</label>
+                  <input type="checkbox" id="panel-wsdots-toggle" role="switch" aria-label="Çalışma alanı noktaları">
+                </div>
+                <div class="panel-pref-row">
+                  <label for="panel-days-toggle">Saat Yanında Tarih</label>
+                  <input type="checkbox" id="panel-days-toggle" role="switch" aria-label="Saat yanında tarih">
+                </div>
+              </div>
+            </div>
+
             <div class="settings-pane active" id="pane-set-theme">
               <div class="pane-header">
                 <h3>Görünüm & Kişiselleştirme</h3>
@@ -991,6 +1039,38 @@
                     </div>
                     <strong>Derin Gece</strong>
                     <span>OLED dostu lacivert gece modu</span>
+                  </div>
+                  <div class="theme-card-choice" data-theme="theme-nord">
+                    <div class="theme-preview-box nord">
+                      <div class="preview-mini-bar"></div>
+                      <div class="preview-mini-card"></div>
+                    </div>
+                    <strong>Kuzey Fjordu</strong>
+                    <span>Nord esintili gri-mavi koyu tema</span>
+                  </div>
+                  <div class="theme-card-choice" data-theme="theme-evergreen">
+                    <div class="theme-preview-box evergreen">
+                      <div class="preview-mini-bar"></div>
+                      <div class="preview-mini-card"></div>
+                    </div>
+                    <strong>Çam Ormanı</strong>
+                    <span>Derin yeşil, göz yormayan doğal tema</span>
+                  </div>
+                  <div class="theme-card-choice" data-theme="theme-ember">
+                    <div class="theme-preview-box ember">
+                      <div class="preview-mini-bar"></div>
+                      <div class="preview-mini-card"></div>
+                    </div>
+                    <strong>Kor Ateşi</strong>
+                    <span>Sıcak bordo-kızıl koyu gece teması</span>
+                  </div>
+                  <div class="theme-card-choice" data-theme="theme-arctic">
+                    <div class="theme-preview-box arctic">
+                      <div class="preview-mini-bar"></div>
+                      <div class="preview-mini-card"></div>
+                    </div>
+                    <strong>Arktik Serinlik</strong>
+                    <span>Soğuk buz mavisi açık tema</span>
                   </div>
                 </div>
               </div>
@@ -1469,7 +1549,7 @@
               <div class="about-hero-card">
                 <img src="logo.svg" alt="Ankora Logo" class="about-hero-logo">
                 <div class="about-hero-text">
-                  <h2>ANKORA LINUX 2.0</h2>
+                  <h2>ANKORA LINUX 3.2</h2>
                   <span class="hero-edition">Ayaz DE Edition • Systemd-Free Kiosk Platform</span>
                   <p>Hafif WebKitGTK ve Rust Tauri çekirdeği ile güçlendirilmiş, Ayaz Masaüstü Ortamı (DE) barındıran bağımsız Devuan GNU/Linux dağıtımı.</p>
                 </div>
@@ -1477,11 +1557,11 @@
 
               <div class="telemetry-grid">
                 <div class="telemetry-cell"><span>İşletim Sistemi:</span><strong id="tele-os">Devuan Daedalus 5.0</strong></div>
-                <div class="telemetry-cell"><span>Masaüstü Ortamı:</span><strong>Ayaz DE 2.0</strong></div>
+                <div class="telemetry-cell"><span>Masaüstü Ortamı:</span><strong>Ayaz DE 3.2</strong></div>
                 <div class="telemetry-cell"><span>İnit Sistemi:</span><strong id="tele-init">SysVinit 3.06 (PID 1)</strong></div>
                 <div class="telemetry-cell"><span>Linux Çekirdeği:</span><strong id="tele-kernel">Linux 6.1.0-22-amd64</strong></div>
                 <div class="telemetry-cell"><span>Bellek (RAM):</span><strong id="tele-mem">1.2 / 8.0 GB (Aktif)</strong></div>
-                <div class="telemetry-cell"><span>ISO İmaj Kimliği:</span><strong>ankora-2.0-daedalus.iso</strong></div>
+                <div class="telemetry-cell"><span>ISO İmaj Kimliği:</span><strong>ankora-3.2-daedalus.iso</strong></div>
               </div>
 
               <div class="about-update-banner">
@@ -1730,7 +1810,7 @@
                 <span class="updater-badge" id="updater-status-badge">Kontrol Edilmedi</span>
               </div>
               <div class="updater-sub-meta">
-                <span>Mevcut: <strong id="updater-curr-ver">v2.0.0</strong></span>
+                <span>Mevcut: <strong id="updater-curr-ver">v3.2.0</strong></span>
                 <span class="dot-sep">•</span>
                 <span>En Son: <strong id="updater-latest-ver">—</strong></span>
                 <span class="dot-sep">•</span>
@@ -2586,7 +2666,7 @@
       </div>
     </div>
 
-    <!-- 2.0 MAĞAZADAN YÜKLENEN UYGULAMALAR (INSTALLED FROM STORE) -->
+    <!-- MAĞAZADAN YÜKLENEN UYGULAMALAR (INSTALLED FROM STORE) -->
     <div class="start-section-heading" id="start-installed-heading" style="display: none; margin-top: 14px;">
       <span class="heading-title">Yüklü Uygulamalar (Mağaza)</span>
       <span class="heading-sub" id="start-installed-count">0 Uygulama</span>
@@ -2648,7 +2728,7 @@
         </div>
         <div class="profile-info">
           <span class="profile-name" id="desktop-profile-username">ankora</span>
-          <span class="profile-role">Ankora Linux 2.0 (Daedalus)</span>
+          <span class="profile-role">Ankora Linux 3.2 (Daedalus)</span>
         </div>
       </div>
 
@@ -2727,7 +2807,8 @@
       <!-- Sistem Durum Kapsülü (Wi-Fi + Ses + Pil - Tıklandığında Hızlı Ayarlar açılır) -->
       <div class="tray-status-island" id="tray-status-island" title="Hızlı Sistem Ayarları">
         <div class="tray-island-item" id="tray-wifi-btn" title="Kablosuz Ağ (Wi-Fi): Bağlı">
-          <svg class="tray-status-glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 12.55a11 11 0 0 1 14.08 0"></path><path d="M1.42 9a16 16 0 0 1 21.16 0"></path><path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path><line x1="12" y1="20" x2="12.01" y2="20"></line></svg>
+          <svg class="tray-status-glyph glyph-wifi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 12.55a11 11 0 0 1 14.08 0"></path><path d="M1.42 9a16 16 0 0 1 21.16 0"></path><path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path><line x1="12" y1="20" x2="12.01" y2="20"></line></svg>
+          <svg class="tray-status-glyph glyph-wired" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="10" width="18" height="4" rx="1"></rect><line x1="6.5" y1="14" x2="6.5" y2="18"></line><line x1="12" y1="14" x2="12" y2="18"></line><line x1="17.5" y1="14" x2="17.5" y2="18"></line><line x1="12" y1="3" x2="12" y2="10"></line></svg>
         </div>
         <div class="tray-island-item" id="tray-volume-btn" title="Ses Çıkışı: %84">
           <svg class="tray-status-glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>

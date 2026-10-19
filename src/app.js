@@ -204,7 +204,7 @@
         case 'take_screenshot':
           return {
             success: true,
-            file_path: '/home/ankora/Pictures/Screenshots/Ekran-Goruntusu.png',
+            file_path: '/home/ankora/Resimler/Ekran-Goruntusu.png',
             file_name: 'Ekran-Goruntusu.png',
             image_b64: null
           };
@@ -311,10 +311,10 @@
         case 'check_de_update':
           return {
             has_update: false,
-            current_version: '2.0.0',
-            latest_version: '2.0.0',
-            release_name: 'Ayaz DE v2.0.0 (Son Kararlı Sürüm)',
-            release_notes: '## Ayaz DE v2.0.0\n- Ankora Linux için geliştirilen minimalist masaüstü ortamı.\n- SysVinit uyumlu Kiosk tasarımı.\n- Güvenlik duvarı ve yerel AI ajan entegrasyonu.',
+            current_version: '3.2.0',
+            latest_version: '3.2.0',
+            release_name: 'Ayaz DE v3.2.0 (Daedalus / Son Kararlı Sürüm)',
+            release_notes: '## Ayaz DE v3.2.0\n- Ankora Linux için geliştirilen minimalist masaüstü ortamı.\n- SysVinit uyumlu Kiosk tasarımı.\n- Güvenlik duvarı ve yerel AI ajan entegrasyonu.',
             download_url: null,
             published_at: new Date().toISOString(),
             package_size_bytes: 0
@@ -941,8 +941,23 @@
     bringToFront(winInput) {
       const win = typeof winInput === 'string' ? document.getElementById(winInput) : winInput;
       if (!win) return;
+      // z-index sayacı önceki tasarımda sınırsızdı; açık pencereler
+      // 6000+ katmana çıkınca panel flyout'ları ve bağlam menüleri pencere
+      // ARKASINDA kalıyordu. Pencere katmanı 9000'te tavanlanır; tavana
+      // gelindiğinde açık pencereler göreli sırası korunarak yeniden sıkışır.
+      const Z_WINDOW_MAX = 9000;
+      if (this.highestZ >= Z_WINDOW_MAX - 1) {
+        const openWins = this.windows
+          .filter(w => w.classList.contains('open'))
+          .map(w => ({ w, z: parseInt(w.style.zIndex, 10) || 20 }))
+          .sort((a, b) => a.z - b.z);
+        openWins.forEach((entry, i) => {
+          entry.w.style.zIndex = String(20 + i);
+          this.highestZ = 20 + i;
+        });
+      }
       this.highestZ++;
-      win.style.zIndex = this.highestZ;
+      win.style.zIndex = Math.min(this.highestZ, Z_WINDOW_MAX);
       this.windows.forEach(w => w.classList.remove('active'));
       win.classList.add('active');
       this.syncTabs();
@@ -1469,7 +1484,7 @@
           exec: 'internal:win-installer',
           targetWindow: 'win-installer',
           cat: 'sys',
-          comment: 'Ankora Linux 2.0 Sabit Diske Kurulum Sihirbazı',
+          comment: 'Ankora Linux 3.2 Sabit Diske Kurulum Sihirbazı',
           is_installed_by_user: true
         },
         {
@@ -1712,6 +1727,10 @@
       const container = document.getElementById('dynamic-desktop-icons');
       if (!container) return;
       container.innerHTML = '';
+      // Çöp kutusu masaüstünde dâimî simgedir; XDG yeniden çiziminde kaybolmasın.
+      if (typeof DesktopFiles !== 'undefined' && DesktopFiles.ensureTrashIcon) {
+        DesktopFiles.ensureTrashIcon(container);
+      }
 
       // Masaüstünde yalnızca masaüstüne eklenmiş uygulamalar durur. Başlat
       // menüsü bütün uygulamaları listeler, oradan geri eklenebilir.
@@ -2288,6 +2307,68 @@
   // 2b. MASAÜSTÜ DOSYALARI (~/Desktop içindeki gerçek dosyalar simge olarak
   // dizilir; indirilen dosya Masaüstüne düştüğünde burada görünür).
   // ============================================================================
+  // 2b. PANEL TERCİHLERİ — alt panel kişiselleştirme (yükseklik, saat, içerik).
+  // localStorage'da kalıcıdır; uygulama yerel CSS değişkeni + gövde sınıfları
+  // ile yapılır, Rust tarafında değişiklik gerekmez.
+  // ============================================================================
+  const PanelPrefs = {
+    KEY: 'ayaz_panel_prefs',
+    state: { height: 44, clock24: true, clockSeconds: false, showPins: true, showWsDots: true, showDate: false },
+    _listeners: [],
+    onChange(fn) { this._listeners.push(fn); },
+    load() {
+      try { Object.assign(this.state, JSON.parse(localStorage.getItem(this.KEY) || '{}')); } catch (e) {}
+      this.apply();
+    },
+    save(patch) {
+      Object.assign(this.state, patch || {});
+      try { localStorage.setItem(this.KEY, JSON.stringify(this.state)); } catch (e) {}
+      this.apply();
+      this._listeners.forEach(fn => { try { fn(this.state); } catch (e) {} });
+    },
+    apply() {
+      const h = Math.min(60, Math.max(32, parseInt(this.state.height, 10) || 44));
+      document.documentElement.style.setProperty('--taskbar-height', `${h}px`);
+      document.body.classList.toggle('panel-no-pins', !this.state.showPins);
+      document.body.classList.toggle('panel-no-wsdots', !this.state.showWsDots);
+    }
+  };
+
+  // Panel tercihleri arayüz bağlantısı (Ayarlar → Alt Panel & Saat)
+  const PanelSettings = {
+    _bound: false,
+    render() {
+      const st = PanelPrefs.state;
+      const rng = document.getElementById('panel-height-range');
+      const val = document.getElementById('panel-height-value');
+      const toggles = [
+        ['panel-clock24-toggle', 'clock24'],
+        ['panel-seconds-toggle', 'clockSeconds'],
+        ['panel-pins-toggle', 'showPins'],
+        ['panel-wsdots-toggle', 'showWsDots'],
+        ['panel-days-toggle', 'showDate'],
+      ];
+      const height = Math.min(60, Math.max(32, parseInt(st.height, 10) || 44));
+      if (rng) rng.value = String(height);
+      if (val) val.textContent = `${height} px`;
+      toggles.forEach(([id, key]) => {
+        const el = document.getElementById(id);
+        if (el) el.checked = !!st[key];
+      });
+      if (this._bound) return;
+      this._bound = true;
+      toggles.forEach(([id, key]) => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('change', () => PanelPrefs.save({ [key]: el.checked }));
+      });
+      if (rng) {
+        rng.addEventListener('input', () => { if (val) val.textContent = `${rng.value} px`; });
+        rng.addEventListener('change', () => PanelPrefs.save({ height: parseInt(rng.value, 10) }));
+      }
+    }
+  };
+
+  // ============================================================================
   const DesktopFiles = {
     dir: null,
 
@@ -2305,6 +2386,8 @@
       const container = document.getElementById('dynamic-desktop-icons');
       if (!container) return;
       container.querySelectorAll('.desktop-item.file-item').forEach(el => el.remove());
+      // Kullanıcı şikayeti — çöp kutusu masaüstünde hiç görünmüyordu.
+      this.ensureTrashIcon(container);
       try {
         if (!this.dir) {
           const d = await TauriBridge.invoke('get_xdg_user_dirs', {});
@@ -2344,6 +2427,11 @@
               this.openItem(it);
             }
           });
+          el.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            DesktopFiles.showItemMenu(e, it);
+          });
           frag.appendChild(el);
         });
         container.appendChild(frag);
@@ -2351,6 +2439,47 @@
           XdgDesktopEngine.layoutDesktopIcons(container);
         }
       } catch (e) {}
+    },
+
+    // Masaüstünde kalıcı çöp kutusu simgesi; çift tık dosya yöneticisinin
+    // çöp görünümünü açar.
+    ensureTrashIcon(container) {
+      const existing = container.querySelector('.desktop-item.trash-item');
+      if (existing) return;
+      const el = document.createElement('div');
+      el.className = 'desktop-item trash-item cat-util';
+      el.tabIndex = 0;
+      el.setAttribute('role', 'button');
+      el.title = 'Çöp Kutusu\n• Çift tıkla aç';
+      el.innerHTML = `
+        <div class="item-icon">
+          <svg class="glyph" aria-hidden="true"><use href="#ico-trash"></use></svg>
+        </div>
+        <span class="item-name">Çöp Kutusu</span>
+      `;
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        document.querySelectorAll('.desktop-item').forEach(x => x.classList.remove('selected'));
+        el.classList.add('selected');
+      });
+      el.addEventListener('dblclick', (e) => {
+        e.stopPropagation();
+        this.openTrash();
+      });
+      el.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          this.openTrash();
+        }
+      });
+      container.appendChild(el);
+    },
+
+    openTrash() {
+      if (typeof FileManager !== 'undefined' && FileManager.loadTrash) {
+        FileManager.loadTrash();
+      }
+      WindowManager.open('win-files');
     },
 
     async openItem(it) {
@@ -2368,6 +2497,81 @@
           ReportManager.showToast(`Açılamadı: ${err.message || err}`, 'error');
         }
       }
+    },
+
+    // Masaüstündeki gerçek klasör/belge simgeleri için sağ-tık menüsü.
+    // Öncesinde öğe sağ-tıkta hiçbir eylem menüsü göstermiyordu, silme de
+    // yapılamıyordu; artık Aç / Klasörde göster / Yeniden adlandır /
+    // Çöp Kutusuna Taşı eylemleri yerlidir.
+    showItemMenu(ev, item) {
+      let menu = document.getElementById('desktop-file-context-menu');
+      if (!menu) {
+        menu = document.createElement('div');
+        menu.id = 'desktop-file-context-menu';
+        menu.className = 'desktop-context-menu';
+        menu.innerHTML = `
+          <div class="ctx-item" data-act="open">
+            <span>Aç</span>
+          </div>
+          <div class="ctx-item" data-act="reveal">
+            <span>Dosya Yöneticisinde Göster</span>
+          </div>
+          <div class="ctx-item" data-act="rename">
+            <span>Yeniden Adlandır</span>
+          </div>
+          <div class="ctx-item ctx-danger" data-act="trash">
+            <span>Çöp Kutusuna Taşı</span>
+          </div>
+        `;
+        document.body.appendChild(menu);
+        menu.addEventListener('click', (e) => {
+          const act = e.target.closest('.ctx-item')?.getAttribute('data-act');
+          menu.classList.remove('open');
+          const target = this._menuTarget;
+          if (!act || !target) return;
+          if (act === 'open') {
+            DesktopFiles.openItem(target);
+          } else if (act === 'reveal') {
+            const dirPath = target.is_dir
+              ? target.path
+              : String(target.path).replace(/\/[^/]+$/, '') || DesktopFiles.dir;
+            if (typeof FileManager !== 'undefined' && FileManager.loadDirectory) {
+              FileManager.loadDirectory(dirPath);
+            }
+            WindowManager.open('win-files');
+          } else if (act === 'rename') {
+            const newName = prompt('Yeni ad:', target.name);
+            if (newName && newName.trim() && newName.trim() !== target.name) {
+              const parent = String(target.path).replace(/\/[^/]+$/, '');
+              TauriBridge.invoke('move_path', { sourcePath: target.path, destPath: `${parent}/${newName.trim()}` })
+                .then(() => DesktopFiles.refresh())
+                .catch(err => ReportManager.showToast(`Yeniden adlandırılamadı: ${err.message || err}`, 'error'));
+            }
+          } else if (act === 'trash') {
+            TauriBridge.invoke('move_to_trash', { path: target.path })
+              .then(() => {
+                ReportManager.showToast(`'${target.name}' çöp kutusuna taşındı.`);
+                DesktopFiles.refresh();
+              })
+              .catch(err => ReportManager.showToast(`Silinemedi: ${err.message || err}`, 'error'));
+          }
+        });
+      }
+      this._menuTarget = item;
+      const rect = {
+        x: Math.min(ev.clientX, window.innerWidth - 240),
+        y: Math.min(ev.clientY, window.innerHeight - 200),
+      };
+      menu.style.left = `${rect.x}px`;
+      menu.style.top = `${rect.y}px`;
+      menu.classList.add('open');
+      const close = (e) => {
+        if (!menu.contains(e.target)) {
+          menu.classList.remove('open');
+          document.removeEventListener('click', close);
+        }
+      };
+      setTimeout(() => document.addEventListener('click', close), 0);
     }
   };
 
@@ -2512,6 +2716,90 @@
       { id: 'fd-find', name: 'FD Hızlı Dosya Arama', deb: 'fd-find', desc: 'Find komutuna kıyasla kat kat hızlı ve kullanıcı dostu arama aracı', cat: 'util', size: '3 MB', installed: false },
       { id: 'midnight-commander', name: 'Midnight Commander (MC)', deb: 'midnight-commander', desc: 'Klasik Norton Commander tarzı çift panelli konsol dosya yöneticisi', cat: 'util', size: '10 MB', installed: false },
       { id: 'ranger', name: 'Ranger Konsol Dosya Yöneticisi', deb: 'ranger', desc: 'Vim tuş takımı ve önizleme panellerine sahip terminal dosya tarayıcısı', cat: 'util', size: '6 MB', installed: false },
+
+      // 8. KATEGORİ GENİŞLETMESİ — mağaza kapsamı genişletildi (oyun, ses, disk, güvenlik, iletişim)
+      // 8a. OYUNLAR
+      { id: 'supertuxkart', name: 'SuperTuxKart Yarış Oyunu', deb: 'supertuxkart', desc: 'Serbest ve açık kaynak, aile dostu karting yarış oyunu', cat: 'util', size: '600 MB', installed: false },
+      { id: 'supertux', name: 'SuperTux 2D Platform Oyunu', deb: 'supertux', desc: 'Tux kahramanlı, klasik yan kaydırmalı platform macerası', cat: 'util', size: '120 MB', installed: false },
+      { id: '0ad', name: "0 A.D. Strateji Oyunu", deb: '0ad', desc: 'Antik savaş temalı, açık kaynak gerçek zamanlı strateji', cat: 'util', size: '900 MB', installed: false },
+      { id: 'flatpak-openboard', name: 'Openboard Eğitim Tahtası', flatpak: 'ch.openboard.OpenBoard', desc: 'Ders için etkileşimli akıllı tahta yazılımı', cat: 'dev', size: '150 MB', installed: false },
+
+      // 8b. SES & PRODÜKSİYON
+      { id: 'ardour', name: 'Ardour Profesyonel DAW', deb: 'ardour', desc: 'Çok kanallı kayıt ve miksaj için endüstri seviyesi dijital ses iş istasyonu', cat: 'media', size: '130 MB', installed: false },
+      { id: 'rosegarden', name: 'Rosegarden MIDI Stüdyosu', deb: 'rosegarden', desc: 'MIDI dizme ve nota yazımı için müzik stüdyosu', cat: 'media', size: '40 MB', installed: false },
+
+      // 8c. DİSK & SİSTEM ARAÇLARI
+      { id: 'gnome-disk-utility', name: 'GNOME Disks (Diskler)', deb: 'gnome-disk-utility', desc: 'Diskleri bölümlendirme, biçimlendirme ve SMART durumunu görsel arayüzden yönetme', cat: 'sys', size: '12 MB', installed: false },
+      { id: 'baobab', name: 'Baobab Disk Kullanım Analizi', deb: 'baobab', desc: 'Disk alanını halka grafikli görselleştirip büyük klasörleri bulma', cat: 'sys', size: '6 MB', installed: false },
+      { id: 'bleachbit', name: 'BleachBit Sistem Temizleyici', deb: 'bleachbit', desc: 'Gereksiz önbellek ve geçmiş dosyalarını güvenle temizleyen araç', cat: 'sys', size: '5 MB', installed: false },
+
+      // 8d. GÜVENLİK & AĞ
+      { id: 'torbrowser-launcher', name: 'Tor Browser Başlatıcısı', deb: 'torbrowser-launcher', desc: 'Tor Browser kurulumunu ve güncellemelerini yöneten başlatıcı', cat: 'net', size: '4 MB', installed: false },
+      { id: 'nextcloud-desktop', name: 'Nextcloud Masaüstü Eşitleme', deb: 'nextcloud-desktop', desc: 'Kendi bulut sunucunuzla dosya senkronizasyon istemcisi', cat: 'net', size: '30 MB', installed: false },
+      { id: 'remmina', name: 'Remmina Uzak Masaüstü İstemcisi', deb: 'remmina', desc: 'RDP, VNC ve SSH oturumlarını tek arayüzden yönetme', cat: 'net', size: '18 MB', installed: false },
+      { id: 'flatpak-flatseal', name: 'Flatseal Flatpak İzin Yöneticisi', flatpak: 'com.github.tchx84.Flatseal', desc: 'Flatpak uygulamalarının sandbox izinlerini görsel denetleme', cat: 'sys', size: '12 MB', installed: false },
+
+      // 8e. İLETİŞİM & GÜNLÜK İŞLER
+      { id: 'flatpak-signal', name: 'Signal Private Messenger', flatpak: 'org.signal.Signal', desc: 'Uçtan uca şifreli, gizlilik odaklı mesajlaşma uygulaması', cat: 'net', size: '160 MB', installed: false },
+      { id: 'evolution', name: 'Evolution E-Posta & Ajanda', deb: 'evolution', desc: 'E-posta, takvim, görev ve kişi yönetiminin tamamını içeren istemci', cat: 'office', size: '110 MB', installed: false },
+      { id: 'anki', name: 'Anki Bilgi Kartları (Öğrenme)', deb: 'anki', desc: 'Aralıklı tekrar yöntemiyle kelime ve ders çalışma aracı', cat: 'office', size: '90 MB', installed: false },
+      { id: 'ghostwriter', name: 'ghostwriter Odaklanmış Metin Düzenleyici', deb: 'ghostwriter', desc: 'Markdown için bölümsüz, odaklanmış yazma ortamı', cat: 'office', size: '8 MB', installed: false },
+
+      // 8f. GELİŞTİRME & GRAFİK
+      { id: 'flatpak-freecad', name: 'FreeCAD 3D CAD', flatpak: 'org.freecad.FreeCAD', desc: 'Makine tasarımı ve teknik çizim için açık kaynak 3B CAD', cat: 'dev', size: '450 MB', installed: false },
+
+      // 9. KAPSAM GENİŞLETMESİ II — toplam 40 yeni uygulama (mağaza derinliği)
+      // 9a. MEDYA & SES (8)
+      { id: 'openshot', name: 'OpenShot Video Düzenleyici', deb: 'openshot', desc: 'Sürükle-bırak zaman çizgeli, yeni başlayan dostu video kurgu yazılımı', cat: 'media', size: '95 MB', installed: false },
+      { id: 'celluloid', name: 'Celluloid Hafif Video Oynatıcı', deb: 'celluloid', desc: 'mpv motorlu, temiz GTK arayüzlü modern film oynatıcı', cat: 'media', size: '9 MB', installed: false },
+      { id: 'smplayer', name: 'SMPlayer Gelişmiş Oynatıcı', deb: 'smplayer', desc: 'Altyazı arama, hız ayarı ve oynatma konumu hatırlama destekli çalar', cat: 'media', size: '18 MB', installed: false },
+      { id: 'kodi', name: 'Kodi Medya Merkezi', deb: 'kodi', desc: 'Filmler, diziler ve müzikler için kütüphane tabanlı medya merkezi', cat: 'media', size: '120 MB', installed: false },
+      { id: 'strawberry', name: 'Strawberry Müzik Koleksiyonu', deb: 'strawberry', desc: 'koleksiyon yönetimine odaklı modern müzik çalar', cat: 'media', size: '30 MB', installed: false },
+      { id: 'gpodder', name: 'gPodder Podcast Yöneticisi', deb: 'gpodder', desc: 'Podcast aboneliği, indirme ve senkronizasyon istemcisi', cat: 'media', size: '12 MB', installed: false },
+      { id: 'flatpak-easyeffects', name: 'EasyEffects Ses İşleme', flatpak: 'com.github.wwmm.easyeffects', desc: 'Giriş/çıkış için ekolayzer, kompresör ve limiter ile sistem sesini işleyin', cat: 'media', size: '40 MB', installed: false },
+      { id: 'easytag', name: 'EasyTAG Müzik Etiket Düzenleyici', deb: 'easytag', desc: 'MP3 ve FLAC dosyaların toplu etiketleme ve albüm kapağı aracı', cat: 'media', size: '9 MB', installed: false },
+
+      // 9b. GRAFİK & TİPOGRAFİ (5)
+      { id: 'kolourpaint', name: 'KolourPaint Boyama Aracı', deb: 'kolourpaint', desc: 'Paint tarzı basit ve hızlı resim düzenleme aracı', cat: 'graphics', size: '11 MB', installed: false },
+      { id: 'fontforge', name: 'FontForge Yazı Tipi Düzenleyici', deb: 'fontforge', desc: 'Kendi yazı tiplerini tasarlayıp TTF/OTF olarak çıkarır', cat: 'graphics', size: '40 MB', installed: false },
+      { id: 'scribus', name: 'Scribus Masaüstü Yayıncılık', deb: 'scribus', desc: 'Broşür, dergi ve dergi plakı için profesyonel sayfa dizgisi', cat: 'graphics', size: '85 MB', installed: false },
+      { id: 'digikam', name: 'digiKam Fotoğraf Kütüphanesi', deb: 'digikam', desc: 'Yüz tanıma ve etiketli, büyük fotoğraf koleksiyonlu koleksiyon arayüzü', cat: 'graphics', size: '220 MB', installed: false },
+      { id: 'geeqie', name: 'Geeqie Hızlı Görsel Tarayıcı', deb: 'geeqie', desc: 'hafif, okunabilir arayüzlü hızlı görsel görüntüleyici', cat: 'graphics', size: '10 MB', installed: false },
+
+      // 9c. DİSK & SİSTEM (9)
+      { id: 'lm-sensors', name: 'LM-Sensors Donanım Sensörleri', deb: 'lm-sensors', desc: 'CPU sıcaklığı, fan hızı ve voltaj değerlerini okuma kiti', cat: 'sys', size: '2 MB', installed: false },
+      { id: 'gsmartcontrol', name: 'GSmartControl Disk Taraması', deb: 'gsmartcontrol', desc: 'Disk S.M.A.R.T. değerlerini grafik arayüzden inceleme aracı', cat: 'sys', size: '6 MB', installed: false },
+      { id: 'testdisk', name: 'TestDisk & PhotoRec Veri Kurtarma', deb: 'testdisk', desc: 'Silinmiş bölümleri onarır, kaybolan dosyaları kurtarır', cat: 'sys', size: '6 MB', installed: false },
+      { id: 'clonezilla', name: 'Clonezilla Disk Klonlama', deb: 'clonezilla', desc: 'Bütün diski ya da bölümleri imaj hâlinde klonlama aracı', cat: 'sys', size: '230 MB', installed: false },
+      { id: 'veracrypt', name: 'VeraCrypt Disk Şifreleme', deb: 'veracrypt', desc: 'Şifreli kap ve tam disk şifrelemesi için açık kaynak araç', cat: 'sys', size: '70 MB', installed: false },
+      { id: 'cryptsetup', name: 'Cryptsetup LUKS Araçları', deb: 'cryptsetup', desc: 'LUKS şifreli bölümleri oluşturma ve açma araç seti', cat: 'sys', size: '8 MB', installed: false },
+      { id: 'borgbackup', name: 'BorgBackup Dedüp Yedek', deb: 'borgbackup', desc: 'Dedüpülasyonlu, şifreli, sıkıştırılmış yedekleme çözümü', cat: 'sys', size: '9 MB', installed: false },
+      { id: 'duplicity', name: 'Duplicity Şifreli Yedek', deb: 'duplicity', desc: 'Şifreli artımlı yedeği uzak sunuculara yedekleme aracı', cat: 'sys', size: '7 MB', installed: false },
+      { id: 'grsync', name: 'Grsync rsync Grafik Arayüzü', deb: 'grsync', desc: 'rsync görevlerini profil olarak kaydedip tek tıkla çalıştırma', cat: 'sys', size: '4 MB', installed: false },
+
+      // 9d. İLETİŞİM & AĞ (6)
+      { id: 'gajim', name: 'Gajim XMPP Sohbet', deb: 'gajim', desc: 'Açık standart XMPP mesajlaşma istemcisine modern arayüz', cat: 'net', size: '16 MB', installed: false },
+      { id: 'hexchat', name: 'HexChat IRC İstemcisi', deb: 'hexchat', desc: 'Kanal favorileri ve eklentilerle zengin klasik IRC istemcisi', cat: 'net', size: '12 MB', installed: false },
+      { id: 'mumble', name: 'Mumble Düşük Gecikmeli Sesli', deb: 'mumble', desc: 'Oyun toplulukları için düşük gecikmeli sesli konuşma yazılımı', cat: 'net', size: '14 MB', installed: false },
+      { id: 'linphone', name: 'Linphone VoIP & Görüntülü', deb: 'linphone', desc: 'SIP temelli ücretsiz arama ve görüntülü konuşma istemcisi', cat: 'net', size: '50 MB', installed: false },
+      { id: 'syncthing', name: 'Syncthing Cihazlar Arası Eşitleme', deb: 'syncthing', desc: 'Web arayüzlü, sunucusuz sürekli dosya senkronizasyonu', cat: 'net', size: '30 MB', installed: false },
+      { id: 'weechat', name: 'WeeChat Modüler Sohbet', deb: 'weechat', desc: 'Eklenti sistemi güçlendirmesine açık terminal sohbeti', cat: 'net', size: '7 MB', installed: false },
+
+      // 9e. BİLGİSAYAR & MATEMATİK (6)
+      { id: 'neovim', name: 'Neovim Modüler Düzenleyici', deb: 'neovim', desc: 'Lua eklenti ekosistemiyle zenginleşen Vim akışına uygun editör', cat: 'dev', size: '15 MB', installed: false },
+      { id: 'emacs', name: 'GNU Emacs Genişletilebilir Editör', deb: 'emacs', desc: 'Org-modu, Magit ve yüzlerce paketle genişletilebilir editör', cat: 'dev', size: '110 MB', installed: false },
+      { id: 'meld', name: 'Meld Dosya Karşılaştırma', deb: 'meld', desc: 'Dosya ve klasörleri yan yana karşılaştırma ve birleştirme aracı', cat: 'dev', size: '10 MB', installed: false },
+      { id: 'gnome-builder', name: 'GNOME Builder IDE', deb: 'gnome-builder', desc: 'GTK/GNOME projesi için entegre geliştirme ortamı', cat: 'dev', size: '35 MB', installed: false },
+      { id: 'zeal', name: 'Zeal Çevrimdışı Dokümantasyon', deb: 'zeal', desc: '150 dil için çevrimdışı API dokümantasyon tarayıcısı', cat: 'dev', size: '12 MB', installed: false },
+      { id: 'gdb', name: 'GNU Debugger (GDB)', deb: 'gdb', desc: 'C/C++/Rust programlarını gdb hata ayıklama ortamı', cat: 'dev', size: '7 MB', installed: false },
+
+      // 9f. BİLİM & VERİ & OFİS (6)
+      { id: 'valgrind', name: 'Valgrind Bellek Analizör', deb: 'valgrind', desc: 'Bellek sızması ve veri yarışı çakışmaları bulucu', cat: 'dev', size: '50 MB', installed: false },
+      { id: 'octave', name: 'GNU Octave Bilimsel Hesap', deb: 'octave', desc: 'Matlab uyumlu sözdizimli matris ve sayısal hesap ortamı', cat: 'dev', size: '190 MB', installed: false },
+      { id: 'wxmaxima', name: 'wxMaxima Cebirsel Hesap', deb: 'wxmaxima', desc: 'maxima sembolik matematik motorunun grafik arayüzü', cat: 'office', size: '14 MB', installed: false },
+      { id: 'maxima', name: 'Maxima Sembolik Matematik', deb: 'maxima', desc: 'Türev, integral ve denklem çözümü motoru', cat: 'office', size: '220 MB', installed: false },
+      { id: 'gnuplot', name: 'Gnuplot Fonksiyon Çizim', deb: 'gnuplot', desc: 'Bilimsel veri ve fonksiyon grafikleri çizim aracı', cat: 'dev', size: '12 MB', installed: false },
+      { id: 'sqlitebrowser', name: 'DB Browser for SQLite', deb: 'sqlitebrowser', desc: 'SQLite veritabanlarını tablo görünümünde inceleme ve düzenleme', cat: 'dev', size: '10 MB', installed: false },
     ],
     tableBody: null,
     // Açılışta kafa karıştırmayan kısa liste; tamamı "Tümü" sekmesinde.
@@ -2638,66 +2926,115 @@
         return true;
       });
 
-      filtered.forEach(pkg => {
-        const card = document.createElement('article');
-        card.className = 'store-card';
-        const isFlatpak = Boolean(pkg.flatpak);
-        const pkgSub = pkg.flatpak || pkg.deb || (pkg.action === 'meb-cert' ? 'mebcert' : '');
-
-        card.innerHTML = `
-          <div class="store-card-head">
-            <span class="store-card-icon">${XdgDesktopEngine.getAppSvgIcon({ id: pkg.id, exec: pkgSub, cat: pkg.cat })}</span>
-            <span class="store-card-titles">
-              <span class="store-card-name">${escapeHtml(pkg.name)}</span>
-            </span>
-          </div>
-          <p class="store-card-desc">${escapeHtml(pkg.desc)}</p>
-          <div class="pkg-progress-bar" id="prog-${pkg.id}"></div>
-          <div class="store-card-actions">
-            ${pkg.extUrl ? `
-              <button class="btn-pkg btn-pkg-site" id="btn-site-${pkg.id}">Resmî Site</button>
-            ` : pkg.installed ? `
-              <button class="btn-pkg btn-pkg-open" id="btn-open-${pkg.id}">Aç</button>
-              <button class="btn-pkg installed" id="btn-pkg-${pkg.id}">Kaldır</button>
-            ` : `
-              <button class="btn-pkg" id="btn-pkg-${pkg.id}">Kur</button>
-            `}
-          </div>
-        `;
-
-        const iconBox = card.querySelector('.store-card-icon');
-        if (iconBox) IconResolver.tagIcon(iconBox, { id: pkg.id, exec: pkgSub, deb: pkg.deb, flatpak: pkg.flatpak });
-
-        const btn = card.querySelector('.btn-pkg:not(.btn-pkg-open):not(.btn-pkg-site)');
-        if (btn) {
-          btn.addEventListener('click', () => this.togglePackage(pkg, card));
-        }
-
-        const btnSite = card.querySelector('.btn-pkg-site');
-        if (btnSite) {
-          btnSite.addEventListener('click', async (e) => {
-            e.stopPropagation();
-            try {
-              await TauriBridge.invoke('open_url', { url: pkg.extUrl });
-              Terminal.log(`[AĞ] ${pkg.name} resmî sitesi açılıyor: ${pkg.extUrl}`, 'cmd');
-            } catch (err) {
-              Terminal.log(`[ERR] Resmî site açılamadı: ${err}`, 'error');
-            }
-          });
-        }
-
-        const btnOpen = card.querySelector('.btn-pkg-open');
-        if (btnOpen) {
-          btnOpen.addEventListener('click', (e) => {
-            e.stopPropagation();
-            this.launchPackage(pkg);
-          });
-        }
-
-        frag.appendChild(card);
-      });
+      // Ana ekran: arama boşsa ve hiçbir filtre seçilmemişse store-home
+      // (Editörün Seçimi + tüm uygulamalar) düzeni kullanılır.
+      if (!query && this.currentCat === 'all' && this.currentSource === 'all') {
+        this.buildStoreHome(frag, filtered);
+      } else {
+        filtered.forEach(pkg => {
+          frag.appendChild(this.buildStoreCard(pkg));
+        });
+      }
       this.tableBody.appendChild(frag);
       IconResolver.upgradeScope(this.tableBody);
+    },
+
+    // Mağaza ana ekranı: arama boş ve filtre kapalıyken önce "Editörün
+    // Seçimi" büyük kartlarla açılır; altında tüm uygulamalar listelenir.
+    // Arama veya kategori seçilince eski düz liste döner.
+    buildStoreHome(frag, filtered) {
+      const featured = this.packages.filter(p => p.featured).slice(0, 8);
+      const home = document.createElement('div');
+      home.className = 'store-home';
+      home.innerHTML = `
+        <div class="store-home-hero">
+          <div class="store-home-hero-text">
+            <h2>Yazılım Durağı</h2>
+            <p>Debian deposu ve Flathub'dan seçilmiş uygulamalar; aramayı kullan ya da kategoriyle süz.</p>
+          </div>
+          <span class="store-home-count">${this.packages.length} uygulama</span>
+        </div>
+      `;
+
+      const featuredSection = document.createElement('div');
+      featuredSection.className = 'store-home-section';
+      featuredSection.innerHTML = `<div class="store-section-title"><span>Editörün Seçimi</span><p>Eller ile seçilmiş, günlük işlere gelir</p></div>`;
+      const fGrid = document.createElement('div');
+      fGrid.className = 'store-grid store-grid-featured';
+      featured.forEach(p => fGrid.appendChild(this.buildStoreCard(p, true)));
+      featuredSection.appendChild(fGrid);
+      home.appendChild(featuredSection);
+
+      const restSection = document.createElement('div');
+      restSection.className = 'store-home-section';
+      restSection.innerHTML = `<div class="store-section-title"><span>Tüm Uygulamalar</span><p>Depodaki kalan seçkiler</p></div>`;
+      const rGrid = document.createElement('div');
+      rGrid.className = 'store-grid';
+      filtered.filter(p => !featured.some(f => f.id === p.id)).forEach(p => rGrid.appendChild(this.buildStoreCard(p)));
+      restSection.appendChild(rGrid);
+      home.appendChild(restSection);
+
+      frag.appendChild(home);
+    },
+
+    buildStoreCard(pkg, big = false) {
+      const card = document.createElement('article');
+      card.className = big ? 'store-card store-card-featured' : 'store-card';
+      const isFlatpak = Boolean(pkg.flatpak);
+      const pkgSub = pkg.flatpak || pkg.deb || (pkg.action === 'meb-cert' ? 'mebcert' : '');
+
+      card.innerHTML = `
+        <div class="store-card-head">
+          <span class="store-card-icon">${XdgDesktopEngine.getAppSvgIcon({ id: pkg.id, exec: pkgSub, cat: pkg.cat })}</span>
+          <span class="store-card-titles">
+            <span class="store-card-name">${escapeHtml(pkg.name)}</span>
+            ${big ? `<div class="store-card-meta">${escapeHtml(pkg.size || '')}</div>` : ''}
+          </span>
+        </div>
+        <p class="store-card-desc">${escapeHtml(pkg.desc)}</p>
+        <div class="pkg-progress-bar" id="prog-${pkg.id}"></div>
+        <div class="store-card-actions">
+          ${pkg.extUrl ? `
+            <button class="btn-pkg btn-pkg-site" id="btn-site-${pkg.id}">Resmî Site</button>
+          ` : pkg.installed ? `
+            <button class="btn-pkg btn-pkg-open" id="btn-open-${pkg.id}">Aç</button>
+            <button class="btn-pkg installed" id="btn-pkg-${pkg.id}">Kaldır</button>
+          ` : `
+            <button class="btn-pkg" id="btn-pkg-${pkg.id}">Kur</button>
+          `}
+        </div>
+      `;
+
+      const iconBox = card.querySelector('.store-card-icon');
+      if (iconBox) IconResolver.tagIcon(iconBox, { id: pkg.id, exec: pkgSub, deb: pkg.deb, flatpak: pkg.flatpak });
+
+      const btn = card.querySelector('.btn-pkg:not(.btn-pkg-open):not(.btn-pkg-site)');
+      if (btn) {
+        btn.addEventListener('click', () => this.togglePackage(pkg, card));
+      }
+
+      const btnSite = card.querySelector('.btn-pkg-site');
+      if (btnSite) {
+        btnSite.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          try {
+            await TauriBridge.invoke('open_url', { url: pkg.extUrl });
+            Terminal.log(`[AĞ] ${pkg.name} resmî sitesi açılıyor: ${pkg.extUrl}`, 'cmd');
+          } catch (err) {
+            Terminal.log(`[ERR] Resmî site açılamadı: ${err}`, 'error');
+          }
+        });
+      }
+
+      const btnOpen = card.querySelector('.btn-pkg-open');
+      if (btnOpen) {
+        btnOpen.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.launchPackage(pkg);
+        });
+      }
+
+      return card;
     },
 
     async launchPackage(pkg) {
@@ -3073,7 +3410,7 @@
       ];
 
       if (interactiveCmds.includes(targetVerb)) {
-        this.log(`⚡ Etkileşimli TUI aracı tespit edildi (${targetVerb}). Canlı etkileşimli sistem terminalinde açılıyor...`, 'cmd');
+        this.log(`Etkileşimli TUI aracı tespit edildi (${targetVerb}). Canlı etkileşimli sistem terminalinde açılıyor...`, 'cmd');
         try {
           await TauriBridge.invoke('launch_interactive_terminal', { command: clean });
           this.log(`✓ '${clean}' harici sistem terminali penceresinde başarıyla açıldı.`, 'success');
@@ -4005,7 +4342,7 @@
         file_name: 'kiosk-ayarlari.md',
         file_type: 'text',
         file_size: 1420,
-        content: `# Ankora Linux 2.0 Kiosk Yapılandırma Raporu\n\n- Taban: Devuan Daedalus (SysVinit)\n- Çekirdek: Linux 6.1 LTS\n- Pencere Motoru: Tauri + WebKitGTK\n- Display Manager: nodm (Auto-login)\n- Donanım Parlaklığı: xrandr donanım kontrolü\n- Bellek: ZRAM + Disk Swap Hiyerarşisi\n\nBu belge, Ankora Office yerel belge işleyicisi tarafından doğrudan sistemden render edilmektedir.`
+        content: `# Ankora Linux 3.2 Kiosk Yapılandırma Raporu\n\n- Taban: Devuan Daedalus (SysVinit)\n- Çekirdek: Linux 6.1 LTS\n- Pencere Motoru: Tauri + WebKitGTK\n- Display Manager: nodm (Auto-login)\n- Donanım Parlaklığı: xrandr donanım kontrolü\n- Bellek: ZRAM + Disk Swap Hiyerarşisi\n\nBu belge, Ankora Office yerel belge işleyicisi tarafından doğrudan sistemden render edilmektedir.`
       };
       this.renderDocument(doc);
     },
@@ -4078,7 +4415,7 @@
           file_name: name,
           file_type: 'text',
           file_size: 4096,
-          content: `# Ankora Linux 2.0 - Sürüm Notları (Daedalus)\n\n- Taban: Devuan GNU/Linux 5.0 (Daedalus)\n- İnit Sistemi: SysVinit (systemd-free, ultra-lightweight)\n- Arayüz: Tauri 1.5 + Monokrom Minimalist DE\n- Çekirdek: Linux 6.1.0-22-amd64\n\nSistem kararlılığı ve minimum RAM tüketimi garanti edilmektedir.`
+          content: `# Ankora Linux 3.2 - Sürüm Notları (Daedalus)\n\n- Taban: Devuan GNU/Linux 5.0 (Daedalus)\n- İnit Sistemi: SysVinit (systemd-free, ultra-lightweight)\n- Arayüz: Tauri 1.5 + Monokrom Minimalist DE\n- Çekirdek: Linux 6.1.0-22-amd64\n\nSistem kararlılığı ve minimum RAM tüketimi garanti edilmektedir.`
         });
       }
     }
@@ -4467,7 +4804,7 @@
             const url = `https://generativelanguage.googleapis.com/v1beta/models/${aiModel}:generateContent?key=${key}`;
             const sysPrompt = this.mode === 'developer'
               ? 'Sen Ankora Linux ortamında çalışan uzman bir geliştiricisin.'
-              : 'Sen Ankora Linux 2.0 (Daedalus) sistem yöneticisi ve yapay zeka asistanısın. Kullanıcıya Türkçe, net ve teknik olarak kusursuz yanıtlar ver.';
+              : 'Sen Ankora Linux 3.2 (Daedalus) sistem yöneticisi ve yapay zeka asistanısın. Kullanıcıya Türkçe, net ve teknik olarak kusursuz yanıtlar ver.';
 
             const resp = await fetch(url, {
               method: 'POST',
@@ -4985,6 +5322,8 @@
   // ============================================================================
   const ThemeManager = {
     currentTheme: 'theme-dark',
+    // Açık temaları ayrı liste olarak yürüt; GTK tarafına da bunlar 'isDark=false' gider.
+    LIGHT_THEMES: ['theme-light', 'theme-arctic'],
     currentAccent: '#2563eb',
     currentWallpaper: 'wallpaper-nordic.svg',
     currentRadius: '6px',
@@ -5082,7 +5421,11 @@
 
     setTheme(themeName, persist = true) {
       this.currentTheme = themeName;
-      document.body.classList.remove('theme-light', 'theme-dark', 'theme-midnight');
+      // Tüm theme-* sınıfları kaldırılır; geniş tema seti büyürken sabit
+      // liste bakımı hata doğuruyordu.
+      Array.from(document.body.classList)
+        .filter(c => c.startsWith('theme-'))
+        .forEach(c => document.body.classList.remove(c));
       if (themeName !== 'theme-dark') {
         document.body.classList.add(themeName);
       }
@@ -5097,7 +5440,7 @@
       }
 
       // XSettings & GTK Tema Senkronizasyonu (xsettingsd, GTK-2/3/4, gsettings)
-      const isDark = themeName !== 'theme-light';
+      const isDark = !this.LIGHT_THEMES.includes(themeName);
       TauriBridge.invoke('sync_desktop_theme', { isDark, accent: this.currentAccent || '#2563eb' }).catch(() => {});
     },
 
@@ -5117,7 +5460,7 @@
         Terminal.log(`[VURGU] Sistem vurgu rengi değiştirildi: ${colorHex}`, 'cmd');
       }
 
-      const isDark = this.currentTheme !== 'theme-light';
+      const isDark = (this.LIGHT_THEMES || ['theme-light']).includes(this.currentTheme);
       TauriBridge.invoke('sync_desktop_theme', { isDark, accent: colorHex }).catch(() => {});
     },
 
@@ -5719,6 +6062,7 @@
           if (targetPaneId === 'pane-set-shortcuts' && typeof ShortcutManager !== 'undefined') ShortcutManager.renderSettings();
           if (targetPaneId === 'pane-set-recovery' && typeof SnapshotManager !== 'undefined') SnapshotManager.loadSnapshots();
           if (targetPaneId === 'pane-set-region') this.loadRegionSettings();
+          if (targetPaneId === 'pane-set-panel' && typeof PanelSettings !== 'undefined') PanelSettings.render();
         });
       });
 
@@ -6376,14 +6720,9 @@
         return;
       }
 
-      // Ekran Görüntüsü: PrintScreen
-      if (e.key === 'PrintScreen') {
-        e.preventDefault();
-        if (typeof ScreenshotManager !== 'undefined') {
-          ScreenshotManager.open();
-        }
-        return;
-      }
+      // PrintScreen artık ScreenshotManager'ın global dinleyicisinde
+      // anında yakalama (quickCapture) olarak işlenir — çift dinleyici
+      // bug nediyle buradan kaldırıldı.
 
       // Aktif Pencereyi Kapat: Alt + F4
       if (e.altKey && e.key === 'F4') {
@@ -6411,11 +6750,30 @@
         return;
       }
 
-      // Ctrl + Space veya tekil Super/Meta tuşu -> Başlat Menüsü Toggle
-      if ((e.ctrlKey && e.code === 'Space') || (e.key === 'Meta' && !e.ctrlKey && !e.altKey)) {
+      // Ctrl + Space veya tekil Super/Meta tuşu -> Başlat Menüsü Toggle.
+      // Meta yalnızca keyup'ta (aşağıdaki ayrı dinleyicide) değerlendirilir;
+      // basılı tutunca otomatik tekrar menüyü açıp kapamayıp buga sokmuyordu.
+      if (e.ctrlKey && e.code === 'Space') {
         e.preventDefault();
         toggleStart();
       }
+    });
+
+    // Super (Meta) yalnızca kısa ve tekil basışta menüyü açar; tuş basılı
+    // tutulup başka bir tuşla birleşime girerse menü tetiklenmez.
+    let superDownAt = 0;
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Meta' && !e.repeat) {
+        superDownAt = Date.now();
+      } else {
+        superDownAt = 0;
+      }
+    });
+    window.addEventListener('keyup', (e) => {
+      if (e.key === 'Meta' && superDownAt > 0 && Date.now() - superDownAt < 600) {
+        toggleStart();
+      }
+      superDownAt = 0;
     });
 
     // 1. Sabitlenmiş Uygulamalar (Pinned Apps Grid)
@@ -6515,7 +6873,9 @@
       { id: 'quick-calc-btn', win: 'win-calc' },
       { id: 'quick-ai-btn', win: 'win-ai' },
       { id: 'quick-settings-btn', win: 'win-settings' },
-      { id: 'tray-anchor-btn', action: 'show-desktop' }
+      // ARM: Karşılama simgesi "masaüstünü göster" yerine karşılama
+      // penceresini açar; açık pencere kaybolmuş/boş ekranda gibi hissedilmesin.
+      { id: 'tray-anchor-btn', action: 'welcome' }
     ];
 
     pinMap.forEach(item => {
@@ -6530,6 +6890,18 @@
           }
           if (item.action === 'show-desktop') {
             WindowManager.toggleShowDesktop();
+            return;
+          }
+          // Karşılama (greeter): açık pencereyi yok etmeden karşılama penceresi
+          // açılır; masa zaten bomboşsa (tıklayınca küçültülmüş pencereler varsa)
+          // önceki pencereler geri getirilir.
+          if (item.action === 'welcome') {
+            const winsOpen = [...document.querySelectorAll('.window.open')]
+              .some(w => !w.classList.contains('minimized'));
+            if (!winsOpen && WindowManager._desktopHidden) {
+              WindowManager.toggleShowDesktop();
+            }
+            WindowManager.open('win-welcome');
             return;
           }
           if (item.win) {
@@ -6609,7 +6981,8 @@
     const qsTheme = document.getElementById('qs-theme-toggle');
     if (qsTheme) {
       qsTheme.addEventListener('click', () => {
-        const isLight = document.body.classList.contains('theme-light');
+        const lights = (typeof ThemeManager.LIGHT_THEMES !== 'undefined') ? ThemeManager.LIGHT_THEMES : ['theme-light'];
+        const isLight = lights.some(cls => document.body.classList.contains(cls));
         ThemeManager.setTheme(isLight ? 'theme-dark' : 'theme-light');
         const sub = document.getElementById('qs-theme-sub');
         if (sub) sub.textContent = isLight ? 'Koyu Mod' : 'Açık Mod';
@@ -6869,20 +7242,29 @@
       const now = new Date();
       if (!trayClock) return;
 
-      const h = String(now.getHours()).padStart(2, '0');
+      // Saat biçimi panel tercihlerine (12/24 saat, saniye, kısa tarih) uyar.
+      const prefs = (typeof PanelPrefs !== 'undefined' && PanelPrefs.state) || { clock24: true, clockSeconds: false, showDate: false };
+      let hh = now.getHours();
+      let suffix = '';
+      if (!prefs.clock24) {
+        suffix = hh >= 12 ? ' PM' : ' AM';
+        hh = hh % 12 || 12;
+      }
+      const h = prefs.clock24 ? String(hh).padStart(2, '0') : String(hh);
       const m = String(now.getMinutes()).padStart(2, '0');
+      const s = String(now.getSeconds()).padStart(2, '0');
       const days = ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt'];
       const months = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
       const dayStr = days[now.getDay()];
       const dateNum = now.getDate();
       const monthStr = months[now.getMonth()];
       const yearNum = now.getFullYear();
-      const timeStr = `${h}:${m}`;
+      const timeStr = `${h}:${m}${prefs.clockSeconds ? `:${s}` : ''}${suffix}`;
 
       // Saniyede bir aynı metni yazmak boşuna biçimlendirme çalıştırır.
       // Bu metinler ancak dakika ya da gün değişince değişir.
       // Çubukta yalnız saat durur; tam tarih takvim popover'unda yazılı.
-      const clockStr = timeStr;
+      const clockStr = prefs.showDate ? `${timeStr} • ${dateNum} ${monthStr}` : timeStr;
       if (trayClock.textContent !== clockStr) trayClock.textContent = clockStr;
 
       const bigTime = document.getElementById('cal-time-big');
@@ -6962,8 +7344,10 @@
             if (folderName && folderName.trim()) {
               const clean = folderName.trim().replace(/[\\/:*?"<>|\0]/g, '');
               if (clean) {
-                const home = (typeof FileManager !== 'undefined' && FileManager.userHome) ? FileManager.userHome : '/home/ankora';
-                const fullPath = `${home}/Masaüstü/${clean}`;
+                const home = (typeof DesktopFiles !== 'undefined' && DesktopFiles.dir)
+                  ? DesktopFiles.dir
+                  : ((typeof FileManager !== 'undefined' && FileManager.userHome) ? FileManager.userHome : '/home/ankora');
+                const fullPath = `${home}/${clean}`;
                 TauriBridge.invoke('create_folder', { path: fullPath })
                   .then(() => {
                     Terminal.log(`[MASAÜSTÜ] Klasör oluşturuldu: ${clean}`, 'success');
@@ -6971,6 +7355,7 @@
                       ReportManager.showToast(`'${clean}' klasörü masaüstünde oluşturuldu.`);
                     }
                     if (typeof FileManager !== 'undefined') FileManager.refresh();
+                    if (typeof DesktopFiles !== 'undefined' && DesktopFiles.refresh) DesktopFiles.refresh();
                   })
                   .catch((err) => {
                     alert(`Klasör oluşturulamadı: ${err.message || err}`);
@@ -6982,8 +7367,10 @@
             if (docName && docName.trim()) {
               const clean = docName.trim().replace(/[\\/:*?"<>|\0]/g, '');
               if (clean) {
-                const home = (typeof FileManager !== 'undefined' && FileManager.userHome) ? FileManager.userHome : '/home/ankora';
-                const fullPath = `${home}/Masaüstü/${clean}`;
+                const home = (typeof DesktopFiles !== 'undefined' && DesktopFiles.dir)
+                  ? DesktopFiles.dir
+                  : ((typeof FileManager !== 'undefined' && FileManager.userHome) ? FileManager.userHome : '/home/ankora');
+                const fullPath = `${home}/${clean}`;
                 TauriBridge.invoke('write_text_file', { path: fullPath, content: '' })
                   .then(() => {
                     Terminal.log(`[MASAÜSTÜ] Metin belgesi oluşturuldu: ${clean}`, 'success');
@@ -6991,6 +7378,7 @@
                       ReportManager.showToast(`'${clean}' belgesi masaüstünde oluşturuldu.`);
                     }
                     if (typeof FileManager !== 'undefined') FileManager.refresh();
+                    if (typeof DesktopFiles !== 'undefined' && DesktopFiles.refresh) DesktopFiles.refresh();
                   })
                   .catch(() => {
                     WindowManager.open('win-notepad');
@@ -7029,7 +7417,7 @@
   // 11. ANKORA GÜNCELLEYİCİ (ANKORA DE UPDATE MANAGER)
   // ============================================================================
   const UpdaterManager = {
-    currentVersion: '2.0.0',
+    currentVersion: '3.2.0',
     latestRelease: null,
 
     init() {
@@ -9011,7 +9399,7 @@
         md += `#### Sistem Tanılama Verileri\n`;
         md += `\`\`\`yaml\n`;
         md += `İşletim Sistemi : ${this.telemetry.os_name}\n`;
-        md += `Masaüstü Ortamı : Ayaz DE v2.0.0 (Ankora Kiosk / X11)\n`;
+        md += `Masaüstü Ortamı : Ayaz DE v3.2.0 (Ankora Kiosk / X11)\n`;
         md += `Çekirdek (Kernel): ${this.telemetry.kernel}\n`;
         md += `İnit Sistemi     : ${this.telemetry.init_system}\n`;
         md += `CPU Çekirdek     : ${this.telemetry.cpu_cores} İş parçacığı\n`;
@@ -9116,8 +9504,30 @@
         id: 'distro',
         title: 'Sistem Künyesi',
         hint: 'Dağıtım adı, çekirdek ve init sistemi'
+      },
+      {
+        id: 'disk',
+        title: 'Depolama Doluluğu',
+        hint: 'Kök disk ve zram kullanım çubuğu'
+      },
+      {
+        id: 'network',
+        title: 'Ağ Durumu',
+        hint: 'Bağlantı, arayüz ve IP adresi'
+      },
+      {
+        id: 'todo',
+        title: 'Yapılacaklar',
+        hint: 'Kalem ekle/düzenle; yerelde kalıcı'
+      },
+      {
+        id: 'mini-cal',
+        title: 'Mini Takvim',
+        hint: 'Bu ayın günleri, bugün vurgulu'
       }
     ],
+
+    TODO_KEY: 'ankora_todo_items',
 
     enabled: [],
     layer: null,
@@ -9225,6 +9635,7 @@
       });
 
       this.paintClock();
+      this.syncExtras();
       if (this.lastTelemetry) this.onTelemetry(this.lastTelemetry, this.lastPct);
     },
 
@@ -9261,6 +9672,26 @@
         return wrap;
       }
 
+      if (id === 'disk') {
+        this.buildDisk(wrap);
+        return wrap;
+      }
+
+      if (id === 'network') {
+        this.buildNetwork(wrap);
+        return wrap;
+      }
+
+      if (id === 'todo') {
+        this.buildTodo(wrap);
+        return wrap;
+      }
+
+      if (id === 'mini-cal') {
+        this.buildMiniCal(wrap);
+        return wrap;
+      }
+
       // distro
       wrap.appendChild(this.make('div', 'dw-head', null, 'Sistem'));
       const meta = document.createElement('div');
@@ -9275,6 +9706,201 @@
         });
       wrap.appendChild(meta);
       return wrap;
+    },
+
+    // --- Genişletilmiş widget gövde ve yenileme akışları ---
+    buildDisk(wrap) {
+      wrap.appendChild(this.make('div', 'dw-head', null, 'Depolama'));
+      const meter = document.createElement('div');
+      meter.className = 'dw-meter';
+      const fill = this.make('span', 'dw-meter-fill lvl-ok', 'dw-disk-fill', '');
+      fill.style.width = '0%';
+      meter.appendChild(fill);
+      wrap.appendChild(meter);
+      wrap.appendChild(this.make('div', 'dw-rows', 'dw-disk-info', '—'));
+      wrap.appendChild(this.make('div', 'dw-sub', 'dw-disk-zram', 'zram: —'));
+    },
+
+    buildNetwork(wrap) {
+      wrap.appendChild(this.make('div', 'dw-head', null, 'Ağ'));
+      const meta = document.createElement('div');
+      meta.className = 'dw-meta';
+      [['Durum', 'dw-net-state'], ['Arayüz', 'dw-net-iface'], ['IP', 'dw-net-ip']]
+        .forEach(pair => {
+          const line = document.createElement('div');
+          line.className = 'dw-meta-line';
+          line.appendChild(this.make('span', 'dw-meta-key', null, pair[0]));
+          line.appendChild(this.make('span', 'dw-meta-val', pair[1], '—'));
+          meta.appendChild(line);
+        });
+      wrap.appendChild(meta);
+    },
+
+    buildTodo(wrap) {
+      wrap.appendChild(this.make('div', 'dw-head', null, 'Yapılacaklar'));
+      const form = document.createElement('div');
+      form.className = 'dw-todo-form';
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.id = 'dw-todo-input';
+      input.placeholder = 'Yeni kalem…';
+      input.className = 'dw-todo-input';
+      input.setAttribute('aria-label', 'Yeni yapılacak kalemi');
+      const add = document.createElement('button');
+      add.type = 'button';
+      add.id = 'dw-todo-add';
+      add.textContent = '+';
+      add.setAttribute('aria-label', 'Kalem ekle');
+      add.className = 'dw-todo-add';
+      add.addEventListener('click', () => this.todoAdd(input));
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); this.todoAdd(input); }
+      });
+      form.appendChild(input);
+      form.appendChild(add);
+      wrap.appendChild(form);
+      wrap.appendChild(this.make('ul', 'dw-todo-list', 'dw-todo-list'));
+      this.todoRender();
+    },
+
+    todoLoad() {
+      try { return JSON.parse(SafeStorage.getItem(this.TODO_KEY) || '[]') || []; }
+      catch (e) { return []; }
+    },
+
+    todoSave(items) {
+      SafeStorage.setItem(this.TODO_KEY, JSON.stringify(items.slice(0, 30)));
+    },
+
+    todoAdd(input) {
+      const text = (input.value || '').trim();
+      if (!text) return;
+      const items = this.todoLoad();
+      items.push({ t: text.slice(0, 120), done: false });
+      input.value = '';
+      this.todoSave(items);
+      this.todoRender();
+    },
+
+    todoRender() {
+      const list = document.getElementById('dw-todo-list');
+      if (!list) return;
+      list.textContent = '';
+      this.todoLoad().forEach((it, idx) => {
+        const li = document.createElement('li');
+        li.className = 'dw-todo-item' + (it.done ? ' done' : '');
+        const box = document.createElement('input');
+        box.type = 'checkbox';
+        box.checked = !!it.done;
+        box.setAttribute('aria-label', 'Kalem tamamlandı');
+        box.addEventListener('change', () => {
+          const arr = this.todoLoad();
+          if (arr[idx]) { arr[idx].done = box.checked; this.todoSave(arr); this.todoRender(); }
+        });
+        const label = document.createElement('span');
+        label.textContent = it.t;
+        const del = document.createElement('button');
+        del.type = 'button';
+        del.textContent = '×';
+        del.setAttribute('aria-label', 'Kalemi sil');
+        del.className = 'dw-todo-del';
+        del.addEventListener('click', () => {
+          const arr = this.todoLoad();
+          arr.splice(idx, 1);
+          this.todoSave(arr);
+          this.todoRender();
+        });
+        li.appendChild(box);
+        li.appendChild(label);
+        li.appendChild(del);
+        list.appendChild(li);
+      });
+    },
+
+    buildMiniCal(wrap) {
+      wrap.appendChild(this.make('div', 'dw-head', null, 'Takvim'));
+      wrap.appendChild(this.make('div', 'dw-cal-head', 'dw-cal-title', ''));
+      const grid = document.createElement('div');
+      grid.className = 'dw-cal-grid';
+      grid.id = 'dw-cal-grid';
+      wrap.appendChild(grid);
+      this.paintMiniCal();
+    },
+
+    paintMiniCal() {
+      const now = new Date();
+      const title = document.getElementById('dw-cal-title');
+      const grid = document.getElementById('dw-cal-grid');
+      if (!grid) return;
+      if (title) {
+        title.textContent = now.toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' });
+      }
+      grid.textContent = '';
+      const days = ['P', 'S', 'Ç', 'P', 'C', 'C', 'P'];
+      days.forEach(d => {
+        const cell = this.make('span', 'dw-cal-dow', null, d);
+        grid.appendChild(cell);
+      });
+      const first = new Date(now.getFullYear(), now.getMonth(), 1);
+      const startCol = first.getDay(); // 0: Pazar
+      const total = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+      for (let i = 0; i < startCol; i++) grid.appendChild(this.make('span', 'dw-cal-blank', null, ''));
+      for (let d = 1; d <= total; d++) {
+        const cell = this.make('span', 'dw-cal-day', null, String(d));
+        if (d === now.getDate()) cell.classList.add('today');
+        grid.appendChild(cell);
+      }
+    },
+
+    paintDisk() {
+      const fill = document.getElementById('dw-disk-fill');
+      if (!fill) return;
+      TauriBridge.invoke('get_storage_stats').then(st => {
+        if (!st || !st.disk_total) return;
+        const pct = Math.round((st.disk_used / st.disk_total) * 100) || 0;
+        fill.style.width = pct + '%';
+        fill.className = 'dw-meter-fill ' + (pct >= 90 ? 'lvl-high' : pct >= 75 ? 'lvl-mid' : 'lvl-ok');
+        const info = document.getElementById('dw-disk-info');
+        if (info) {
+          const toGB = b => (b / 1073741824).toFixed(1);
+          info.textContent = `${toGB(st.disk_used)} / ${toGB(st.disk_total)} GB — %${pct}`;
+        }
+        const zramEl = document.getElementById('dw-disk-zram');
+        if (zramEl && st.zram_total) {
+          const toMB = b => Math.round(b / 1048576);
+          zramEl.textContent = `zram: ${toMB(st.zram_used)} / ${toMB(st.zram_total)} MB`;
+        }
+      }).catch(() => {});
+    },
+
+    paintNetwork() {
+      const stateEl = document.getElementById('dw-net-state');
+      if (!stateEl) return;
+      TauriBridge.invoke('get_network_info').then(inf => {
+        const ok = !!(inf && inf.connected);
+        stateEl.textContent = ok ? 'Bağlı' : 'Bağlı değil';
+        const iface = document.getElementById('dw-net-iface');
+        if (iface) iface.textContent = inf && inf.interface ? inf.interface : '—';
+        const ip = document.getElementById('dw-net-ip');
+        if (ip) ip.textContent = inf && inf.ip ? inf.ip : '—';
+      }).catch(() => {});
+    },
+
+    // Yeni widgetların kendi yenile döngüsü: görünürken 5 dakikada bir.
+    syncExtras() {
+      if (this._extrasTimer) {
+        clearInterval(this._extrasTimer);
+        this._extrasTimer = null;
+      }
+      if (!this.isEnabled('disk') && !this.isEnabled('network')) return;
+      const tick = () => {
+        if (document.hidden) return;
+        this.paintDisk();
+        this.paintNetwork();
+      };
+      if (this.isEnabled('disk') && document.getElementById('dw-disk-fill')) this.paintDisk();
+      if (this.isEnabled('network') && document.getElementById('dw-net-state')) this.paintNetwork();
+      this._extrasTimer = setInterval(tick, 300000);
     },
 
     make(tag, cls, id, text) {
@@ -9436,11 +10062,18 @@
           }
         }
 
+        // Kullanıcı şikayeti — kablolu (Ethernet) bağlanınca da panelde
+        // Wi-Fi simgesi gösteriliyordu. Arayüz adından fiziksel tür çözülür:
+        // eth*/enp*/ens*/eno*/em* kablolu; wlan*/wl*/ra* vb. kablosuz sayılır.
         const tray = document.getElementById('tray-wifi-btn');
         if (tray) {
+          const isWired = connected && /^(eth|enp|ens|eno|em\d)/.test(iface);
           tray.classList.toggle('net-on', connected);
           tray.classList.toggle('net-off', !connected);
-          tray.title = connected ? `Ağa bağlı: ${iface} (${ip})` : 'Ağa bağlı değil';
+          tray.classList.toggle('net-wired', isWired);
+          tray.title = connected
+            ? (isWired ? `Kablolu Ağ (Ethernet): ${iface} — ${ip}` : `Kablosuz Ağ (Wi-Fi): ${iface} — ${ip}`)
+            : 'Ağa bağlı değil';
         }
         const lockPill = document.getElementById('lock-wifi-status');
         if (lockPill) lockPill.textContent = connected ? 'Ağa bağlı' : 'Çevrimdışı';
@@ -9905,7 +10538,11 @@
       if (btnOpenDir) {
         btnOpenDir.addEventListener('click', async () => {
           try {
-            await TauriBridge.invoke('run_terminal_command', { command: 'xdg-open ~/Pictures/Screenshots 2>/dev/null || true' });
+            // Rust tarafı xdg-user-dir PICTURES üzerinden gerçek Resimler
+            // klasörünü kullanır; burada da aynı dizin çözülür.
+            await TauriBridge.invoke('run_terminal_command', {
+              command: 'xdg-open "$(xdg-user-dir PICTURES 2>/dev/null || echo "$HOME/Pictures")" 2>/dev/null || true'
+            });
           } catch (e) {
             ReportManager.showToast('Resimler klasörü açılamadı.');
           }
@@ -9913,10 +10550,14 @@
       }
 
       // 5. Global Klavye Kısayolları (PrintScreen & Super+Shift+S)
+      // PrintScreen anında tam ekran yakalar; repeat guard ile basılı
+      // tutma sırasında tek kare garanti edilir.
       window.addEventListener('keydown', (e) => {
         if (e.key === 'PrintScreen' || e.code === 'PrintScreen') {
           e.preventDefault();
-          this.quickCapture();
+          if (e.repeat || this._captureBusy) return;
+          this._captureBusy = true;
+          this.quickCapture().finally(() => { this._captureBusy = false; });
         } else if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key.toLowerCase() === 's' || e.code === 'KeyS')) {
           e.preventDefault();
           WindowManager.open('win-screenshot');
@@ -9925,7 +10566,7 @@
     },
 
     async quickCapture() {
-      ReportManager.showToast('📸 Ekran görüntüsü alınıyor...');
+      ReportManager.showToast('Ekran görüntüsü alınıyor...');
       try {
         const res = await TauriBridge.invoke('take_screenshot', {
           mode: 'fullscreen',
@@ -9933,7 +10574,7 @@
           save_to_disk: true,
           copy_clipboard: true
         });
-        ReportManager.showToast(`📸 Ekran görüntüsü kaydedildi: ${res.file_name || 'Ekran-Goruntusu.png'}`);
+        ReportManager.showToast(`Ekran görüntüsü kaydedildi: ${res.file_name || 'Ekran-Goruntusu.png'}`);
       } catch (err) {
         ReportManager.showToast(`Ekran görüntüsü alınamadı: ${err.message || err}`);
       }
@@ -10253,7 +10894,7 @@
           drives.forEach(d => {
             if (!this.knownDrives.has(d.name)) {
               const label = d.label || d.name;
-              ReportManager?.showToast(`💾 USB Sürücü Algılandı: ${label} (${d.size || ''})`);
+              ReportManager?.showToast(`USB Sürücü algılandı: ${label} (${d.size || ''})`);
               if (d.mountpoint) {
                 const filesWin = document.getElementById('win-files');
                 if (filesWin && filesWin.classList.contains('open')) {
@@ -10277,17 +10918,26 @@
 
       drives.forEach(d => {
         if (!d.mountpoint) return;
+        const isRemovable = d.removable !== false;
         const item = document.createElement('div');
         item.className = 'files-sidebar-item usb-dynamic-drive';
         item.setAttribute('data-path', d.mountpoint);
-        item.style.cssText = 'color:#38bdf8;font-weight:500;';
+        item.style.cssText = isRemovable
+          ? 'color:#38bdf8;font-weight:500;'
+          : 'color:var(--text-secondary, #9aa3b2);font-weight:500;opacity:0.92;';
         item.innerHTML = `<svg class="files-sidebar-glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z"></path><line x1="8" y1="12" x2="8.01" y2="12"></line><line x1="12" y1="12" x2="12.01" y2="12"></line></svg><span>${escapeHtml(d.label || d.name)}</span>`;
-        item.title = `${d.label} (${d.size})\nBağlantı: ${d.mountpoint}\n• Tıkla: Aç\n• Sağ tık: Güvenle Çıkar`;
+        item.title = isRemovable
+          ? `${d.label} (${d.size})\nBağlantı: ${d.mountpoint}\n• Tıkla: Aç\n• Sağ tık: Güvenle Çıkar`
+          : `${d.label} (${d.size}) — Dahili disk (${d.fstype || 'bilinmeyen dosya sistemi'})\nBağlantı: ${d.mountpoint}\n• Tıkla: Aç`;
         item.addEventListener('click', () => {
           document.querySelectorAll('.files-sidebar-item').forEach(i => i.classList.remove('active'));
           item.classList.add('active');
           FileManager?.loadDirectory(d.mountpoint);
         });
+        sidebar.appendChild(item);
+        // "Güvenle çıkar" yalnızca harici (USB vb.) aygıtlar için anlamlıdır;
+        // dahili disklerde çıkarılamaz, sağ tık sessizce yok sayılır.
+        if (!isRemovable) return;
         item.addEventListener('contextmenu', (e) => {
           e.preventDefault();
           e.stopPropagation();
@@ -10298,7 +10948,6 @@
             })
             .catch(err => ReportManager?.showToast(`Çıkarılamadı: ${err.message || err}`));
         });
-        sidebar.appendChild(item);
       });
     }
   };
@@ -11658,6 +12307,7 @@
     safeInit('WindowManager', () => WindowManager.init());
     safeInit('DesktopControls', () => initDesktopControls());
     safeInit('ThemeManager', () => ThemeManager.init());
+    safeInit('PanelPrefs', () => PanelPrefs.load());
 
     // 2. Diğer sistem uygulamalarını ve arka plan servislerini bağımsız olarak güvenle çalıştır
     safeInit('XdgDesktopEngine', () => XdgDesktopEngine.init());

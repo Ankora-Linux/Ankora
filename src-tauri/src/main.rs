@@ -1076,18 +1076,53 @@ fn install_deb_package_blocking(package_name: String) -> Result<XdgApplication, 
                 return Err("Güvenlik Hatası: Geçersiz Debian paket adı biçimi.".to_string());
             }
             let helper = Path::new("/usr/local/bin/ayaz-pkg-helper");
-            if helper.exists() {
-                root_command("/usr/local/bin/ayaz-pkg-helper", &["install", clean_pkg])
-            } else {
-                root_command("apt-get", &["install", "-y", "--no-install-recommends", "--", clean_pkg])
+            let run_install = || -> std::io::Result<std::process::Output> {
+                if helper.exists() {
+                    root_command("/usr/local/bin/ayaz-pkg-helper", &["install", clean_pkg])
+                } else {
+                    root_command("apt-get", &["install", "-y", "--no-install-recommends", "--", clean_pkg])
+                }
+            };
+            let mut output = run_install();
+            // Canlı ISO/ilk açılışta paket listeleri boş geldiyse apt "Unable to
+            // locate package" ile düşer. Depo listelerini yenileyip bir kez daha
+            // denemeden kurulum arayüzde başarısız görünüyordu.
+            if let Ok(res) = &output {
+                let err_txt = format!("{}{}",
+                    String::from_utf8_lossy(&res.stdout),
+                    String::from_utf8_lossy(&res.stderr));
+                let stale = !res.status.success() && (
+                    err_txt.contains("Unable to locate package")
+                        || err_txt.contains("was not found in")
+                        || err_txt.contains("E: "),
+                );
+                if stale && !helper.exists() {
+                    let _ = root_command("apt-get", &["update"]);
+                    output = run_install();
+                }
             }
         };
 
         match output {
             Ok(res) => {
                 if !res.status.success() {
-                    let err = String::from_utf8_lossy(&res.stderr);
-                    return Err(format!("Paket kurulumu başarısız: {}", err));
+                    let err = String::from_utf8_lossy(&res.stderr).trim().to_string();
+                    let out = String::from_utf8_lossy(&res.stdout).trim().to_string();
+                    let detail = if err.is_empty() {
+                        out.lines().rev().take(4).collect::<Vec<_>>().rev().join("\n")
+                    } else {
+                        err.lines().rev().take(6).collect::<Vec<_>>().rev().join("\n")
+                    };
+                    let detail_l = detail.to_lowercase();
+                    let hint = if detail_l.contains("temporary failure") || detail_l.contains("connection refused") || detail_l.contains("could not resolve") {
+                        " — Ağ bağlantısı yok veya depolara ulaşılamıyor.".to_string()
+                    } else if !sudo_available() && pkexec_available() {
+                        " — Yönetici yetkisi penceresi açılmadıysa tekrar deneyin.".to_string()
+                    } else {
+                        String::new()
+                    };
+                    let prefix = if hint.is_empty() { String::new() } else { hint.clone() };
+                    return Err(format!("Paket kurulumu başarısız{}\n{}", prefix, detail));
                 }
             }
             Err(e) => return Err(format!("apt-get/dpkg çalıştırılamadı: {}", e)),
@@ -1453,6 +1488,13 @@ fn remove_deb_package_blocking(package_name: String) -> Result<String, String> {
     }
 }
 
+fn pkexec_available() -> bool {
+    static PKEXEC_OK: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *PKEXEC_OK.get_or_init(|| {
+        Command::new("pkexec").arg("--version").output().map(|o| o.status.success()).unwrap_or(false)
+    })
+}
+
 // sudo tek seferlik denetlenir: sudo kurulu değilse ya da parolasız erişim
 // kapalıysa her komutta ikinci (boş) denemeye düşülmez.
 fn sudo_available() -> bool {
@@ -1470,10 +1512,24 @@ fn sudo_available() -> bool {
 // çalıştır. Tek deneme, ayrı bir yedek çağrı yok.
 fn root_command(prog: &str, args: &[&str]) -> std::io::Result<std::process::Output> {
     if sudo_available() {
-        Command::new("sudo").arg("-n").arg(prog).args(args).output()
-    } else {
-        Command::new(prog).args(args).output()
+        return Command::new("sudo").arg("-n").arg(prog).args(args).output();
     }
+    // sudo parolasız erişim yoksa doğrudan deneyin; kullanıcı root değilse
+    // komut izin hatasıyla düşer. Bu durumda PolicyKit üzerinden (pkexec)
+    // tek seferlik yükseltme denenir — masaüstü oturumunda yetkilendirme
+    // penceresi kullanıcıdan istenir.
+    let direct = Command::new(prog).args(args).output()?;
+    let permission_denied = !direct.status.success()
+        && String::from_utf8_lossy(&direct.stderr).to_lowercase().contains("permission denied");
+    if permission_denied && pkexec_available() {
+        let elevated = Command::new("pkexec").arg(prog).args(args).output();
+        if let Ok(pk) = &elevated {
+            if pk.status.success() {
+                return elevated;
+            }
+        }
+    }
+    Ok(direct)
 }
 
 // Root sahibi /target dosyalarına yazım: sudo yokken doğrudan fs::write,
@@ -2564,7 +2620,7 @@ fn execute_system_installation_blocking(payload: InstallPayload) -> Result<Strin
         let _ = root_command("chroot", &["/target", "sh", "-c", &format!("command -v update-locale >/dev/null && update-locale LANG={} 2>/dev/null; command -v locale-gen >/dev/null && locale-gen {} en_US.UTF-8 2>/dev/null; true", want_lang, want_lang)]);
 
         // ZRAM Takas Servisi ve Optimizasyonunu kurulu sisteme kur
-        let _ = root_write("/target/etc/default/rcS", "# Ankora Linux 2.0 Hızlı Paralel Açılış\nCONCURRENCY=makefile\nUTC=yes\nVERBOSE=no\nFSCKFIX=no\n");
+        let _ = root_write("/target/etc/default/rcS", "# Ankora Linux 3.2 Hızlı Paralel Açılış\nCONCURRENCY=makefile\nUTC=yes\nVERBOSE=no\nFSCKFIX=no\n");
         let _ = root_write("/target/etc/sysctl.d/99-zram.conf", "vm.swappiness = 100\nvm.vfs_cache_pressure = 50\nvm.watermark_boost_factor = 0\nvm.dirty_background_ratio = 5\nvm.dirty_ratio = 10\n");
         let zram_script = "#!/bin/sh\ncase \"$1\" in\n  start)\n    modprobe zram num_devices=1 2>/dev/null || true\n    if [ -e /dev/zram0 ]; then\n      for alg in zstd lz4 lzo; do\n        if grep -q \"$alg\" /sys/block/zram0/comp_algorithm 2>/dev/null; then\n          echo \"$alg\" > /sys/block/zram0/comp_algorithm 2>/dev/null && break\n        fi\n      done\n      MEM_TOTAL_KB=$(grep MemTotal /proc/meminfo 2>/dev/null | awk '{print $2}')\n      DISKSIZE=$(( MEM_TOTAL_KB * 1024 / 2 ))\n      echo \"$DISKSIZE\" > /sys/block/zram0/disksize 2>/dev/null || true\n      mkswap /dev/zram0 >/dev/null 2>&1 || true\n      swapon -p 100 /dev/zram0 2>/dev/null || true\n    fi\n    ;;\n  stop)\n    swapoff /dev/zram0 2>/dev/null || true\n    echo 1 > /sys/block/zram0/reset 2>/dev/null || true\n    ;;\n  restart)\n    $0 stop; $0 start;;\nesac\nexit 0\n";
         let _ = root_write("/target/etc/init.d/zram-swap", zram_script);
@@ -3933,6 +3989,28 @@ struct ScreenshotResult {
     image_b64: Option<String>,
 }
 
+// Gerçek "Resimler" dizinini çöz; mevcut klasörün yerine yeni bir alt
+// klasör zorla oluşturulmaz.
+fn screenshot_pictures_dir(home: &str) -> PathBuf {
+    // xdg-user-dir, Türkçe oturumda ~/Resimler döndürür.
+    if let Ok(out) = Command::new("xdg-user-dir").arg("PICTURES").output() {
+        let p = String::from_utf8_lossy(&out.stdout).trim().to_string();
+        if out.status.success() && !p.is_empty() && p != home {
+            return PathBuf::from(p);
+        }
+    }
+    let resim = PathBuf::from(home).join("Resimler");
+    if resim.is_dir() {
+        return resim;
+    }
+    let pics = PathBuf::from(home).join("Pictures");
+    if pics.is_dir() {
+        return pics;
+    }
+    let _ = fs::create_dir_all(&pics);
+    pics
+}
+
 #[tauri::command]
 fn take_screenshot(
     mode: Option<String>,
@@ -3946,8 +4024,10 @@ fn take_screenshot(
     let copy_clipboard = copy_clipboard.unwrap_or(true);
 
     let home = std::env::var("HOME").unwrap_or_else(|_| "/home/ankora".to_string());
-    let pic_dir = PathBuf::from(&home).join("Pictures").join("Screenshots");
-    let _ = fs::create_dir_all(&pic_dir);
+    // Kayıt yeri "yeni klasör" olamaz. Gerçek XDG Resimler dizini
+    // çözülür (Türkçe oturumda ~/Resimler); SCREENSHOT alt dizini yalnızca
+    // kullanıcı zaten açmışsa korunur, zorla oluşturulmaz.
+    let pic_dir = screenshot_pictures_dir(&home);
 
     let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs();
     let filename = format!("Ekran-Goruntusu_{}.png", now);
@@ -4785,6 +4865,14 @@ pub struct RemovableDriveEntry {
     pub mountpoint: Option<String>,
     pub size: String,
     pub fstype: String,
+    /// Yalnızca harici (USB vb.) aygıtlarda true; dahili disklerde
+    /// arayüz "güvenle çıkar" eylemini sunmaz.
+    #[serde(default = "default_removable_flag")]
+    pub removable: bool,
+}
+
+fn default_removable_flag() -> bool {
+    true
 }
 
 #[tauri::command]
@@ -4840,13 +4928,21 @@ fn get_removable_drives() -> Result<Vec<RemovableDriveEntry>, String> {
                         }
                     }
 
-                    if is_rm || mountpoint.as_deref().map(|p| p.starts_with("/media") || p.starts_with("/mnt")).unwrap_or(false) {
+                    // Kullanıcı şikayeti — dahili (RM=0) diskler üstünde
+                    // takas olmayan gerçek bir dosya sistemi varsa da listeye
+                    // gir; yoksa dahili disk dosya yöneticisinde asla görünmez.
+                    let is_real_fs = !fstype.is_empty() && fstype != "swap" && fstype != "linux-swap";
+                    if is_rm
+                        || (is_real_fs && (is_rm || mountpoint.is_some()))
+                        || mountpoint.as_deref().map(|p| p.starts_with("/media") || p.starts_with("/mnt")).unwrap_or(false)
+                    {
                         drives.push(RemovableDriveEntry {
                             name: name.to_string(),
                             label: if label.is_empty() { name.to_string() } else { label },
                             mountpoint,
                             size,
                             fstype,
+                            removable: is_rm,
                         });
                     }
                 }
