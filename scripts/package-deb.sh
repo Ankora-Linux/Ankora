@@ -104,7 +104,7 @@ npm run tauri build -- --bundles deb
 # 4. Derlenen paketin kontrolü
 # pipefail açık: head erken çıkarsa find SIGPIPE ile 141 döner ve betik,
 # açıklayıcı "[HATA]" mesajı basmadan sessizce ölür.
-DEB_FILE=$(find src-tauri/target/release/bundle/deb/ -name "*.deb" 2>/dev/null | head -n 1 || true)
+DEB_FILE=$(ls -1t src-tauri/target/release/bundle/deb/*.deb 2>/dev/null | head -n 1 || true)
 
 if [ -n "$DEB_FILE" ] && [ -f "$DEB_FILE" ]; then
     echo "[3/4] Paket başarıyla oluşturuldu:"
