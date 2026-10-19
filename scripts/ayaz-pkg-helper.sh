@@ -9,44 +9,8 @@ ACTION="${1:-}"
 PKG="${2:-}"
 
 if [[ -z "$ACTION" ]]; then
-    echo "[HATA] Kullanım: ayaz-pkg-helper <install|remove|vendor|mebcert|snapshot-create|snapshot-restore|snapshot-delete> [argüman]" >&2
+    echo "[HATA] Kullanım: ayaz-pkg-helper <install|remove|vendor|mebcert|snapshot-create|snapshot-restore|snapshot-delete|set-timezone|set-keyboard|set-language|sync-ntp|drop-caches|usb-flash|usb-format> [argümanlar]" >&2
     exit 1
-fi
-
-# mebcert eylemi paket adı almaz; tek argümanla çalışır.
-if [[ "$ACTION" == "mebcert" ]]; then
-    meb_install_cert
-    exit $?
-fi
-
-# Kurtarma noktası (snapshot) eylemleri: snapshot-create|snapshot-restore|
-# snapshot-delete <kimlik/ad>. Masaüstü oturumu root olmadığı için /var
-# altındaki yazımlar BÜTÜNÜYLE bu root-owned betik üzerinden yapılır;
-# arayüz yalnızca sudo -n ile burayı çağırır (ankora-updater sudoers).
-if [[ "$ACTION" == "snapshot-create" || "$ACTION" == "snapshot-restore" || "$ACTION" == "snapshot-delete" ]]; then
-    run_snapshot_action "$ACTION" "$PKG"
-    exit $?
-fi
-
-if [[ -z "$PKG" ]]; then
-    echo "[HATA] Kullanım: ayaz-pkg-helper <install|remove|vendor> <paket_adi>" >&2
-    exit 1
-fi
-
-# Yalnızca geçerli Debian paket isimleri kabul edilir: [a-zA-Z0-9.+_-]
-# Kesinlikle bayrak (- veya -- ile başlayan argümanlar) veya enjeksiyon kabul edilmez
-if [[ ! "$PKG" =~ ^[a-zA-Z0-9][a-zA-Z0-9.+_-]*$ ]]; then
-    echo "[HATA] Güvenlik İlkesi İhlali: Geçersiz paket adı biçimi: '$PKG'" >&2
-    exit 2
-fi
-
-# Tehlikeli / sistem kritik paketlerin kaldırılmasını engelle
-if [[ "$ACTION" == "remove" ]]; then
-    CRITICAL_PKGS="libc6|linux-image.*|dpkg|apt|sysvinit-core|bash|coreutils|libgtk-3-0|libwebkit2gtk.*"
-    if [[ "$PKG" =~ ^($CRITICAL_PKGS)$ ]]; then
-        echo "[HATA] Güvenlik: Kritik sistem bileşeni kaldırılamaz: '$PKG'" >&2
-        exit 3
-    fi
 fi
 
 export DEBIAN_FRONTEND=noninteractive
@@ -101,15 +65,6 @@ vendor_antigravity() {
 
 # ---------------------------------------------------------------------
 # MEB OKUL AĞI SERTİFİKASI (mebcert)
-# Okul ağlarında (MEB filtreli internet) HTTPS denetimi MEB kök
-# sertifikasıyla yapılır; sertifika yoksa tarayıcılar "güvenli değil"
-# hatası verir. Bu eylem:
-#   1. Sertifikayı YALNIZCA resmi MEB adresinden indirir,
-#      openssl ile X.509 geçerliliğini doğrular (konu satırında MEB aranır).
-#   2. Sistem deposuna (/usr/local/share/ca-certificates) kurar.
-#   3. Brave / Chrome / Chromium NSS veritabanlarına (her kullanıcı için)
-#      "MEB" adıyla işler; böylece ek adım gerekmeden Brave'te geçerli olur.
-# URL ve sertifika adı bu betiğin İÇİNDE sabittir, arayüzden alınmaz.
 # ---------------------------------------------------------------------
 meb_install_cert() {
     need_net_tools
@@ -184,7 +139,6 @@ meb_install_cert() {
                         chown -R "$user" "$db" 2>/dev/null || true
                     fi
                 else
-                    # Eski kayıt varsa silip yeniden dene (süresi dolmuş olabilir).
                     certutil -d "sql:$db" -D -n "MEB" 2>/dev/null || true
                     if certutil -d "sql:$db" -A -t "C,," -n "MEB" -i "$cert_file" 2>/dev/null; then
                         injected=1
@@ -207,10 +161,6 @@ meb_install_cert() {
 
 # ---------------------------------------------------------------------
 # KURTARMA NOKTALARΙ (snapshot)
-# /var/backups/ankora-snapshots altına paket listesi + /etc arşivi
-# yazar. Dizin ve meta JSON root sahipliğinde kalır; okuma herkese
-# açıktır (listeleme için root gerekmez). Kimlik/ad yalnızca
-# [a-zA-Z0-9_-] kabul edilir; yol geçişi imkânsızdır.
 # ---------------------------------------------------------------------
 SNAP_BASE="/var/backups/ankora-snapshots"
 
@@ -319,6 +269,226 @@ run_snapshot_action() { # $1 = eylem, $2 = argüman
     esac
 }
 
+# ---------------------------------------------------------------------
+# SİSTEM AYARLARI VE DONANIM YARDIMCILARI (Kurulu Sistem NOPASSWD Desteği)
+# ---------------------------------------------------------------------
+helper_set_timezone() {
+    local tz="${1:-}"
+    if [[ -z "$tz" || "$tz" == *".."* || "$tz" == /* || ${#tz} -gt 64 || ! "$tz" =~ ^[A-Za-z0-9/_+-]+$ ]]; then
+        echo "[HATA] Geçersiz saat dilimi biçimi: '$tz'" >&2
+        return 2
+    fi
+    if [[ ! -f "/usr/share/zoneinfo/$tz" ]]; then
+        echo "[HATA] Saat dilimi sistemde bulunamadı: '/usr/share/zoneinfo/$tz'" >&2
+        return 2
+    fi
+    printf '%s\n' "$tz" > /etc/timezone
+    ln -sf "/usr/share/zoneinfo/$tz" /etc/localtime
+    DEBIAN_FRONTEND=noninteractive dpkg-reconfigure -f noninteractive tzdata >/dev/null 2>&1 || true
+    echo "Saat dilimi: $tz"
+}
+
+helper_set_keyboard() {
+    local lay="${1:-}"
+    case "$lay" in
+        tr|tr_f|us|de|fr|gb) ;;
+        *)
+            echo "[HATA] Desteklenmeyen klavye düzeni: '$lay'" >&2
+            return 2
+            ;;
+    esac
+    local xkb_lay="$lay"
+    local xkb_var=""
+    if [[ "$lay" == "tr_f" ]]; then
+        xkb_lay="tr"
+        xkb_var="f"
+    fi
+    cat > /etc/default/keyboard <<EOF
+XKBMODEL="pc105"
+XKBLAYOUT="$xkb_lay"
+XKBVARIANT="$xkb_var"
+XKBOPTIONS=""
+BACKSPACE="guess"
+EOF
+    command -v setupcon >/dev/null 2>&1 && setupcon -k --force >/dev/null 2>&1 || true
+    service console-setup restart >/dev/null 2>&1 || true
+    echo "Klavye: $lay (kalıcı)"
+}
+
+helper_set_language() {
+    local lang="${1:-}"
+    case "$lang" in
+        tr_TR.UTF-8|en_US.UTF-8) ;;
+        *)
+            echo "[HATA] Desteklenmeyen sistem dili: '$lang'" >&2
+            return 2
+            ;;
+    esac
+    local short="${lang%%.*}"
+    local prefix="${short%%_*}"
+    cat > /etc/default/locale <<EOF
+LANG=$lang
+LANGUAGE=$short:$prefix
+LC_ALL=$lang
+EOF
+    command -v update-locale >/dev/null 2>&1 && update-locale "LANG=$lang" "LANGUAGE=$short" >/dev/null 2>&1 || true
+    command -v locale-gen >/dev/null 2>&1 && locale-gen "$lang" en_US.UTF-8 >/dev/null 2>&1 || true
+    echo "Sistem dili: $lang"
+}
+
+helper_sync_ntp() {
+    command -v chronyc >/dev/null 2>&1 && chronyc -a makestep >/dev/null 2>&1 || true
+    command -v ntpdate >/dev/null 2>&1 && ntpdate -u pool.ntp.org >/dev/null 2>&1 || true
+    date '+%Y-%m-%d %H:%M:%S %Z'
+}
+
+helper_drop_caches() {
+    sync
+    echo 3 > /proc/sys/vm/drop_caches 2>/dev/null || true
+    echo 1 > /proc/sys/vm/compact_memory 2>/dev/null || true
+    echo "OK"
+}
+
+validate_usb_block_device() {
+    local dev="${1:-}"
+    if [[ -z "$dev" || ! "$dev" =~ ^/dev/(sd[a-z]+|vd[a-z]+|nvme[0-9]+n[0-9]+|mmcblk[0-9]+)$ ]]; then
+        echo "[HATA] Geçersiz blok aygıtı yolu: '$dev'" >&2
+        return 2
+    fi
+    if [[ ! -b "$dev" ]]; then
+        echo "[HATA] Hedef blok aygıtı bulunamadı: '$dev'" >&2
+        return 2
+    fi
+    local mnt src
+    for mnt in / /boot /boot/efi /home /etc /run/live/medium /lib/live/mount/medium; do
+        src="$(findmnt -n -o SOURCE "$mnt" 2>/dev/null || true)"
+        if [[ -n "$src" && "$src" == "$dev"* ]]; then
+            echo "[HATA] Kritik Güvenlik Uyarısı: Sistem veya canlı önyükleme diski ($dev) üzerine yazma engellendi!" >&2
+            return 3
+        fi
+    done
+    return 0
+}
+
+helper_usb_flash() {
+    local iso_path="${1:-}"
+    local target_dev="${2:-}"
+    if [[ -z "$iso_path" || ! -f "$iso_path" || -L "$iso_path" ]]; then
+        echo "[HATA] Geçerli bir ISO dosyası bulunamadı: '$iso_path'" >&2
+        return 2
+    fi
+    validate_usb_block_device "$target_dev" || return $?
+    umount -f "$target_dev" 2>/dev/null || true
+    while read -r dev _; do
+        if [[ "$dev" == "$target_dev"* ]]; then
+            umount -f "$dev" 2>/dev/null || true
+        fi
+    done < /proc/mounts
+    dd "if=$iso_path" "of=$target_dev" bs=4M status=none conv=fsync
+    sync
+    echo "ISO başarıyla yazdırıldı: $target_dev"
+}
+
+helper_usb_format() {
+    local target_dev="${1:-}"
+    local fs_type="${2:-vfat}"
+    local raw_label="${3:-ANKORA}"
+    validate_usb_block_device "$target_dev" || return $?
+    local clean_label
+    clean_label="$(printf '%s' "$raw_label" | tr -cd 'a-zA-Z0-9_-')"
+    [[ -n "$clean_label" ]] || clean_label="ANKORA"
+
+    umount -f "$target_dev" 2>/dev/null || true
+    while read -r dev _; do
+        if [[ "$dev" == "$target_dev"* ]]; then
+            umount -f "$dev" 2>/dev/null || true
+        fi
+    done < /proc/mounts
+
+    case "${fs_type,,}" in
+        vfat|fat32)
+            mkfs.vfat -F 32 -n "${clean_label:0:11}" "$target_dev"
+            ;;
+        ext4)
+            mkfs.ext4 -F -L "${clean_label:0:16}" "$target_dev"
+            ;;
+        ntfs)
+            mkfs.ntfs -Q -L "${clean_label:0:32}" "$target_dev"
+            ;;
+        *)
+            echo "[HATA] Desteklenmeyen dosya sistemi: '$fs_type'" >&2
+            return 2
+            ;;
+    esac
+    sync
+    echo "$target_dev başarıyla ${fs_type^^} olarak biçimlendirildi."
+}
+
+# ---------------------------------------------------------------------
+# EYLEM YÖNLENDİRİCİSİ (ACTION DISPATCHER)
+# ---------------------------------------------------------------------
+if [[ "$ACTION" == "mebcert" ]]; then
+    meb_install_cert
+    exit $?
+fi
+
+if [[ "$ACTION" == "snapshot-create" || "$ACTION" == "snapshot-restore" || "$ACTION" == "snapshot-delete" ]]; then
+    run_snapshot_action "$ACTION" "$PKG"
+    exit $?
+fi
+
+case "$ACTION" in
+    set-timezone)
+        helper_set_timezone "$PKG"
+        exit $?
+        ;;
+    set-keyboard)
+        helper_set_keyboard "$PKG"
+        exit $?
+        ;;
+    set-language)
+        helper_set_language "$PKG"
+        exit $?
+        ;;
+    sync-ntp)
+        helper_sync_ntp
+        exit $?
+        ;;
+    drop-caches)
+        helper_drop_caches
+        exit $?
+        ;;
+    usb-flash)
+        helper_usb_flash "$PKG" "${3:-}"
+        exit $?
+        ;;
+    usb-format)
+        helper_usb_format "$PKG" "${3:-vfat}" "${4:-ANKORA}"
+        exit $?
+        ;;
+esac
+
+if [[ -z "$PKG" ]]; then
+    echo "[HATA] Kullanım: ayaz-pkg-helper <install|remove|vendor> <paket_adi>" >&2
+    exit 1
+fi
+
+# Yalnızca geçerli Debian paket isimleri kabul edilir: [a-zA-Z0-9.+_-]
+# Kesinlikle bayrak (- veya -- ile başlayan argümanlar) veya enjeksiyon kabul edilmez
+if [[ ! "$PKG" =~ ^[a-zA-Z0-9][a-zA-Z0-9.+_-]*$ ]]; then
+    echo "[HATA] Güvenlik İlkesi İhlali: Geçersiz paket adı biçimi: '$PKG'" >&2
+    exit 2
+fi
+
+# Tehlikeli / sistem kritik paketlerin kaldırılmasını engelle
+if [[ "$ACTION" == "remove" ]]; then
+    CRITICAL_PKGS="libc6|linux-image.*|dpkg|apt|sysvinit-core|bash|coreutils|libgtk-3-0|libwebkit2gtk.*"
+    if [[ "$PKG" =~ ^($CRITICAL_PKGS)$ ]]; then
+        echo "[HATA] Güvenlik: Kritik sistem bileşeni kaldırılamaz: '$PKG'" >&2
+        exit 3
+    fi
+fi
+
 case "$ACTION" in
     install)
         # Sadece resmi depolardan güvenli kurulum (asla --allow-unauthenticated kabul edilmez).
@@ -344,7 +514,7 @@ case "$ACTION" in
         esac
         ;;
     *)
-        echo "[HATA] Bilinmeyen işlem: '$ACTION'. Kabul edilenler: install, remove, vendor, mebcert, snapshot-create, snapshot-restore, snapshot-delete" >&2
+        echo "[HATA] Bilinmeyen işlem: '$ACTION'. Kabul edilenler: install, remove, vendor, mebcert, snapshot-create, snapshot-restore, snapshot-delete, set-timezone, set-keyboard, set-language, sync-ntp, drop-caches, usb-flash, usb-format" >&2
         exit 4
         ;;
 esac

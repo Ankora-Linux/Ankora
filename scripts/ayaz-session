@@ -1,6 +1,6 @@
 #!/bin/bash
 # ==============================================================================
-# Ankora Linux 2.0 — Ayaz DE Oturum Başlatıcı (ayaz-session)
+# Ankora Linux 3.3 — Ayaz DE Oturum Başlatıcı (ayaz-session)
 # Openbox pencere yöneticisini, uyumluluk köprüsünü ve Ayaz arayüzünü başlatır.
 # ==============================================================================
 set -e

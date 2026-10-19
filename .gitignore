@@ -23,6 +23,7 @@ dist/
 # (build-iso.yml: python3 scratch/verify_all.py).
 scratch/*
 !scratch/verify_all.py
+!scratch/verify_plymouth.py
 !scratch/test_bridge_logic.py
 !scratch/test_store_data.js
 

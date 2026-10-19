@@ -33,6 +33,8 @@ const EXACT_ALLOWED_COMMANDS: &[&str] = &[
     "free -h",
     "df -h",
     "df -h /",
+    "lscpu",
+    "lsblk",
     "cat /etc/os-release",
     "cat /etc/issue",
     "cat /proc/version",
@@ -40,6 +42,7 @@ const EXACT_ALLOWED_COMMANDS: &[&str] = &[
     "cat /proc/cpuinfo",
     "ps aux",
     "top -b -n 1",
+    "/usr/local/bin/ankora-doctor",
     "apt-get clean",
     "rm -rf /tmp/*",
     "apt-get clean && rm -rf /tmp/*",
@@ -73,7 +76,14 @@ const ALLOWED_AGENT_ACTIONS: &[&str] = &[
     "df -h / && free -m",
     "df -h",
     "free -m",
+    "free -h",
     "uptime",
+    "uname -a",
+    "lscpu",
+    "lsblk",
+    "ps aux",
+    "top -b -n 1",
+    "/usr/local/bin/ankora-doctor",
     "sync",
 ];
 
@@ -164,6 +174,8 @@ fn is_valid_disk_target(path: &str) -> bool {
     let is_sd = dev.starts_with("sd") && dev.len() >= 3 && dev[2..].chars().all(|c| c.is_ascii_lowercase());
     // vd[a-z]+ : dev starts with "vd", remainder is all ASCII lowercase letters (no partition digits!)
     let is_vd = dev.starts_with("vd") && dev.len() >= 3 && dev[2..].chars().all(|c| c.is_ascii_lowercase());
+    // mmcblk[0-9]+ : dev starts with "mmcblk", remainder is all digits (no 'p<part>' suffix!)
+    let is_mmcblk = dev.starts_with("mmcblk") && dev.len() >= 7 && dev[6..].chars().all(|c| c.is_ascii_digit());
     // nvme<ctrl>n<ns> : exactly digits for controller and namespace, no trailing 'p<part>' partition suffix
     let is_nvme = if dev.starts_with("nvme") {
         let rem = &dev[4..];
@@ -177,7 +189,7 @@ fn is_valid_disk_target(path: &str) -> bool {
         false
     };
 
-    is_sd || is_vd || is_nvme
+    is_sd || is_vd || is_mmcblk || is_nvme
 }
 
 fn is_valid_deb_package_name(pkg: &str) -> bool {
@@ -1504,11 +1516,21 @@ fn sudo_available() -> bool {
     })
 }
 
-// Root gereken yollar: sudo kullanılabilirse sudo -n, değilse doğrudan
-// çalıştır. Tek deneme, ayrı bir yedek çağrı yok.
+// Root gereken yollar: sudo -n başarılıysa doğrudan döner; parola/yetki hatası
+// verirse doğrudan çalıştırma ve gerekirse pkexec (Polkit) yükseltmesi denenir.
 fn root_command(prog: &str, args: &[&str]) -> std::io::Result<std::process::Output> {
     if sudo_available() {
-        return Command::new("sudo").arg("-n").arg(prog).args(args).output();
+        let out = Command::new("sudo").arg("-n").arg(prog).args(args).output()?;
+        if out.status.success() {
+            return Ok(out);
+        }
+        let err_lower = String::from_utf8_lossy(&out.stderr).to_lowercase();
+        if !err_lower.contains("a password is required")
+            && !err_lower.contains("not allowed to execute")
+            && !err_lower.contains("sudo:")
+        {
+            return Ok(out);
+        }
     }
     // sudo parolasız erişim yoksa doğrudan deneyin; kullanıcı root değilse
     // komut izin hatasıyla düşer. Bu durumda PolicyKit üzerinden (pkexec)
@@ -2034,6 +2056,173 @@ fn generate_agent_action_token(cmd: &str) -> String {
     token
 }
 
+fn build_local_ai_diagnostic_response(prompt: &str, mode: &str) -> AiResponse {
+    let p_lower = prompt.to_lowercase();
+    let tele = collect_system_telemetry().unwrap_or(SystemTelemetry {
+        os_name: "Ankora Linux 3.3".to_string(),
+        kernel: "Linux 6.1 (Devuan Daedalus)".to_string(),
+        init_system: "SysVinit (systemd-free)".to_string(),
+        memory_used_mb: 512,
+        memory_total_mb: 8192,
+        cpu_cores: 4,
+        uptime_seconds: 600,
+        battery_percent: None,
+        battery_status: None,
+        cpu_percent: 5.0,
+        disk_percent: Some(25),
+        disk_used_gb: 8.0,
+        disk_total_gb: 32.0,
+    });
+    let ram_pct = if tele.memory_total_mb > 0 {
+        (tele.memory_used_mb * 100) / tele.memory_total_mb
+    } else {
+        0
+    };
+    let disk_pct = tele.disk_percent.unwrap_or(0) as u64;
+    let uptime_mins = tele.uptime_seconds / 60;
+
+    if p_lower.contains("doktor") || p_lower.contains("doctor") || p_lower.contains("onar") || p_lower.contains("sağlık") || mode == "doctor" && (p_lower.contains("tara") || p_lower.contains("kontrol") || p_lower.contains("durum")) {
+        let cmd = "/usr/local/bin/ankora-doctor".to_string();
+        let token = generate_agent_action_token(&cmd);
+        return AiResponse {
+            reply: format!(
+                "Ankora Sistem Doktoru ön kontrolü tamamlandı:\n• İşletim Sistemi: {} ({})\n• Çekirdek: {}\n• Bellek Kullanımı: {} MB / {} MB (%{})\n• Kök Disk: {:.1} GB / {:.1} GB (%{})\n• Çalışma Süresi: {} dakika\n\nKırık paketleri, ağ servislerini, ZRAM takas alanını ve disk önbelleklerini kapsamlı denetlemek için aşağıdaki Sistem Doktoru eylemini onaylayabilirsiniz.",
+                tele.os_name, tele.init_system, tele.kernel, tele.memory_used_mb, tele.memory_total_mb, ram_pct, tele.disk_used_gb, tele.disk_total_gb, disk_pct, uptime_mins
+            ),
+            has_action: true,
+            action_command: Some(cmd),
+            action_desc: Some("Ankora Sistem Doktoru kapsamlı sağlık taramasını çalıştır".to_string()),
+            action_token: Some(token),
+        };
+    }
+
+    if p_lower.contains("temizle") || p_lower.contains("önbellek") || p_lower.contains("cache") || p_lower.contains("çöp") {
+        let cmd = "apt-get clean && rm -rf /tmp/*".to_string();
+        let token = generate_agent_action_token(&cmd);
+        return AiResponse {
+            reply: format!(
+                "Anlık Bellek Durumu: {} MB / {} MB (%{}).\nPaket önbelleklerini ve `/tmp` altındaki geçici dosyaları güvenli biçimde temizlemek için aşağıdaki eylemi onaylayabilirsiniz.",
+                tele.memory_used_mb, tele.memory_total_mb, ram_pct
+            ),
+            has_action: true,
+            action_command: Some(cmd),
+            action_desc: Some("Sistem ve geçici dosya önbelleklerini temizle".to_string()),
+            action_token: Some(token),
+        };
+    }
+
+    if p_lower.contains("süreç") || p_lower.contains("işlem") || p_lower.contains("process") || p_lower.contains("cpu") || p_lower.contains("işlemci") || p_lower.contains("yavaş") {
+        let cmd = "top -b -n 1".to_string();
+        let token = generate_agent_action_token(&cmd);
+        return AiResponse {
+            reply: format!(
+                "İşlemci Analizi:\n• Çekirdek Sayısı: {} Çekirdek\n• Anlık CPU Yükü: %{:.1}\n• Bellek Kullanımı: {} MB / {} MB (%{})\n\nEn çok kaynak tüketen süreçlerin anlık dökümünü almak için aşağıdaki komutu onaylayabilirsiniz.",
+                tele.cpu_cores, tele.cpu_percent, tele.memory_used_mb, tele.memory_total_mb, ram_pct
+            ),
+            has_action: true,
+            action_command: Some(cmd),
+            action_desc: Some("Anlık süreç ve CPU kullanım tablosunu listele".to_string()),
+            action_token: Some(token),
+        };
+    }
+
+    if p_lower.contains("zram") || p_lower.contains("takas") || p_lower.contains("swap") || p_lower.contains("bellek") || p_lower.contains("ram") {
+        let cmd = "free -h".to_string();
+        let token = generate_agent_action_token(&cmd);
+        return AiResponse {
+            reply: format!(
+                "Bellek ve ZRAM Telemetrisi:\n• Kullanılan RAM: {} MB / {} MB (%{})\n• Mimari: SysVinit ZRAM Sıkıştırmalı Takas Havuzu\n\nFiziksel RAM ve ZRAM takas alanı ayrıntılarını görmek için aşağıdaki komutu çalıştırabilirsiniz.",
+                tele.memory_used_mb, tele.memory_total_mb, ram_pct
+            ),
+            has_action: true,
+            action_command: Some(cmd),
+            action_desc: Some("RAM ve ZRAM takas tablolarını görüntüle (free -h)".to_string()),
+            action_token: Some(token),
+        };
+    }
+
+    if p_lower.contains("disk") || p_lower.contains("depolama") || p_lower.contains("alan") || p_lower.contains("bölüm") || p_lower.contains("lsblk") {
+        let cmd = "df -h / && free -m".to_string();
+        let token = generate_agent_action_token(&cmd);
+        return AiResponse {
+            reply: format!(
+                "Depolama ve Bellek Özeti:\n• Kök Dosya Sistemi: {:.1} GB kullanılan / {:.1} GB toplam (%{})\n• RAM Kullanımı: {} MB / {} MB (%{})\n\nDetaylı bağlama noktası ve blok cihaz tablosunu almak için aşağıdaki eylemi onaylayabilirsiniz.",
+                tele.disk_used_gb, tele.disk_total_gb, disk_pct, tele.memory_used_mb, tele.memory_total_mb, ram_pct
+            ),
+            has_action: true,
+            action_command: Some(cmd),
+            action_desc: Some("Disk ve bellek doluluk raporunu sorgula".to_string()),
+            action_token: Some(token),
+        };
+    }
+
+    if p_lower.contains("donanım") || p_lower.contains("hardware") || p_lower.contains("çekirdek") || p_lower.contains("kernel") || p_lower.contains("mimari") {
+        let cmd = "lscpu".to_string();
+        let token = generate_agent_action_token(&cmd);
+        return AiResponse {
+            reply: format!(
+                "Donanım ve Çekirdek Bilgisi:\n• Dağıtım: {}\n• Çekirdek: {}\n• Init Sistemi: {}\n• Mantıksal Çekirdek: {}\n\nDetaylı işlemci mimarisi ve bayraklarını incelemek için `lscpu` eylemini çalıştırabilirsiniz.",
+                tele.os_name, tele.kernel, tele.init_system, tele.cpu_cores
+            ),
+            has_action: true,
+            action_command: Some(cmd),
+            action_desc: Some("İşlemci ve donanım mimarisi detaylarını görüntüle (lscpu)".to_string()),
+            action_token: Some(token),
+        };
+    }
+
+    if p_lower.contains("ağ") || p_lower.contains("wifi") || p_lower.contains("internet") || p_lower.contains("ip") || p_lower.contains("dns") {
+        let net = get_network_info();
+        return AiResponse {
+            reply: format!(
+                "Ağ Bağlantı Durumu:\n• Aktif Arayüz: {}\n• Yerel IP Adresi: {}/{}\n• Ağ Geçidi: {}\n• DNS Sunucusu: {}\n• Bağlantı: {}\n\nKablosuz ağ taraması veya MEB sertifikası kurulumu için Sistem Ayarları > Ağ & Kablosuz veya Uygulama Mağazası > MEB Sertifikası aracını kullanabilirsiniz.",
+                net.interface, net.ip, net.prefix, net.gateway, net.dns.join(", "), if net.connected { "Aktif" } else { "Çevrimdışı" }
+            ),
+            has_action: false,
+            action_command: None,
+            action_desc: None,
+            action_token: None,
+        };
+    }
+
+    if p_lower.contains("durum") || p_lower.contains("özet") || p_lower.contains("rapor") || p_lower.contains("analiz") {
+        let cmd = "df -h / && free -m".to_string();
+        let token = generate_agent_action_token(&cmd);
+        return AiResponse {
+            reply: format!(
+                "Ankora Linux 3.3 Canlı Sistem Raporu:\n• Sistem: {} ({})\n• Çekirdek: {}\n• CPU: {} Çekirdek (Yük: %{:.1})\n• RAM: {} MB / {} MB (%{})\n• Disk: {:.1} GB / {:.1} GB (%{})\n• Çalışma Süresi: {} dk\n\nAyrıntılı disk ve bellek çıktısı için aşağıdaki komutu onaylayabilirsiniz.",
+                tele.os_name, tele.init_system, tele.kernel, tele.cpu_cores, tele.cpu_percent, tele.memory_used_mb, tele.memory_total_mb, ram_pct, tele.disk_used_gb, tele.disk_total_gb, disk_pct, uptime_mins
+            ),
+            has_action: true,
+            action_command: Some(cmd),
+            action_desc: Some("Disk ve bellek durumunu sorgula".to_string()),
+            action_token: Some(token),
+        };
+    }
+
+    AiResponse {
+        reply: format!(
+            "Ankora Yerel Tanılama Motoru ({} modu) aktif.\n\nAnlık Sistem Telemetrisi:\n• Sistem: {} | {}\n• Bellek: {} MB / {} MB (%{}) | CPU: %{:.1} ({} çekirdek)\n• Disk: {:.1} GB / {:.1} GB (%{})\n\nSorgunuz: \"{}\"\n• Sistem sağlığı ve onarım için: \"Sistem doktoru taraması yap\"\n• Önbellek ve geçici dosya temizliği için: \"Önbelleği temizle\"\n• Süreç ve RAM analizi için: \"RAM ve ZRAM durumu\" veya \"CPU süreçlerini göster\"\n• Bulut veya yerel LLM kullanmak için üstteki 'API Ayarları' düğmesinden Ollama, Gemini, Groq, OpenAI veya OpenRouter yapılandırabilirsiniz.",
+            mode.to_uppercase(),
+            tele.os_name,
+            tele.kernel,
+            tele.memory_used_mb,
+            tele.memory_total_mb,
+            ram_pct,
+            tele.cpu_percent,
+            tele.cpu_cores,
+            tele.disk_used_gb,
+            tele.disk_total_gb,
+            disk_pct,
+            prompt
+        ),
+        has_action: false,
+        action_command: None,
+        action_desc: None,
+        action_token: None,
+    }
+}
+
 #[tauri::command]
 async fn query_local_ai(
     prompt: String,
@@ -2046,7 +2235,23 @@ async fn query_local_ai(
     let prov = provider.unwrap_or_else(|| "ollama".to_string()).to_lowercase();
     let mode = agent_mode.unwrap_or_else(|| "sysadmin".to_string()).to_lowercase();
 
-    let sys_prompt = match mode.as_str() {
+    let tele_summary = if let Ok(t) = collect_system_telemetry() {
+        format!(
+            "[Sistem Özeti: {} | {} | {} | RAM: {}/{} MB | CPU: {} çekirdek (%{:.1}) | Disk: {:.1}/{:.1} GB]",
+            t.os_name, t.kernel, t.init_system, t.memory_used_mb, t.memory_total_mb, t.cpu_cores, t.cpu_percent, t.disk_used_gb, t.disk_total_gb
+        )
+    } else {
+        "[Sistem Özeti: Ankora Linux 3.3 | Devuan Daedalus | SysVinit]".to_string()
+    };
+
+    let base_sys_prompt = match mode.as_str() {
+        "doctor" => {
+            "Sen Ankora Linux (Devuan Daedalus, SysVinit) Sistem Doktoru ve arıza giderme uzmanısın. \
+            Kırık paketler, ZRAM takas alanı, disk doluluğu, X11/Openbox/WebKitGTK oturumu ve ağ sorunlarını teşhis et. \
+            Eğer bir komut yürütülmesi gerekiyorsa yanıtının sonuna tam olarak şu formatta bir eylem etiketi ekle: \
+            <<<ACTION:{\"command\":\"izin_verilen_komut\",\"desc\":\"Eylemin açıklaması\"}>>> \
+            İzin verilen komutlar: /usr/local/bin/ankora-doctor, apt-get clean && rm -rf /tmp/*, df -h / && free -m, free -h, lscpu, lsblk, ps aux, top -b -n 1, uptime, sync."
+        }
         "developer" => {
             "Sen Ankora Linux (Devuan Daedalus) sistem geliştirici ve terminal asistanısın. \
             Bash betikleri, Debian derleme, Rust/C geliştirme ve paket araçları konusunda teknik rehberlik sağla. \
@@ -2069,6 +2274,7 @@ async fn query_local_ai(
             Asla tehlikeli veya rastgele komut üretme. Sadece doğrulanmış sistem komutları üret."
         }
     };
+    let sys_prompt = format!("{}\n{}", base_sys_prompt, tele_summary);
 
     let resolved_key = match api_key {
         Some(ref k) if !k.trim().is_empty() => k.trim().to_string(),
@@ -2225,39 +2431,7 @@ async fn query_local_ai(
     }
 
     // Yerel akıllı analiz modu (Fallback)
-    let p_lower = prompt.to_lowercase();
-    if p_lower.contains("temizle") || p_lower.contains("önbellek") {
-        let cmd = "apt-get clean && rm -rf /tmp/*".to_string();
-        let token = generate_agent_action_token(&cmd);
-        Ok(AiResponse {
-            reply: "Sistem önbelleklerinin temizlenmesi için paket önbelleği boşaltılmalıdır.".to_string(),
-            has_action: true,
-            action_command: Some(cmd),
-            action_desc: Some("Sistem ve geçici dosya önbelleklerini temizleme".to_string()),
-            action_token: Some(token),
-        })
-    } else if p_lower.contains("durum") || p_lower.contains("disk") || p_lower.contains("ram") {
-        let cmd = "df -h / && free -m".to_string();
-        let token = generate_agent_action_token(&cmd);
-        Ok(AiResponse {
-            reply: "Disk ve bellek doluluk raporu taranıyor.".to_string(),
-            has_action: true,
-            action_command: Some(cmd),
-            action_desc: Some("Disk ve bellek durumunu sorgulama".to_string()),
-            action_token: Some(token),
-        })
-    } else {
-        Ok(AiResponse {
-            reply: format!(
-                "Ankora AI Çekirdeği hazır. Harici API veya yerel Ollama servisi çevrimdışı olduğundan dahili analiz modunda yanıt veriliyor:\n\"{}\"\n\n(Kendi API anahtarınızı (OpenAI, Gemini, Groq) AI penceresindeki 'API Ayarları' butonundan bağlayabilirsiniz.)",
-                prompt
-            ),
-            has_action: false,
-            action_command: None,
-            action_desc: None,
-            action_token: None,
-        })
-    }
+    Ok(build_local_ai_diagnostic_response(&prompt, &mode))
 }
 
 #[tauri::command]
@@ -2288,6 +2462,36 @@ async fn execute_agent_confirmed_action(command: String, token: String) -> Resul
 // ============================================================================
 // 7. GÜVENLİ KURULUM MOTORU (COMMAND ARGS & STDIN CHPASSWD) - BULGULAR #3 & #8
 // ============================================================================
+fn live_boot_disks() -> Vec<String> {
+    let mut boot_disks = Vec::new();
+    let live_mounts = ["/run/live/medium", "/lib/live/mount/medium", "/cdrom", "/"];
+    if let Ok(mounts) = fs::read_to_string("/proc/mounts") {
+        for line in mounts.lines() {
+            let parts: Vec<&str> = line.split_whitespace().collect();
+            if parts.len() >= 2 && live_mounts.contains(&parts[1]) && parts[0].starts_with("/dev/") {
+                let raw = parts[0].trim_start_matches("/dev/");
+                let base = if (raw.starts_with("nvme") || raw.starts_with("mmcblk")) && raw.contains('p') {
+                    if let Some((head, tail)) = raw.rsplit_once('p') {
+                        if !tail.is_empty() && tail.chars().all(|c| c.is_ascii_digit()) {
+                            head.to_string()
+                        } else {
+                            raw.to_string()
+                        }
+                    } else {
+                        raw.to_string()
+                    }
+                } else {
+                    raw.trim_end_matches(|c: char| c.is_ascii_digit()).to_string()
+                };
+                if !base.is_empty() && !boot_disks.contains(&base) {
+                    boot_disks.push(base);
+                }
+            }
+        }
+    }
+    boot_disks
+}
+
 #[tauri::command]
 async fn get_storage_devices() -> Result<Vec<StorageDisk>, String> {
     // lsblk cihaz ağacını diske sorar; bloklayıcı çağrı havuza alınır.
@@ -2299,6 +2503,7 @@ async fn get_storage_devices() -> Result<Vec<StorageDisk>, String> {
 fn get_storage_devices_blocking() -> Result<Vec<StorageDisk>, String> {
     #[cfg(target_os = "linux")]
     {
+        let boot_disks = live_boot_disks();
         // JSON formatında parse ederek boşluklu MODEL adlarını doğru yakalıyoruz
         let output = Command::new("lsblk").args(["-d", "-b", "-J", "-o", "NAME,SIZE,MODEL,RM,TYPE"]).output();
         if let Ok(out) = output {
@@ -2313,7 +2518,12 @@ fn get_storage_devices_blocking() -> Result<Vec<StorageDisk>, String> {
                                 continue;
                             }
                             let name = dev["name"].as_str().unwrap_or("").to_string();
-                            if name.is_empty() || name.starts_with("loop") || name.starts_with("zram") || name.starts_with("sr") {
+                            if name.is_empty()
+                                || name.starts_with("loop")
+                                || name.starts_with("zram")
+                                || name.starts_with("sr")
+                                || boot_disks.contains(&name)
+                            {
                                 continue;
                             }
                             let size_bytes = dev["size"].as_u64()
@@ -2372,7 +2582,15 @@ async fn execute_system_installation(payload: InstallPayload) -> Result<String, 
 fn execute_system_installation_blocking(payload: InstallPayload) -> Result<String, String> {
     let target = payload.target_disk.trim();
     if !is_valid_disk_target(target) {
-        return Err("Geçersiz hedef disk seçimi (Örn: /dev/sda veya /dev/nvme0n1, bölümler seçilemez).".to_string());
+        return Err("Geçersiz hedef disk seçimi (Örn: /dev/sda, /dev/nvme0n1 veya /dev/mmcblk0; bölümler seçilemez).".to_string());
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        let target_base = target.trim_start_matches("/dev/").to_string();
+        if live_boot_disks().contains(&target_base) {
+            return Err("Canlı oturumun çalıştığı önyükleme medyası hedef disk olarak seçilemez.".to_string());
+        }
     }
 
     let username = payload.username.trim();
@@ -2451,6 +2669,10 @@ fn execute_system_installation_blocking(payload: InstallPayload) -> Result<Strin
         let found_sq = sq_paths.iter().find(|p| Path::new(p).is_file());
         if let Some(sq) = found_sq {
             let _ = root_command("unsquashfs", &["-f", "-d", "/target", sq]);
+            if Path::new("/usr/share/ayaz/vendor-debs/eta-touchdrv.deb").is_file() {
+                let _ = root_command("mkdir", &["-p", "/target/usr/share/ayaz/vendor-debs"]);
+                let _ = root_command("cp", &["/usr/share/ayaz/vendor-debs/eta-touchdrv.deb", "/target/usr/share/ayaz/vendor-debs/eta-touchdrv.deb"]);
+            }
         } else {
             run_step("rsync", &[
                 "-aAX", "--info=progress2", "/", "/target/",
@@ -2510,10 +2732,10 @@ fn execute_system_installation_blocking(payload: InstallPayload) -> Result<Strin
             let _ = root_command("mkdir", &["-p", "/target/home/ankora"]);
             let _ = root_command("sh", &["-c", "cp -rT /target/etc/skel /target/home/ankora 2>/dev/null || true"]);
             let _ = root_command("chroot", &["/target", "chown", "-R", "ankora:ankora", "/home/ankora"]);
-            let _ = root_command("chroot", &["/target", "usermod", "-aG", "sudo,audio,video,plugdev", "ankora"]);
+            let _ = root_command("chroot", &["/target", "usermod", "-aG", "sudo,audio,video,plugdev,netdev", "ankora"]);
             let _ = root_command("chroot", &["/target", "usermod", "-U", "ankora"]);
         } else {
-            run_step("chroot", &["/target", "useradd", "-m", "-s", "/bin/bash", "-G", "sudo,audio,video,plugdev", username])?;
+            run_step("chroot", &["/target", "useradd", "-m", "-s", "/bin/bash", "-G", "sudo,audio,video,plugdev,netdev", username])?;
         }
 
         // 9. Parola Belirleme: Parola doğrudan STDIN borusundan beslenir
@@ -2616,7 +2838,7 @@ fn execute_system_installation_blocking(payload: InstallPayload) -> Result<Strin
         let _ = root_command("chroot", &["/target", "sh", "-c", &format!("command -v update-locale >/dev/null && update-locale LANG={} 2>/dev/null; command -v locale-gen >/dev/null && locale-gen {} en_US.UTF-8 2>/dev/null; true", want_lang, want_lang)]);
 
         // ZRAM Takas Servisi ve Optimizasyonunu kurulu sisteme kur
-        let _ = root_write("/target/etc/default/rcS", "# Ankora Linux 3.2 Hızlı Paralel Açılış\nCONCURRENCY=makefile\nUTC=yes\nVERBOSE=no\nFSCKFIX=no\n");
+        let _ = root_write("/target/etc/default/rcS", "# Ankora Linux 3.3 Hızlı Paralel Açılış\nCONCURRENCY=makefile\nUTC=yes\nVERBOSE=no\nFSCKFIX=no\n");
         let _ = root_write("/target/etc/sysctl.d/99-zram.conf", "vm.swappiness = 100\nvm.vfs_cache_pressure = 50\nvm.watermark_boost_factor = 0\nvm.dirty_background_ratio = 5\nvm.dirty_ratio = 10\n");
         let zram_script = "#!/bin/sh\ncase \"$1\" in\n  start)\n    modprobe zram num_devices=1 2>/dev/null || true\n    if [ -e /dev/zram0 ]; then\n      for alg in zstd lz4 lzo; do\n        if grep -q \"$alg\" /sys/block/zram0/comp_algorithm 2>/dev/null; then\n          echo \"$alg\" > /sys/block/zram0/comp_algorithm 2>/dev/null && break\n        fi\n      done\n      MEM_TOTAL_KB=$(grep MemTotal /proc/meminfo 2>/dev/null | awk '{print $2}')\n      DISKSIZE=$(( MEM_TOTAL_KB * 1024 / 2 ))\n      echo \"$DISKSIZE\" > /sys/block/zram0/disksize 2>/dev/null || true\n      mkswap /dev/zram0 >/dev/null 2>&1 || true\n      swapon -p 100 /dev/zram0 2>/dev/null || true\n    fi\n    ;;\n  stop)\n    swapoff /dev/zram0 2>/dev/null || true\n    echo 1 > /sys/block/zram0/reset 2>/dev/null || true\n    ;;\n  restart)\n    $0 stop; $0 start;;\nesac\nexit 0\n";
         let _ = root_write("/target/etc/init.d/zram-swap", zram_script);
@@ -3069,9 +3291,13 @@ fn optimize_system_memory() -> Result<MemoryTrimResult, String> {
             malloc_trim(0);
         }
 
-        // 2. Çekirdek önbellekleri (varsa root yetkisi ile)
-        let _ = fs::write("/proc/sys/vm/drop_caches", "3");
-        let _ = fs::write("/proc/sys/vm/compact_memory", "1");
+        // 2. Çekirdek önbellekleri (varsa ayaz-pkg-helper veya root yetkisi ile)
+        if Path::new(SNAP_HELPER).exists() {
+            let _ = root_command(SNAP_HELPER, &["drop-caches"]);
+        } else {
+            let _ = fs::write("/proc/sys/vm/drop_caches", "3");
+            let _ = fs::write("/proc/sys/vm/compact_memory", "1");
+        }
 
         let after = collect_system_telemetry().ok();
         let after_used = after.as_ref().map(|t| t.memory_used_mb).unwrap_or(before_used);
@@ -3136,22 +3362,29 @@ fn apply_keyboard_layout(clean: &str) -> Result<String, String> {
     if !ALLOWED_KEYBOARDS.contains(&clean) {
         return Err("Geçersiz veya desteklenmeyen klavye haritası.".to_string());
     }
-    // Kalıcılık: X11 ve konsol aynı haritayı kullanır. /etc yazılamazsa
-    // (yetkisiz oturum) yalnızca o anki X oturumu değişir, hata yine de
-    // kullanıcıya söylenir.
-    let (xkb_layout, xkb_variant) = match clean {
-        "tr_f" => ("tr", "f"),
-        other => (other, ""),
+    // Kalıcılık: X11 ve konsol aynı haritayı kullanır. Önce NOPASSWD yetkili
+    // ayaz-pkg-helper denenir; yoksa doğrudan /etc/default/keyboard yazılır.
+    let helper_ok = Path::new(SNAP_HELPER).exists()
+        && root_command(SNAP_HELPER, &["set-keyboard", clean])
+            .map(|o| o.status.success())
+            .unwrap_or(false);
+    let persist_ok = if helper_ok {
+        true
+    } else {
+        let (xkb_layout, xkb_variant) = match clean {
+            "tr_f" => ("tr", "f"),
+            other => (other, ""),
+        };
+        let kb_conf = format!(
+            "XKBMODEL=\"pc105\"\nXKBLAYOUT=\"{}\"\nXKBVARIANT=\"{}\"\nXKBOPTIONS=\"\"\nBACKSPACE=\"guess\"\n",
+            xkb_layout, xkb_variant
+        );
+        let ok = root_write("/etc/default/keyboard", &kb_conf).is_ok();
+        if ok {
+            let _ = root_command("sh", &["-c", "command -v setupcon >/dev/null && setupcon -k --force 2>/dev/null; service console-setup restart 2>/dev/null; true"]);
+        }
+        ok
     };
-    let kb_conf = format!(
-        "XKBMODEL=\"pc105\"\nXKBLAYOUT=\"{}\"\nXKBVARIANT=\"{}\"\nXKBOPTIONS=\"\"\nBACKSPACE=\"guess\"\n",
-        xkb_layout, xkb_variant
-    );
-    let persist_ok = root_write("/etc/default/keyboard", &kb_conf).is_ok();
-    if persist_ok {
-        // Konsol haritasını da güncelle ( SysVinit: setupcon / console-setup ).
-        let _ = root_command("sh", &["-c", "command -v setupcon >/dev/null && setupcon -k --force 2>/dev/null; service console-setup restart 2>/dev/null; true"]);
-    }
     #[cfg(target_os = "linux")]
     {
         if clean == "tr_f" {
@@ -3209,6 +3442,13 @@ async fn set_timezone(timezone: String) -> Result<String, String> {
     if !is_valid_timezone(&tz) {
         return Err("Geçersiz veya desteklenmeyen saat dilimi.".to_string());
     }
+    if Path::new(SNAP_HELPER).exists() {
+        if let Ok(out) = root_command(SNAP_HELPER, &["set-timezone", &tz]) {
+            if out.status.success() {
+                return Ok(format!("Saat dilimi: {}", tz));
+            }
+        }
+    }
     // systemd yok (SysVinit): timedatectl çalışmaz. Klasik yöntem:
     // /etc/localtime sembolik bağı + /etc/timezone + tzdata yeniden yapılandırma.
     root_write("/etc/timezone", &format!("{}\n", tz))
@@ -3226,7 +3466,11 @@ async fn set_timezone(timezone: String) -> Result<String, String> {
 async fn sync_time_ntp() -> Result<String, String> {
     // SysVinit'te systemd-timesyncd yoktur; chrony birincil, ntpdate yedek,
     // donanım saati son çaredir. En az biri başarısız olsa da güncel saat döndürülür.
-    let _ = root_command("sh", &["-c", "command -v chronyc >/dev/null && chronyc -a makestep 2>/dev/null; command -v ntpdate >/dev/null && ntpdate -u pool.ntp.org 2>/dev/null; true"]);
+    if Path::new(SNAP_HELPER).exists() {
+        let _ = root_command(SNAP_HELPER, &["sync-ntp"]);
+    } else {
+        let _ = root_command("sh", &["-c", "command -v chronyc >/dev/null && chronyc -a makestep 2>/dev/null; command -v ntpdate >/dev/null && ntpdate -u pool.ntp.org 2>/dev/null; true"]);
+    }
     let date_out = Command::new("date")
         .args(["+%Y-%m-%d %H:%M:%S %Z"])
         .output()
@@ -3235,10 +3479,22 @@ async fn sync_time_ntp() -> Result<String, String> {
 }
 
 #[tauri::command]
+async fn sync_clock_ntp() -> Result<String, String> {
+    sync_time_ntp().await
+}
+
+#[tauri::command]
 async fn set_system_language(language: String) -> Result<String, String> {
     let lang = language.trim();
     if !ALLOWED_LANGUAGES.contains(&lang) {
         return Err("Geçersiz veya desteklenmeyen sistem dili.".to_string());
+    }
+    if Path::new(SNAP_HELPER).exists() {
+        if let Ok(out) = root_command(SNAP_HELPER, &["set-language", lang]) {
+            if out.status.success() {
+                return Ok(format!("Sistem dili: {} (oturumu yeniden başlatınca uygulanır)", lang));
+            }
+        }
     }
     let short = lang.split('.').next().unwrap_or(lang);
     let locale_conf = format!("LANG={}\nLANGUAGE={}:{}\nLC_ALL={}\n", lang, short, short.split('_').next().unwrap_or(short), lang);
@@ -5100,6 +5356,23 @@ fn system_browser_available() -> Result<bool, String> {
 }
 
 #[tauri::command]
+fn get_cpu_governor() -> Result<String, String> {
+    #[cfg(target_os = "linux")]
+    {
+        if let Ok(gov) = fs::read_to_string("/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor") {
+            let clean = gov.trim().to_lowercase();
+            if clean == "schedutil" || clean == "ondemand" || clean == "conservative" {
+                return Ok("balanced".to_string());
+            }
+            if !clean.is_empty() {
+                return Ok(clean);
+            }
+        }
+    }
+    Ok("balanced".to_string())
+}
+
+#[tauri::command]
 fn set_cpu_governor(governor: Option<String>, profile: Option<String>) -> Result<String, String> {
     #[cfg(target_os = "linux")]
     {
@@ -6420,26 +6693,33 @@ fn flash_iso_to_usb(iso_path: String, target_device: String) -> Result<String, S
     let tgt = target_device.clone();
 
     std::thread::spawn(move || {
+        if Path::new(SNAP_HELPER).exists() {
+            if let Ok(out) = root_command(SNAP_HELPER, &["usb-flash", &iso_p, &tgt]) {
+                if out.status.success() {
+                    let _ = fs::write(progress_file, "100.0:done:ISO başarıyla USB belleğe yazdırıldı!");
+                    return;
+                }
+            }
+        }
+
         // Güvenli ayırma (unmount): sh -c yerine doğrudan süreç çağrısı
-        let _ = Command::new("umount").args(["-f", &tgt]).output();
+        let _ = root_command("umount", &["-f", &tgt]);
         if let Ok(mounts) = fs::read_to_string("/proc/mounts") {
             for line in mounts.lines() {
                 if let Some(dev) = line.split_whitespace().next() {
                     if dev.starts_with(&tgt) {
-                        let _ = Command::new("umount").args(["-f", dev]).output();
+                        let _ = root_command("umount", &["-f", dev]);
                     }
                 }
             }
         }
 
-        let status = Command::new("dd")
-            .arg(format!("if={}", iso_p))
-            .arg(format!("of={}", tgt))
-            .args(["bs=4M", "status=none", "conv=fsync"])
-            .status();
+        let if_arg = format!("if={}", iso_p);
+        let of_arg = format!("of={}", tgt);
+        let res = root_command("dd", &[&if_arg, &of_arg, "bs=4M", "status=none", "conv=fsync"]);
 
-        match status {
-            Ok(s) if s.success() => {
+        match res {
+            Ok(s) if s.status.success() => {
                 let _ = Command::new("sync").output();
                 let _ = fs::write(progress_file, "100.0:done:ISO başarıyla USB belleğe yazdırıldı!");
             }
@@ -6506,33 +6786,52 @@ fn format_usb_drive(target_device: String, filesystem: String, label: String) ->
         }
     }
 
+    let clean_label = label.replace(|c: char| !c.is_alphanumeric() && c != '_' && c != '-', "");
+    let safe_label = if clean_label.is_empty() { "ANKORA" } else { &clean_label };
+    let fs_lower = filesystem.to_lowercase();
+
+    if Path::new(SNAP_HELPER).exists() {
+        if let Ok(out) = root_command(SNAP_HELPER, &["usb-format", &target_device, &fs_lower, safe_label]) {
+            if out.status.success() {
+                return Ok(format!("{} başarıyla {} olarak biçimlendirildi.", target_device, filesystem.to_uppercase()));
+            }
+        }
+    }
+
     // Güvenli ayırma
-    let _ = Command::new("umount").args(["-f", &target_device]).output();
+    let _ = root_command("umount", &["-f", &target_device]);
     if let Ok(mounts) = fs::read_to_string("/proc/mounts") {
         for line in mounts.lines() {
             if let Some(dev) = line.split_whitespace().next() {
                 if dev.starts_with(&target_device) {
-                    let _ = Command::new("umount").args(["-f", dev]).output();
+                    let _ = root_command("umount", &["-f", dev]);
                 }
             }
         }
     }
 
-    let clean_label = label.replace(|c: char| !c.is_alphanumeric() && c != '_' && c != '-', "");
-    let safe_label = if clean_label.is_empty() { "ANKORA" } else { &clean_label };
-
-    let status = match filesystem.to_lowercase().as_str() {
-        "vfat" | "fat32" => Command::new("mkfs.vfat").args(["-F", "32", "-n", safe_label, &target_device]).status(),
-        "ext4" => Command::new("mkfs.ext4").args(["-F", "-L", safe_label, &target_device]).status(),
-        "ntfs" => Command::new("mkfs.ntfs").args(["-Q", "-L", safe_label, &target_device]).status(),
+    let status = match fs_lower.as_str() {
+        "vfat" | "fat32" => root_command("mkfs.vfat", &["-F", "32", "-n", safe_label, &target_device]),
+        "ext4" => root_command("mkfs.ext4", &["-F", "-L", safe_label, &target_device]),
+        "ntfs" => root_command("mkfs.ntfs", &["-Q", "-L", safe_label, &target_device]),
         _ => return Err("Desteklenmeyen dosya sistemi".into()),
     };
 
     match status {
-        Ok(s) if s.success() => Ok(format!("{} başarıyla {} olarak biçimlendirildi.", target_device, filesystem.to_uppercase())),
+        Ok(s) if s.status.success() => Ok(format!("{} başarıyla {} olarak biçimlendirildi.", target_device, filesystem.to_uppercase())),
         Ok(_) => Err("Biçimlendirme başarısız oldu. Sürücünün kullanımda olmadığından emin olun.".into()),
         Err(e) => Err(format!("Komut yürütülemedi: {}", e)),
     }
+}
+
+#[tauri::command]
+fn report_console(level: Option<String>, message: Option<String>) -> Result<bool, String> {
+    let lvl = level.unwrap_or_else(|| "info".to_string());
+    let msg = message.unwrap_or_default();
+    if lvl == "error" && !msg.is_empty() {
+        eprintln!("[JS:{}] {}", lvl, msg);
+    }
+    Ok(true)
 }
 
 #[derive(Serialize, Deserialize, Clone, Default)]
@@ -6671,6 +6970,7 @@ fn main() {
             get_region_settings,
             set_timezone,
             sync_time_ntp,
+            sync_clock_ntp,
             set_system_language,
             check_de_update,
             download_and_apply_de_update,
@@ -6708,6 +7008,7 @@ fn main() {
             list_installed_deb_packages,
             get_storage_stats,
             system_browser_available,
+            get_cpu_governor,
             set_cpu_governor,
             set_dpms_timeout,
             confirm_display_mode,
@@ -6747,6 +7048,7 @@ fn main() {
             flash_iso_to_usb,
             get_flash_progress,
             format_usb_drive,
+            report_console,
             create_system_snapshot,
             list_system_snapshots,
             restore_system_snapshot,
@@ -6772,6 +7074,8 @@ mod tests {
         assert!(is_valid_disk_target("/dev/sda"));
         assert!(is_valid_disk_target("/dev/sdb"));
         assert!(is_valid_disk_target("/dev/vda"));
+        assert!(is_valid_disk_target("/dev/mmcblk0"));
+        assert!(is_valid_disk_target("/dev/mmcblk1"));
         assert!(is_valid_disk_target("/dev/nvme0n1"));
         assert!(is_valid_disk_target("/dev/nvme1n1"));
 
@@ -6779,6 +7083,8 @@ mod tests {
         assert!(!is_valid_disk_target("/dev/sda1"));
         assert!(!is_valid_disk_target("/dev/sda2"));
         assert!(!is_valid_disk_target("/dev/vda1"));
+        assert!(!is_valid_disk_target("/dev/mmcblk0p1"));
+        assert!(!is_valid_disk_target("/dev/mmcblk0p2"));
         assert!(!is_valid_disk_target("/dev/nvme0n1p1"));
         assert!(!is_valid_disk_target("/dev/nvme0n1p2"));
 

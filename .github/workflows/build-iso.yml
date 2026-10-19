@@ -1,7 +1,7 @@
 name: Ankora Linux Canlı ISO Derleme (Live ISO Build)
 
-# Bu iş akışı Ankora Linux 3.1 (Ayaz DE - Devuan Daedalus SysVinit) 
-# canlı ISO imajını (.iso) ve Debian paketini (.deb) bulutta otomatik olarak derler.
+# Bu iş akışı Ankora Linux 3.3 (Ayaz DE - Devuan Daedalus SysVinit) 
+# canlı ISO imajını (.iso) ve iç Debian paketini (.deb) bulutta otomatik olarak derler.
 # Manuel olarak GitHub arayüzünden (Actions -> Run workflow) veya v* etiketleriyle tetiklenebilir.
 
 on:
@@ -16,7 +16,7 @@ on:
     tags:
       - 'v*'
 
-# Sürüm yükleme (gh-release) GITHUB_TOKEN ikle yazma izni ister.
+# Sürüm yükleme (gh-release) GITHUB_TOKEN ile yazma izni ister.
 permissions:
   contents: write
 
@@ -71,18 +71,14 @@ jobs:
       - name: Güvenlik ve Bütünlük Denetimi (DevSecOps SAST & Verification)
         run: |
           python3 scratch/verify_all.py
+          python3 scratch/verify_plymouth.py
           npm audit --audit-level=high || echo "::warning::NPM bağımlılık uyarısı"
 
       - name: Ayaz DE İç Paketini Derle (yalnızca ISO içi enjeksiyon)
         run: |
-          # Ayaz DE yalnız Ankora Linux ile dağıtılır; .deb dış dünyaya
-          # yayınlanmaz. Paket, canlı sisteme ayaz-de ikilisi + güncelleyici
-          # paket kimliği enjekte etmek için burada derlenir.
-          mkdir -p dist
-          cargo tauri build --bundles deb
-          DEB_FILE=$(find src-tauri/target/release/bundle/deb/ -name "*.deb" | head -n 1)
-          if [ -n "$DEB_FILE" ] && [ -f "$DEB_FILE" ]; then
-            cp -v "$DEB_FILE" dist/ayaz-de-latest-amd64.deb
+          sed -i 's/\r$//' scripts/*.sh
+          bash scripts/package-deb.sh
+          if [ -f "dist/ayaz-de-latest-amd64.deb" ]; then
             echo "İç paket hazır: dist/ayaz-de-latest-amd64.deb (yayınlanmaz)"
           else
             echo "::error::İç paket üretilemedi!"
@@ -91,15 +87,14 @@ jobs:
 
       - name: Ankora Linux Canlı ISO Kalıbını Pişir (build-iso.sh)
         run: |
-          sed -i 's/\r$//' scripts/*.sh
           sudo bash scripts/build-iso.sh
 
       - name: ISO Bütünlük ve Boyut Denetimi
         run: |
           ls -lh dist/
-          if [ -f "dist/ankora-linux-3.1-ayaz-amd64.iso" ]; then
+          if [ -f "dist/ankora-linux-3.3-ayaz-amd64.iso" ]; then
             echo "ISO başarıyla üretildi:"
-            sha256sum dist/ankora-linux-3.1-ayaz-amd64.iso
+            sha256sum dist/ankora-linux-3.3-ayaz-amd64.iso
           else
             echo "::error::ISO dosyası dist dizininde bulunamadı!"
             exit 2
@@ -108,10 +103,10 @@ jobs:
       - name: ISO ve Sağlama Toplamını GitHub Artifact Olarak Yükle
         uses: actions/upload-artifact@v4
         with:
-          name: ankora-linux-3.1-ayaz-amd64
+          name: ankora-linux-3.3-ayaz-amd64
           path: |
-            dist/ankora-linux-3.1-ayaz-amd64.iso
-            dist/ankora-linux-3.1-ayaz-amd64.iso.sha256
+            dist/ankora-linux-3.3-ayaz-amd64.iso
+            dist/ankora-linux-3.3-ayaz-amd64.iso.sha256
           retention-days: 14
 
       - name: Sürüm (Release) Varsa ISO'yu Ekle
@@ -119,10 +114,10 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            dist/ankora-linux-3.1-ayaz-amd64.iso
-            dist/ankora-linux-3.1-ayaz-amd64.iso.sha256
+            dist/ankora-linux-3.3-ayaz-amd64.iso
+            dist/ankora-linux-3.3-ayaz-amd64.iso.sha256
           generate_release_notes: true
-          name: Ankora Linux 3.1 (${{ github.ref_name }})
+          name: Ankora Linux 3.3 (${{ github.ref_name }})
           draft: false
           prerelease: false
         env:

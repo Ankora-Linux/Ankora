@@ -1,6 +1,6 @@
-# Ankora Linux 2.0 & Ayaz DE — Güvenlik Mimarisi ve Tehdit Modeli (SECURITY.md)
+# Ankora Linux 3.3 & Ayaz DE — Güvenlik Mimarisi ve Tehdit Modeli (SECURITY.md)
 
-Bu belge, **Ankora Linux 2.0 (Daedalus)** dağıtımı ve **Ayaz Desktop Environment (Ayaz DE)** için DevSecOps standartları, tehdit modeli (STRIDE), güvenlik sınırları ve güvenlik politikalarını tanımlar.
+Bu belge, **Ankora Linux 3.3 (Daedalus)** dağıtımı ve **Ayaz Desktop Environment (Ayaz DE)** için DevSecOps standartları, tehdit modeli (STRIDE), güvenlik sınırları ve güvenlik politikalarını tanımlar.
 
 ---
 

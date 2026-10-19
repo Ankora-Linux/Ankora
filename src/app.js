@@ -311,14 +311,55 @@
         case 'check_de_update':
           return {
             has_update: false,
-            current_version: '3.2.0',
-            latest_version: '3.2.0',
-            release_name: 'Ayaz DE v3.2.0 (Daedalus / Son Kararlı Sürüm)',
-            release_notes: '## Ayaz DE v3.2.0\n- Ankora Linux için geliştirilen minimalist masaüstü ortamı.\n- SysVinit uyumlu Kiosk tasarımı.\n- Güvenlik duvarı ve yerel AI ajan entegrasyonu.',
+            current_version: '3.3.0',
+            latest_version: '3.3.0',
+            release_name: 'Ayaz DE v3.3.0 (Daedalus / Son Kararlı Sürüm)',
+            release_notes: '## Ayaz DE v3.3.0\n- Ankora Linux için geliştirilen minimalist masaüstü ortamı.\n- SysVinit uyumlu Kiosk tasarımı.\n- Güvenlik duvarı ve yerel AI ajan entegrasyonu.',
             download_url: null,
             published_at: new Date().toISOString(),
             package_size_bytes: 0
           };
+
+        case 'query_local_ai': {
+          const pLow = String(args.prompt || '').toLowerCase();
+          if (pLow.includes('doktor') || pLow.includes('sağlık') || pLow.includes('teftiş')) {
+            return {
+              reply: 'Ankora Sistem Doktoru (Teşhis Modu) tarama başlatmaya hazır. Sistem sağlık kontrolünü çalıştırmak için aşağıdaki eylemi onaylayın.',
+              has_action: true,
+              action_command: '/usr/local/bin/ankora-doctor',
+              action_desc: 'Ankora Sistem Doktoru tam sağlık ve güvenlik taraması çalıştırılacak.',
+              action_token: 'sim-token'
+            };
+          }
+          if (pLow.includes('önbellek') || pLow.includes('temizle') || pLow.includes('ram')) {
+            return {
+              reply: 'Bellek ve disk durumu denetlenmek üzere hazır. Güvenli bellek ve disk raporunu görmek için onay verin.',
+              has_action: true,
+              action_command: 'df -h /',
+              action_desc: 'Kök dosya sistemi ve disk kullanım raporu okunacak.',
+              action_token: 'sim-token'
+            };
+          }
+          if (pLow.includes('zram') || pLow.includes('swap') || pLow.includes('takas')) {
+            return {
+              reply: 'ZRAM sıkıştırmalı bellek ve disk swap hiyerarşisini sorgulamak için aşağıdaki komutu onaylayabilirsiniz.',
+              has_action: true,
+              action_command: 'swapon --show',
+              action_desc: 'Aktif ZRAM ve disk takas alanları listelenecek.',
+              action_token: 'sim-token'
+            };
+          }
+          return {
+            reply: 'Ankora AI Yerel Teşhis Motoru (v3.3) aktif.\n• Çekirdek: Linux 6.1 LTS (Devuan Daedalus)\n• İnit: SysVinit (PID 1)\nSistem doktoru, bellek/disk analizi, süreç denetimi veya ZRAM sorguları için hızlı etiketleri kullanabilir ya da API Ayarları üzerinden bulut anahtarı bağlayabilirsiniz.',
+            has_action: false,
+            action_command: null,
+            action_desc: null,
+            action_token: null
+          };
+        }
+
+        case 'execute_agent_confirmed_action':
+          return `Komut yürütüldü (${args.command || 'onaylı eylem'}): Sistem durumu sağlıklı (Çıkış kodu: 0).`;
 
         case 'is_lock_configured':
           return false;
@@ -1484,7 +1525,7 @@
           exec: 'internal:win-installer',
           targetWindow: 'win-installer',
           cat: 'sys',
-          comment: 'Ankora Linux 3.2 Sabit Diske Kurulum Sihirbazı',
+          comment: 'Ankora Linux 3.3 Sabit Diske Kurulum Sihirbazı',
           is_installed_by_user: true
         },
         {
@@ -4342,7 +4383,7 @@
         file_name: 'kiosk-ayarlari.md',
         file_type: 'text',
         file_size: 1420,
-        content: `# Ankora Linux 3.2 Kiosk Yapılandırma Raporu\n\n- Taban: Devuan Daedalus (SysVinit)\n- Çekirdek: Linux 6.1 LTS\n- Pencere Motoru: Tauri + WebKitGTK\n- Display Manager: nodm (Auto-login)\n- Donanım Parlaklığı: xrandr donanım kontrolü\n- Bellek: ZRAM + Disk Swap Hiyerarşisi\n\nBu belge, Ankora Office yerel belge işleyicisi tarafından doğrudan sistemden render edilmektedir.`
+        content: `# Ankora Linux 3.3 Kiosk Yapılandırma Raporu\n\n- Taban: Devuan Daedalus (SysVinit)\n- Çekirdek: Linux 6.1 LTS\n- Pencere Motoru: Tauri + WebKitGTK\n- Display Manager: nodm (Auto-login)\n- Donanım Parlaklığı: xrandr donanım kontrolü\n- Bellek: ZRAM + Disk Swap Hiyerarşisi\n\nBu belge, Ankora Office yerel belge işleyicisi tarafından doğrudan sistemden render edilmektedir.`
       };
       this.renderDocument(doc);
     },
@@ -4415,7 +4456,7 @@
           file_name: name,
           file_type: 'text',
           file_size: 4096,
-          content: `# Ankora Linux 3.2 - Sürüm Notları (Daedalus)\n\n- Taban: Devuan GNU/Linux 5.0 (Daedalus)\n- İnit Sistemi: SysVinit (systemd-free, ultra-lightweight)\n- Arayüz: Tauri 1.5 + Monokrom Minimalist DE\n- Çekirdek: Linux 6.1.0-22-amd64\n\nSistem kararlılığı ve minimum RAM tüketimi garanti edilmektedir.`
+          content: `# Ankora Linux 3.3 - Sürüm Notları (Daedalus)\n\n- Taban: Devuan GNU/Linux 5.0 (Daedalus)\n- İnit Sistemi: SysVinit (systemd-free, ultra-lightweight)\n- Arayüz: Tauri 1.5 + Monokrom Minimalist DE\n- Çekirdek: Linux 6.1.0-22-amd64\n\nSistem kararlılığı ve minimum RAM tüketimi garanti edilmektedir.`
         });
       }
     }
@@ -4428,15 +4469,27 @@
     feed: null,
     input: null,
     pendingCommand: null,
+    pendingToken: null,
     provider: 'ollama',
     mode: 'sysadmin',
     model: 'qwen2.5:0.5b',
     endpoint: 'http://127.0.0.1:11434/api/generate',
     apiKey: '',
+    includeTelemetry: true,
+    history: [],
 
-    detectProviderAndModel(key) {
+    detectProviderAndModel(key, forcedProvider = 'auto') {
       const k = (key || '').trim();
-      if (k.startsWith('AIza')) {
+      const forced = (forcedProvider || 'auto').toLowerCase();
+      if (forced === 'ollama' || (!k && forced === 'auto')) {
+        return {
+          provider: 'ollama',
+          model: 'qwen2.5:0.5b',
+          endpoint: 'http://127.0.0.1:11434/api/generate',
+          label: 'Ollama (Yerel / Çevrimdışı)'
+        };
+      }
+      if (forced === 'gemini' || (forced === 'auto' && k.startsWith('AIza'))) {
         return {
           provider: 'gemini',
           model: 'gemini-2.0-flash',
@@ -4444,7 +4497,7 @@
           label: 'Google Gemini (Gemini 2.0 Flash)'
         };
       }
-      if (k.startsWith('gsk_')) {
+      if (forced === 'groq' || (forced === 'auto' && k.startsWith('gsk_'))) {
         return {
           provider: 'groq',
           model: 'llama-3.3-70b-versatile',
@@ -4452,7 +4505,7 @@
           label: 'Groq Cloud (Llama 3.3 70B)'
         };
       }
-      if (k.startsWith('sk-ant-') || k.startsWith('sk-or-')) {
+      if (forced === 'openrouter' || (forced === 'auto' && (k.startsWith('sk-ant-') || k.startsWith('sk-or-')))) {
         return {
           provider: 'openrouter',
           model: 'anthropic/claude-3.5-sonnet',
@@ -4460,7 +4513,7 @@
           label: 'OpenRouter (Claude 3.5)'
         };
       }
-      if (k.startsWith('sk-')) {
+      if (forced === 'openai' || (forced === 'auto' && k.startsWith('sk-'))) {
         return {
           provider: 'openai',
           model: 'gpt-4o-mini',
@@ -4478,10 +4531,18 @@
 
     async connectSingleKey(rawKey) {
       const key = (rawKey || '').trim();
-      if (!key) return;
+      const provSelect = document.getElementById('ai-provider-select');
+      const selectedProv = provSelect ? provSelect.value : 'auto';
+
+      if (!key && selectedProv !== 'ollama') return;
+
+      if (selectedProv === 'ollama' && !key) {
+        await this.disconnectKey();
+        return;
+      }
 
       this.activeKey = key;
-      const detection = this.detectProviderAndModel(key);
+      const detection = this.detectProviderAndModel(key, selectedProv);
       this.provider = detection.provider;
       this.model = detection.model;
       this.endpoint = detection.endpoint;
@@ -4577,11 +4638,50 @@
       this.mode = SafeStorage.getItem('ankora_ai_mode') || 'sysadmin';
       this.model = SafeStorage.getItem('ankora_ai_model') || (this.provider === 'ollama' ? 'qwen2.5:0.5b' : 'gemini-2.0-flash');
       this.endpoint = SafeStorage.getItem('ankora_ai_endpoint') || 'http://127.0.0.1:11434/api/generate';
+      this.includeTelemetry = SafeStorage.getItem('ankora_ai_ctx') !== '0';
       this.activeKey = null;
       SafeStorage.removeItem('ankora_ai_key');
 
       const inputKey = document.getElementById('ai-cfg-key');
       const btnDisconnect = document.getElementById('btn-disconnect-ai-key');
+      const modeSelect = document.getElementById('ai-mode-select');
+      const provSelect = document.getElementById('ai-provider-select');
+      const ctxToggle = document.getElementById('ai-ctx-toggle');
+      const btnExport = document.getElementById('btn-ai-export');
+
+      if (modeSelect) {
+        modeSelect.value = this.mode;
+        modeSelect.addEventListener('change', () => {
+          this.mode = modeSelect.value || 'sysadmin';
+          SafeStorage.setItem('ankora_ai_mode', this.mode);
+          this.updateBadges();
+        });
+      }
+
+      if (provSelect) {
+        provSelect.value = this.provider === 'ollama' ? 'ollama' : 'auto';
+        provSelect.addEventListener('change', () => {
+          if (provSelect.value === 'ollama') {
+            this.provider = 'ollama';
+            this.model = 'qwen2.5:0.5b';
+            this.endpoint = 'http://127.0.0.1:11434/api/generate';
+            SafeStorage.setItem('ankora_ai_provider', 'ollama');
+            this.updateBadges();
+          }
+        });
+      }
+
+      if (ctxToggle) {
+        ctxToggle.checked = this.includeTelemetry;
+        ctxToggle.addEventListener('change', () => {
+          this.includeTelemetry = Boolean(ctxToggle.checked);
+          SafeStorage.setItem('ankora_ai_ctx', this.includeTelemetry ? '1' : '0');
+        });
+      }
+
+      if (btnExport) {
+        btnExport.addEventListener('click', () => this.exportReport());
+      }
 
       // Backend güvenli depoda anahtar kontrolü
       TauriBridge.invoke('has_ai_credential', { provider: this.provider }).then(hasKey => {
@@ -4617,7 +4717,8 @@
       if (btnSaveCfg && inputKey) {
         btnSaveCfg.addEventListener('click', () => {
           const val = inputKey.value.trim();
-          if (val && !val.includes('••••')) {
+          const sel = provSelect ? provSelect.value : 'auto';
+          if ((val && !val.includes('••••')) || sel === 'ollama') {
             this.connectSingleKey(val);
           }
         });
@@ -4648,6 +4749,7 @@
       const btnClearChat = document.getElementById('btn-ai-clear-chat');
       if (btnClearChat && this.feed) {
         btnClearChat.addEventListener('click', () => {
+          this.history = [];
           this.feed.innerHTML = `
             <div class="ai-entry bot">
               <span class="ai-author">Ankora AI</span>
@@ -4682,7 +4784,7 @@
 
             try {
               const res = await TauriBridge.invoke('execute_agent_confirmed_action', { command: cmd, token: token });
-              this.appendMsg('bot', `Sistem komutu başarıyla çalıştırıldı:\n${res || 'Tamamlandı.'}`);
+              this.appendMsg('bot', `Sistem komutu başarıyla çalıştırıldı:\n\`\`\`\n${res || 'Tamamlandı.'}\n\`\`\``);
               Terminal.log(`[AI EXEC] ${cmd}: Başarılı`, 'success');
             } catch (err) {
               this.appendMsg('bot', `Komut yürütme hatası: ${err}`);
@@ -4706,6 +4808,7 @@
       const badgeProv = document.getElementById('ai-current-provider-badge');
       const badgeMode = document.getElementById('ai-current-mode-badge');
       const ind = document.getElementById('ai-status-indicator');
+      const modeSelect = document.getElementById('ai-mode-select');
 
       const provMap = {
         ollama: 'Ollama (Yerel)',
@@ -4718,6 +4821,7 @@
 
       const modeMap = {
         sysadmin: 'Sistem Teftiş Ajanı',
+        doctor: 'Sistem Doktoru',
         developer: 'Geliştirici Asistanı',
         general: 'Genel Sistem Asistanı'
       };
@@ -4725,6 +4829,9 @@
       if (badgeProv) badgeProv.textContent = provMap[this.provider] || this.provider.toUpperCase();
       if (badgeMode) {
         badgeMode.innerHTML = `<svg class="btn-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:12px;height:12px;display:inline-block;vertical-align:-1px;margin-right:4px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>${escapeHtml(modeMap[this.mode] || this.mode)}`;
+      }
+      if (modeSelect && modeSelect.value !== this.mode) {
+        modeSelect.value = this.mode;
       }
       if (ind) {
         ind.textContent = 'Bağlı / Hazır';
@@ -4748,22 +4855,126 @@
         this.feed.removeChild(this.feed.firstChild);
       }
 
+      const rawText = String(text ?? '');
+      this.history.push({ role, text: rawText, ts: new Date().toISOString() });
+      if (this.history.length > 40) this.history.shift();
+
       const entry = document.createElement('div');
       entry.className = `ai-entry ${role === 'user' ? 'user' : 'bot'}`;
+
+      const header = document.createElement('div');
+      header.className = 'ai-msg-header';
 
       const author = document.createElement('span');
       author.className = 'ai-author';
       author.textContent = role === 'user' ? 'Kullanıcı' : 'Ankora AI';
+      header.appendChild(author);
 
-      const p = document.createElement('p');
-      p.style.whiteSpace = 'pre-wrap';
-      p.textContent = String(text ?? '');
+      if (role === 'bot' && rawText.length > 0 && !rawText.startsWith('Ajan düşünülüyor')) {
+        const copyBtn = document.createElement('button');
+        copyBtn.type = 'button';
+        copyBtn.className = 'ai-copy-btn';
+        copyBtn.textContent = 'Kopyala';
+        copyBtn.addEventListener('click', () => {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(rawText).then(() => {
+              copyBtn.textContent = 'Kopyalandı';
+              setTimeout(() => { copyBtn.textContent = 'Kopyala'; }, 1500);
+            }).catch(() => {});
+          }
+        });
+        header.appendChild(copyBtn);
+      }
 
-      entry.appendChild(author);
-      entry.appendChild(p);
+      entry.appendChild(header);
+
+      // Güvenli kod bloğu ayrıştırma (yalnız textContent kullanılır, XSS riski sıfır)
+      const segments = rawText.split(/```([\s\S]*?)```/g);
+      for (let i = 0; i < segments.length; i++) {
+        const seg = segments[i];
+        if (!seg) continue;
+        if (i % 2 === 1) {
+          const pre = document.createElement('pre');
+          pre.className = 'ai-code-block';
+          pre.textContent = seg.replace(/^[a-zA-Z0-9_-]+\n/, '').trim();
+          entry.appendChild(pre);
+        } else {
+          const p = document.createElement('p');
+          p.style.whiteSpace = 'pre-wrap';
+          p.textContent = seg.trim();
+          entry.appendChild(p);
+        }
+      }
+
       this.feed.appendChild(entry);
       this.feed.scrollTop = this.feed.scrollHeight;
       return entry;
+    },
+
+    async exportReport() {
+      const lines = [
+        `# Ankora AI Sistem Asistanı — Oturum ve Teşhis Raporu`,
+        `- Tarih: ${new Date().toISOString()}`,
+        `- Sağlayıcı: ${this.provider} (${this.model})`,
+        `- Ajan Modu: ${this.mode}`,
+        ``
+      ];
+      try {
+        const tele = await TauriBridge.invoke('get_system_telemetry');
+        if (tele) {
+          lines.push(`## Canlı Sistem Telemetrisi`);
+          lines.push(`- İşletim Sistemi: ${tele.os_name}`);
+          lines.push(`- Çekirdek: ${tele.kernel}`);
+          lines.push(`- İnit: ${tele.init_system}`);
+          lines.push(`- Bellek: ${tele.memory_used_mb} / ${tele.memory_total_mb} MB`);
+          lines.push(`- CPU Çekirdek: ${tele.cpu_cores}`);
+          lines.push(``);
+        }
+      } catch (e) {}
+
+      lines.push(`## Sohbet ve Teşhis Geçmişi`);
+      for (const item of this.history) {
+        lines.push(`### ${item.role === 'user' ? 'Kullanıcı' : 'Ankora AI'} (${item.ts})`);
+        lines.push(item.text);
+        lines.push(``);
+      }
+
+      const content = lines.join('\n');
+      try {
+        const dirs = await TauriBridge.invoke('get_xdg_user_dirs');
+        const target = `${(dirs && dirs.desktop) ? dirs.desktop : '/home/ankora/Masaüstü'}/ankora-ai-rapor.md`;
+        await TauriBridge.invoke('write_text_file', { path: target, content });
+        this.appendMsg('bot', `Rapor masaüstüne kaydedildi: ${target}`);
+        return;
+      } catch (e) {}
+
+      try {
+        const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'ankora-ai-rapor.md';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } catch (e) {}
+    },
+
+    parseActionDirective(rawText) {
+      const m = String(rawText || '').match(/<<<ACTION:([^|>]+)\|([^>]+)>>>/);
+      if (!m) {
+        return { reply: rawText, has_action: false, action_command: null, action_desc: null };
+      }
+      const cmd = m[1].trim();
+      const desc = m[2].trim();
+      const clean = String(rawText).replace(m[0], '').trim();
+      return {
+        reply: clean,
+        has_action: true,
+        action_command: cmd,
+        action_desc: desc
+      };
     },
 
     async handleQuery(text) {
@@ -4771,6 +4982,15 @@
       const loadingEntry = this.appendMsg('bot', 'Ajan düşünülüyor ve yanıt üretiliyor...');
 
       let res = null;
+      let teleContext = '';
+      if (this.includeTelemetry) {
+        try {
+          const t = await TauriBridge.invoke('get_system_telemetry');
+          if (t) {
+            teleContext = `[Sistem: ${t.os_name} | Kernel: ${t.kernel} | Init: ${t.init_system} | RAM: ${t.memory_used_mb}/${t.memory_total_mb} MB | CPU: ${t.cpu_cores} çekirdek]`;
+          }
+        } catch (e) {}
+      }
 
       // 1. Eğer Tauri mevcutsa yerel arka uç üzerinden güvenli istek dene
       if (TauriBridge.isAvailable) {
@@ -4797,21 +5017,27 @@
       if (!res && this.activeKey) {
         const key = this.activeKey.trim();
         const prov = this.provider.toLowerCase();
+        const sysPromptBase = this.mode === 'developer'
+          ? 'Sen Ankora Linux 3.3 ortamında çalışan kıdemli bir Rust, Linux ve Tauri geliştiricisisin.'
+          : (this.mode === 'doctor'
+            ? 'Sen Ankora Sistem Doktorusun. Devuan Daedalus (SysVinit) üzerinde bellek, disk, ZRAM, süreç ve güvenlik sorunlarını teşhis edip çözüm sunarsın.'
+            : 'Sen Ankora Linux 3.3 (Daedalus / SysVinit) sistem yöneticisi ve yapay zeka asistanısın. Kullanıcıya Türkçe, net ve teknik olarak kusursuz yanıtlar ver.');
+        const fullSysPrompt = `${sysPromptBase}\n${teleContext}\nEğer güvenli bir tanı komutu önermek istersen yanıtın sonuna <<<ACTION:komut|açıklama>>> ekle (Yalnızca: df -h /, free -h, uname -a, uptime, swapon --show, ip -br addr, lscpu, lsblk, ps aux, /usr/local/bin/ankora-doctor).`;
 
         try {
           if (prov === 'gemini') {
-            const aiModel = this.model || 'gemini-1.5-flash';
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/${aiModel}:generateContent?key=${key}`;
-            const sysPrompt = this.mode === 'developer'
-              ? 'Sen Ankora Linux ortamında çalışan uzman bir geliştiricisin.'
-              : 'Sen Ankora Linux 3.2 (Daedalus) sistem yöneticisi ve yapay zeka asistanısın. Kullanıcıya Türkçe, net ve teknik olarak kusursuz yanıtlar ver.';
+            const aiModel = this.model || 'gemini-2.0-flash';
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${aiModel}:generateContent`;
 
             const resp = await fetch(url, {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: {
+                'Content-Type': 'application/json',
+                'x-goog-api-key': key
+              },
               body: JSON.stringify({
                 contents: [{
-                  parts: [{ text: `${sysPrompt}\n\nKullanıcı: ${text}` }]
+                  parts: [{ text: `${fullSysPrompt}\n\nKullanıcı: ${text}` }]
                 }]
               })
             });
@@ -4823,7 +5049,7 @@
 
             const json = await resp.json();
             const replyTxt = json.candidates?.[0]?.content?.parts?.[0]?.text || 'Gemini yanıtı alınamadı.';
-            res = { reply: replyTxt, has_action: false, action_command: null, action_desc: null };
+            res = this.parseActionDirective(replyTxt);
 
           } else if (prov === 'groq') {
             const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -4835,7 +5061,7 @@
               body: JSON.stringify({
                 model: this.model || 'llama-3.3-70b-versatile',
                 messages: [
-                  { role: 'system', content: 'Sen Ankora Linux işletim sisteminde görev yapan akıllı bir asistansın.' },
+                  { role: 'system', content: fullSysPrompt },
                   { role: 'user', content: text }
                 ],
                 temperature: 0.3
@@ -4843,7 +5069,7 @@
             });
             if (!resp.ok) throw new Error(`Groq API Hatası (HTTP ${resp.status})`);
             const json = await resp.json();
-            res = { reply: json.choices?.[0]?.message?.content || '', has_action: false, action_command: null, action_desc: null };
+            res = this.parseActionDirective(json.choices?.[0]?.message?.content || '');
 
           } else if (prov === 'openai') {
             const resp = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -4855,7 +5081,7 @@
               body: JSON.stringify({
                 model: this.model || 'gpt-4o-mini',
                 messages: [
-                  { role: 'system', content: 'Sen Ankora Linux için yardımcı bir yapay zeka asistanısın.' },
+                  { role: 'system', content: fullSysPrompt },
                   { role: 'user', content: text }
                 ],
                 temperature: 0.3
@@ -4863,7 +5089,7 @@
             });
             if (!resp.ok) throw new Error(`OpenAI API Hatası (HTTP ${resp.status})`);
             const json = await resp.json();
-            res = { reply: json.choices?.[0]?.message?.content || '', has_action: false, action_command: null, action_desc: null };
+            res = this.parseActionDirective(json.choices?.[0]?.message?.content || '');
 
           } else if (prov === 'openrouter') {
             const resp = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -4875,14 +5101,14 @@
               body: JSON.stringify({
                 model: this.model || 'meta-llama/llama-3.3-70b-instruct',
                 messages: [
-                  { role: 'system', content: 'Sen Ankora Linux yapay zeka asistanısın.' },
+                  { role: 'system', content: fullSysPrompt },
                   { role: 'user', content: text }
                 ]
               })
             });
             if (!resp.ok) throw new Error(`OpenRouter API Hatası (HTTP ${resp.status})`);
             const json = await resp.json();
-            res = { reply: json.choices?.[0]?.message?.content || '', has_action: false, action_command: null, action_desc: null };
+            res = this.parseActionDirective(json.choices?.[0]?.message?.content || '');
           }
         } catch (fetchErr) {
           if (loadingEntry && loadingEntry.parentNode) loadingEntry.parentNode.removeChild(loadingEntry);
@@ -7417,7 +7643,7 @@
   // 11. ANKORA GÜNCELLEYİCİ (ANKORA DE UPDATE MANAGER)
   // ============================================================================
   const UpdaterManager = {
-    currentVersion: '3.2.0',
+    currentVersion: '3.3.0',
     latestRelease: null,
 
     init() {
@@ -9399,7 +9625,7 @@
         md += `#### Sistem Tanılama Verileri\n`;
         md += `\`\`\`yaml\n`;
         md += `İşletim Sistemi : ${this.telemetry.os_name}\n`;
-        md += `Masaüstü Ortamı : Ayaz DE v3.2.0 (Ankora Kiosk / X11)\n`;
+        md += `Masaüstü Ortamı : Ayaz DE v3.3.0 (Ankora Kiosk / X11)\n`;
         md += `Çekirdek (Kernel): ${this.telemetry.kernel}\n`;
         md += `İnit Sistemi     : ${this.telemetry.init_system}\n`;
         md += `CPU Çekirdek     : ${this.telemetry.cpu_cores} İş parçacığı\n`;

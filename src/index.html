@@ -280,7 +280,7 @@
                 </div>
                 <div class="feature-labels">
                   <span class="feature-name">Ayaz Güncelleyici</span>
-                  <span class="feature-desc">Ankora Linux 3.2 sistem yamaları</span>
+                  <span class="feature-desc">Ankora Linux 3.3 sistem yamaları</span>
                 </div>
               </div>
               <div class="feature-right">
@@ -536,7 +536,7 @@
         </div>
         <div class="term-viewport" id="term-viewport">
           <div class="term-logs" id="term-logs">
-            <div class="term-row muted">Ankora Linux 3.2 (Devuan Daedalus) x86_64 - Native Linux Core</div>
+            <div class="term-row muted">Ankora Linux 3.3 (Devuan Daedalus) x86_64 - Native Linux Core</div>
             <div class="term-row muted">Ankora Linux AyazDE Terminali. Yalnızca güvenli listedeki komutlar çalışır; paket kurulumu Yazılım Mağazası üzerinden yapılır.</div>
           </div>
           <div class="term-cmdline">
@@ -550,7 +550,7 @@
     <!-- ======================================================================= -->
     <!-- 5. AI AJAN                                                              -->
     <!-- ======================================================================= -->
-    <section class="window" id="win-ai" style="top: 60px; left: 140px; width: 760px; height: 520px;" aria-labelledby="ai-header-title">
+    <section class="window" id="win-ai" style="top: 60px; left: 140px; width: 780px; height: 540px;" aria-labelledby="ai-header-title">
       <div class="window-header" data-tauri-drag-region>
         <div class="window-meta">
           <span id="ai-header-title">Ankora AI Sistem Asistanı (Otonom Ajan & Çoklu Model)</span>
@@ -570,9 +570,23 @@
                 <svg class="btn-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:12px;height:12px;display:inline-block;vertical-align:-1px;margin-right:4px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
                 Sistem Teftiş Ajanı
               </span>
+              <select id="ai-mode-select" class="select-mono-sm" title="Ajan Çalışma Modu">
+                <option value="sysadmin">Mod: Sistem Teftiş</option>
+                <option value="doctor">Mod: Sistem Doktoru</option>
+                <option value="developer">Mod: Geliştirici</option>
+                <option value="general">Mod: Genel Asistan</option>
+              </select>
+              <label class="ai-ctx-label" title="Gerçek zamanlı sistem telemetrisini (RAM, CPU, Disk, Çekirdek) sorgulara otomatik ekle">
+                <input type="checkbox" id="ai-ctx-toggle" checked>
+                <span>Canlı Telemetri</span>
+              </label>
             </div>
             <div class="ai-endpoint-info">
               <span class="status-pill online" id="ai-status-indicator">Bağlı / Hazır</span>
+              <button class="ai-config-toggle-btn" id="btn-ai-export" title="Sohbet ve Sistem Teşhis Raporunu Dışa Aktar">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width: 13px; height: 13px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                <span>Rapor</span>
+              </button>
               <button class="ai-config-toggle-btn" id="btn-ai-clear-chat" title="Sohbet Geçmişini Temizle ve Belleği Boşalt">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width: 13px; height: 13px;"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                 <span>Temizle</span>
@@ -589,9 +603,17 @@
             <div class="single-key-container">
               <div class="single-key-header">
                 <span class="single-key-title"><svg class="glyph" aria-hidden="true"><use href="#ico-zap"></use></svg> Yapay Zeka API Bağlantısı</span>
-                <span class="single-key-desc">Sadece tek bir API anahtarı yapıştırın. Model ve sağlayıcı otomatik yapılandırılır.</span>
+                <span class="single-key-desc">Tek bir API anahtarı yapıştırın veya yerel/bulut sağlayıcı seçin.</span>
               </div>
               <div class="single-key-input-row">
+                <select id="ai-provider-select" class="select-mono-sm" title="Sağlayıcı Seçimi">
+                  <option value="auto">Otomatik Algıla</option>
+                  <option value="ollama">Ollama (Yerel / Çevrimdışı)</option>
+                  <option value="gemini">Google Gemini (2.0 Flash)</option>
+                  <option value="groq">Groq Cloud (Llama 3.3 70B)</option>
+                  <option value="openai">OpenAI (GPT-4o mini)</option>
+                  <option value="openrouter">OpenRouter (Claude / Llama)</option>
+                </select>
                 <div class="key-input-capsule">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="key-field-icon"><path d="M21 2l-2 2m-2-2l2 2m0 0l-5 5-2-2 5-5m-9 9l-4 4a2.828 2.828 0 0 0 4 4l4-4m-4-4l2 2"></path><circle cx="7.5" cy="16.5" r="1.5"></circle></svg>
                   <input type="password" id="ai-cfg-key" class="input-mono-sm input-key-direct" placeholder="API Anahtarınızı yapıştırın (AIzaSy..., sk-..., gsk_...)" autocomplete="off">
@@ -603,7 +625,7 @@
                 <button class="btn-pkg-sm btn-disconnect-direct" id="btn-disconnect-ai-key" style="display:none;">Bağlantıyı Kes</button>
               </div>
               <div class="single-key-footer-info">
-                <span class="provider-auto-pill" id="ai-provider-auto-label">Desteklenen: Google Gemini, Groq Cloud, OpenAI, OpenRouter veya Çevrimdışı (Ollama)</span>
+                <span class="provider-auto-pill" id="ai-provider-auto-label">Desteklenen: Google Gemini, Groq Cloud, OpenAI, OpenRouter veya Çevrimdışı (Ollama / Kural Tabanlı Teşhis)</span>
               </div>
             </div>
           </div>
@@ -611,17 +633,19 @@
           <div class="ai-feed" id="ai-feed">
             <div class="ai-entry bot">
               <span class="ai-author">Ankora AI</span>
-              <p>Devuan Linux çekirdeğine bağlı sistem asistanınız ve otonom ajanınız hazır. Kendi API anahtarınızı (OpenAI, Gemini, Groq, OpenRouter) 'API Ayarları' butonundan bağlayabilir veya yerel Ollama ile çevrimdışı çalışabilirsiniz. Sistem eylemleri öncesinde her zaman güvenlik onayınız alınır.</p>
+              <p>Devuan Linux çekirdeğine bağlı sistem asistanınız ve otonom ajanınız hazır. Kendi API anahtarınızı (OpenAI, Gemini, Groq, OpenRouter) 'API Ayarları' butonundan bağlayabilir veya yerel Ollama / çevrimdışı teşhis motoru ile çalışabilirsiniz. Sistem eylemleri öncesinde her zaman tek kullanımlık güvenlik jetonu ile onayınız alınır.</p>
             </div>
           </div>
           <div class="ai-quick-row">
+            <button class="ai-tag-btn" data-query="Sistem doktoru sağlık taramasını çalıştır ve özetle">Sistem Doktoru</button>
             <button class="ai-tag-btn" data-query="Sistem önbelleklerini temizle">Önbellek Temizliği</button>
-            <button class="ai-tag-btn" data-query="Disk kullanımını ve RAM durumunu denetle">Disk & RAM Raporu</button>
-            <button class="ai-tag-btn" data-query="Ağ bağlantısını ve IP durumunu listele">Ağ Durumu</button>
-            <button class="ai-tag-btn" data-query="Çekirdek sürümünü ve telemetri durumunu ver">Sistem Teftişi</button>
+            <button class="ai-tag-btn" data-query="Disk kullanımını ve RAM durumunu denetle">Disk &amp; RAM Raporu</button>
+            <button class="ai-tag-btn" data-query="İşlemci yükünü ve en çok kaynak tüketen süreçleri analiz et">CPU &amp; Süreç Analizi</button>
+            <button class="ai-tag-btn" data-query="ZRAM ve takas alanı (swap) durumunu kontrol et">ZRAM &amp; Takas</button>
+            <button class="ai-tag-btn" data-query="Ağ bağlantısını ve IP durumunu listele">Ağ &amp; Güvenlik</button>
           </div>
           <div class="ai-prompt-box">
-            <input type="text" id="ai-prompt-input" placeholder="Ajana görev veya sistem komutu verin (Örn: Önbelleği temizle, disk durumunu ver)...">
+            <input type="text" id="ai-prompt-input" placeholder="Ajana görev veya sistem komutu verin (Örn: Sistem doktoru taraması yap, önbelleği temizle, disk durumunu ver)...">
             <button class="btn-pkg" id="btn-ai-submit">Gönder</button>
           </div>
         </div>
@@ -887,7 +911,7 @@
       <div class="window-header" data-tauri-drag-region>
         <div class="window-meta">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width: 16px; height: 16px;"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-          <span id="settings-header-title">Sistem Ayarları — Ankora Linux 3.2</span>
+          <span id="settings-header-title">Sistem Ayarları — Ankora Linux 3.3</span>
         </div>
         <div class="window-controls">
           <button class="ctrl-btn min" title="Küçült">−</button>
@@ -1549,7 +1573,7 @@
               <div class="about-hero-card">
                 <img src="logo.svg" alt="Ankora Logo" class="about-hero-logo">
                 <div class="about-hero-text">
-                  <h2>ANKORA LINUX 3.2</h2>
+                  <h2>ANKORA LINUX 3.3</h2>
                   <span class="hero-edition">Ayaz DE Edition • Systemd-Free Kiosk Platform</span>
                   <p>Hafif WebKitGTK ve Rust Tauri çekirdeği ile güçlendirilmiş, Ayaz Masaüstü Ortamı (DE) barındıran bağımsız Devuan GNU/Linux dağıtımı.</p>
                 </div>
@@ -1557,11 +1581,11 @@
 
               <div class="telemetry-grid">
                 <div class="telemetry-cell"><span>İşletim Sistemi:</span><strong id="tele-os">Devuan Daedalus 5.0</strong></div>
-                <div class="telemetry-cell"><span>Masaüstü Ortamı:</span><strong>Ayaz DE 3.2</strong></div>
+                <div class="telemetry-cell"><span>Masaüstü Ortamı:</span><strong>Ayaz DE 3.3</strong></div>
                 <div class="telemetry-cell"><span>İnit Sistemi:</span><strong id="tele-init">SysVinit 3.06 (PID 1)</strong></div>
                 <div class="telemetry-cell"><span>Linux Çekirdeği:</span><strong id="tele-kernel">Linux 6.1.0-22-amd64</strong></div>
                 <div class="telemetry-cell"><span>Bellek (RAM):</span><strong id="tele-mem">1.2 / 8.0 GB (Aktif)</strong></div>
-                <div class="telemetry-cell"><span>ISO İmaj Kimliği:</span><strong>ankora-3.2-daedalus.iso</strong></div>
+                <div class="telemetry-cell"><span>ISO İmaj Kimliği:</span><strong>ankora-linux-3.3-ayaz-amd64.iso</strong></div>
               </div>
 
               <div class="about-update-banner">
@@ -1810,7 +1834,7 @@
                 <span class="updater-badge" id="updater-status-badge">Kontrol Edilmedi</span>
               </div>
               <div class="updater-sub-meta">
-                <span>Mevcut: <strong id="updater-curr-ver">v3.2.0</strong></span>
+                <span>Mevcut: <strong id="updater-curr-ver">v3.3.0</strong></span>
                 <span class="dot-sep">•</span>
                 <span>En Son: <strong id="updater-latest-ver">—</strong></span>
                 <span class="dot-sep">•</span>
@@ -2728,7 +2752,7 @@
         </div>
         <div class="profile-info">
           <span class="profile-name" id="desktop-profile-username">ankora</span>
-          <span class="profile-role">Ankora Linux 3.2 (Daedalus)</span>
+          <span class="profile-role">Ankora Linux 3.3 (Daedalus)</span>
         </div>
       </div>
 

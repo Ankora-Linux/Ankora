@@ -1,13 +1,13 @@
 #!/bin/bash
 # ==============================================================================
-# Ankora Linux 3.2 (Daedalus) — Canlı (Live) ISO Derleme Betiği
+# Ankora Linux 3.3 (Daedalus) — Canlı (Live) ISO Derleme Betiği
 # Masaüstü Ortamı: Ayaz DE (Tauri + WebKitGTK + SysVinit Core)
 # Mimari: x86_64 (UEFI + BIOS Hibrit Boot)
 # ==============================================================================
 
 set -euo pipefail
 
-ISO_NAME="ankora-linux-3.2-ayaz-amd64.iso"
+ISO_NAME="ankora-linux-3.3-ayaz-amd64.iso"
 WORK_DIR="/var/tmp/ankora-iso-build"
 CHROOT_DIR="$WORK_DIR/chroot"
 IMAGE_DIR="$WORK_DIR/image"
@@ -16,9 +16,9 @@ DEVUAN_SUITE="daedalus"
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 echo "======================================================================"
-echo "      ANKORA LINUX 3.2 (AYAZ DE) CANLI ISO DERLEME SİSTEMİ            "
+echo "      ANKORA LINUX 3.3 (AYAZ DE) CANLI ISO DERLEME SİSTEMİ            "
 echo "======================================================================"
-echo "Sürüm: 3.2.0 (Daedalus / SysVinit Core)"
+echo "Sürüm: 3.3.0 (Daedalus / SysVinit Core)"
 echo "Çıktı Hedefi: $ROOT_DIR/dist/$ISO_NAME"
 echo "======================================================================"
 
@@ -760,7 +760,7 @@ update-rc.d zram-swap defaults 05 95 2>/dev/null || true
 # SysVinit Hızlı Paralel Açılış (Fast Parallel Boot)
 mkdir -p /etc/default
 cat << 'RCS_CONF' > /etc/default/rcS
-# Ankora Linux 3.2 Hızlı Paralel Açılış
+# Ankora Linux 3.3 Hızlı Paralel Açılış
 CONCURRENCY=makefile
 UTC=yes
 VERBOSE=no
@@ -988,7 +988,7 @@ else
     rm -f "$BDIR/ankora-sistem-rehberi.pdf"
 fi
 cat << 'KIOSKTXT' > "$BDIR/kiosk-ayarlari.txt"
-Ankora Linux 3.2 — Kiosk Yapılandırma Raporu
+Ankora Linux 3.3 — Kiosk Yapılandırma Raporu
 =============================================
 
 Taban            : Devuan GNU/Linux 5 (daedalus)
@@ -1004,7 +1004,7 @@ Bu dosya Ayaz Dosyalar ve Ofis uygulamalarından açılabilir.
 Kiosk kilit ekranı ve widget ayarları Ayarlar penceresinden yönetilir.
 KIOSKTXT
 cat << 'KIOSKMD' > "$BDIR/kiosk-ayarlari.md"
-# Ankora Linux 3.2 — Kiosk Yapılandırma Raporu
+# Ankora Linux 3.3 — Kiosk Yapılandırma Raporu
 
 - Taban: Devuan Daedalus (SysVinit, systemd-free)
 - Çekirdek: Linux 6.1 LTS
@@ -1354,6 +1354,69 @@ def _display_schedule_revert(prev):
                             'rate': prev.get('rate'), 'output': prev['output']})
     return proc.pid
 
+_EXACT_ALLOWED = {
+    "uname -a", "uname -r", "whoami", "uptime", "ls", "ls -la", "ls -l", "ls -lh",
+    "date", "hostname", "id", "free -m", "free -h", "df -h", "df -h /",
+    "lscpu", "lsblk", "/usr/local/bin/ankora-doctor",
+    "cat /etc/os-release", "cat /etc/issue", "cat /proc/version",
+    "cat /proc/meminfo", "cat /proc/cpuinfo", "ps aux", "top -b -n 1",
+    "apt-get clean", "rm -rf /tmp/*",
+    "apt-get clean && rm -rf /tmp/*", "df -h / && free -m", "clear", "sync"
+}
+_ALLOWED_UTILITIES = {
+    "uname", "whoami", "uptime", "date", "hostname", "id",
+    "free", "df", "ls", "ps", "top", "which",
+    "cat", "pwd", "echo", "head", "tail", "grep", "wc",
+    "lscpu", "lsblk", "arch", "w", "who", "cal", "apt-cache"
+}
+_FORBIDDEN_BINARIES = {
+    "sudo", "su", "pkexec", "dd", "mkfs", "fdisk", "parted",
+    "sh", "bash", "zsh", "dash", "csh", "tcsh", "fish", "env",
+    "xargs", "passwd", "chpasswd", "chmod", "chown", "reboot",
+    "poweroff", "shutdown", "init", "systemctl", "telinit", "halt",
+    "chroot", "unshare", "nsenter", "mount", "umount",
+    "nc", "ncat", "socat", "ssh", "scp", "wget", "curl",
+    "kill", "pkill", "killall", "tee", "install", "ln",
+    "mkfifo", "mknod", "insmod", "modprobe", "rmmod",
+    "docker", "podman", "runuser", "sg", "newgrp",
+    "at", "batch", "crontab", "systemd-run"
+}
+_SENSITIVE_PATTERNS = [
+    "/etc/shadow", "/etc/gshadow", "/etc/sudoers", "/etc/master.passwd",
+    "/etc/security", "/root/.ssh", ".ssh/", "id_rsa", "id_ed25519",
+    "id_ecdsa", "id_dsa", "/proc/kcore", "/sys/", "/dev/", "/var/log/auth",
+    "ai_creds.json", "lock.hash"
+]
+_ALLOWED_CAT_FILES = {
+    "/etc/os-release", "/etc/issue", "/proc/version", "/proc/meminfo", "/proc/cpuinfo"
+}
+_ALLOWED_AGENT_ACTIONS = {
+    "apt-get clean && rm -rf /tmp/*",
+    "apt-get clean",
+    "rm -rf /tmp/*",
+    "df -h / && free -m",
+    "df -h",
+    "free -m",
+    "free -h",
+    "uptime",
+    "uname -a",
+    "lscpu",
+    "lsblk",
+    "ps aux",
+    "top -b -n 1",
+    "/usr/local/bin/ankora-doctor",
+    "sync",
+}
+_PENDING_AGENT_ACTION = {'token': None, 'cmd': None, 'ts': 0.0}
+
+def _generate_agent_action_token(cmd_str):
+    import hashlib
+    token = hashlib.sha256(os.urandom(32) + cmd_str.encode('utf-8')).hexdigest()
+    _PENDING_AGENT_ACTION['token'] = token
+    _PENDING_AGENT_ACTION['cmd'] = cmd_str
+    _PENDING_AGENT_ACTION['ts'] = time.time()
+    return token
+
 def execute_ayaz_command(cmd, args):
     global TERM_CWD
     home_dir = os.path.expanduser('~')
@@ -1365,14 +1428,14 @@ def execute_ayaz_command(cmd, args):
 
     if cmd == 'report_console':
         # Teşhis kaydı: konsol/CSP ihlalleri (/tmp/ayaz-console.log).
-        line = str(args.get('line', ''))[:500].strip()
+        line = str(args.get('line') or args.get('message') or '')[:500].strip()
         if line:
             try:
                 with open('/tmp/ayaz-console.log', 'a', encoding='utf-8') as fh:
                     fh.write(line + '\n')
             except Exception:
                 pass
-        return None
+        return True
 
     if cmd == 'run_terminal_command':
         command = args.get('command', '').strip()
@@ -1393,43 +1456,6 @@ def execute_ayaz_command(cmd, args):
                 return ''
             else:
                 return f'bash: cd: {target_d}: Böyle bir dosya ya da dizin yok'
-
-        # GÜVENLİK: Whitelist ve parametre güvenlik denetimi (Security Whitelist)
-        _EXACT_ALLOWED = {
-            "uname -a", "uname -r", "whoami", "uptime", "ls", "ls -la", "ls -l", "ls -lh",
-            "date", "hostname", "id", "free -m", "free -h", "df -h", "df -h /",
-            "cat /etc/os-release", "cat /etc/issue", "cat /proc/version",
-            "cat /proc/meminfo", "cat /proc/cpuinfo", "ps aux", "top -b -n 1",
-            "apt-get clean", "rm -rf /tmp/*",
-            "apt-get clean && rm -rf /tmp/*", "df -h / && free -m", "clear", "sync"
-        }
-        _ALLOWED_UTILITIES = {
-            "uname", "whoami", "uptime", "date", "hostname", "id",
-            "free", "df", "ls", "ps", "top", "which",
-            "cat", "pwd", "echo", "head", "tail", "grep", "wc",
-            "lscpu", "lsblk", "arch", "w", "who", "cal", "apt-cache"
-        }
-        _FORBIDDEN_BINARIES = {
-            "sudo", "su", "pkexec", "dd", "mkfs", "fdisk", "parted",
-            "sh", "bash", "zsh", "dash", "csh", "tcsh", "fish", "env",
-            "xargs", "passwd", "chpasswd", "chmod", "chown", "reboot",
-            "poweroff", "shutdown", "init", "systemctl", "telinit", "halt",
-            "chroot", "unshare", "nsenter", "mount", "umount",
-            "nc", "ncat", "socat", "ssh", "scp", "wget", "curl",
-            "kill", "pkill", "killall", "tee", "install", "ln",
-            "mkfifo", "mknod", "insmod", "modprobe", "rmmod",
-            "docker", "podman", "runuser", "sg", "newgrp",
-            "at", "batch", "crontab", "systemd-run"
-        }
-        _SENSITIVE_PATTERNS = [
-            "/etc/shadow", "/etc/gshadow", "/etc/sudoers", "/etc/master.passwd",
-            "/etc/security", "/root/.ssh", ".ssh/", "id_rsa", "id_ed25519",
-            "id_ecdsa", "id_dsa", "/proc/kcore", "/sys/", "/dev/", "/var/log/auth",
-            "ai_creds.json", "lock.hash"
-        ]
-        _ALLOWED_CAT_FILES = {
-            "/etc/os-release", "/etc/issue", "/proc/version", "/proc/meminfo", "/proc/cpuinfo"
-        }
 
         if command not in _EXACT_ALLOWED:
             bad_chars = set(';&|`$\n\r><()')
@@ -2286,7 +2312,7 @@ tmpfs /tmp tmpfs defaults,noatime,mode=1777 0 0
 
             # Hızlı Paralel Açılış ve ZRAM Swap Servisi Optimizasyonlarını Kurulu Sisteme Aktar
             _root_write('/target/etc/default/rcS',
-                        "# Ankora Linux 3.2 Hızlı Paralel Açılış\nCONCURRENCY=makefile\nUTC=yes\nVERBOSE=no\nFSCKFIX=no\n")
+                        "# Ankora Linux 3.3 Hızlı Paralel Açılış\nCONCURRENCY=makefile\nUTC=yes\nVERBOSE=no\nFSCKFIX=no\n")
             _root_write('/target/etc/sysctl.d/99-zram.conf',
                         "vm.swappiness = 100\nvm.vfs_cache_pressure = 50\nvm.watermark_boost_factor = 0\nvm.dirty_background_ratio = 5\nvm.dirty_ratio = 10\n")
             zram_target_script = """#!/bin/sh
@@ -2457,7 +2483,7 @@ exit 0
             _root("umount -l /target/boot/efi 2>/dev/null || true", check=False)
             _root("umount -l /target 2>/dev/null || true", check=False)
 
-        return "Ankora Linux 3.1 başarıyla kuruldu! Sistemi yeniden başlatabilirsiniz."
+        return "Ankora Linux 3.3 başarıyla kuruldu! Sistemi yeniden başlatabilirsiniz."
 
     elif cmd == 'get_system_telemetry':
         mem_total = 4096
@@ -2525,7 +2551,11 @@ exit 0
         try:
             before_mb = _read_mem_used()
             subprocess.run(['sync'], check=False)
-            res = subprocess.run(['sudo', '-n', 'tee', '/proc/sys/vm/drop_caches'], input=b'3\n', stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            helper = '/usr/local/bin/ayaz-pkg-helper'
+            if os.path.exists(helper):
+                res = _root_run([helper, 'drop-caches'])
+            else:
+                res = _root_run(['tee', '/proc/sys/vm/drop_caches'], stdin_text='3\n')
             after_mb = _read_mem_used()
             freed = max(0, before_mb - after_mb) if (before_mb > 0 and after_mb > 0) else 0
             if res.returncode == 0:
@@ -3733,6 +3763,11 @@ exit 0
             raise Exception('Geçersiz saat dilimi')
         if not os.path.isfile(os.path.join('/usr/share/zoneinfo', tz)):
             raise Exception('Desteklenmeyen saat dilimi (zoneinfo kaydı yok)')
+        helper = '/usr/local/bin/ayaz-pkg-helper'
+        if os.path.exists(helper):
+            proc = _root_run([helper, 'set-timezone', tz])
+            if proc.returncode == 0:
+                return f'Saat dilimi: {tz}'
         _root_run(['tee', '/etc/timezone'], stdin_text=tz + '\n')
         proc = _root_run(['ln', '-sf', f'/usr/share/zoneinfo/{tz}', '/etc/localtime'])
         if proc.returncode != 0:
@@ -3741,11 +3776,15 @@ exit 0
                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=60)
         return f'Saat dilimi: {tz}'
 
-    elif cmd == 'sync_clock_ntp':
+    elif cmd in ('sync_clock_ntp', 'sync_time_ntp'):
         # chrony birincil, ntpdate yedek; donanım saati okunamazsa bile
         # güncel saat döndürülür.
-        subprocess.run(['sh', '-c', 'command -v chronyc >/dev/null && chronyc -a makestep 2>/dev/null; command -v ntpdate >/dev/null && ntpdate -u pool.ntp.org 2>/dev/null; true'],
-                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=60)
+        helper = '/usr/local/bin/ayaz-pkg-helper'
+        if os.path.exists(helper):
+            _root_run([helper, 'sync-ntp'], timeout=60)
+        else:
+            subprocess.run(['sh', '-c', 'command -v chronyc >/dev/null && chronyc -a makestep 2>/dev/null; command -v ntpdate >/dev/null && ntpdate -u pool.ntp.org 2>/dev/null; true'],
+                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=60)
         try:
             p = subprocess.run(['date', '+%Y-%m-%d %H:%M:%S %Z'],
                                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
@@ -3754,22 +3793,31 @@ exit 0
             raise Exception(f'Saat okunamadı: {e}')
         return p.stdout.strip()
 
-    elif cmd == 'set_keyboard_layout':
+    elif cmd in ('set_keyboard_layout', 'set_system_keyboard'):
         # O anki X oturumu + kalıcı kayıt (/etc/default/keyboard ve konsol).
         lay = str(args.get('layout', '')).strip()
         if lay not in ('tr', 'tr_f', 'us', 'de', 'fr', 'gb'):
             raise Exception('Geçersiz veya desteklenmeyen klavye haritası')
-        xkb_lay, xkb_var = (('tr', 'f') if lay == 'tr_f' else (lay, ''))
-        kb_conf = (f'XKBMODEL="pc105"\nXKBLAYOUT="{xkb_lay}"\nXKBVARIANT="{xkb_var}"\n'
-                   'XKBOPTIONS=""\nBACKSPACE="guess"\n')
-        try:
-            _root_run(['tee', '/etc/default/keyboard'], stdin_text=kb_conf)
-            persist = True
-        except Exception:
-            persist = False
-        if persist:
-            subprocess.run(['sh', '-c', 'command -v setupcon >/dev/null && setupcon -k --force 2>/dev/null; service console-setup restart 2>/dev/null; true'],
-                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=30)
+        helper = '/usr/local/bin/ayaz-pkg-helper'
+        persist = False
+        if os.path.exists(helper):
+            try:
+                proc = _root_run([helper, 'set-keyboard', lay])
+                persist = (proc.returncode == 0)
+            except Exception:
+                persist = False
+        if not persist:
+            xkb_lay, xkb_var = (('tr', 'f') if lay == 'tr_f' else (lay, ''))
+            kb_conf = (f'XKBMODEL="pc105"\nXKBLAYOUT="{xkb_lay}"\nXKBVARIANT="{xkb_var}"\n'
+                       'XKBOPTIONS=""\nBACKSPACE="guess"\n')
+            try:
+                _root_run(['tee', '/etc/default/keyboard'], stdin_text=kb_conf)
+                persist = True
+            except Exception:
+                persist = False
+            if persist:
+                subprocess.run(['sh', '-c', 'command -v setupcon >/dev/null && setupcon -k --force 2>/dev/null; service console-setup restart 2>/dev/null; true'],
+                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=30)
         env = os.environ.copy()
         if 'DISPLAY' not in env:
             env['DISPLAY'] = ':0'
@@ -3790,6 +3838,11 @@ exit 0
         lang = str(args.get('language', '')).strip()
         if lang not in ('tr_TR.UTF-8', 'en_US.UTF-8'):
             raise Exception('Geçersiz veya desteklenmeyen sistem dili')
+        helper = '/usr/local/bin/ayaz-pkg-helper'
+        if os.path.exists(helper):
+            proc = _root_run([helper, 'set-language', lang], timeout=120)
+            if proc.returncode == 0:
+                return f'Sistem dili: {lang} (oturumu yeniden başlatınca uygulanır)'
         short = lang.split('.')[0]
         conf = f'LANG={lang}\nLANGUAGE={short}:{short.split("_")[0]}\nLC_ALL={lang}\n'
         try:
@@ -3965,6 +4018,7 @@ exit 0
         api_key = (args.get('apiKey') or args.get('api_key') or '').strip()
         model = (args.get('model') or '').strip()
         endpoint = (args.get('endpoint') or '').strip()
+        agent_mode = (args.get('agentMode') or args.get('agent_mode') or 'sysadmin').strip().lower()
 
         if not api_key:
             c_file = os.path.expanduser('~/.config/ankora/ai_creds.json')
@@ -3976,33 +4030,49 @@ exit 0
                 except Exception:
                     pass
 
-        p_lower = prompt.lower()
+        tele = execute_ayaz_command('get_system_telemetry', {})
+        ram_used = tele.get('memory_used_mb', 512)
+        ram_tot = tele.get('memory_total_mb', 4096) or 4096
+        ram_pct = int(round(100.0 * ram_used / ram_tot))
+        disk_used = tele.get('disk_used_gb') or 0.0
+        disk_tot = tele.get('disk_total_gb') or 0.0
+        disk_pct = tele.get('disk_percent') or 0
+        cpu_cores = tele.get('cpu_cores') or 4
+        cpu_pct = tele.get('cpu_percent') or 0.0
+        uptime_mins = int((tele.get('uptime_seconds') or 0) // 60)
+        os_name = tele.get('os_name') or 'Ankora Linux 3.3'
+        kernel = tele.get('kernel') or 'Linux 6.1'
+        init_sys = tele.get('init_system') or 'SysVinit'
 
-        # Sistem bakım kısayol eylemleri (canlı teftiş)
-        if any(w in p_lower for w in ['temizle', 'önbellek', 'çöp']):
-            return {
-                'reply': 'Sistem ve paket önbelleklerinin temizlenmesi önerilir.',
-                'has_action': True,
-                'action_command': 'apt-get clean && rm -rf /tmp/*',
-                'action_desc': 'Geçici önbellekleri temizleme',
-                'action_token': 'live_iso_token'
-            }
-        elif any(w in p_lower for w in ['disk', 'ram', 'depolama', 'kaynak', 'durum', 'hafıza']):
-            return {
-                'reply': 'Sistem donanım ve depolama kaynakları taranıyor.',
-                'has_action': True,
-                'action_command': 'df -h / && free -m',
-                'action_desc': 'Disk ve bellek doluluk durumu',
-                'action_token': 'live_iso_token'
-            }
-        elif any(w in p_lower for w in ['güncelle', 'update', 'yükselt']):
-            return {
-                'reply': 'Paket listelerinin resmi Devuan depolarından güncellenmesi önerilir.',
-                'has_action': True,
-                'action_command': 'apt-get update',
-                'action_desc': 'APT paket listelerini güncelle',
-                'action_token': 'live_iso_token'
-            }
+        def _parse_action(text):
+            if '<<<ACTION:' in text:
+                s_idx = text.find('<<<ACTION:')
+                e_rel = text[s_idx:].find('>>>')
+                if e_rel != -1:
+                    raw_j = text[s_idx + 10:s_idx + e_rel]
+                    clean_r = text[:s_idx].strip()
+                    try:
+                        act = json.loads(raw_j)
+                        c_cmd = (act.get('command') or '').strip()
+                        if c_cmd in _ALLOWED_AGENT_ACTIONS:
+                            tok = _generate_agent_action_token(c_cmd)
+                            return {
+                                'reply': clean_r,
+                                'has_action': True,
+                                'action_command': c_cmd,
+                                'action_desc': act.get('desc') or 'Sistem bakım komutu',
+                                'action_token': tok
+                            }
+                    except Exception:
+                        pass
+            return {'reply': text, 'has_action': False, 'action_command': None, 'action_desc': None, 'action_token': None}
+
+        tele_ctx = f"[Sistem Özeti: {os_name} | {kernel} | {init_sys} | RAM: {ram_used}/{ram_tot} MB (%{ram_pct}) | CPU: {cpu_cores} çekirdek (%{cpu_pct}) | Disk: {disk_used}/{disk_tot} GB (%{disk_pct})]"
+        sys_prompt = (
+            "Sen Ankora Linux 3.3 (Devuan Daedalus, SysVinit) sistem yöneticisi ve tanılama ajanısın. "
+            "Kullanıcıya Türkçe, net ve teknik yanıtlar ver. Gerekirse yanıtının sonuna şu formatta onaylı eylem ekle: "
+            "<<<ACTION:{\"command\":\"izin_verilen_komut\",\"desc\":\"Açıklama\"}>>>\n" + tele_ctx
+        )
 
         # Eğer API anahtarı veya Ollama varsa canlı HTTP çağrısı yap
         if api_key or provider == 'ollama':
@@ -4010,26 +4080,35 @@ exit 0
                 import urllib.request
                 if provider == 'gemini' and api_key:
                     ai_model = model or 'gemini-2.0-flash'
-                    url = f"https://generativelanguage.googleapis.com/v1beta/models/{ai_model}:generateContent?key={api_key}"
-                    sys_prompt = "Sen Ankora Linux (Devuan Daedalus) sistem yöneticisi ve yapay zeka asistanısın. Türkçe, net ve teknik olarak kusursuz yanıtlar ver."
+                    if not re.match(r'^[A-Za-z0-9._/\-]+$', ai_model):
+                        raise Exception('Geçersiz model adı')
+                    url = f"https://generativelanguage.googleapis.com/v1beta/models/{ai_model}:generateContent"
                     body = json.dumps({
                         "contents": [{"parts": [{"text": f"{sys_prompt}\n\nKullanıcı: {prompt}"}]}]
                     }).encode('utf-8')
-                    req = urllib.request.Request(url, data=body, headers={'Content-Type': 'application/json'})
+                    req = urllib.request.Request(url, data=body, headers={
+                        'Content-Type': 'application/json',
+                        'x-goog-api-key': api_key
+                    })
                     with urllib.request.urlopen(req, timeout=20) as resp:
                         res_data = json.loads(resp.read().decode('utf-8'))
                         parts = res_data.get('candidates', [{}])[0].get('content', {}).get('parts', [{}])
                         reply_text = parts[0].get('text', '') if parts else ''
                         if reply_text:
-                            return {'reply': reply_text, 'has_action': False, 'action_command': None, 'action_desc': None, 'action_token': None}
+                            return _parse_action(reply_text)
 
                 elif provider in ('openai', 'groq', 'openrouter') and api_key:
-                    ep = endpoint or ('https://api.groq.com/openai/v1/chat/completions' if provider == 'groq' else 'https://api.openai.com/v1/chat/completions')
+                    default_ep = (
+                        'https://api.groq.com/openai/v1/chat/completions' if provider == 'groq'
+                        else ('https://openrouter.ai/api/v1/chat/completions' if provider == 'openrouter'
+                              else 'https://api.openai.com/v1/chat/completions')
+                    )
+                    ep = endpoint or default_ep
                     ai_model = model or ('llama-3.3-70b-versatile' if provider == 'groq' else 'gpt-4o-mini')
                     body = json.dumps({
                         "model": ai_model,
                         "messages": [
-                            {"role": "system", "content": "Sen Ankora Linux için yardımcı bir yapay zeka asistanısın."},
+                            {"role": "system", "content": sys_prompt},
                             {"role": "user", "content": prompt}
                         ],
                         "temperature": 0.3
@@ -4042,59 +4121,121 @@ exit 0
                         res_data = json.loads(resp.read().decode('utf-8'))
                         reply_text = res_data.get('choices', [{}])[0].get('message', {}).get('content', '')
                         if reply_text:
-                            return {'reply': reply_text, 'has_action': False, 'action_command': None, 'action_desc': None, 'action_token': None}
+                            return _parse_action(reply_text)
 
                 elif provider == 'ollama':
                     ep = endpoint or 'http://127.0.0.1:11434/api/generate'
-                    ai_model = model or 'qwen2.5:0.5b'
-                    body = json.dumps({
-                        "model": ai_model,
-                        "prompt": prompt,
-                        "stream": False
-                    }).encode('utf-8')
-                    req = urllib.request.Request(ep, data=body, headers={'Content-Type': 'application/json'})
-                    with urllib.request.urlopen(req, timeout=15) as resp:
-                        res_data = json.loads(resp.read().decode('utf-8'))
-                        reply_text = res_data.get('response', '')
-                        if reply_text:
-                            return {'reply': reply_text, 'has_action': False, 'action_command': None, 'action_desc': None, 'action_token': None}
+                    if ep.startswith(('http://127.0.0.1:', 'http://localhost:')):
+                        ai_model = model or 'qwen2.5:0.5b'
+                        body = json.dumps({
+                            "model": ai_model,
+                            "prompt": f"{sys_prompt}\n\nKullanıcı: {prompt}",
+                            "stream": False
+                        }).encode('utf-8')
+                        req = urllib.request.Request(ep, data=body, headers={'Content-Type': 'application/json'})
+                        with urllib.request.urlopen(req, timeout=10) as resp:
+                            res_data = json.loads(resp.read().decode('utf-8'))
+                            reply_text = res_data.get('response', '')
+                            if reply_text:
+                                return _parse_action(reply_text)
             except Exception:
                 pass
 
-        # Çevrimdışı / Dahili Asistan Yanıtı
-        if any(w in p_lower for w in ['merhaba', 'selam', 'hey', 'günaydın']):
-            reply = "Merhaba! Ankora Linux ve Ayaz DE otonom sistem asistanınızım. Sistem yönetimi, paket kurulumu, donanım yapılandırması ve terminal komutları konusunda size yardımcı olabilirim. Ne yapmak istersiniz?"
-        elif any(w in p_lower for w in ['kimsin', 'nesin']):
-            reply = "Ben Ankora AI; bağımsız Devuan Daedalus 5 tabanlı Ankora Linux işletim sisteminin yerleşik yapay zekâ asistanıyım. Gemini, Groq, OpenAI veya yerel Ollama modelleriyle entegre çalışabilirim."
-        elif any(w in p_lower for w in ['kapat', 'kapan']):
+        p_lower = prompt.lower()
+        if any(w in p_lower for w in ['doktor', 'doctor', 'onar', 'sağlık']) or (agent_mode == 'doctor' and any(w in p_lower for w in ['tara', 'kontrol', 'durum'])):
+            c_cmd = '/usr/local/bin/ankora-doctor'
             return {
-                'reply': 'Sistemi kapatmak istiyorsanız onaylayın.',
+                'reply': (f"Ankora Sistem Doktoru ön kontrolü tamamlandı:\n"
+                          f"• İşletim Sistemi: {os_name} ({init_sys})\n"
+                          f"• Çekirdek: {kernel}\n"
+                          f"• Bellek Kullanımı: {ram_used} MB / {ram_tot} MB (%{ram_pct})\n"
+                          f"• Kök Disk: {disk_used} GB / {disk_tot} GB (%{disk_pct})\n"
+                          f"• Çalışma Süresi: {uptime_mins} dakika\n\n"
+                          "Kırık paketleri, ağ servislerini, ZRAM takas alanını ve disk önbelleklerini kapsamlı denetlemek için aşağıdaki Sistem Doktoru eylemini onaylayabilirsiniz."),
                 'has_action': True,
-                'action_command': 'poweroff',
-                'action_desc': 'Bilgisayarı Kapat',
-                'action_token': 'live_iso_token'
+                'action_command': c_cmd,
+                'action_desc': 'Ankora Sistem Doktoru kapsamlı sağlık taramasını çalıştır',
+                'action_token': _generate_agent_action_token(c_cmd)
             }
-        elif any(w in p_lower for w in ['yeniden başlat', 'reboot']):
+        elif any(w in p_lower for w in ['temizle', 'önbellek', 'cache', 'çöp']):
+            c_cmd = 'apt-get clean && rm -rf /tmp/*'
             return {
-                'reply': 'Sistemi yeniden başlatmak istiyorsanız onaylayın.',
+                'reply': f"Anlık Bellek Durumu: {ram_used} MB / {ram_tot} MB (%{ram_pct}).\nPaket önbelleklerini ve `/tmp` altındaki geçici dosyaları güvenli biçimde temizlemek için aşağıdaki eylemi onaylayabilirsiniz.",
                 'has_action': True,
-                'action_command': 'reboot',
-                'action_desc': 'Sistemi Yeniden Başlat',
-                'action_token': 'live_iso_token'
+                'action_command': c_cmd,
+                'action_desc': 'Sistem ve geçici dosya önbelleklerini temizle',
+                'action_token': _generate_agent_action_token(c_cmd)
+            }
+        elif any(w in p_lower for w in ['süreç', 'işlem', 'process', 'cpu', 'işlemci', 'yavaş']):
+            c_cmd = 'top -b -n 1'
+            return {
+                'reply': f"İşlemci Analizi:\n• Çekirdek Sayısı: {cpu_cores} Çekirdek\n• Anlık CPU Yükü: %{cpu_pct}\n• Bellek Kullanımı: {ram_used} MB / {ram_tot} MB (%{ram_pct})\n\nEn çok kaynak tüketen süreçlerin anlık dökümünü almak için aşağıdaki komutu onaylayabilirsiniz.",
+                'has_action': True,
+                'action_command': c_cmd,
+                'action_desc': 'Anlık süreç ve CPU kullanım tablosunu listele',
+                'action_token': _generate_agent_action_token(c_cmd)
+            }
+        elif any(w in p_lower for w in ['zram', 'takas', 'swap', 'bellek', 'ram', 'hafıza']):
+            c_cmd = 'free -h'
+            return {
+                'reply': f"Bellek ve ZRAM Telemetrisi:\n• Kullanılan RAM: {ram_used} MB / {ram_tot} MB (%{ram_pct})\n• Mimari: SysVinit ZRAM Sıkıştırmalı Takas Havuzu\n\nFiziksel RAM ve ZRAM takas alanı ayrıntılarını görmek için aşağıdaki komutu çalıştırabilirsiniz.",
+                'has_action': True,
+                'action_command': c_cmd,
+                'action_desc': 'RAM ve ZRAM takas tablolarını görüntüle (free -h)',
+                'action_token': _generate_agent_action_token(c_cmd)
+            }
+        elif any(w in p_lower for w in ['disk', 'depolama', 'alan', 'bölüm', 'lsblk', 'durum', 'özet', 'rapor', 'analiz']):
+            c_cmd = 'df -h / && free -m'
+            return {
+                'reply': f"Ankora Linux 3.3 Canlı Sistem Raporu:\n• Sistem: {os_name} ({init_sys})\n• Çekirdek: {kernel}\n• CPU: {cpu_cores} Çekirdek (Yük: %{cpu_pct})\n• RAM: {ram_used} MB / {ram_tot} MB (%{ram_pct})\n• Disk: {disk_used} GB / {disk_tot} GB (%{disk_pct})\n• Çalışma Süresi: {uptime_mins} dk\n\nAyrıntılı disk ve bellek çıktısı için aşağıdaki komutu onaylayabilirsiniz.",
+                'has_action': True,
+                'action_command': c_cmd,
+                'action_desc': 'Disk ve bellek doluluk durumunu sorgula',
+                'action_token': _generate_agent_action_token(c_cmd)
+            }
+        elif any(w in p_lower for w in ['donanım', 'hardware', 'çekirdek', 'kernel', 'mimari']):
+            c_cmd = 'lscpu'
+            return {
+                'reply': f"Donanım ve Çekirdek Bilgisi:\n• Dağıtım: {os_name}\n• Çekirdek: {kernel}\n• Init Sistemi: {init_sys}\n• Mantıksal Çekirdek: {cpu_cores}\n\nDetaylı işlemci mimarisi ve bayraklarını incelemek için `lscpu` eylemini çalıştırabilirsiniz.",
+                'has_action': True,
+                'action_command': c_cmd,
+                'action_desc': 'İşlemci ve donanım mimarisi detaylarını görüntüle (lscpu)',
+                'action_token': _generate_agent_action_token(c_cmd)
             }
         else:
-            reply = f"Ankora AI Çekirdeği hazır. \"{prompt}\" sorgusu için:\n• API anahtarınızı (Gemini, Groq veya OpenAI) bağlayarak derin yapay zekâ yanıtları alabilirsiniz.\n• Hızlı sistem eylemleri için 'önbelleği temizle', 'disk durumu' veya 'paketleri güncelle' yazabilirsiniz."
-
-        return {
-            'reply': reply,
-            'has_action': False,
-            'action_command': None,
-            'action_desc': None,
-            'action_token': None
-        }
+            reply = (
+                f"Ankora Yerel Tanılama Motoru ({agent_mode.upper()} modu) aktif.\n\n"
+                f"Anlık Sistem Telemetrisi:\n"
+                f"• Sistem: {os_name} | {kernel}\n"
+                f"• Bellek: {ram_used} MB / {ram_tot} MB (%{ram_pct}) | CPU: %{cpu_pct} ({cpu_cores} çekirdek)\n"
+                f"• Disk: {disk_used} GB / {disk_tot} GB (%{disk_pct})\n\n"
+                f"Sorgunuz: \"{prompt}\"\n"
+                "• Sistem sağlığı ve onarım için: \"Sistem doktoru taraması yap\"\n"
+                "• Önbellek ve geçici dosya temizliği için: \"Önbelleği temizle\"\n"
+                "• Süreç ve RAM analizi için: \"RAM ve ZRAM durumu\" veya \"CPU süreçlerini göster\"\n"
+                "• Bulut veya yerel LLM kullanmak için üstteki 'API Ayarları' düğmesinden Ollama, Gemini, Groq, OpenAI veya OpenRouter yapılandırabilirsiniz."
+            )
+            return {
+                'reply': reply,
+                'has_action': False,
+                'action_command': None,
+                'action_desc': None,
+                'action_token': None
+            }
 
     elif cmd == 'execute_agent_confirmed_action':
-        command = args.get('command', '')
+        command = (args.get('command') or '').strip()
+        token = (args.get('token') or '').strip()
+        if command not in _ALLOWED_AGENT_ACTIONS:
+            raise Exception('Güvenlik İlkesi İhlali: Bu eylem onaylanmış güvenlik politikası listesinde yer almıyor.')
+        stored_tok = _PENDING_AGENT_ACTION.get('token')
+        stored_cmd = _PENDING_AGENT_ACTION.get('cmd')
+        stored_ts = _PENDING_AGENT_ACTION.get('ts') or 0.0
+        _PENDING_AGENT_ACTION['token'] = None
+        _PENDING_AGENT_ACTION['cmd'] = None
+        _PENDING_AGENT_ACTION['ts'] = 0.0
+        if not stored_tok or token != stored_tok or command != stored_cmd or (time.time() - stored_ts) > 60.0:
+            raise Exception('Yetkilendirme Hatası: Eylem onay tokenı geçersiz, eşleşmiyor veya 60 saniyelik süresi dolmuş.')
         return execute_ayaz_command('run_terminal_command', {'command': command})
 
     elif cmd == 'check_first_run':
@@ -4111,15 +4252,15 @@ exit 0
         return True
 
     elif cmd == 'check_de_update':
-        current_ver = '3.1.0'
+        current_ver = '3.3.0'
         result = {
             'has_update': False,
             'current_version': current_ver,
             'latest_version': current_ver,
-            'release_name': 'Ankora Linux 3.1 (AyazDE)',
-            'release_notes': 'Sisteminiz güncel. AyazDE v3.1 kararlı sürüm devrededir.',
+            'release_name': 'Ankora Linux 3.3 (AyazDE)',
+            'release_notes': 'Sisteminiz güncel. AyazDE v3.3 kararlı sürüm devrededir.',
             'download_url': None,
-            'published_at': '2026-10-03',
+            'published_at': '2026-10-19',
             'package_size_bytes': 0,
             'expected_sha256': None,
             'sha256_url': None
@@ -4161,7 +4302,7 @@ exit 0
         os.makedirs(staging, exist_ok=True)
         target_deb = os.path.join(staging, 'ayaz-update.deb')
         try:
-            req = urllib.request.Request(download_url, headers={'User-Agent': 'ayaz-updater/3.1.0'})
+            req = urllib.request.Request(download_url, headers={'User-Agent': 'ayaz-updater/3.3.0'})
             with urllib.request.urlopen(req, timeout=120) as resp, open(target_deb, 'wb') as f:
                 content = resp.read()
                 f.write(content)
@@ -4447,19 +4588,21 @@ exit 0
 
         def do_flash():
             try:
-                subprocess.run(['umount', '-f', target_device], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                if os.path.exists('/proc/mounts'):
-                    try:
-                        with open('/proc/mounts', 'r') as mf:
-                            for line in mf:
-                                parts = line.split()
-                                if parts and parts[0].startswith(target_device):
-                                    subprocess.run(['umount', '-f', parts[0]], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                    except Exception:
-                        pass
-
-                res = subprocess.run(['dd', f'if={iso_path}', f'of={target_device}', 'bs=4M', 'status=none', 'conv=fsync'])
-                if res.returncode == 0:
+                if os.path.exists('/usr/local/bin/ayaz-pkg-helper'):
+                    rc, _, _ = _root_run(['/usr/local/bin/ayaz-pkg-helper', 'usb-flash', iso_path, target_device])
+                else:
+                    _root_run(['umount', '-f', target_device])
+                    if os.path.exists('/proc/mounts'):
+                        try:
+                            with open('/proc/mounts', 'r') as mf:
+                                for line in mf:
+                                    parts = line.split()
+                                    if parts and parts[0].startswith(target_device):
+                                        _root_run(['umount', '-f', parts[0]])
+                        except Exception:
+                            pass
+                    rc, _, _ = _root_run(['dd', f'if={iso_path}', f'of={target_device}', 'bs=4M', 'status=none', 'conv=fsync'])
+                if rc == 0:
                     subprocess.run(['sync'])
                     with open(progress_file, 'w') as f:
                         f.write('100.0:done:ISO başarıyla USB belleğe yazdırıldı!')
@@ -4515,14 +4658,20 @@ exit 0
                 if 'biçimlendirilemez' in str(e):
                     raise e
 
-        subprocess.run(['umount', '-f', target_device], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        if os.path.exists('/usr/local/bin/ayaz-pkg-helper'):
+            rc, out, err = _root_run(['/usr/local/bin/ayaz-pkg-helper', 'usb-format', target_device, filesystem, label])
+            if rc == 0:
+                return f'{target_device} başarıyla {filesystem.upper()} olarak biçimlendirildi.'
+            raise Exception(f'Biçimlendirme hatası: {err or out}')
+
+        _root_run(['umount', '-f', target_device])
         if os.path.exists('/proc/mounts'):
             try:
                 with open('/proc/mounts', 'r') as mf:
                     for line in mf:
                         parts = line.split()
                         if parts and parts[0].startswith(target_device):
-                            subprocess.run(['umount', '-f', parts[0]], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                            _root_run(['umount', '-f', parts[0]])
             except Exception:
                 pass
 
@@ -4535,10 +4684,10 @@ exit 0
         else:
             raise Exception('Desteklenmeyen dosya sistemi')
 
-        res = subprocess.run(cmd_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        if res.returncode == 0:
+        rc, out, err = _root_run(cmd_args)
+        if rc == 0:
             return f'{target_device} başarıyla {filesystem.upper()} olarak biçimlendirildi.'
-        raise Exception(f'Biçimlendirme hatası: {res.stderr or res.stdout}')
+        raise Exception(f'Biçimlendirme hatası: {err or out}')
 
     elif cmd == 'create_system_snapshot':
         raw_name = str(args.get('name', 'Snapshot'))
@@ -5353,7 +5502,7 @@ echo "[MANIFEST] Sistem künyesi yazılıyor..."
 AYAZ_VERSION=$(sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' "$ROOT_DIR/src-tauri/tauri.conf.json")
 AYAZ_VERSION="${AYAZ_VERSION%%$'\n'*}"
 if [ -z "$AYAZ_VERSION" ]; then
-    AYAZ_VERSION="3.1.0"
+    AYAZ_VERSION="3.3.0"
 fi
 # git yoksa (ör. WSL) .git/HEAD + ref dosyaları doğrudan okunur; revizyon
 # manifestte hiçbir koşulda boş kalmaz.
@@ -5485,7 +5634,7 @@ if loadfont ($root)/boot/grub/fonts/unicode.pf2; then have_font="1"; elif loadfo
 # ISO kökü etiketle bulunur; etiket okunamazsa (bazı USB yazıcılar /
 # büyük-küçük harf farkı) dosya varlığıyla yedeğe düşülür. Yedek yoksa
 # /live/vmlinuz bulunamaz ve "you need to load the kernel first" verir.
-if search --no-floppy --set=root --label ANKORA_3_1; then true; fi
+if search --no-floppy --set=root --label ANKORA_3_3; then true; fi
 if [ ! -e "/live/vmlinuz" ]; then
     if search --no-floppy --set=root --file /live/vmlinuz; then true; fi
 fi
@@ -5504,12 +5653,12 @@ if [ "$have_font" = "1" ]; then
 fi
 export theme
 
-menuentry "Ankora Linux 3.1  —  Canlı Masaüstü" {
+menuentry "Ankora Linux 3.3  —  Canlı Masaüstü" {
     linux /live/vmlinuz boot=live live-media-path=/live union=overlay components username=ankora hostname=ankora-live locales=tr_TR.UTF-8 keyboard-layouts=tr timezone=Europe/Istanbul utc=yes noeject splash quiet loglevel=3
     initrd /live/initrd
 }
 
-menuentry "Ankora Linux 3.1  —  Canlı Masaüstü (RAM'den Açılış / Ventoy)" {
+menuentry "Ankora Linux 3.3  —  Canlı Masaüstü (RAM'den Açılış / Ventoy)" {
     # Ventoy/USB giriş akışı: live-boot toram ile RO medyanın tamamını
     # RAM'e kopyalayıp oradan açar; flakey USB okuma/slow enumeration
     # sınıfı sorunlar bypass edilir. RAM ihtiyacı ≈ squashfs + ~1 GB
@@ -5519,14 +5668,14 @@ menuentry "Ankora Linux 3.1  —  Canlı Masaüstü (RAM'den Açılış / Ventoy
     initrd /live/initrd
 }
 
-menuentry "Ankora Linux 3.1  —  Güvenli Mod (Failsafe)" {
+menuentry "Ankora Linux 3.3  —  Güvenli Mod (Failsafe)" {
     # Metin kipi: grafik devri olmadan düz konsol logları (donanım sorunlarında)
     set gfxpayload="text"
     linux /live/vmlinuz boot=live live-media-path=/live union=overlay components username=ankora hostname=ankora-live locales=tr_TR.UTF-8 keyboard-layouts=tr timezone=Europe/Istanbul noeject nomodeset noapic noacpi
     initrd /live/initrd
 }
 
-menuentry "Ankora Linux 3.1  —  Donanım Teşhisi (Ayrıntılı Günlük)" {
+menuentry "Ankora Linux 3.3  —  Donanım Teşhisi (Ayrıntılı Günlük)" {
     # Ventoy/USB'de "Devuan..." yazısından sonra donan açılış (VM'de düzgün)
     # durumunda sorunun hangi aşamada takıldığını açık konsoldan görmek için:
     # plymouth yok, loglevel=7. Takılan son satırı fotoğraflayıp hata
@@ -5656,7 +5805,7 @@ XORRISO_CMD=(
     -iso-level 3
     -full-iso9660-filenames
     -r -J -l
-    -volid "ANKORA_3_1"
+    -volid "ANKORA_3_3"
     -eltorito-boot boot/grub/i386-pc-eltorito.img
     -eltorito-catalog boot/grub/boot.cat
     -no-emul-boot -boot-load-size 4 -boot-info-table
@@ -5679,7 +5828,7 @@ XORRISO_CMD+=(-output "$ROOT_DIR/dist/$ISO_NAME" "$IMAGE_DIR")
 
 "${XORRISO_CMD[@]}" 2>/dev/null || {
     echo "[UYARI] Hibrit xorriso komutu tamamlanamadı, standart mod ile deneniyor..."
-    xorriso -as mkisofs -r -V "ANKORA_3_1" \
+    xorriso -as mkisofs -r -V "ANKORA_3_3" \
         -b boot/grub/i386-pc-eltorito.img -c boot/grub/boot.cat \
         -no-emul-boot -boot-load-size 4 -boot-info-table \
         -o "$ROOT_DIR/dist/$ISO_NAME" "$IMAGE_DIR"
