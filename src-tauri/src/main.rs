@@ -1083,24 +1083,23 @@ fn install_deb_package_blocking(package_name: String) -> Result<XdgApplication, 
                     root_command("apt-get", &["install", "-y", "--no-install-recommends", "--", clean_pkg])
                 }
             };
-            let mut output = run_install();
+            let mut attempt = run_install();
             // Canlı ISO/ilk açılışta paket listeleri boş geldiyse apt "Unable to
             // locate package" ile düşer. Depo listelerini yenileyip bir kez daha
             // denemeden kurulum arayüzde başarısız görünüyordu.
-            if let Ok(res) = &output {
+            if let Ok(res) = &attempt {
                 let err_txt = format!("{}{}",
                     String::from_utf8_lossy(&res.stdout),
                     String::from_utf8_lossy(&res.stderr));
-                let stale = !res.status.success() && (
-                    err_txt.contains("Unable to locate package")
-                        || err_txt.contains("was not found in")
-                        || err_txt.contains("E: "),
-                );
+                let stale = !res.status.success() && (err_txt.contains("Unable to locate package")
+                    || err_txt.contains("was not found in")
+                    || err_txt.contains("E: "));
                 if stale && !helper.exists() {
                     let _ = root_command("apt-get", &["update"]);
-                    output = run_install();
+                    attempt = run_install();
                 }
             }
+            attempt
         };
 
         match output {
@@ -1108,21 +1107,18 @@ fn install_deb_package_blocking(package_name: String) -> Result<XdgApplication, 
                 if !res.status.success() {
                     let err = String::from_utf8_lossy(&res.stderr).trim().to_string();
                     let out = String::from_utf8_lossy(&res.stdout).trim().to_string();
-                    let detail = if err.is_empty() {
-                        out.lines().rev().take(4).collect::<Vec<_>>().rev().join("\n")
+                    let mut detail = if err.is_empty() {
+                        out.lines().rev().take(4).collect::<Vec<_>>().into_iter().rev().collect::<Vec<_>>().join("\n")
                     } else {
-                        err.lines().rev().take(6).collect::<Vec<_>>().rev().join("\n")
+                        err.lines().rev().take(6).collect::<Vec<_>>().into_iter().rev().collect::<Vec<_>>().join("\n")
                     };
                     let detail_l = detail.to_lowercase();
-                    let hint = if detail_l.contains("temporary failure") || detail_l.contains("connection refused") || detail_l.contains("could not resolve") {
-                        " — Ağ bağlantısı yok veya depolara ulaşılamıyor.".to_string()
+                    if detail_l.contains("temporary failure") || detail_l.contains("connection refused") || detail_l.contains("could not resolve") {
+                        detail = format!(" — Ağ bağlantısı yok veya depolara ulaşılamıyor.\n{}", detail);
                     } else if !sudo_available() && pkexec_available() {
-                        " — Yönetici yetkisi penceresi açılmadıysa tekrar deneyin.".to_string()
-                    } else {
-                        String::new()
-                    };
-                    let prefix = if hint.is_empty() { String::new() } else { hint.clone() };
-                    return Err(format!("Paket kurulumu başarısız{}\n{}", prefix, detail));
+                        detail = format!(" — Yönetici yetkisi penceresi açılmadıysa tekrar deneyin.\n{}", detail);
+                    }
+                    return Err(format!("Paket kurulumu başarısız:\n{}", detail));
                 }
             }
             Err(e) => return Err(format!("apt-get/dpkg çalıştırılamadı: {}", e)),
@@ -2562,7 +2558,7 @@ fn execute_system_installation_blocking(payload: InstallPayload) -> Result<Strin
             };
             let mut yeni = String::new();
             for satir in icerik.lines() {
-                if (satir.contains("getty") && satir.contains("tty1")) {
+                if satir.contains("getty") && satir.contains("tty1") {
                     yeni.push_str(&yeni_satir);
                     inittab_yazildi = true;
                 } else {
@@ -3074,7 +3070,7 @@ fn optimize_system_memory() -> Result<MemoryTrimResult, String> {
         }
 
         // 2. Çekirdek önbellekleri (varsa root yetkisi ile)
-        let drop_caches_ok = fs::write("/proc/sys/vm/drop_caches", "3").is_ok();
+        let _ = fs::write("/proc/sys/vm/drop_caches", "3");
         let _ = fs::write("/proc/sys/vm/compact_memory", "1");
 
         let after = collect_system_telemetry().ok();
