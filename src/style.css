@@ -5600,6 +5600,37 @@ body.has-touch .ws-dot {
   margin: 4px 6px;
 }
 
+/* "Sırala Ölçütü" alt menüsü */
+.ctx-submenu .ctx-arrow {
+  width: 12px;
+  height: 12px;
+  margin-left: auto;
+  opacity: 0.7;
+}
+
+.ctx-submenu-list {
+  display: none;
+  flex-direction: column;
+  background: #141724;
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-ui);
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.12);
+  padding: 4px;
+  min-width: 170px;
+  position: absolute;
+  z-index: 99997;
+  pointer-events: none;
+}
+
+.desktop-context-menu.open .ctx-submenu-list.open {
+  display: flex;
+  pointer-events: auto;
+}
+
+.ctx-submenu-list .ctx-item {
+  justify-content: flex-start;
+}
+
 .ctx-danger {
   color: #ef4444 !important;
 }
@@ -8439,12 +8470,140 @@ html[data-iconset='faerie'] .cat-office .item-icon { background: linear-gradient
 html[data-iconset='faerie'] .cat-sys .item-icon { background: linear-gradient(135deg, #60a5fa, #2563eb) !important; }
 html[data-iconset='faerie'] .cat-util .item-icon { background: linear-gradient(135deg, #fb7185, #e11d48) !important; }
 
+/* --- Pastel Şeker: yumuşak şeker tonları --- */
+html[data-iconset='pastel'] .pinned-icon-box {
+  background: linear-gradient(135deg, #fbcfe8, #bfdbfe) !important;
+  color: #1f2937 !important;
+  border-color: rgba(255, 255, 255, 0.35) !important;
+}
+html[data-iconset='pastel'] .pinned-icon-box.store-accent { background: linear-gradient(135deg, #fcd34d, #fbcfe8) !important; }
+html[data-iconset='pastel'] .pinned-icon-box.terminal-accent { background: linear-gradient(135deg, #bbf7d0, #99f6e4) !important; }
+html[data-iconset='pastel'] .pinned-icon-box.browser-accent { background: linear-gradient(135deg, #bfdbfe, #ddd6fe) !important; }
+html[data-iconset='pastel'] .pinned-icon-box.ai-accent { background: linear-gradient(135deg, #ddd6fe, #fbcfe8) !important; }
+html[data-iconset='pastel'] .pinned-icon-box.settings-accent { background: linear-gradient(135deg, #e2e8f0, #cbd5e1) !important; }
+html[data-iconset='pastel'] .pinned-icon-box.office-accent { background: linear-gradient(135deg, #fecaca, #fed7aa) !important; }
+html[data-iconset='pastel'] .pinned-icon-box.welcome-accent { background: linear-gradient(135deg, #a5f3fc, #bfdbfe) !important; }
+html[data-iconset='pastel'] .pinned-icon-box.installer-accent { background: linear-gradient(135deg, #c7d2fe, #bfdbfe) !important; }
+html[data-iconset='pastel'] .pinned-icon-box svg { stroke: #1f2937 !important; }
+
+html[data-iconset='pastel'] .desktop-item .item-icon,
+html[data-iconset='pastel'] .ayaz-desktop-shortcut .item-icon {
+  background: linear-gradient(135deg, #fbcfe8, #bfdbfe) !important;
+  color: #1f2937 !important;
+  border-color: rgba(255, 255, 255, 0.35) !important;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.25) !important;
+}
+html[data-iconset='pastel'] .item-icon svg { stroke: #1f2937 !important; }
+
+html[data-iconset='pastel'] .cat-dev .item-icon { background: linear-gradient(135deg, #bfdbfe, #bae6fd) !important; }
+html[data-iconset='pastel'] .cat-media .item-icon { background: linear-gradient(135deg, #e9d5ff, #c4b5fd) !important; }
+html[data-iconset='pastel'] .cat-net .item-icon { background: linear-gradient(135deg, #bbf7d0, #99f6e4) !important; }
+html[data-iconset='pastel'] .cat-office .item-icon { background: linear-gradient(135deg, #fde68a, #fbcfe8) !important; }
+html[data-iconset='pastel'] .cat-sys .item-icon { background: linear-gradient(135deg, #c7d2fe, #bfdbfe) !important; }
+html[data-iconset='pastel'] .cat-util .item-icon { background: linear-gradient(135deg, #fecaca, #fed7aa) !important; }
+
+/* --- Gün Batımı: turuncu-kızıl ağırlıklı sıcak gradyanlar --- */
+html[data-iconset='sunset'] .pinned-icon-box {
+  background: linear-gradient(135deg, #fb923c, #ef4444) !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.25) !important;
+}
+html[data-iconset='sunset'] .pinned-icon-box.store-accent { background: linear-gradient(135deg, #fbbf24, #f472b6) !important; }
+html[data-iconset='sunset'] .pinned-icon-box.terminal-accent { background: linear-gradient(135deg, #f97316, #dc2626) !important; }
+html[data-iconset='sunset'] .pinned-icon-box.browser-accent { background: linear-gradient(135deg, #fb7185, #f59e0b) !important; }
+html[data-iconset='sunset'] .pinned-icon-box.ai-accent { background: linear-gradient(135deg, #f472b6, #ef4444) !important; }
+html[data-iconset='sunset'] .pinned-icon-box.settings-accent { background: linear-gradient(135deg, #fdba74, #ea580c) !important; }
+html[data-iconset='sunset'] .pinned-icon-box.office-accent { background: linear-gradient(135deg, #f59e0b, #dc2626) !important; }
+html[data-iconset='sunset'] .pinned-icon-box.welcome-accent { background: linear-gradient(135deg, #fbbf24, #f97316) !important; }
+html[data-iconset='sunset'] .pinned-icon-box.installer-accent { background: linear-gradient(135deg, #fb7185, #ea580c) !important; }
+html[data-iconset='sunset'] .pinned-icon-box svg { stroke: #ffffff !important; }
+
+html[data-iconset='sunset'] .desktop-item .item-icon,
+html[data-iconset='sunset'] .ayaz-desktop-shortcut .item-icon {
+  background: linear-gradient(135deg, #fb923c, #ef4444) !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.25) !important;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.35) !important;
+}
+html[data-iconset='sunset'] .item-icon svg { stroke: #ffffff !important; }
+
+html[data-iconset='sunset'] .cat-dev .item-icon { background: linear-gradient(135deg, #f59e0b, #ea580c) !important; }
+html[data-iconset='sunset'] .cat-media .item-icon { background: linear-gradient(135deg, #f472b6, #ef4444) !important; }
+html[data-iconset='sunset'] .cat-net .item-icon { background: linear-gradient(135deg, #fb923c, #dc2626) !important; }
+html[data-iconset='sunset'] .cat-office .item-icon { background: linear-gradient(135deg, #fbbf24, #f97316) !important; }
+html[data-iconset='sunset'] .cat-sys .item-icon { background: linear-gradient(135deg, #fb7185, #dc2626) !important; }
+html[data-iconset='sunset'] .cat-util .item-icon { background: linear-gradient(135deg, #fdba74, #f59e0b) !important; }
+
+/* --- Zümrüt: derin yeşil-mercan tonları --- */
+html[data-iconset='emerald'] .pinned-icon-box {
+  background: linear-gradient(135deg, #10b981, #0d9488) !important;
+  color: #ffffff !important;
+  border-color: rgba(209, 250, 229, 0.35) !important;
+}
+html[data-iconset='emerald'] .pinned-icon-box.store-accent { background: linear-gradient(135deg, #34d399, #fbbf24) !important; }
+html[data-iconset='emerald'] .pinned-icon-box.terminal-accent { background: linear-gradient(135deg, #059669, #047857) !important; }
+html[data-iconset='emerald'] .pinned-icon-box.browser-accent { background: linear-gradient(135deg, #2dd4bf, #10b981) !important; }
+html[data-iconset='emerald'] .pinned-icon-box.ai-accent { background: linear-gradient(135deg, #6ee7b7, #14b8a6) !important; }
+html[data-iconset='emerald'] .pinned-icon-box.settings-accent { background: linear-gradient(135deg, #34d399, #0f766e) !important; }
+html[data-iconset='emerald'] .pinned-icon-box.office-accent { background: linear-gradient(135deg, #a7f3d0, #d97706) !important; }
+html[data-iconset='emerald'] .pinned-icon-box.welcome-accent { background: linear-gradient(135deg, #5eead4, #34d399) !important; }
+html[data-iconset='emerald'] .pinned-icon-box.installer-accent { background: linear-gradient(135deg, #2dd4bf, #0d9488) !important; }
+html[data-iconset='emerald'] .pinned-icon-box svg { stroke: #ffffff !important; }
+
+html[data-iconset='emerald'] .desktop-item .item-icon,
+html[data-iconset='emerald'] .ayaz-desktop-shortcut .item-icon {
+  background: linear-gradient(135deg, #10b981, #0d9488) !important;
+  color: #ffffff !important;
+  border-color: rgba(209, 250, 229, 0.35) !important;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.35) !important;
+}
+html[data-iconset='emerald'] .item-icon svg { stroke: #ffffff !important; }
+
+html[data-iconset='emerald'] .cat-dev .item-icon { background: linear-gradient(135deg, #2dd4bf, #0891b2) !important; }
+html[data-iconset='emerald'] .cat-media .item-icon { background: linear-gradient(135deg, #a7f3d0, #14b8a6) !important; }
+html[data-iconset='emerald'] .cat-net .item-icon { background: linear-gradient(135deg, #34d399, #059669) !important; }
+html[data-iconset='emerald'] .cat-office .item-icon { background: linear-gradient(135deg, #fbbf24, #d97706) !important; }
+html[data-iconset='emerald'] .cat-sys .item-icon { background: linear-gradient(135deg, #10b981, #047857) !important; }
+html[data-iconset='emerald'] .cat-util .item-icon { background: linear-gradient(135deg, #6ee7b7, #0d9488) !important; }
+
+/* --- Mürekkep (ink): koyu zemin, hafif kontrast kenarlar --- */
+html[data-iconset='ink'] .pinned-icon-box {
+  background: linear-gradient(135deg, #1e293b, #0f172a) !important;
+  color: #cbd5e1 !important;
+  border-color: rgba(148, 163, 184, 0.4) !important;
+}
+html[data-iconset='ink'] .pinned-icon-box.store-accent { background: linear-gradient(135deg, #334155, #1e293b) !important; }
+html[data-iconset='ink'] .pinned-icon-box.terminal-accent { background: linear-gradient(135deg, #0f172a, #1e293b) !important; }
+html[data-iconset='ink'] .pinned-icon-box.browser-accent { background: linear-gradient(135deg, #1e293b, #334155) !important; }
+html[data-iconset='ink'] .pinned-icon-box.ai-accent { background: linear-gradient(135deg, #312e81, #1e1b4b) !important; }
+html[data-iconset='ink'] .pinned-icon-box.settings-accent { background: linear-gradient(135deg, #475569, #334155) !important; }
+html[data-iconset='ink'] .pinned-icon-box.office-accent { background: linear-gradient(135deg, #44403c, #292524) !important; }
+html[data-iconset='ink'] .pinned-icon-box.welcome-accent { background: linear-gradient(135deg, #164e63, #155e75) !important; }
+html[data-iconset='ink'] .pinned-icon-box.installer-accent { background: linear-gradient(135deg, #1e3a8a, #1e293b) !important; }
+html[data-iconset='ink'] .pinned-icon-box svg { stroke: #cbd5e1 !important; }
+html[data-iconset='ink'] .pinned-icon-box .item-cat-dot { background: #64748b !important; }
+
+html[data-iconset='ink'] .desktop-item .item-icon,
+html[data-iconset='ink'] .ayaz-desktop-shortcut .item-icon {
+  background: linear-gradient(135deg, #1e293b, #0f172a) !important;
+  color: #cbd5e1 !important;
+  border-color: rgba(148, 163, 184, 0.4) !important;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.5) !important;
+}
+html[data-iconset='ink'] .item-icon svg { stroke: #cbd5e1 !important; }
+
+html[data-iconset='ink'] .cat-dev .item-icon { background: linear-gradient(135deg, #1e293b, #312e81) !important; }
+html[data-iconset='ink'] .cat-media .item-icon { background: linear-gradient(135deg, #292524, #44403c) !important; }
+html[data-iconset='ink'] .cat-net .item-icon { background: linear-gradient(135deg, #064e3b, #065f46) !important; }
+html[data-iconset='ink'] .cat-office .item-icon { background: linear-gradient(135deg, #3b2f2f, #57534e) !important; }
+html[data-iconset='ink'] .cat-sys .item-icon { background: linear-gradient(135deg, #0c4a6e, #164e63) !important; }
+html[data-iconset='ink'] .cat-util .item-icon { background: linear-gradient(135deg, #3f3f46, #27272a) !important; }
+
 /* --- Çizgisel (outline): şeffaf zemin, renkli ince çerçeve --- */
 html[data-iconset='outline'] .pinned-icon-box {
   background: transparent !important;
   border: 1.5px solid currentColor !important;
-}
-html[data-iconset='outline'] .pinned-app-card:hover .pinned-icon-box {
+}html[data-iconset='outline'] .pinned-app-card:hover .pinned-icon-box {
   background: rgba(127, 127, 127, 0.12) !important;
 }
 html[data-iconset='outline'] .desktop-item .item-icon,

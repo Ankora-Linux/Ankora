@@ -1,6 +1,6 @@
 [package]
 name = "ayaz-de"
-version = "3.3.0"
+version = "3.4.0"
 description = "Ayaz Minimalist Kiosk Desktop Environment for Ankora Linux"
 authors = ["Ankora Linux Team"]
 edition = "2021"
@@ -9,7 +9,7 @@ edition = "2021"
 tauri-build = { version = "1.5", features = [] }
 
 [dependencies]
-tauri = { version = "1.5", features = ["window-start-dragging", "window-close", "window-hide", "window-maximize", "window-minimize", "window-show", "window-unmaximize"] }
+tauri = { version = "1.5", features = ["window-start-dragging", "window-close", "window-hide", "window-maximize", "window-minimize", "window-show", "window-unmaximize", "global-shortcut"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 tokio = { version = "1", features = ["full"] }

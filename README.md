@@ -104,7 +104,7 @@ cargo tauri dev
 sudo bash scripts/build-iso.sh
 ```
 
-ISO, `dist/ankora-linux-3.3-ayaz-amd64.iso` dizininde oluşur. Ayaz DE bu
+ISO, `dist/ankora-linux-3.4-ayaz-amd64.iso` dizininde oluşur. Ayaz DE bu
 ISO ile dağıtılır; ayrı `.deb` paketi üretilmez ve yayınlanmaz. ISO
 içindeki paket (`scripts/package-deb.sh`) yalnızca canlı sisteme DE
 bileşenlerini enjekte etmek için derleyici tarafından kullanılır.

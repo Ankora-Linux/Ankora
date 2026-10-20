@@ -1,13 +1,13 @@
 #!/bin/bash
 # ==============================================================================
-# Ankora Linux 3.3 (Daedalus) — Canlı (Live) ISO Derleme Betiği
+# Ankora Linux 3.4 (Daedalus) — Canlı (Live) ISO Derleme Betiği
 # Masaüstü Ortamı: Ayaz DE (Tauri + WebKitGTK + SysVinit Core)
 # Mimari: x86_64 (UEFI + BIOS Hibrit Boot)
 # ==============================================================================
 
 set -euo pipefail
 
-ISO_NAME="ankora-linux-3.3-ayaz-amd64.iso"
+ISO_NAME="ankora-linux-3.4-ayaz-amd64.iso"
 WORK_DIR="/var/tmp/ankora-iso-build"
 CHROOT_DIR="$WORK_DIR/chroot"
 IMAGE_DIR="$WORK_DIR/image"
@@ -16,9 +16,9 @@ DEVUAN_SUITE="daedalus"
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 echo "======================================================================"
-echo "      ANKORA LINUX 3.3 (AYAZ DE) CANLI ISO DERLEME SİSTEMİ            "
+echo "      ANKORA LINUX 3.4 (AYAZ DE) CANLI ISO DERLEME SİSTEMİ            "
 echo "======================================================================"
-echo "Sürüm: 3.3.0 (Daedalus / SysVinit Core)"
+echo "Sürüm: 3.4.0 (Daedalus / SysVinit Core)"
 echo "Çıktı Hedefi: $ROOT_DIR/dist/$ISO_NAME"
 echo "======================================================================"
 
@@ -760,7 +760,7 @@ update-rc.d zram-swap defaults 05 95 2>/dev/null || true
 # SysVinit Hızlı Paralel Açılış (Fast Parallel Boot)
 mkdir -p /etc/default
 cat << 'RCS_CONF' > /etc/default/rcS
-# Ankora Linux 3.3 Hızlı Paralel Açılış
+# Ankora Linux 3.4 Hızlı Paralel Açılış
 CONCURRENCY=makefile
 UTC=yes
 VERBOSE=no
@@ -988,7 +988,7 @@ else
     rm -f "$BDIR/ankora-sistem-rehberi.pdf"
 fi
 cat << 'KIOSKTXT' > "$BDIR/kiosk-ayarlari.txt"
-Ankora Linux 3.3 — Kiosk Yapılandırma Raporu
+Ankora Linux 3.4 — Kiosk Yapılandırma Raporu
 =============================================
 
 Taban            : Devuan GNU/Linux 5 (daedalus)
@@ -1004,7 +1004,7 @@ Bu dosya Ayaz Dosyalar ve Ofis uygulamalarından açılabilir.
 Kiosk kilit ekranı ve widget ayarları Ayarlar penceresinden yönetilir.
 KIOSKTXT
 cat << 'KIOSKMD' > "$BDIR/kiosk-ayarlari.md"
-# Ankora Linux 3.3 — Kiosk Yapılandırma Raporu
+# Ankora Linux 3.4 — Kiosk Yapılandırma Raporu
 
 - Taban: Devuan Daedalus (SysVinit, systemd-free)
 - Çekirdek: Linux 6.1 LTS
@@ -1105,6 +1105,19 @@ try:
 except ValueError:
     gi.require_version('WebKit2', '4.1')
 from gi.repository import Gtk, WebKit2, Gdk, GLib
+
+# ----------------------------------------------------------------------------
+# RAM TASARRUFU (hedef ~350 MB boş RAM):
+# - WEBKIT_DISABLE_COMPOSITING_MODE: GPU kompozitör/AcceleratedDrawing
+#   süreç katmanını kapatır (~40-80 MB RSS tasarrufu, donanımsız ekranlarda
+#   görsel fark yok).
+# - WEBKIT_DISABLE_DMABUF_RENDERER: dmabuf render kurgusunun ayrı önbellek
+#   birikimini engeller.
+# - DOCUMENT_VIEWER cache modeli + settings'te kapalı page-cache/DBAudio
+#   ile birlikte WebKit tek süreçte düşük ansız çalışır.
+# ----------------------------------------------------------------------------
+os.environ.setdefault('WEBKIT_DISABLE_COMPOSITING_MODE', '1')
+os.environ.setdefault('WEBKIT_DISABLE_DMABUF_RENDERER', '1')
 
 PORT = 49152
 # Origin başlığı yansıtılmaz: sabitlenen tek origin, aynı makinedeki her
@@ -1815,10 +1828,31 @@ def execute_ayaz_command(cmd, args):
         save_to_disk = bool(args.get('save_to_disk', True))
         copy_clipboard = bool(args.get('copy_clipboard', True))
 
-        pictures_dir = os.path.join(home_dir, 'Pictures', 'Screenshots')
-        os.makedirs(pictures_dir, exist_ok=True)
+        # Gerçek "Resimler" dizini: xdg-user-dir Tercih edilir; yoksa
+        # ~/Resimler (Türkçe oturum), ~/Pictures. Alt klasör ZORLA
+        # oluşturulmaz — "resimler" yerine yeni 'Pictures/Screenshots'
+        # klasörü şikayeti bu düzellemenin öncesi hopsa.
+        _xdg_pics = ''
+        try:
+            _xdg_pics = subprocess.run(['xdg-user-dir', 'PICTURES'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True).stdout.strip()
+        except Exception:
+            _xdg_pics = ''
+        if _xdg_pics and _xdg_pics != home_dir:
+            pictures_dir = _xdg_pics
+        elif os.path.isdir(os.path.join(home_dir, 'Resimler')):
+            pictures_dir = os.path.join(home_dir, 'Resimler')
+        elif os.path.isdir(os.path.join(home_dir, 'Pictures')):
+            pictures_dir = os.path.join(home_dir, 'Pictures')
+        else:
+            pictures_dir = os.path.join(home_dir, 'Resimler')
+            os.makedirs(pictures_dir, exist_ok=True)
+        if save_to_disk:
+            os.makedirs(pictures_dir, exist_ok=True)
         ts = time.strftime('%Y-%m-%d_%H-%M-%S')
-        filepath = os.path.join(pictures_dir, f'Ekran-Goruntusu_{ts}.png')
+        if save_to_disk:
+            filepath = os.path.join(pictures_dir, f'Ekran-Goruntusu_{ts}.png')
+        else:
+            filepath = os.path.join('/tmp', f'Ekran-Goruntusu_{ts}.png')
 
         scrot_args = ['scrot']
         if delay > 0:
@@ -2312,7 +2346,7 @@ tmpfs /tmp tmpfs defaults,noatime,mode=1777 0 0
 
             # Hızlı Paralel Açılış ve ZRAM Swap Servisi Optimizasyonlarını Kurulu Sisteme Aktar
             _root_write('/target/etc/default/rcS',
-                        "# Ankora Linux 3.3 Hızlı Paralel Açılış\nCONCURRENCY=makefile\nUTC=yes\nVERBOSE=no\nFSCKFIX=no\n")
+                        "# Ankora Linux 3.4 Hızlı Paralel Açılış\nCONCURRENCY=makefile\nUTC=yes\nVERBOSE=no\nFSCKFIX=no\n")
             _root_write('/target/etc/sysctl.d/99-zram.conf',
                         "vm.swappiness = 100\nvm.vfs_cache_pressure = 50\nvm.watermark_boost_factor = 0\nvm.dirty_background_ratio = 5\nvm.dirty_ratio = 10\n")
             zram_target_script = """#!/bin/sh
@@ -2483,7 +2517,7 @@ exit 0
             _root("umount -l /target/boot/efi 2>/dev/null || true", check=False)
             _root("umount -l /target 2>/dev/null || true", check=False)
 
-        return "Ankora Linux 3.3 başarıyla kuruldu! Sistemi yeniden başlatabilirsiniz."
+        return "Ankora Linux 3.4 başarıyla kuruldu! Sistemi yeniden başlatabilirsiniz."
 
     elif cmd == 'get_system_telemetry':
         mem_total = 4096
@@ -4040,7 +4074,7 @@ exit 0
         cpu_cores = tele.get('cpu_cores') or 4
         cpu_pct = tele.get('cpu_percent') or 0.0
         uptime_mins = int((tele.get('uptime_seconds') or 0) // 60)
-        os_name = tele.get('os_name') or 'Ankora Linux 3.3'
+        os_name = tele.get('os_name') or 'Ankora Linux 3.4'
         kernel = tele.get('kernel') or 'Linux 6.1'
         init_sys = tele.get('init_system') or 'SysVinit'
 
@@ -4069,7 +4103,7 @@ exit 0
 
         tele_ctx = f"[Sistem Özeti: {os_name} | {kernel} | {init_sys} | RAM: {ram_used}/{ram_tot} MB (%{ram_pct}) | CPU: {cpu_cores} çekirdek (%{cpu_pct}) | Disk: {disk_used}/{disk_tot} GB (%{disk_pct})]"
         sys_prompt = (
-            "Sen Ankora Linux 3.3 (Devuan Daedalus, SysVinit) sistem yöneticisi ve tanılama ajanısın. "
+            "Sen Ankora Linux 3.4 (Devuan Daedalus, SysVinit) sistem yöneticisi ve tanılama ajanısın. "
             "Kullanıcıya Türkçe, net ve teknik yanıtlar ver. Gerekirse yanıtının sonuna şu formatta onaylı eylem ekle: "
             "<<<ACTION:{\"command\":\"izin_verilen_komut\",\"desc\":\"Açıklama\"}>>>\n" + tele_ctx
         )
@@ -4187,7 +4221,7 @@ exit 0
         elif any(w in p_lower for w in ['disk', 'depolama', 'alan', 'bölüm', 'lsblk', 'durum', 'özet', 'rapor', 'analiz']):
             c_cmd = 'df -h / && free -m'
             return {
-                'reply': f"Ankora Linux 3.3 Canlı Sistem Raporu:\n• Sistem: {os_name} ({init_sys})\n• Çekirdek: {kernel}\n• CPU: {cpu_cores} Çekirdek (Yük: %{cpu_pct})\n• RAM: {ram_used} MB / {ram_tot} MB (%{ram_pct})\n• Disk: {disk_used} GB / {disk_tot} GB (%{disk_pct})\n• Çalışma Süresi: {uptime_mins} dk\n\nAyrıntılı disk ve bellek çıktısı için aşağıdaki komutu onaylayabilirsiniz.",
+                'reply': f"Ankora Linux 3.4 Canlı Sistem Raporu:\n• Sistem: {os_name} ({init_sys})\n• Çekirdek: {kernel}\n• CPU: {cpu_cores} Çekirdek (Yük: %{cpu_pct})\n• RAM: {ram_used} MB / {ram_tot} MB (%{ram_pct})\n• Disk: {disk_used} GB / {disk_tot} GB (%{disk_pct})\n• Çalışma Süresi: {uptime_mins} dk\n\nAyrıntılı disk ve bellek çıktısı için aşağıdaki komutu onaylayabilirsiniz.",
                 'has_action': True,
                 'action_command': c_cmd,
                 'action_desc': 'Disk ve bellek doluluk durumunu sorgula',
@@ -4252,12 +4286,12 @@ exit 0
         return True
 
     elif cmd == 'check_de_update':
-        current_ver = '3.3.0'
+        current_ver = '3.4.0'
         result = {
             'has_update': False,
             'current_version': current_ver,
             'latest_version': current_ver,
-            'release_name': 'Ankora Linux 3.3 (AyazDE)',
+            'release_name': 'Ankora Linux 3.4 (AyazDE)',
             'release_notes': 'Sisteminiz güncel. AyazDE v3.3 kararlı sürüm devrededir.',
             'download_url': None,
             'published_at': '2026-10-19',
@@ -4302,7 +4336,7 @@ exit 0
         os.makedirs(staging, exist_ok=True)
         target_deb = os.path.join(staging, 'ayaz-update.deb')
         try:
-            req = urllib.request.Request(download_url, headers={'User-Agent': 'ayaz-updater/3.3.0'})
+            req = urllib.request.Request(download_url, headers={'User-Agent': 'ayaz-updater/3.4.0'})
             with urllib.request.urlopen(req, timeout=120) as resp, open(target_deb, 'wb') as f:
                 content = resp.read()
                 f.write(content)
@@ -4494,6 +4528,11 @@ exit 0
 
     elif cmd == 'set_desktop_wallpaper':
         file_path = args.get('filePath', args.get('file_path', ''))
+        # Yalnızca dosya adı geldiyse (tema paketinden) /usr/share/ayaz altında çöz.
+        if file_path and not os.path.isabs(file_path):
+            _cand = os.path.join('/usr/share/ayaz', os.path.basename(file_path))
+            if os.path.exists(_cand):
+                file_path = _cand
         if not file_path or not os.path.exists(file_path):
             raise Exception('Duvar kağıdı dosyası bulunamadı')
         try:
@@ -5502,7 +5541,7 @@ echo "[MANIFEST] Sistem künyesi yazılıyor..."
 AYAZ_VERSION=$(sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' "$ROOT_DIR/src-tauri/tauri.conf.json")
 AYAZ_VERSION="${AYAZ_VERSION%%$'\n'*}"
 if [ -z "$AYAZ_VERSION" ]; then
-    AYAZ_VERSION="3.3.0"
+    AYAZ_VERSION="3.4.0"
 fi
 # git yoksa (ör. WSL) .git/HEAD + ref dosyaları doğrudan okunur; revizyon
 # manifestte hiçbir koşulda boş kalmaz.
@@ -5653,12 +5692,12 @@ if [ "$have_font" = "1" ]; then
 fi
 export theme
 
-menuentry "Ankora Linux 3.3  —  Canlı Masaüstü" {
+menuentry "Ankora Linux 3.4  —  Canlı Masaüstü" {
     linux /live/vmlinuz boot=live live-media-path=/live union=overlay components username=ankora hostname=ankora-live locales=tr_TR.UTF-8 keyboard-layouts=tr timezone=Europe/Istanbul utc=yes noeject splash quiet loglevel=3
     initrd /live/initrd
 }
 
-menuentry "Ankora Linux 3.3  —  Canlı Masaüstü (RAM'den Açılış / Ventoy)" {
+menuentry "Ankora Linux 3.4  —  Canlı Masaüstü (RAM'den Açılış / Ventoy)" {
     # Ventoy/USB giriş akışı: live-boot toram ile RO medyanın tamamını
     # RAM'e kopyalayıp oradan açar; flakey USB okuma/slow enumeration
     # sınıfı sorunlar bypass edilir. RAM ihtiyacı ≈ squashfs + ~1 GB
@@ -5668,14 +5707,14 @@ menuentry "Ankora Linux 3.3  —  Canlı Masaüstü (RAM'den Açılış / Ventoy
     initrd /live/initrd
 }
 
-menuentry "Ankora Linux 3.3  —  Güvenli Mod (Failsafe)" {
+menuentry "Ankora Linux 3.4  —  Güvenli Mod (Failsafe)" {
     # Metin kipi: grafik devri olmadan düz konsol logları (donanım sorunlarında)
     set gfxpayload="text"
     linux /live/vmlinuz boot=live live-media-path=/live union=overlay components username=ankora hostname=ankora-live locales=tr_TR.UTF-8 keyboard-layouts=tr timezone=Europe/Istanbul noeject nomodeset noapic noacpi
     initrd /live/initrd
 }
 
-menuentry "Ankora Linux 3.3  —  Donanım Teşhisi (Ayrıntılı Günlük)" {
+menuentry "Ankora Linux 3.4  —  Donanım Teşhisi (Ayrıntılı Günlük)" {
     # Ventoy/USB'de "Devuan..." yazısından sonra donan açılış (VM'de düzgün)
     # durumunda sorunun hangi aşamada takıldığını açık konsoldan görmek için:
     # plymouth yok, loglevel=7. Takılan son satırı fotoğraflayıp hata

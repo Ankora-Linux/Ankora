@@ -66,6 +66,10 @@ const ALLOWED_CAT_FILES: &[&str] = &[
     "/proc/version",
     "/proc/meminfo",
     "/proc/cpuinfo",
+    // Kullanıcı bilgileri: hash barındırmayan, herkesçe okunabilir hesap
+    // kayıtlarıdır ("/etc/shadow" hâlâ SENSITIVE_FILE_PATTERNS ile engellidir).
+    "/etc/passwd",
+    "/etc/group",
 ];
 
 /// AI Asistanının kullanıcı onayıyla çalıştırabileceği kısıtlı güvenli eylemler
@@ -1643,6 +1647,100 @@ fn is_terminal_command_permitted(command: &str) -> Result<(), String> {
     Ok(())
 }
 
+/// Terminalde yazılan `apt-get` işlemlerini kabuktan (bash -c) çıkarmadan,
+/// doğrudan root_command üzerinden güvenli şekilde yürütür. Güncelleme ve
+/// kurulum bu geçit üzerinden mümkündür; kara liste ikilileri hâlâ engellidir.
+fn try_apt_get_passthrough(command: &str) -> Option<Result<String, String>> {
+    let segments: Vec<&str> = command.split("&&")
+        .map(|s| s.trim())
+        .filter(|s| !s.is_empty())
+        .collect();
+
+    if segments.len() > 2 {
+        return None;
+    }
+
+    let mut ops: Vec<(String, Vec<String>)> = Vec::new();
+
+    for seg in &segments {
+        let parts: Vec<&str> = seg.split_whitespace().collect();
+        if parts.is_empty() || parts[0] != "apt-get" {
+            return None;
+        }
+
+        match parts.get(1).copied().unwrap_or("") {
+            "update" => {
+                if parts.len() != 2 {
+                    return None;
+                }
+                ops.push(("update".into(), vec![]));
+            }
+            "upgrade" => {
+                // Yalnızca -y / yes bayraklarına izin verilir; bağımsız ek
+                // argüman reddedilirse geçit devralmaz (None → normal yol).
+                let extra: Vec<&&str> = parts[2..]
+                    .iter()
+                    .filter(|f| **f != "-y" && **f != "--yes")
+                    .collect();
+                if !extra.is_empty() {
+                    return None;
+                }
+                let mut args = vec!["-y".to_string()];
+                args.extend(parts[2..].iter().map(|s| s.to_string()));
+                ops.push(("upgrade".into(), args));
+            }
+            "install" => {
+                let pkgs: Vec<&&str> = parts[2..]
+                    .iter()
+                    .filter(|f| **f != "-y" && **f != "--yes" && **f != "--no-install-recommends")
+                    .collect();
+                if pkgs.is_empty() {
+                    return None;
+                }
+                for p in &pkgs {
+                    if !is_valid_deb_package_name(p) {
+                        return None;
+                    }
+                }
+                let mut args = vec!["-y".to_string(), "--no-install-recommends".to_string(), "--".to_string()];
+                args.extend(pkgs.iter().map(|s| s.to_string()));
+                ops.push(("install".into(), args));
+            }
+            _ => return None,
+        }
+    }
+
+    if ops.is_empty() {
+        return None;
+    }
+
+    Some((move || {
+        let mut combined = String::new();
+        for (op, args) in ops {
+            let mut argv: Vec<String> = args.clone();
+            argv.insert(0, op.clone());
+            let argv_ref: Vec<&str> = argv.iter().map(|s| s.as_str()).collect();
+            let out = root_command("apt-get", &argv_ref)
+                .map_err(|e| format!("apt-get çalıştırılamadı: {}", e))?;
+            let stdout = String::from_utf8_lossy(&out.stdout).to_string();
+            let stderr = String::from_utf8_lossy(&out.stderr).to_string();
+            if !out.status.success() {
+                if !stderr.is_empty() {
+                    return Err(format!("apt-get {}: {}", op, stderr.trim()));
+                }
+                return Err(format!("apt-get {} komutu hata verdi (çıkış kodu {}).", op, out.status.code().unwrap_or(-1)));
+            }
+            if !stdout.is_empty() {
+                combined.push_str(&stdout);
+                if !combined.ends_with('\n') {
+                    combined.push('\n');
+                }
+            }
+        }
+        Ok(combined)
+    })())
+}
+
 #[tauri::command]
 async fn run_terminal_command(command: String) -> Result<String, String> {
     tauri::async_runtime::spawn_blocking(move || run_terminal_command_blocking(command))
@@ -1654,6 +1752,12 @@ fn run_terminal_command_blocking(command: String) -> Result<String, String> {
     let cmd_trimmed = command.trim();
     if cmd_trimmed.is_empty() {
         return Ok(String::new());
+    }
+
+    // apt-get update/upgrade/install güvenli geçidi: beyaz listeye girmeden
+    // önce yakalanır ve kabuk devre dışı bırakılarak root_command ile yürütülür.
+    if let Some(res) = try_apt_get_passthrough(cmd_trimmed) {
+        return res;
     }
 
     // Güvenlik İlkesi (Whitelist & Parameter Sanity) denetimi
@@ -2059,7 +2163,7 @@ fn generate_agent_action_token(cmd: &str) -> String {
 fn build_local_ai_diagnostic_response(prompt: &str, mode: &str) -> AiResponse {
     let p_lower = prompt.to_lowercase();
     let tele = collect_system_telemetry().unwrap_or(SystemTelemetry {
-        os_name: "Ankora Linux 3.3".to_string(),
+        os_name: "Ankora Linux 3.4".to_string(),
         kernel: "Linux 6.1 (Devuan Daedalus)".to_string(),
         init_system: "SysVinit (systemd-free)".to_string(),
         memory_used_mb: 512,
@@ -2190,7 +2294,7 @@ fn build_local_ai_diagnostic_response(prompt: &str, mode: &str) -> AiResponse {
         let token = generate_agent_action_token(&cmd);
         return AiResponse {
             reply: format!(
-                "Ankora Linux 3.3 Canlı Sistem Raporu:\n• Sistem: {} ({})\n• Çekirdek: {}\n• CPU: {} Çekirdek (Yük: %{:.1})\n• RAM: {} MB / {} MB (%{})\n• Disk: {:.1} GB / {:.1} GB (%{})\n• Çalışma Süresi: {} dk\n\nAyrıntılı disk ve bellek çıktısı için aşağıdaki komutu onaylayabilirsiniz.",
+                "Ankora Linux 3.4 Canlı Sistem Raporu:\n• Sistem: {} ({})\n• Çekirdek: {}\n• CPU: {} Çekirdek (Yük: %{:.1})\n• RAM: {} MB / {} MB (%{})\n• Disk: {:.1} GB / {:.1} GB (%{})\n• Çalışma Süresi: {} dk\n\nAyrıntılı disk ve bellek çıktısı için aşağıdaki komutu onaylayabilirsiniz.",
                 tele.os_name, tele.init_system, tele.kernel, tele.cpu_cores, tele.cpu_percent, tele.memory_used_mb, tele.memory_total_mb, ram_pct, tele.disk_used_gb, tele.disk_total_gb, disk_pct, uptime_mins
             ),
             has_action: true,
@@ -2241,7 +2345,7 @@ async fn query_local_ai(
             t.os_name, t.kernel, t.init_system, t.memory_used_mb, t.memory_total_mb, t.cpu_cores, t.cpu_percent, t.disk_used_gb, t.disk_total_gb
         )
     } else {
-        "[Sistem Özeti: Ankora Linux 3.3 | Devuan Daedalus | SysVinit]".to_string()
+        "[Sistem Özeti: Ankora Linux 3.4 | Devuan Daedalus | SysVinit]".to_string()
     };
 
     let base_sys_prompt = match mode.as_str() {
@@ -2838,7 +2942,7 @@ fn execute_system_installation_blocking(payload: InstallPayload) -> Result<Strin
         let _ = root_command("chroot", &["/target", "sh", "-c", &format!("command -v update-locale >/dev/null && update-locale LANG={} 2>/dev/null; command -v locale-gen >/dev/null && locale-gen {} en_US.UTF-8 2>/dev/null; true", want_lang, want_lang)]);
 
         // ZRAM Takas Servisi ve Optimizasyonunu kurulu sisteme kur
-        let _ = root_write("/target/etc/default/rcS", "# Ankora Linux 3.3 Hızlı Paralel Açılış\nCONCURRENCY=makefile\nUTC=yes\nVERBOSE=no\nFSCKFIX=no\n");
+        let _ = root_write("/target/etc/default/rcS", "# Ankora Linux 3.4 Hızlı Paralel Açılış\nCONCURRENCY=makefile\nUTC=yes\nVERBOSE=no\nFSCKFIX=no\n");
         let _ = root_write("/target/etc/sysctl.d/99-zram.conf", "vm.swappiness = 100\nvm.vfs_cache_pressure = 50\nvm.watermark_boost_factor = 0\nvm.dirty_background_ratio = 5\nvm.dirty_ratio = 10\n");
         let zram_script = "#!/bin/sh\ncase \"$1\" in\n  start)\n    modprobe zram num_devices=1 2>/dev/null || true\n    if [ -e /dev/zram0 ]; then\n      for alg in zstd lz4 lzo; do\n        if grep -q \"$alg\" /sys/block/zram0/comp_algorithm 2>/dev/null; then\n          echo \"$alg\" > /sys/block/zram0/comp_algorithm 2>/dev/null && break\n        fi\n      done\n      MEM_TOTAL_KB=$(grep MemTotal /proc/meminfo 2>/dev/null | awk '{print $2}')\n      DISKSIZE=$(( MEM_TOTAL_KB * 1024 / 2 ))\n      echo \"$DISKSIZE\" > /sys/block/zram0/disksize 2>/dev/null || true\n      mkswap /dev/zram0 >/dev/null 2>&1 || true\n      swapon -p 100 /dev/zram0 2>/dev/null || true\n    fi\n    ;;\n  stop)\n    swapoff /dev/zram0 2>/dev/null || true\n    echo 1 > /sys/block/zram0/reset 2>/dev/null || true\n    ;;\n  restart)\n    $0 stop; $0 start;;\nesac\nexit 0\n";
         let _ = root_write("/target/etc/init.d/zram-swap", zram_script);
@@ -3940,6 +4044,11 @@ pub struct DirectoryItem {
     pub size_str: String,
     pub ext: String,
     pub is_hidden: bool,
+    // Sıralama ölçütleri için: ham boyut ve değiştirme zamanı (Unix sn).
+    #[serde(default)]
+    pub size_bytes: u64,
+    #[serde(default)]
+    pub mtime: u64,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -3996,6 +4105,17 @@ async fn list_directory(path: Option<String>) -> Result<DirectoryListing, String
             } else {
                 "-".to_string()
             };
+            let mut size_bytes = 0u64;
+            let mut mtime = 0u64;
+            if let Ok(meta) = entry.metadata() {
+                size_bytes = meta.len();
+                mtime = meta
+                    .modified()
+                    .ok()
+                    .and_then(|t| t.duration_since(UNIX_EPOCH).ok())
+                    .map(|d| d.as_secs())
+                    .unwrap_or(0);
+            }
 
             items.push(DirectoryItem {
                 name,
@@ -4004,6 +4124,8 @@ async fn list_directory(path: Option<String>) -> Result<DirectoryListing, String
                 size_str,
                 ext,
                 is_hidden,
+                size_bytes,
+                mtime,
             });
         }
     }
@@ -4259,8 +4381,9 @@ fn screenshot_pictures_dir(home: &str) -> PathBuf {
     if pics.is_dir() {
         return pics;
     }
-    let _ = fs::create_dir_all(&pics);
-    pics
+    // Hiçbiri yoksa Türkçe oturumlarda beklenen klasör oluşturulur.
+    let _ = fs::create_dir_all(&resim);
+    resim
 }
 
 #[tauri::command]
@@ -4270,20 +4393,54 @@ fn take_screenshot(
     save_to_disk: Option<bool>,
     copy_clipboard: Option<bool>,
 ) -> Result<ScreenshotResult, String> {
+    take_screenshot_core(mode, delay, save_to_disk, copy_clipboard)
+}
+
+/// "Klasörde Göster" için güvenli yol: beyaz listeye tabi olmayan xdg-open
+/// çağrısı terminalden değil, yalnızca bu köprünün içinden yapılır.
+#[tauri::command]
+fn open_pictures_folder() -> Result<bool, String> {
+    let home = std::env::var("HOME").unwrap_or_else(|_| "/home/ankora".to_string());
+    let dir = screenshot_pictures_dir(&home);
+    let dir_str = dir.to_string_lossy().to_string();
+    #[cfg(target_os = "linux")]
+    {
+        Command::new("xdg-open")
+            .arg(&dir_str)
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .spawn()
+            .map_err(|e| format!("Klasör açılamadı: {}", e))?;
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        let _ = dir_str;
+    }
+    Ok(true)
+}
+
+fn take_screenshot_core(
+    mode: Option<String>,
+    delay: Option<u32>,
+    save_to_disk: Option<bool>,
+    copy_clipboard: Option<bool>,
+) -> Result<ScreenshotResult, String> {
     let mode = mode.unwrap_or_else(|| "fullscreen".to_string());
     let delay = delay.unwrap_or(0);
-    let _save_to_disk = save_to_disk.unwrap_or(true);
+    let save_to_disk = save_to_disk.unwrap_or(true);
     let copy_clipboard = copy_clipboard.unwrap_or(true);
 
     let home = std::env::var("HOME").unwrap_or_else(|_| "/home/ankora".to_string());
     // Kayıt yeri "yeni klasör" olamaz. Gerçek XDG Resimler dizini
-    // çözülür (Türkçe oturumda ~/Resimler); SCREENSHOT alt dizini yalnızca
-    // kullanıcı zaten açmışsa korunur, zorla oluşturulmaz.
+    // çözülür (Türkçe oturumda ~/Resimler).
     let pic_dir = screenshot_pictures_dir(&home);
+    // Kullanıcı diske kaydı kapatırsa geçici dizine yazılır (pano için).
+    let target_dir = if save_to_disk { pic_dir } else { PathBuf::from("/tmp") };
 
     let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs();
     let filename = format!("Ekran-Goruntusu_{}.png", now);
-    let filepath = pic_dir.join(&filename);
+    let filepath = target_dir.join(&filename);
     let filepath_str = filepath.to_string_lossy().to_string();
 
     #[cfg(target_os = "linux")]
@@ -5609,6 +5766,8 @@ async fn list_trash() -> Result<Vec<DirectoryItem>, String> {
                     size_str: format_file_size(size),
                     ext,
                     is_hidden: false,
+                    size_bytes: size,
+                    mtime: p.metadata().ok().and_then(|m| m.modified().ok()).and_then(|t| t.duration_since(UNIX_EPOCH).ok()).map(|d| d.as_secs()).unwrap_or(0),
                 });
             }
         }
@@ -6230,10 +6389,19 @@ async fn spotlight_search_files(query: String) -> Result<Vec<SpotlightSearchResu
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DesktopNotificationItem {
     pub id: String,
+    #[serde(default)]
     pub app_name: String,
-    pub title: String,
+    // JS tarafı "summary" bekliyordu; eski "title" alanı da geriye dönük
+    // uyumluluk için okunmaya devam eder.
+    #[serde(default, alias = "title")]
+    pub summary: String,
+    #[serde(default)]
     pub body: String,
-    pub timestamp: String,
+    // Unix saniyesi (u64); eski "HH:MM" biçimi artık yazılmaz.
+    #[serde(default)]
+    pub timestamp: u64,
+    #[serde(default)]
+    pub read: bool,
 }
 
 #[tauri::command]
@@ -6252,23 +6420,66 @@ fn get_system_notifications() -> Result<Vec<DesktopNotificationItem>, String> {
     Ok(list)
 }
 
+/// Tüm bildirimleri okundu olarak işaretler ve kalıcı duruma getirir.
 #[tauri::command]
-fn send_desktop_notification(title: String, body: String, appName: Option<String>) -> Result<bool, String> {
+fn mark_notifications_read() -> Result<bool, String> {
+    let path = Path::new("/tmp/ayaz-notifications.jsonl");
+    if !path.exists() {
+        return Ok(true);
+    }
+    let content = match fs::read_to_string(path) {
+        Ok(c) => c,
+        Err(_) => return Err("Bildirim dosyası okunamadı.".into()),
+    };
+    let mut lines_out: Vec<String> = Vec::new();
+    for line in content.lines() {
+        if line.trim().is_empty() {
+            continue;
+        }
+        match serde_json::from_str::<DesktopNotificationItem>(line) {
+            Ok(mut item) => {
+                item.read = true;
+                if let Ok(json) = serde_json::to_string(&item) {
+                    lines_out.push(json);
+                }
+            }
+            Err(_) => continue,
+        }
+    }
+    let _ = fs::write(path, lines_out.join("\n"));
+    Ok(true)
+}
+
+#[tauri::command]
+fn send_desktop_notification(
+    summary: String,
+    body: String,
+    appName: Option<String>,
+    icon: Option<String>,
+    title: Option<String>,
+) -> Result<bool, String> {
     let app = appName.unwrap_or_else(|| "Sistem".to_string());
+    // Eski istemciler hâlâ "title" gönderebilir; summary boşsa onu kullan.
+    let headline = if summary.is_empty() {
+        title.unwrap_or_else(|| "Bildirim".to_string())
+    } else {
+        summary
+    };
+    let _ = icon;
     #[cfg(target_os = "linux")]
     {
         let _ = Command::new("notify-send")
-            .args(["-a", &app, &title, &body])
+            .args(["-a", &app, &headline, &body])
             .output();
     }
-    let secs = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs();
-    let now = format!("{:02}:{:02}", (secs / 3600 % 24), (secs / 60 % 60));
+    let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs();
     let item = DesktopNotificationItem {
         id: format!("{}", SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_millis()),
         app_name: app,
-        title,
+        summary: headline,
         body,
         timestamp: now,
+        read: false,
     };
     if let Ok(json) = serde_json::to_string(&item) {
         if let Ok(mut f) = fs::OpenOptions::new().create(true).append(true).open("/tmp/ayaz-notifications.jsonl") {
@@ -6290,6 +6501,206 @@ fn clear_system_notifications() -> Result<bool, String> {
         let _ = Command::new("dunstctl").args(["close-all"]).output();
     }
     Ok(true)
+}
+
+// ----------------------------------------------------------------------------
+// 4b. SİSTEM KULLANICI YÖNETİMİ (USER MANAGEMENT)
+// Kullanıcı listesi/ekleme/kaldırma yalnızca doğrulanmış Tauri komutları
+// üzerinden yapılır; terminal beyaz listesi bu işlemleri sunmaz.
+// ----------------------------------------------------------------------------
+#[derive(Debug, Clone, Serialize)]
+pub struct SystemUserEntry {
+    pub username: String,
+    pub uid: u32,
+    pub full_name: String,
+    pub home: String,
+    pub shell: String,
+    pub is_current: bool,
+    pub in_sudo_group: bool,
+}
+
+fn parse_system_users() -> Vec<SystemUserEntry> {
+    let mut users = Vec::new();
+    let Ok(passwd) = fs::read_to_string("/etc/passwd") else {
+        return users;
+    };
+    let sudo_members: Vec<String> = fs::read_to_string("/etc/group")
+        .ok()
+        .map(|g| {
+            g.lines()
+                .filter(|l| l.starts_with("sudo:"))
+                .flat_map(|l| l.split(':').nth(3).unwrap_or("").split(',').map(|s| s.trim().to_string()).collect::<Vec<_>>())
+                .collect()
+        })
+        .unwrap_or_default();
+
+    let me = Command::new("whoami").output().ok()
+        .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string());
+
+    for line in passwd.lines() {
+        let f: Vec<&str> = line.split(':').collect();
+        if f.len() < 7 {
+            continue;
+        }
+        let uid: u32 = match f[2].parse() {
+            Ok(v) => v,
+            Err(_) => continue,
+        };
+        // Yalnızca gerçek kullanıcı hesapları (sistem hesapları hariç).
+        if uid < 1000 || uid >= 65000 {
+            continue;
+        }
+        let username = f[0].to_string();
+        users.push(SystemUserEntry {
+            is_current: me.as_deref() == Some(username.as_str()),
+            in_sudo_group: sudo_members.iter().any(|m| *m == username),
+            full_name: f[4].split(',').next().unwrap_or("").to_string(),
+            username,
+            uid,
+            home: f[5].to_string(),
+            shell: f[6].to_string(),
+        });
+    }
+    users
+}
+
+#[tauri::command]
+fn list_system_users() -> Result<Vec<SystemUserEntry>, String> {
+    Ok(parse_system_users())
+}
+
+#[tauri::command]
+fn system_user_info(username: Option<String>) -> Result<SystemUserEntry, String> {
+    let users = parse_system_users();
+    let target = username
+        .filter(|u| !u.is_empty())
+        .map(|u| u)
+        .or_else(|| users.iter().find(|u| u.is_current).map(|u| u.username.clone()));
+    let target = match target {
+        Some(t) => t,
+        None => return Err("Oturumda aktif kullanıcı bulunamadı.".into()),
+    };
+    users
+        .into_iter()
+        .find(|u| u.username == target)
+        .ok_or_else(|| format!("'{}' kullanıcı hesabı bulunamadı.", target))
+}
+
+fn valid_system_username(name: &str) -> bool {
+    // Debian kuralı: küçük harf/alt çizgi başlar; harf, rakam, -, _ devam eder.
+    let b = name.as_bytes();
+    b.len().ge(&1) && b.len().le(&31)
+        && (b[0].is_ascii_lowercase() || b[0] == b'_')
+        && b.iter().all(|&c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == b'-' || c == b'_')
+}
+
+#[tauri::command]
+fn system_user_add(username: String, password: String, full_name: Option<String>) -> Result<String, String> {
+    let username = username.trim().to_string();
+    let password = password.to_string();
+    let full_name = full_name.unwrap_or_default().replace(['\n', '\r', ':'], " ");
+
+    if !valid_system_username(&username) {
+        return Err("Geçersiz kullanıcı adı. Küçük harf, rakam, '-' ve '_' kullanılabilir (en fazla 31 karakter).".into());
+    }
+    if password.is_empty() {
+        return Err("Parola boş olamaz.".into());
+    }
+    if parse_system_users().iter().any(|u| u.username == username) {
+        return Err(format!("'{}' kullanıcısı zaten mevcut.", username));
+    }
+
+    let out = root_command("useradd", &[
+        "-m", "-s", "/bin/bash", "-G", "sudo,audio,video,plugdev,netdev",
+        "-c", &full_name, &username,
+    ]).map_err(|e| format!("useradd çalıştırılamadı: {}", e))?;
+    if !out.status.success() {
+        let err = String::from_utf8_lossy(&out.stderr).trim().to_string();
+        return Err(if err.is_empty() {
+            format!("Kullanıcı oluşturulamadı (çıkış kodu {}).", out.status.code().unwrap_or(-1))
+        } else {
+            err
+        });
+    }
+
+    // Parola chpasswd ile stdin üzerinden beslenir (komut satırına hash yazılmaz).
+    if sudo_available() {
+        let mut child = Command::new("sudo").args(["-n", "chpasswd"])
+            .stdin(Stdio::piped())
+            .stdout(Stdio::null())
+            .stderr(Stdio::piped())
+            .spawn()
+            .map_err(|e| format!("chpasswd başlatılamadı: {}", e))?;
+        if let Some(mut stdin) = child.stdin.take() {
+            let _ = stdin.write_all(format!("{}:{}\n", username, password).as_bytes());
+        }
+        let res = child.wait_with_output().map_err(|e| e.to_string())?;
+        if !res.status.success() {
+            return Err("Kullanıcı oluşturuldu ancak parola ayarlanamadı.".into());
+        }
+    }
+
+    Ok(format!("'{}' kullanıcısı oluşturuldu.", username))
+}
+
+#[tauri::command]
+fn system_user_remove(username: String) -> Result<String, String> {
+    let username = username.trim().to_string();
+    if username.eq_ignore_ascii_case("root") {
+        return Err("Root hesabı kaldırılamaz.".into());
+    }
+    let users = parse_system_users();
+    if let Some(cur) = users.iter().find(|u| u.is_current) {
+        if cur.username == username {
+            return Err("Aktif oturum kullanıcı hesabı kaldırılamaz.".into());
+        }
+    }
+    if !users.iter().any(|u| u.username == username) {
+        return Err(format!("'{}' kullanıcı hesabı bulunamadı.", username));
+    }
+
+    let out = root_command("userdel", &["-r", &username])
+        .map_err(|e| format!("userdel çalıştırılamadı: {}", e))?;
+    if !out.status.success() {
+        let err = String::from_utf8_lossy(&out.stderr).trim().to_string();
+        return Err(if err.is_empty() {
+            format!("Kullanıcı kaldırılamadı (çıkış kodu {}).", out.status.code().unwrap_or(-1))
+        } else {
+            err
+        });
+    }
+    Ok(format!("'{}' kullanıcısı kaldırıldı.", username))
+}
+
+// ----------------------------------------------------------------------------
+// 4c. SİSTEM GÜNCELLEME (APT UPDATE / UPGRADE)
+// Ayarlar > Güncelleyici düğmeleri terminal beyaz listesi yerine bu onaylı
+// komutu çağırır; kök yetkisi root_command ile sağlanır.
+// ----------------------------------------------------------------------------
+#[tauri::command]
+async fn system_update_apt(do_upgrade: Option<bool>) -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let mut combined = String::new();
+        let out = root_command("apt-get", &["update"])
+            .map_err(|e| format!("apt-get update çalıştırılamadı: {}", e))?;
+        combined.push_str(&String::from_utf8_lossy(&out.stdout));
+        combined.push_str(&String::from_utf8_lossy(&out.stderr));
+        if !out.status.success() {
+            return Err(combined.trim().to_string());
+        }
+        if do_upgrade.unwrap_or(false) {
+            let up = root_command("apt-get", &["upgrade", "-y", "--no-install-recommends"])
+                .map_err(|e| format!("apt-get upgrade çalıştırılamadı: {}", e))?;
+            combined.push_str(&String::from_utf8_lossy(&up.stdout));
+            combined.push_str(&String::from_utf8_lossy(&up.stderr));
+            if !up.status.success() {
+                return Err(combined.trim().to_string());
+            }
+        }
+        Ok(combined.trim_end().to_string())
+    })
+    .await
+    .map_err(|e| format!("Güncelleme yürütülemedi: {}", e))?
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -6539,24 +6950,52 @@ fn get_open_with_apps(file_path: String) -> Result<Vec<OpenWithAppInfo>, String>
 
 #[tauri::command]
 fn set_desktop_wallpaper(file_path: String) -> Result<String, String> {
-    let p = Path::new(&file_path);
-    if !p.exists() {
+    // Yalnızca dosya adı gelirse (ör. tema paketinden 'wallpaper-nordic.svg'),
+    // bilinen kurulum dizinlerinde çöz; böylece Ayaz arayüzüne gömülü duvar
+    // kağıtları sistem duvar kağıdına da uygulanabilir.
+    let mut resolved = PathBuf::from(&file_path);
+    if !resolved.exists() {
+        let name = Path::new(&file_path)
+            .file_name()
+            .map(|n| n.to_string_lossy().to_string())
+            .unwrap_or_default();
+        if !name.is_empty() {
+            let mut candidates: Vec<PathBuf> = vec![
+                PathBuf::from("/usr/share/ayaz").join(&name),
+                PathBuf::from("/usr/local/share/ayaz").join(&name),
+            ];
+            if let Ok(cwd) = std::env::current_dir() {
+                candidates.push(cwd.join(&name));
+                if let Some(parent) = cwd.parent() {
+                    candidates.push(parent.join("src").join(&name));
+                }
+            }
+            if let Some(home) = dirs::home_dir() {
+                candidates.push(home.join("src").join(&name));
+            }
+            if let Some(found) = candidates.into_iter().find(|c| c.exists()) {
+                resolved = found;
+            }
+        }
+    }
+    if !resolved.exists() {
         return Err("Duvar kağıdı görseli bulunamadı".into());
     }
+    let resolved_str = resolved.to_string_lossy().to_string();
 
     #[cfg(target_os = "linux")]
     {
         let _ = Command::new("feh")
-            .args(["--bg-fill", &file_path])
+            .args(["--bg-fill", &resolved_str])
             .output();
         let _ = Command::new("xwallpaper")
-            .args(["--zoom", &file_path])
+            .args(["--zoom", &resolved_str])
             .output();
 
         if let Ok(home) = std::env::var("HOME") {
             let conf_dir = Path::new(&home).join(".config/ankora");
             let _ = fs::create_dir_all(&conf_dir);
-            let _ = fs::write(conf_dir.join("wallpaper"), &file_path);
+            let _ = fs::write(conf_dir.join("wallpaper"), &resolved_str);
         }
     }
     Ok("Duvar kağıdı uygulandı".into())
@@ -6926,6 +7365,10 @@ fn delete_system_snapshot(snapshot_id: String) -> Result<String, String> {
 }
 
 fn main() {
+    // Hedef ~350 MB boş RAM: WebKit GPU kompozitörü ve dmabuf renderer
+    // süreç katmanlarını kapat; ayrı NetworkProcess önbellek birikimini önle.
+    std::env::set_var("WEBKIT_DISABLE_COMPOSITING_MODE", "1");
+    std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
     let sys_path = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin";
     match std::env::var("PATH") {
         Ok(cur) if cur.contains("/usr/sbin") => {}
@@ -7056,7 +7499,46 @@ fn main() {
             launch_interactive_terminal,
             get_all_monitors,
             set_multi_monitor_layout,
+            mark_notifications_read,
+            list_system_users,
+            system_user_info,
+            system_user_add,
+            system_user_remove,
+            system_update_apt,
         ])
+        .setup(|app| {
+            // OS seviyesi global PrintScreen: odak hangi pencerede olursa olsun
+            // çalışır. Ayaz penceresi odaktaysa webview'ın kendi işleyicisi
+            // devrede olduğu için çift yakalamayı önlemek amacıyla atlanır.
+            #[cfg(target_os = "linux")]
+            {
+                use tauri::{GlobalShortcutManager, Manager};
+                let handle = app.handle();
+                let main_window = handle.get_window("main");
+                let mut shortcut_manager = handle.global_shortcut_manager();
+                let _ = shortcut_manager.register("Print", move || {
+                    if let Some(win) = &main_window {
+                        if let Ok(focused) = win.is_focused() {
+                            if focused {
+                                return;
+                            }
+                        }
+                    }
+                    std::thread::spawn(|| {
+                        if let Ok(res) = take_screenshot_core(
+                            Some("fullscreen".to_string()), Some(0), Some(true), Some(true)
+                        ) {
+                            let _ = Command::new("notify-send")
+                                .args(["-a", "AyazDE", "-i", "camera"])
+                                .arg("Ekran görüntüsü kaydedildi")
+                                .arg(res.file_path)
+                                .output();
+                        }
+                    });
+                });
+            }
+            Ok(())
+        })
         .run(tauri::generate_context!())
         .expect("Ankora DE başlatılırken hata oluştu");
 }
@@ -7186,6 +7668,8 @@ mod tests {
             size_str: "1.2 KB".to_string(),
             ext: "txt".to_string(),
             is_hidden: false,
+            size_bytes: 1234,
+            mtime: 1700000000,
         };
         assert_eq!(item.name, "test.txt");
         assert!(!item.is_dir);

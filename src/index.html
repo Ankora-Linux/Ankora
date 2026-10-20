@@ -280,7 +280,7 @@
                 </div>
                 <div class="feature-labels">
                   <span class="feature-name">Ayaz Güncelleyici</span>
-                  <span class="feature-desc">Ankora Linux 3.3 sistem yamaları</span>
+                  <span class="feature-desc">Ankora Linux 3.4 sistem yamaları</span>
                 </div>
               </div>
               <div class="feature-right">
@@ -536,7 +536,7 @@
         </div>
         <div class="term-viewport" id="term-viewport">
           <div class="term-logs" id="term-logs">
-            <div class="term-row muted">Ankora Linux 3.3 (Devuan Daedalus) x86_64 - Native Linux Core</div>
+            <div class="term-row muted">Ankora Linux 3.4 (Devuan Daedalus) x86_64 - Native Linux Core</div>
             <div class="term-row muted">Ankora Linux AyazDE Terminali. Yalnızca güvenli listedeki komutlar çalışır; paket kurulumu Yazılım Mağazası üzerinden yapılır.</div>
           </div>
           <div class="term-cmdline">
@@ -879,14 +879,17 @@
                 <span>Çöp Kutusu</span>
               </div>
               <div class="files-sidebar-section-title" style="margin-top: 14px;">Sürücüler & Ağ</div>
-              <div class="files-sidebar-item" data-path="/" id="side-nav-root">
-                <span class="files-side-icon"><svg class="glyph" aria-hidden="true"><use href="#ico-disk"></use></svg></span>
-                <span>Dosya Sistemi (/)</span>
+              <div id="side-nav-drives">
+                <div class="files-sidebar-item" data-path="/" id="side-nav-root">
+                  <span class="files-side-icon"><svg class="glyph" aria-hidden="true"><use href="#ico-disk"></use></svg></span>
+                  <span>Dosya Sistemi (/)</span>
+                </div>
+                <div class="files-sidebar-item" data-path="network" id="side-nav-network">
+                  <span class="files-side-icon"><svg class="glyph" aria-hidden="true"><use href="#ico-globe"></use></svg></span>
+                  <span>Ağ Paylaşımı (SMB/SFTP)</span>
+                </div>
               </div>
-              <div class="files-sidebar-item" data-path="network" id="side-nav-network">
-                <span class="files-side-icon"><svg class="glyph" aria-hidden="true"><use href="#ico-globe"></use></svg></span>
-                <span>Ağ Paylaşımı (SMB/SFTP)</span>
-              </div>
+              <div id="side-nav-usb-drives" style="margin-top: 6px;"></div>
             </aside>
 
             <!-- Dosya Listeleme Izgarası -->
@@ -911,7 +914,7 @@
       <div class="window-header" data-tauri-drag-region>
         <div class="window-meta">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width: 16px; height: 16px;"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-          <span id="settings-header-title">Sistem Ayarları — Ankora Linux 3.3</span>
+          <span id="settings-header-title">Sistem Ayarları — Ankora Linux 3.4</span>
         </div>
         <div class="window-controls">
           <button class="ctrl-btn min" title="Küçült">−</button>
@@ -978,6 +981,10 @@
               <button class="settings-nav-item" data-pane="pane-set-recovery">
                 <svg class="nav-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>
                 <span>Kurtarma & Yedek</span>
+              </button>
+              <button class="settings-nav-item" data-pane="pane-set-users">
+                <svg class="nav-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                <span>Kullanıcı Hesapları</span>
               </button>
             </div>
           </nav>
@@ -1097,6 +1104,10 @@
                     <span>Soğuk buz mavisi açık tema</span>
                   </div>
                 </div>
+                <label class="card-group-hint" style="display:flex;align-items:center;gap:8px;margin-top:10px;cursor:pointer;">
+                  <input type="checkbox" id="chk-fullsystem-theme" checked style="accent-color: var(--accent-active, #2563eb);">
+                  <span>Tema değişince duvar kağıdı ve ikon seti de birlikte değişsin (tüm sistem teması — GTK, pencere, simge ve masaüstü arka planı aynı pakete geçer)</span>
+                </label>
               </div>
 
               <!-- Vurgu Rengi -->
@@ -1119,8 +1130,12 @@
                   <button class="option-pill-btn" data-iconset="monokrom">Monokrom</button>
                   <button class="option-pill-btn" data-iconset="faerie">FairyWren (Renkli)</button>
                   <button class="option-pill-btn" data-iconset="outline">Çizgisel</button>
+                  <button class="option-pill-btn" data-iconset="pastel">Pastel Şeker</button>
+                  <button class="option-pill-btn" data-iconset="sunset">Gün Batımı</button>
+                  <button class="option-pill-btn" data-iconset="emerald">Zümrüt</button>
+                  <button class="option-pill-btn" data-iconset="ink">Mürekkep</button>
                 </div>
-                <p class="card-group-hint">Seçim Başlat menüsündeki ve masaüstündeki tüm uygulama simgelerine uygulanır.</p>
+                <p class="card-group-hint">Seçim Başlat menüsündeki ve masaüstündeki tüm uygulama simgelerine uygulanır. 8 set: Nordic, Monokrom, FairyWren, Çizgisel, Pastel, Gün Batımı, Zümrüt, Mürekkep.</p>
               </div>
 
               <!-- Duvar Kağıdı Seçimi -->
@@ -1585,7 +1600,7 @@
                 <div class="telemetry-cell"><span>İnit Sistemi:</span><strong id="tele-init">SysVinit 3.06 (PID 1)</strong></div>
                 <div class="telemetry-cell"><span>Linux Çekirdeği:</span><strong id="tele-kernel">Linux 6.1.0-22-amd64</strong></div>
                 <div class="telemetry-cell"><span>Bellek (RAM):</span><strong id="tele-mem">1.2 / 8.0 GB (Aktif)</strong></div>
-                <div class="telemetry-cell"><span>ISO İmaj Kimliği:</span><strong>ankora-linux-3.3-ayaz-amd64.iso</strong></div>
+                <div class="telemetry-cell"><span>ISO İmaj Kimliği:</span><strong>ankora-linux-3.4-ayaz-amd64.iso</strong></div>
               </div>
 
               <div class="about-update-banner">
@@ -1765,6 +1780,51 @@
               </div>
             </div>
 
+            <!-- PANE: KULLANICI HESAPLARI (USER ACCOUNTS) -->
+            <div class="settings-pane" id="pane-set-users">
+              <div class="pane-header">
+                <h3>Kullanıcı Hesapları</h3>
+                <p>Sistem kullanıcılarını görüntüleyin, yeni kullanıcı ekleyin (yönetim grubuyla) veya kaldırın. İşlemler güvenli köprü üzerinden yapılır.</p>
+              </div>
+
+              <div class="setting-row-item">
+                <div class="row-desc">
+                  <strong>Aktif Oturum Kullanıcısı</strong>
+                  <span id="users-current-info">Okunuyor…</span>
+                </div>
+                <div class="row-control">
+                  <button class="btn-pkg" id="btn-users-refresh">Listeyi Yenile</button>
+                </div>
+              </div>
+
+              <div class="setting-row-item">
+                <div class="row-desc">
+                  <strong>Sistem Kullanıcıları</strong>
+                  <span id="users-list-status">—</span>
+                </div>
+                <div class="row-control" style="flex-direction: column; align-items: stretch; gap: 8px;">
+                  <div id="users-list" style="display:flex;flex-direction:column;gap:6px;max-height:220px;overflow-y:auto;"></div>
+                </div>
+              </div>
+
+              <div class="setting-row-item">
+                <div class="row-desc">
+                  <strong>Yeni Kullanıcı Ekle</strong>
+                  <span>Küçük harf, rakam, '-' ve '_' (en fazla 31 karakter). Kullanıcı sudo yönetim grubuna eklenir.</span>
+                </div>
+                <div class="row-control" style="flex-direction: column; align-items: stretch; gap: 8px;">
+                  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                    <input type="text" id="ctrl-user-name" placeholder="Kullanıcı adı" class="select-mono" style="width:150px;">
+                    <input type="password" id="ctrl-user-pass" placeholder="Parola" class="select-mono" style="width:130px;">
+                    <input type="text" id="ctrl-user-fullname" placeholder="Tam ad (isteğe bağlı)" class="select-mono" style="flex:1;min-width:140px;">
+                  </div>
+                  <div style="display:flex;justify-content:flex-end;">
+                    <button class="btn-pkg btn-pkg-primary" id="btn-user-add">Kullanıcı Oluştur</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <!-- 12. SİSTEM KURTARMA VE GERİ YÜKLEME (SNAPSHOTS) -->
             <div class="settings-pane" id="pane-set-recovery">
               <div class="pane-header">
@@ -1834,7 +1894,7 @@
                 <span class="updater-badge" id="updater-status-badge">Kontrol Edilmedi</span>
               </div>
               <div class="updater-sub-meta">
-                <span>Mevcut: <strong id="updater-curr-ver">v3.3.0</strong></span>
+                <span>Mevcut: <strong id="updater-curr-ver">v3.4.0</strong></span>
                 <span class="dot-sep">•</span>
                 <span>En Son: <strong id="updater-latest-ver">—</strong></span>
                 <span class="dot-sep">•</span>
@@ -2345,6 +2405,38 @@
       </div>
     </section>
 
+    <!-- =======================================================================
+         15b. PENCERE: BAŞLAT MENÜSÜ DÜZENLEYİCİ (MENU EDITOR)
+         ======================================================================= -->
+    <section class="window" id="win-menu-editor" style="top: 90px; left: 300px; width: 640px; height: 560px;" aria-labelledby="me-header-title">
+      <div class="window-header" data-tauri-drag-region>
+        <div class="window-meta">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:16px;height:16px;color:#38bdf8;margin-right:6px;"><path d="M3 6h18"></path><path d="M3 12h12"></path><path d="M3 18h8"></path></svg>
+          <span class="window-title" id="me-header-title">Başlat Menüsü Düzenleyici</span>
+        </div>
+        <div class="window-controls">
+          <button class="ctrl-btn min" title="Küçült">−</button>
+          <button class="ctrl-btn max" title="Büyüt">□</button>
+          <button class="ctrl-btn close" title="Kapat">✕</button>
+        </div>
+      </div>
+      <div class="window-view">
+        <div style="padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; height: 100%; box-sizing: border-box; overflow: hidden;">
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+            <div style="font-size: 12.5px; color: var(--text-secondary, #94a3b8);">
+              Başlat menüsündeki uygulamaları görünürlük, masaüstü simgesi ve kaldırma işlemleriyle yönetin.
+            </div>
+            <div style="display: flex; gap: 8px; flex-shrink: 0;">
+              <button class="btn btn-secondary btn-sm" id="me-btn-rescan">Tara</button>
+              <input type="text" id="me-search" placeholder="Ara…" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 6px; padding: 6px 10px; font-size: 12px; color: #fff; width: 130px;">
+            </div>
+          </div>
+          <div id="me-list" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding-right: 4px;"></div>
+          <div id="me-footer-status" style="font-size: 11px; color: var(--text-muted, #64748b);">—</div>
+        </div>
+      </div>
+    </section>
+
     <!-- ==============================================================================
          16. PENCERE: ANKORA USB & ISO YAZICI (USB FLASHER & FORMATTER)
          ============================================================================== -->
@@ -2752,7 +2844,7 @@
         </div>
         <div class="profile-info">
           <span class="profile-name" id="desktop-profile-username">ankora</span>
-          <span class="profile-role">Ankora Linux 3.3 (Daedalus)</span>
+          <span class="profile-role">Ankora Linux 3.4 (Daedalus)</span>
         </div>
       </div>
 
@@ -3084,7 +3176,22 @@
     <div class="ctx-divider"></div>
     <div class="ctx-item" data-action="align-icons">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="21" y1="10" x2="3" y2="10"></line><line x1="21" y1="6" x2="3" y2="6"></line><line x1="21" y1="14" x2="3" y2="14"></line><line x1="21" y1="18" x2="3" y2="18"></line></svg>
-      <span>Simgeleri Izgaraya Hizala</span>
+      <span>Simgeleri Izgaraya Hizala (yeniden kareleştir)</span>
+    </div>
+    <div class="ctx-item" data-action="auto-arrange">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18"></path><path d="M3 12h18"></path><rect x="3" y="3" width="18" height="18" rx="2"></rect></svg>
+      <span>Simgeleri Otomatik Düzenle (Ad)</span>
+    </div>
+    <div class="ctx-item ctx-submenu" data-submenu="sort-icons">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 4v14"></path><path d="M9 15l-3 3-3-3"></path><path d="M14 7h7"></path><path d="M14 12h5"></path><path d="M14 17h3"></path></svg>
+      <span>Sırala Ölçütü</span>
+      <svg class="ctx-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 6 15 12 9 18"></polyline></svg>
+    </div>
+    <div class="ctx-submenu-list" id="submenu-sort-icons">
+      <div class="ctx-item" data-action="sort-icons" data-criterion="name"><span>Ad</span></div>
+      <div class="ctx-item" data-action="sort-icons" data-criterion="size"><span>Boyut</span></div>
+      <div class="ctx-item" data-action="sort-icons" data-criterion="type"><span>Öğe Türü</span></div>
+      <div class="ctx-item" data-action="sort-icons" data-criterion="date"><span>Tarih</span></div>
     </div>
     <div class="ctx-item" data-action="toggle-icons">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
@@ -3102,6 +3209,18 @@
     <div class="ctx-item" data-action="settings">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
       <span>Sistem Ayarları</span>
+    </div>
+  </div>
+
+  <!-- Başlat Menüsü Sağ Tık Bağlam Menüsü -->
+  <div id="start-menu-context" class="desktop-context-menu">
+    <div class="ctx-item" data-action="menu-editor">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+      <span>Menüyü Düzenle</span>
+    </div>
+    <div class="ctx-item" data-action="menu-rescan">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+      <span>Uygulama Listesini Tara</span>
     </div>
   </div>
 
