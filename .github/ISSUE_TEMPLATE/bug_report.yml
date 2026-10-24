@@ -1,0 +1,38 @@
+name: Hata Bildirimi
+description: Ankora Linux veya Ayaz DE'de bir hata bildirin
+labels: ["bug"]
+body:
+  - type: textarea
+    id: neler-oldu
+    attributes:
+      label: Ne oldu?
+      description: Hatanın net bir tanımı. Ekran görüntüsü varsa ekleyin.
+    validations:
+      required: true
+  - type: textarea
+    id: tekrar
+    attributes:
+      label: Tekrarlama adımları
+      placeholder: |
+        1. ...
+        2. ...
+    validations:
+      required: true
+  - type: input
+    id: surum
+    attributes:
+      label: Ankora Linux / Ayaz DE sürümü
+      placeholder: "örn. 3.4.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: ortam
+    attributes:
+      label: Test ortamı
+      options:
+        - Canlı ISO (USB)
+        - Kurulu sistem
+        - QEMU / VirtualBox
+        - Diğer
+    validations:
+      required: true

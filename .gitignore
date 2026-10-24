@@ -1,7 +1,6 @@
-# Rust / Cargo
+# Rust / Cargo — Cargo.lock sürüm cache'i commit edilir (tekrarlanabilir derleme).
 target/
 src-tauri/target/
-Cargo.lock
 
 # Node.js
 node_modules/

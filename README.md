@@ -5,10 +5,14 @@
   <p><b>Resmî ana depo · Ayaz Desktop Environment (Ayaz DE)</b></p>
 
   <p>
-    <img src="https://img.shields.io/badge/S%C3%9CR%C3%9CM-3.3.0-ffffff?style=for-the-badge&labelColor=111111" alt="Sürüm">
-    <img src="https://img.shields.io/badge/%C3%87EK%C4%B0RDEK-TAURI_%2B_RUST-059669?style=for-the-badge&labelColor=111111" alt="Çekirdek">
+    <img src="https://img.shields.io/badge/S%C3%9CR%C3%9CM-3.4.0-ffffff?style=for-the-badge&labelColor=111111" alt="Sürüm">
     <img src="https://img.shields.io/badge/HEDEF-ANKORA_LINUX-2563eb?style=for-the-badge&labelColor=111111" alt="Dağıtım">
-    <img src="https://img.shields.io/badge/L%C3%9CSANS-GPL--3.0-41a013?style=for-the-badge&labelColor=111111" alt="Lisans">
+  </p>
+  <p>
+    <a href="https://github.com/Ankora-Linux/Ankora/actions/workflows/ci.yml"><img src="https://github.com/Ankora-Linux/Ankora/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+    <a href="https://github.com/Ankora-Linux/Ankora/actions/workflows/build-iso.yml"><img src="https://github.com/Ankora-Linux/Ankora/actions/workflows/build-iso.yml/badge.svg" alt="ISO Derleme"></a>
+    <img src="https://img.shields.io/badge/%C3%87EK%C4%B0RDEK-TAURI_%2B_RUST-059669?style=flat-square&labelColor=111111" alt="Çekirdek">
+    <img src="https://img.shields.io/badge/L%C4%B0SANS-GPL--3.0-41a013?style=flat-square&labelColor=111111" alt="Lisans">
   </p>
 </div>
 
@@ -114,8 +118,8 @@ bileşenlerini enjekte etmek için derleyici tarafından kullanılır.
 Depoda yeni bir etiket push edildiğinde:
 
 ```bash
-git tag v3.3.0
-git push origin v3.3.0
+git tag v3.4.0
+git push origin v3.4.0
 ```
 
 `build-iso.yml` iş akışı ISO'yu derler ve GitHub Releases sayfasına

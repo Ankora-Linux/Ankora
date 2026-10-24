@@ -7,18 +7,28 @@
 
 set -euo pipefail
 
-ISO_NAME="ankora-linux-3.4-ayaz-amd64.iso"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
 WORK_DIR="/var/tmp/ankora-iso-build"
 CHROOT_DIR="$WORK_DIR/chroot"
 IMAGE_DIR="$WORK_DIR/image"
 DEVUAN_MIRROR="http://deb.devuan.org/merged"
 DEVUAN_SUITE="daedalus"
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
+# Tek sürüm kaynağı: src-tauri/tauri.conf.json (devrik: VERSION).
+# ISO adı ve GRUB menü başlıkları bu sürümden türetilir; sabit "3.4"
+# yazmıyoruz ki yeni sürümde workflow kırılmasın.
+AYAZ_VERSION=$(sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' "$ROOT_DIR/src-tauri/tauri.conf.json" | head -n 1)
+if [ -z "$AYAZ_VERSION" ] && [ -f "$ROOT_DIR/VERSION" ]; then
+    AYAZ_VERSION=$(tr -d '[:space:]' < "$ROOT_DIR/VERSION")
+fi
+[ -z "$AYAZ_VERSION" ] && AYAZ_VERSION="3.4.0"
+ISO_NAME="ankora-linux-${AYAZ_VERSION}-ayaz-amd64.iso"
+echo
 echo "======================================================================"
-echo "      ANKORA LINUX 3.4 (AYAZ DE) CANLI ISO DERLEME SİSTEMİ            "
+echo "   ANKORA LINUX $AYAZ_VERSION (AYAZ DE) CANLI ISO DERLEME SİSTEMİ      "
 echo "======================================================================"
-echo "Sürüm: 3.4.0 (Daedalus / SysVinit Core)"
+echo "Sürüm: $AYAZ_VERSION (Daedalus / SysVinit Core)"
 echo "Çıktı Hedefi: $ROOT_DIR/dist/$ISO_NAME"
 echo "======================================================================"
 
@@ -2341,7 +2351,7 @@ tmpfs /tmp tmpfs defaults,noatime,mode=1777 0 0
             # Ayaz güncelleyici ve masaüstü bakım yardımcıları sudoers (sınırlı NOPASSWD)
             _root_write('/target/etc/sudoers.d/ankora-updater',
                         f"{username} ALL=(root) NOPASSWD: "
-                        "/usr/local/bin/ayaz-update-helper, /usr/local/bin/ayaz-pkg-helper, /usr/local/bin/ankora-doctor, /bin/true, /usr/bin/true, /sbin/poweroff, /sbin/reboot, /sbin/shutdown\n")
+                        "/usr/local/bin/ayaz-update-helper, /usr/local/bin/ayaz-pkg-helper, /usr/local/bin/ankora-doctor, /bin/true, /usr/bin/true, /sbin/poweroff, /usr/sbin/poweroff, /sbin/reboot, /usr/sbin/reboot, /sbin/shutdown, /usr/sbin/shutdown\n")
             _root("chmod 0440 /target/etc/sudoers.d/ankora-updater")
 
             # Hızlı Paralel Açılış ve ZRAM Swap Servisi Optimizasyonlarını Kurulu Sisteme Aktar
@@ -5570,6 +5580,12 @@ elif [ -f "$ROOT_DIR/.git/HEAD" ]; then
 fi
 BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 mkdir -p "$CHROOT_DIR/usr/share/ayaz"
+# Canlı sistem kendi kimliğini taşısın: telemetry os-release PRETTY_NAME
+# urlparse okur; Devuan kimliğiyle "Ankora Linux <sürüm>" görünmeli (hata #2).
+if [ -f "$CHROOT_DIR/etc/os-release" ]; then
+    sed -i -E '/^(PRETTY_NAME|VERSION)=/d' "$CHROOT_DIR/etc/os-release"
+    sed -i "1aPRETTY_NAME=\"Ankora Linux ${AYAZ_VERSION} (Daedalus)\"\nVERSION=\"${AYAZ_VERSION} (Daedalus)\"\nVERSION_ID=\"${AYAZ_VERSION}\"" "$CHROOT_DIR/etc/os-release"
+fi
 cat > "$CHROOT_DIR/usr/share/ayaz/manifest.json" <<MANIFEST_JSON
 {
   "product": "Ayaz DE (Ankora Linux)",
@@ -5733,6 +5749,9 @@ menuentry "Kapat" {
     halt
 }
 EOF
+# Menü başlıkları sürümden türetilir: heredoc tırnaklı ('EOF') olduğundan
+# menü metni derleme anında gerçek sürümle değiştirilir.
+sed -i -E "s/Ankora Linux [0-9]+\.[0-9]+/Ankora Linux ${AYAZ_VERSION}/g" "$IMAGE_DIR/boot/grub/grub.cfg"
 # Derleme kapısı: bozuk GRUB sözdizimi ISO'ya giremez.
 if command -v grub-script-check &>/dev/null; then
     if ! grub-script-check "$IMAGE_DIR/boot/grub/grub.cfg"; then

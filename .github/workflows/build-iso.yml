@@ -1,8 +1,9 @@
 name: Ankora Linux Canlı ISO Derleme (Live ISO Build)
 
-# Bu iş akışı Ankora Linux 3.3 (Ayaz DE - Devuan Daedalus SysVinit) 
-# canlı ISO imajını (.iso) ve iç Debian paketini (.deb) bulutta otomatik olarak derler.
-# Manuel olarak GitHub arayüzünden (Actions -> Run workflow) veya v* etiketleriyle tetiklenebilir.
+# Ayaz DE (Devuan Daedalus SysVinit) canlı ISO imajını (.iso) ve iç Debian
+# paketini (.deb) bulutta otomatik olarak derler. ISO dosya adı derleyiciden
+# dinamik okunur; sürüm sabit kodlanmaz (3.3/3.4 çakışması düzeltildi).
+# Manuel tetikleme: Actions -> Run workflow. Otomatik: v* etiketi push'u.
 
 on:
   workflow_dispatch:
@@ -33,10 +34,16 @@ jobs:
       - name: Rust Araç Setini Kur
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Derleme Önbelleği (Cargo)
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
       - name: Node.js Ortamını Kur
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
+          cache: npm
 
       - name: Gerekli Paketleri Kur (Tauri + ISO Oluşturucu Araçları)
         run: |
@@ -65,8 +72,19 @@ jobs:
       - name: Tauri CLI Kur
         run: cargo install tauri-cli --version "^1.5"
 
-      - name: NPM Bağımlılıklarını Kur
-        run: npm install
+      - name: Sürüm Doğrulama (tauri.conf.json = VERSION)
+        run: |
+          VER_CONF=$(sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' src-tauri/tauri.conf.json | head -1)
+          FILE_VER=$(cat VERSION 2>/dev/null | tr -d '[:space:]')
+          echo "tauri.conf.json: $VER_CONF / VERSION: $FILE_VER"
+          if [ -n "$FILE_VER" ] && [ "$VER_CONF" != "$FILE_VER" ]; then
+            echo "::error::Sürüm uyumsuzluğu: tauri.conf.json=$VER_CONF, VERSION=$FILE_VER"
+            exit 1
+          fi
+          echo "ankora_version=$VER_CONF" >> "$GITHUB_ENV"
+
+      - name: NPM Bağımlılıklarını Kur (deterministik)
+        run: npm ci
 
       - name: Güvenlik ve Bütünlük Denetimi (DevSecOps SAST & Verification)
         run: |
@@ -92,21 +110,23 @@ jobs:
       - name: ISO Bütünlük ve Boyut Denetimi
         run: |
           ls -lh dist/
-          if [ -f "dist/ankora-linux-3.3-ayaz-amd64.iso" ]; then
-            echo "ISO başarıyla üretildi:"
-            sha256sum dist/ankora-linux-3.3-ayaz-amd64.iso
-          else
+          ISO_FILE=$(find dist -maxdepth 1 -name 'ankora-linux-*-ayaz-amd64.iso' | head -n 1)
+          if [ -z "$ISO_FILE" ] || [ ! -f "$ISO_FILE" ]; then
             echo "::error::ISO dosyası dist dizininde bulunamadı!"
             exit 2
           fi
+          echo "iso_file=$ISO_FILE" >> "$GITHUB_ENV"
+          echo "iso_name=$(basename "$ISO_FILE")" >> "$GITHUB_ENV"
+          echo "ISO başarıyla üretildi:"
+          sha256sum "$ISO_FILE"
 
       - name: ISO ve Sağlama Toplamını GitHub Artifact Olarak Yükle
         uses: actions/upload-artifact@v4
         with:
-          name: ankora-linux-3.3-ayaz-amd64
+          name: ${{ env.iso_name }}
           path: |
-            dist/ankora-linux-3.3-ayaz-amd64.iso
-            dist/ankora-linux-3.3-ayaz-amd64.iso.sha256
+            ${{ env.iso_file }}
+            ${{ env.iso_file }}.sha256
           retention-days: 14
 
       - name: Sürüm (Release) Varsa ISO'yu Ekle
@@ -114,10 +134,10 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            dist/ankora-linux-3.3-ayaz-amd64.iso
-            dist/ankora-linux-3.3-ayaz-amd64.iso.sha256
+            ${{ env.iso_file }}
+            ${{ env.iso_file }}.sha256
           generate_release_notes: true
-          name: Ankora Linux 3.3 (${{ github.ref_name }})
+          name: Ankora Linux ${{ env.ankora_version }} (${{ github.ref_name }})
           draft: false
           prerelease: false
         env:

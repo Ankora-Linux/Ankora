@@ -1,0 +1,17 @@
+name: Özellik İsteği
+description: Ankora Linux / Ayaz DE için yeni bir özellik önerin
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Çözülmesini istediğiniz problem
+      description: "Şu sorunu yaşıyorum" veya "Şu özellik eksik" biçiminde yazın.
+    validations:
+      required: true
+  - type: textarea
+    id: cozum
+    attributes:
+      label: Önerdiğiniz çözüm
+    validations:
+      required: true

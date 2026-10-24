@@ -1,0 +1,76 @@
+name: CI (Derleme & Kalite Denetimi)
+
+# Rust tarafı için hızlı derleme (cargo check) ve format denetimi,
+# JS/HTML tarafı için söz dizimi kontrolleri ve yerleşik doğrulama betikleri.
+# ISO derlemesi ayrı: .github/workflows/build-iso.yml
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  rust-check:
+    name: Rust Derleme Denetimi (cargo check)
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - name: Sistem Bağımlılıkları
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libwebkit2gtk-4.0-dev build-essential libssl-dev libgtk-3-dev \
+            libayatana-appindicator3-dev librsvg2-dev file
+      - name: Format Denetimi (cargo fmt --check)
+        run: cargo fmt --check
+        working-directory: src-tauri
+        continue-on-error: true
+      - name: Kompilasyon Denetimi (cargo check)
+        run: cargo check --all-targets
+        working-directory: src-tauri
+      - name: Clippy (uyarı raporlar, derlemeyi bozmaz)
+        run: cargo clippy --all-targets
+        working-directory: src-tauri
+        continue-on-error: true
+
+  frontend-check:
+    name: Arayüz ve Betik Denetimi
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: NPM Bağımlılıkları
+        run: npm ci
+      - name: JS Söz Dizimi (node --check)
+        run: node --check src/app.js
+      - name: Python Doğrulama Betikleri
+        run: |
+          python3 scratch/verify_all.py
+          python3 scratch/verify_plymouth.py
+      - name: Kabuk Betik Denetimi (bash -n)
+        run: |
+          for f in scripts/*.sh; do bash -n "$f"; done
+      - name: Sürüm Tutarlılığı
+        run: |
+          VER_CONF=$(sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' src-tauri/tauri.conf.json | head -1)
+          CARGO_VER=$(grep -m1 '^version' src-tauri/Cargo.toml | sed 's/version *= *//;s/"//g')
+          PKG_VER=$(node -p "require('./package.json').version")
+          FILE_VER=$(cat VERSION | tr -d '[:space:]')
+          echo "tauri=$VER_CONF cargo=$CARGO_VER package=$PKG_VER version=$FILE_VER"
+          if [ "$VER_CONF" != "$CARGO_VER" ] || [ "$VER_CONF" != "$PKG_VER" ] || [ "$VER_CONF" != "$FILE_VER" ]; then
+            echo "::error::Sürüm bilgisi dosyalar arasında uyumsuz!"
+            exit 1
+          fi
