@@ -6,7 +6,7 @@ authors = ["Ankora Linux Team"]
 edition = "2021"
 
 [build-dependencies]
-tauri-build = { version = "1.5", features = [] }
+tauri-build = { version = "2.7", features = [] }
 
 [dependencies]
 tauri = { version = "1.5", features = ["window-start-dragging", "window-close", "window-hide", "window-maximize", "window-minimize", "window-show", "window-unmaximize", "global-shortcut"] }
