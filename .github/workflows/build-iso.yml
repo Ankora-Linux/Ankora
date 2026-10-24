@@ -121,7 +121,7 @@ jobs:
           sha256sum "$ISO_FILE"
 
       - name: ISO ve Sağlama Toplamını GitHub Artifact Olarak Yükle
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ env.iso_name }}
           path: |
