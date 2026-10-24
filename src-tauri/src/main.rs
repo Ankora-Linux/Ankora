@@ -5037,13 +5037,14 @@ fn system_reboot() -> Result<String, String> {
     #[cfg(target_os = "linux")]
     {
         if sudo_available() {
-            for cmd in [
-                ["-n", "/sbin/reboot"],
-                ["-n", "/usr/sbin/reboot"],
-                ["-n", "/sbin/shutdown", "-r", "now"],
-                ["-n", "/usr/sbin/shutdown", "-r", "now"],
-            ] {
-                if let Ok(st) = Command::new("sudo").args(cmd).status() {
+            let variants: Vec<Vec<&str>> = vec![
+                vec!["-n", "/sbin/reboot"],
+                vec!["-n", "/usr/sbin/reboot"],
+                vec!["-n", "/sbin/shutdown", "-r", "now"],
+                vec!["-n", "/usr/sbin/shutdown", "-r", "now"],
+            ];
+            for cmd in variants {
+                if let Ok(st) = Command::new("sudo").args(&cmd).status() {
                     if st.success() {
                         return Ok("Sistem yeniden başlatılıyor.".to_string());
                     }
@@ -9391,9 +9392,9 @@ mod tests {
 
     #[test]
     fn test_semver_and_updater() {
-        assert_eq!(parse_semver("v2.0.0"), (2, 0, 0));
-        assert_eq!(parse_semver("2.1.3"), (2, 1, 3));
-        assert_eq!(parse_semver("V1.9.0"), (1, 9, 0));
+        assert_eq!(parse_semver("v2.0.0"), (2, 0, 0, 0));
+        assert_eq!(parse_semver("2.1.3"), (2, 1, 3, 0));
+        assert_eq!(parse_semver("V1.9.0"), (1, 9, 0, 0));
 
         assert!(is_newer_version("v2.0.1", "2.0.0"));
         assert!(is_newer_version("2.1.0", "2.0.9"));

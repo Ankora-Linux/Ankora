@@ -29,7 +29,7 @@ jobs:
 
     steps:
       - name: Kaynak Kodları İndir (Checkout)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Rust Araç Setini Kur
         uses: dtolnay/rust-toolchain@stable
@@ -121,7 +121,7 @@ jobs:
           sha256sum "$ISO_FILE"
 
       - name: ISO ve Sağlama Toplamını GitHub Artifact Olarak Yükle
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ env.iso_name }}
           path: |
@@ -131,7 +131,7 @@ jobs:
 
       - name: Sürüm (Release) Varsa ISO'yu Ekle
         if: startsWith(github.ref, 'refs/tags/v')
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: |
             ${{ env.iso_file }}
