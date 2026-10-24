@@ -2,4 +2,6 @@
 # Ankora Ayaz DE update helper permissions
 # GÜVENLIK: Yalnızca belirli güncelleme yardımcılarına sınırlı NOPASSWD erişimi
 # /tmp yerine güvenli staging dizini kullanılır (/var/cache/ayaz-updates/)
-ankora ALL=(root) NOPASSWD: /usr/local/bin/ayaz-update-helper, /usr/local/bin/ayaz-pkg-helper, /usr/local/bin/ankora-doctor, /bin/true, /usr/bin/true, /sbin/poweroff, /sbin/reboot, /sbin/shutdown
+# Güç komutları usr-merge yolunun iki varyantıyla verilir (Devuan Daedalus'ta
+# /sbin, /usr/sbin'a sembolik bağdır; kurulu sistemlerde ikisi de uygulanır).
+ankora ALL=(root) NOPASSWD: /usr/local/bin/ayaz-update-helper, /usr/local/bin/ayaz-pkg-helper, /usr/local/bin/ankora-doctor, /bin/true, /usr/bin/true, /sbin/poweroff, /usr/sbin/poweroff, /sbin/reboot, /usr/sbin/reboot, /sbin/shutdown, /usr/sbin/shutdown

@@ -9525,3 +9525,116 @@ html[data-iconset='nordic'] .ayaz-desktop-shortcut:hover .item-icon {
   background: rgba(255, 255, 255, 0.08);
   color: var(--text-muted, #94a3b8);
 }
+
+/* ==============================================================================
+   DOSYA YÖNETİCİSİ: MENÜ ÇUBUĞU, GÖRÜNÜM MODLARI VE DİZİN SEÇİCİ
+   ============================================================================== */
+.files-menubar {
+  display: flex;
+  gap: 2px;
+  padding: 2px 10px 4px 10px;
+  border-bottom: 1px solid var(--border-subtle);
+  user-select: none;
+}
+
+.files-menu-trigger {
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 5px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.files-menu-trigger:hover,
+.files-menu-trigger.open-menu {
+  background: var(--bg-surface-hover);
+  color: var(--text-primary);
+}
+
+.files-top-menu .ctx-item span { flex: 1; }
+.context-menu-category {
+  padding: 6px 12px 2px;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* Liste görünümü: kartlar tek satır yatay dizilir. */
+.files-grid.files-mode-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 4px 0;
+}
+.files-grid.files-mode-list .files-item-card {
+  flex-direction: row;
+  align-items: center;
+  border-radius: 6px;
+  padding: 6px 12px;
+  gap: 12px;
+}
+.files-grid.files-mode-list .files-item-icon { width: auto; }
+.files-grid.files-mode-list .files-item-icon svg { width: 16px; height: 16px; }
+.files-grid.files-mode-list .files-item-name {
+  flex: 1;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.files-grid.files-mode-list .file-card-badge { margin-left: auto; }
+
+/* Sıkı görünüm: küçük kartlar sıkı ızgara. */
+.files-grid.files-mode-compact {
+  grid-template-columns: repeat(auto-fill, minmax(86px, 1fr));
+  gap: 4px;
+}
+.files-grid.files-mode-compact .files-item-card { padding: 6px 4px; }
+.files-grid.files-mode-compact .files-item-icon svg { width: 20px; height: 20px; }
+.files-grid.files-mode-compact .files-item-name { font-size: 10.5px; }
+
+/* Yaklaştırma ölçeği (zoom -2..+3 → 0.7x .. 1.45x). */
+.files-grid { --files-card-scale: 1; }
+.files-grid:not(.files-mode-list) .files-item-card {
+  transform: scale(var(--files-card-scale));
+  transform-origin: top left;
+}
+.files-grid:not(.files-mode-list):not(.files-mode-compact) {
+  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+}
+
+/* "Şuraya Kopyala" dizin seçici satırları. */
+.copyto-row:hover { background: var(--bg-surface-hover); border-radius: 6px; }
+
+/* ==============================================================================
+   DÜŞÜK ÇÖZÜNÜRLÜK DÜZELTMESİ (hata #3): eski 4:3 / 1366x768 makinelerde
+   uygulama menüsü ekranı aşınca taşardı. Kolon sayısı ve yükseklik ölçeklenir.
+   ============================================================================== */
+.start-flyout .start-pinned-grid,
+.start-flyout .dynamic-start-grid {
+  max-height: 42vh;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+@media (max-width: 1200px) {
+  .start-pinned-grid { grid-template-columns: repeat(4, 1fr); }
+  .start-flyout { width: 400px; max-width: calc(100vw - 20px); }
+}
+
+@media (max-width: 900px) {
+  .start-pinned-grid { grid-template-columns: repeat(3, 1fr); }
+  .pinned-icon-box { width: 36px; height: 36px; }
+  .start-flyout { width: 340px; }
+}
+
+@media (max-height: 760px) {
+  .start-flyout { max-height: calc(100vh - var(--taskbar-height) - 40px); }
+  .start-flyout .start-pinned-grid,
+  .start-flyout .dynamic-start-grid { max-height: 34vh; }
+  .pinned-app-card { padding: 6px 4px; }
+  .pinned-icon-box { width: 30px; height: 30px; margin-bottom: 4px; }
+}
