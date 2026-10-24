@@ -29,7 +29,7 @@ jobs:
 
     steps:
       - name: Kaynak Kodları İndir (Checkout)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Rust Araç Setini Kur
         uses: dtolnay/rust-toolchain@stable
