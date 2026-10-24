@@ -311,10 +311,10 @@
         case 'check_de_update':
           return {
             has_update: false,
-            current_version: '3.4.0',
-            latest_version: '3.4.0',
-            release_name: 'Ayaz DE v3.4.0 (Daedalus / Son Kararlı Sürüm)',
-            release_notes: '## Ayaz DE v3.4.0\n- Ankora Linux için geliştirilen minimalist masaüstü ortamı.\n- SysVinit uyumlu Kiosk tasarımı.\n- Güvenlik duvarı ve yerel AI ajan entegrasyonu.',
+            current_version: '3.5.0',
+            latest_version: '3.5.0',
+            release_name: 'Ayaz DE v3.5.0 (Daedalus / Son Kararlı Sürüm)',
+            release_notes: '## Ayaz DE v3.5.0\n- Ankora Linux için geliştirilen minimalist masaüstü ortamı.\n- SysVinit uyumlu Kiosk tasarımı.\n- Güvenlik duvarı ve yerel AI ajan entegrasyonu.',
             download_url: null,
             published_at: new Date().toISOString(),
             package_size_bytes: 0
@@ -350,7 +350,7 @@
             };
           }
           return {
-            reply: 'Ankora AI Yerel Teşhis Motoru (v3.4) aktif.\n• Çekirdek: Linux 6.1 LTS (Devuan Daedalus)\n• İnit: SysVinit (PID 1)\nSistem doktoru, bellek/disk analizi, süreç denetimi veya ZRAM sorguları için hızlı etiketleri kullanabilir ya da API Ayarları üzerinden bulut anahtarı bağlayabilirsiniz.',
+            reply: 'Ankora AI Yerel Teşhis Motoru (v3.5) aktif.\n• Çekirdek: Linux 6.1 LTS (Devuan Daedalus)\n• İnit: SysVinit (PID 1)\nSistem doktoru, bellek/disk analizi, süreç denetimi veya ZRAM sorguları için hızlı etiketleri kullanabilir ya da API Ayarları üzerinden bulut anahtarı bağlayabilirsiniz.',
             has_action: false,
             action_command: null,
             action_desc: null,
@@ -1658,7 +1658,7 @@
           exec: 'internal:win-installer',
           targetWindow: 'win-installer',
           cat: 'sys',
-          comment: 'Ankora Linux 3.4 Sabit Diske Kurulum Sihirbazı',
+          comment: 'Ankora Linux 3.5 Sabit Diske Kurulum Sihirbazı',
           is_installed_by_user: true
         },
         {
@@ -5386,7 +5386,7 @@
         file_name: 'kiosk-ayarlari.md',
         file_type: 'text',
         file_size: 1420,
-        content: `# Ankora Linux 3.4 Kiosk Yapılandırma Raporu\n\n- Taban: Devuan Daedalus (SysVinit)\n- Çekirdek: Linux 6.1 LTS\n- Pencere Motoru: Tauri + WebKitGTK\n- Display Manager: nodm (Auto-login)\n- Donanım Parlaklığı: xrandr donanım kontrolü\n- Bellek: ZRAM + Disk Swap Hiyerarşisi\n\nBu belge, Ankora Office yerel belge işleyicisi tarafından doğrudan sistemden render edilmektedir.`
+        content: `# Ankora Linux 3.5 Kiosk Yapılandırma Raporu\n\n- Taban: Devuan Daedalus (SysVinit)\n- Çekirdek: Linux 6.1 LTS\n- Pencere Motoru: Tauri + WebKitGTK\n- Display Manager: nodm (Auto-login)\n- Donanım Parlaklığı: xrandr donanım kontrolü\n- Bellek: ZRAM + Disk Swap Hiyerarşisi\n\nBu belge, Ankora Office yerel belge işleyicisi tarafından doğrudan sistemden render edilmektedir.`
       };
       this.renderDocument(doc);
     },
@@ -5459,7 +5459,7 @@
           file_name: name,
           file_type: 'text',
           file_size: 4096,
-          content: `# Ankora Linux 3.4 - Sürüm Notları (Daedalus)\n\n- Taban: Devuan GNU/Linux 5.0 (Daedalus)\n- İnit Sistemi: SysVinit (systemd-free, ultra-lightweight)\n- Arayüz: Tauri 1.5 + Monokrom Minimalist DE\n- Çekirdek: Linux 6.1.0-22-amd64\n\nSistem kararlılığı ve minimum RAM tüketimi garanti edilmektedir.`
+          content: `# Ankora Linux 3.5 - Sürüm Notları (Daedalus)\n\n- Taban: Devuan GNU/Linux 5.0 (Daedalus)\n- İnit Sistemi: SysVinit (systemd-free, ultra-lightweight)\n- Arayüz: Tauri 1.5 + Monokrom Minimalist DE\n- Çekirdek: Linux 6.1.0-22-amd64\n\nSistem kararlılığı ve minimum RAM tüketimi garanti edilmektedir.`
         });
       }
     }
@@ -6021,10 +6021,10 @@
         const key = this.activeKey.trim();
         const prov = this.provider.toLowerCase();
         const sysPromptBase = this.mode === 'developer'
-          ? 'Sen Ankora Linux 3.4 ortamında çalışan kıdemli bir Rust, Linux ve Tauri geliştiricisisin.'
+          ? 'Sen Ankora Linux 3.5 ortamında çalışan kıdemli bir Rust, Linux ve Tauri geliştiricisisin.'
           : (this.mode === 'doctor'
             ? 'Sen Ankora Sistem Doktorusun. Devuan Daedalus (SysVinit) üzerinde bellek, disk, ZRAM, süreç ve güvenlik sorunlarını teşhis edip çözüm sunarsın.'
-            : 'Sen Ankora Linux 3.4 (Daedalus / SysVinit) sistem yöneticisi ve yapay zeka asistanısın. Kullanıcıya Türkçe, net ve teknik olarak kusursuz yanıtlar ver.');
+            : 'Sen Ankora Linux 3.5 (Daedalus / SysVinit) sistem yöneticisi ve yapay zeka asistanısın. Kullanıcıya Türkçe, net ve teknik olarak kusursuz yanıtlar ver.');
         const fullSysPrompt = `${sysPromptBase}\n${teleContext}\nEğer güvenli bir tanı komutu önermek istersen yanıtın sonuna <<<ACTION:komut|açıklama>>> ekle (Yalnızca: df -h /, free -h, uname -a, uptime, swapon --show, ip -br addr, lscpu, lsblk, ps aux, /usr/local/bin/ankora-doctor).`;
 
         try {
@@ -9026,7 +9026,7 @@
   // 11. ANKORA GÜNCELLEYİCİ (ANKORA DE UPDATE MANAGER)
   // ============================================================================
   const UpdaterManager = {
-    currentVersion: '3.4.0',
+    currentVersion: '3.5.0',
     latestRelease: null,
 
     init() {
@@ -11015,7 +11015,7 @@
         md += `#### Sistem Tanılama Verileri\n`;
         md += `\`\`\`yaml\n`;
         md += `İşletim Sistemi : ${this.telemetry.os_name}\n`;
-        md += `Masaüstü Ortamı : Ayaz DE v3.4.0 (Ankora Kiosk / X11)\n`;
+        md += `Masaüstü Ortamı : Ayaz DE v3.5.0 (Ankora Kiosk / X11)\n`;
         md += `Çekirdek (Kernel): ${this.telemetry.kernel}\n`;
         md += `İnit Sistemi     : ${this.telemetry.init_system}\n`;
         md += `CPU Çekirdek     : ${this.telemetry.cpu_cores} İş parçacığı\n`;

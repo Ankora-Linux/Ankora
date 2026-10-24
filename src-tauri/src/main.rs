@@ -2378,7 +2378,7 @@ fn generate_agent_action_token(cmd: &str) -> String {
 fn build_local_ai_diagnostic_response(prompt: &str, mode: &str) -> AiResponse {
     let p_lower = prompt.to_lowercase();
     let tele = collect_system_telemetry().unwrap_or(SystemTelemetry {
-        os_name: "Ankora Linux 3.4".to_string(),
+        os_name: "Ankora Linux 3.5".to_string(),
         kernel: "Linux 6.1 (Devuan Daedalus)".to_string(),
         init_system: "SysVinit (systemd-free)".to_string(),
         memory_used_mb: 512,
@@ -2551,7 +2551,7 @@ fn build_local_ai_diagnostic_response(prompt: &str, mode: &str) -> AiResponse {
         let token = generate_agent_action_token(&cmd);
         return AiResponse {
             reply: format!(
-                "Ankora Linux 3.4 Canlı Sistem Raporu:\n• Sistem: {} ({})\n• Çekirdek: {}\n• CPU: {} Çekirdek (Yük: %{:.1})\n• RAM: {} MB / {} MB (%{})\n• Disk: {:.1} GB / {:.1} GB (%{})\n• Çalışma Süresi: {} dk\n\nAyrıntılı disk ve bellek çıktısı için aşağıdaki komutu onaylayabilirsiniz.",
+                "Ankora Linux 3.5 Canlı Sistem Raporu:\n• Sistem: {} ({})\n• Çekirdek: {}\n• CPU: {} Çekirdek (Yük: %{:.1})\n• RAM: {} MB / {} MB (%{})\n• Disk: {:.1} GB / {:.1} GB (%{})\n• Çalışma Süresi: {} dk\n\nAyrıntılı disk ve bellek çıktısı için aşağıdaki komutu onaylayabilirsiniz.",
                 tele.os_name, tele.init_system, tele.kernel, tele.cpu_cores, tele.cpu_percent, tele.memory_used_mb, tele.memory_total_mb, ram_pct, tele.disk_used_gb, tele.disk_total_gb, disk_pct, uptime_mins
             ),
             has_action: true,
@@ -2606,7 +2606,7 @@ async fn query_local_ai(
             t.os_name, t.kernel, t.init_system, t.memory_used_mb, t.memory_total_mb, t.cpu_cores, t.cpu_percent, t.disk_used_gb, t.disk_total_gb
         )
     } else {
-        "[Sistem Özeti: Ankora Linux 3.4 | Devuan Daedalus | SysVinit]".to_string()
+        "[Sistem Özeti: Ankora Linux 3.5 | Devuan Daedalus | SysVinit]".to_string()
     };
 
     let base_sys_prompt = match mode.as_str() {
@@ -3411,7 +3411,7 @@ fn execute_system_installation_blocking(payload: InstallPayload) -> Result<Strin
         let _ = root_command("chroot", &["/target", "sh", "-c", &format!("command -v update-locale >/dev/null && update-locale LANG={} 2>/dev/null; command -v locale-gen >/dev/null && locale-gen {} en_US.UTF-8 2>/dev/null; true", want_lang, want_lang)]);
 
         // ZRAM Takas Servisi ve Optimizasyonunu kurulu sisteme kur
-        let _ = root_write("/target/etc/default/rcS", "# Ankora Linux 3.4 Hızlı Paralel Açılış\nCONCURRENCY=makefile\nUTC=yes\nVERBOSE=no\nFSCKFIX=no\n");
+        let _ = root_write("/target/etc/default/rcS", "# Ankora Linux 3.5 Hızlı Paralel Açılış\nCONCURRENCY=makefile\nUTC=yes\nVERBOSE=no\nFSCKFIX=no\n");
         let _ = root_write("/target/etc/sysctl.d/99-zram.conf", "vm.swappiness = 100\nvm.vfs_cache_pressure = 50\nvm.watermark_boost_factor = 0\nvm.dirty_background_ratio = 5\nvm.dirty_ratio = 10\n");
         let zram_script = "#!/bin/sh\ncase \"$1\" in\n  start)\n    modprobe zram num_devices=1 2>/dev/null || true\n    if [ -e /dev/zram0 ]; then\n      for alg in zstd lz4 lzo; do\n        if grep -q \"$alg\" /sys/block/zram0/comp_algorithm 2>/dev/null; then\n          echo \"$alg\" > /sys/block/zram0/comp_algorithm 2>/dev/null && break\n        fi\n      done\n      MEM_TOTAL_KB=$(grep MemTotal /proc/meminfo 2>/dev/null | awk '{print $2}')\n      DISKSIZE=$(( MEM_TOTAL_KB * 1024 / 2 ))\n      echo \"$DISKSIZE\" > /sys/block/zram0/disksize 2>/dev/null || true\n      mkswap /dev/zram0 >/dev/null 2>&1 || true\n      swapon -p 100 /dev/zram0 2>/dev/null || true\n    fi\n    ;;\n  stop)\n    swapoff /dev/zram0 2>/dev/null || true\n    echo 1 > /sys/block/zram0/reset 2>/dev/null || true\n    ;;\n  restart)\n    $0 stop; $0 start;;\nesac\nexit 0\n";
         let _ = root_write("/target/etc/init.d/zram-swap", zram_script);
@@ -4277,11 +4277,11 @@ struct GitHubRelease {
     assets: Option<Vec<GitHubAsset>>,
 }
 
-// (majör, minör, yama, revizyon) dördlüğü; "3.4.0-2" gibi deb tarzı son ekler
-// yükseltme karşılaştırmasında yok sayılmıyor (hata: 3.4.0-2 == 3.4.0 algısı).
+// (majör, minör, yama, revizyon) dördlüğü; "3.5.0-2" gibi deb tarzı son ekler
+// yükseltme karşılaştırmasında yok sayılmıyor (hata: 3.5.0-2 == 3.5.0 algısı).
 pub fn parse_semver(v: &str) -> (u32, u32, u32, u32) {
     let clean = v.trim().trim_start_matches('v').trim_start_matches('V');
-    // Ön süreçler ("3.4.0-2", "3.4.1-ayaz") → sonraki rakam grubunu revizyon kabul et.
+    // Ön süreçler ("3.5.0-2", "3.4.1-ayaz") → sonraki rakam grubunu revizyon kabul et.
     let core_rev: Vec<&str> = clean.split(|c| c == '-' || c == '+').collect();
     let core = core_rev.first().copied().unwrap_or("");
     let revision = core_rev
@@ -4411,7 +4411,7 @@ async fn check_de_update(repo_override: Option<String>) -> Result<UpdateReleaseI
                 && url.starts_with("https://api.github.com/")
             {
                 // Hedef repoda release yoksa (404) resmî ana depoyu dene:
-                // gerçek merkez repo Ankora-Linux/Ankora'dır (hata: 3.4'e kadar
+                // gerçek merkez repo Ankora-Linux/Ankora'dır (hata: 3.5'e kadar
                 // yanlış repo hedeflendiğinden hiçbir sürüm tespit edilemiyordu).
                 if target_repo != "Ankora-Linux/Ankora" {
                     let fallback_url =

@@ -1,6 +1,6 @@
 #!/bin/bash
 # ==============================================================================
-# Ankora Linux 3.4 (Daedalus) — Canlı (Live) ISO Derleme Betiği
+# Ankora Linux 3.5 (Daedalus) — Canlı (Live) ISO Derleme Betiği
 # Masaüstü Ortamı: Ayaz DE (Tauri + WebKitGTK + SysVinit Core)
 # Mimari: x86_64 (UEFI + BIOS Hibrit Boot)
 # ==============================================================================
@@ -16,13 +16,13 @@ DEVUAN_MIRROR="http://deb.devuan.org/merged"
 DEVUAN_SUITE="daedalus"
 
 # Tek sürüm kaynağı: src-tauri/tauri.conf.json (devrik: VERSION).
-# ISO adı ve GRUB menü başlıkları bu sürümden türetilir; sabit "3.4"
+# ISO adı ve GRUB menü başlıkları bu sürümden türetilir; sabit "3.5"
 # yazmıyoruz ki yeni sürümde workflow kırılmasın.
 AYAZ_VERSION=$(sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' "$ROOT_DIR/src-tauri/tauri.conf.json" | head -n 1)
 if [ -z "$AYAZ_VERSION" ] && [ -f "$ROOT_DIR/VERSION" ]; then
     AYAZ_VERSION=$(tr -d '[:space:]' < "$ROOT_DIR/VERSION")
 fi
-[ -z "$AYAZ_VERSION" ] && AYAZ_VERSION="3.4.0"
+[ -z "$AYAZ_VERSION" ] && AYAZ_VERSION="3.5.0"
 ISO_NAME="ankora-linux-${AYAZ_VERSION}-ayaz-amd64.iso"
 echo
 echo "======================================================================"
@@ -770,7 +770,7 @@ update-rc.d zram-swap defaults 05 95 2>/dev/null || true
 # SysVinit Hızlı Paralel Açılış (Fast Parallel Boot)
 mkdir -p /etc/default
 cat << 'RCS_CONF' > /etc/default/rcS
-# Ankora Linux 3.4 Hızlı Paralel Açılış
+# Ankora Linux 3.5 Hızlı Paralel Açılış
 CONCURRENCY=makefile
 UTC=yes
 VERBOSE=no
@@ -998,7 +998,7 @@ else
     rm -f "$BDIR/ankora-sistem-rehberi.pdf"
 fi
 cat << 'KIOSKTXT' > "$BDIR/kiosk-ayarlari.txt"
-Ankora Linux 3.4 — Kiosk Yapılandırma Raporu
+Ankora Linux 3.5 — Kiosk Yapılandırma Raporu
 =============================================
 
 Taban            : Devuan GNU/Linux 5 (daedalus)
@@ -1014,7 +1014,7 @@ Bu dosya Ayaz Dosyalar ve Ofis uygulamalarından açılabilir.
 Kiosk kilit ekranı ve widget ayarları Ayarlar penceresinden yönetilir.
 KIOSKTXT
 cat << 'KIOSKMD' > "$BDIR/kiosk-ayarlari.md"
-# Ankora Linux 3.4 — Kiosk Yapılandırma Raporu
+# Ankora Linux 3.5 — Kiosk Yapılandırma Raporu
 
 - Taban: Devuan Daedalus (SysVinit, systemd-free)
 - Çekirdek: Linux 6.1 LTS
@@ -2356,7 +2356,7 @@ tmpfs /tmp tmpfs defaults,noatime,mode=1777 0 0
 
             # Hızlı Paralel Açılış ve ZRAM Swap Servisi Optimizasyonlarını Kurulu Sisteme Aktar
             _root_write('/target/etc/default/rcS',
-                        "# Ankora Linux 3.4 Hızlı Paralel Açılış\nCONCURRENCY=makefile\nUTC=yes\nVERBOSE=no\nFSCKFIX=no\n")
+                        "# Ankora Linux 3.5 Hızlı Paralel Açılış\nCONCURRENCY=makefile\nUTC=yes\nVERBOSE=no\nFSCKFIX=no\n")
             _root_write('/target/etc/sysctl.d/99-zram.conf',
                         "vm.swappiness = 100\nvm.vfs_cache_pressure = 50\nvm.watermark_boost_factor = 0\nvm.dirty_background_ratio = 5\nvm.dirty_ratio = 10\n")
             zram_target_script = """#!/bin/sh
@@ -2527,7 +2527,7 @@ exit 0
             _root("umount -l /target/boot/efi 2>/dev/null || true", check=False)
             _root("umount -l /target 2>/dev/null || true", check=False)
 
-        return "Ankora Linux 3.4 başarıyla kuruldu! Sistemi yeniden başlatabilirsiniz."
+        return "Ankora Linux 3.5 başarıyla kuruldu! Sistemi yeniden başlatabilirsiniz."
 
     elif cmd == 'get_system_telemetry':
         mem_total = 4096
@@ -4084,7 +4084,7 @@ exit 0
         cpu_cores = tele.get('cpu_cores') or 4
         cpu_pct = tele.get('cpu_percent') or 0.0
         uptime_mins = int((tele.get('uptime_seconds') or 0) // 60)
-        os_name = tele.get('os_name') or 'Ankora Linux 3.4'
+        os_name = tele.get('os_name') or 'Ankora Linux 3.5'
         kernel = tele.get('kernel') or 'Linux 6.1'
         init_sys = tele.get('init_system') or 'SysVinit'
 
@@ -4113,7 +4113,7 @@ exit 0
 
         tele_ctx = f"[Sistem Özeti: {os_name} | {kernel} | {init_sys} | RAM: {ram_used}/{ram_tot} MB (%{ram_pct}) | CPU: {cpu_cores} çekirdek (%{cpu_pct}) | Disk: {disk_used}/{disk_tot} GB (%{disk_pct})]"
         sys_prompt = (
-            "Sen Ankora Linux 3.4 (Devuan Daedalus, SysVinit) sistem yöneticisi ve tanılama ajanısın. "
+            "Sen Ankora Linux 3.5 (Devuan Daedalus, SysVinit) sistem yöneticisi ve tanılama ajanısın. "
             "Kullanıcıya Türkçe, net ve teknik yanıtlar ver. Gerekirse yanıtının sonuna şu formatta onaylı eylem ekle: "
             "<<<ACTION:{\"command\":\"izin_verilen_komut\",\"desc\":\"Açıklama\"}>>>\n" + tele_ctx
         )
@@ -4231,7 +4231,7 @@ exit 0
         elif any(w in p_lower for w in ['disk', 'depolama', 'alan', 'bölüm', 'lsblk', 'durum', 'özet', 'rapor', 'analiz']):
             c_cmd = 'df -h / && free -m'
             return {
-                'reply': f"Ankora Linux 3.4 Canlı Sistem Raporu:\n• Sistem: {os_name} ({init_sys})\n• Çekirdek: {kernel}\n• CPU: {cpu_cores} Çekirdek (Yük: %{cpu_pct})\n• RAM: {ram_used} MB / {ram_tot} MB (%{ram_pct})\n• Disk: {disk_used} GB / {disk_tot} GB (%{disk_pct})\n• Çalışma Süresi: {uptime_mins} dk\n\nAyrıntılı disk ve bellek çıktısı için aşağıdaki komutu onaylayabilirsiniz.",
+                'reply': f"Ankora Linux 3.5 Canlı Sistem Raporu:\n• Sistem: {os_name} ({init_sys})\n• Çekirdek: {kernel}\n• CPU: {cpu_cores} Çekirdek (Yük: %{cpu_pct})\n• RAM: {ram_used} MB / {ram_tot} MB (%{ram_pct})\n• Disk: {disk_used} GB / {disk_tot} GB (%{disk_pct})\n• Çalışma Süresi: {uptime_mins} dk\n\nAyrıntılı disk ve bellek çıktısı için aşağıdaki komutu onaylayabilirsiniz.",
                 'has_action': True,
                 'action_command': c_cmd,
                 'action_desc': 'Disk ve bellek doluluk durumunu sorgula',
@@ -4296,12 +4296,12 @@ exit 0
         return True
 
     elif cmd == 'check_de_update':
-        current_ver = '3.4.0'
+        current_ver = '3.5.0'
         result = {
             'has_update': False,
             'current_version': current_ver,
             'latest_version': current_ver,
-            'release_name': 'Ankora Linux 3.4 (AyazDE)',
+            'release_name': 'Ankora Linux 3.5 (AyazDE)',
             'release_notes': 'Sisteminiz güncel. AyazDE v3.3 kararlı sürüm devrededir.',
             'download_url': None,
             'published_at': '2026-10-19',
@@ -4346,7 +4346,7 @@ exit 0
         os.makedirs(staging, exist_ok=True)
         target_deb = os.path.join(staging, 'ayaz-update.deb')
         try:
-            req = urllib.request.Request(download_url, headers={'User-Agent': 'ayaz-updater/3.4.0'})
+            req = urllib.request.Request(download_url, headers={'User-Agent': 'ayaz-updater/3.5.0'})
             with urllib.request.urlopen(req, timeout=120) as resp, open(target_deb, 'wb') as f:
                 content = resp.read()
                 f.write(content)
@@ -5551,7 +5551,7 @@ echo "[MANIFEST] Sistem künyesi yazılıyor..."
 AYAZ_VERSION=$(sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' "$ROOT_DIR/src-tauri/tauri.conf.json")
 AYAZ_VERSION="${AYAZ_VERSION%%$'\n'*}"
 if [ -z "$AYAZ_VERSION" ]; then
-    AYAZ_VERSION="3.4.0"
+    AYAZ_VERSION="3.5.0"
 fi
 # git yoksa (ör. WSL) .git/HEAD + ref dosyaları doğrudan okunur; revizyon
 # manifestte hiçbir koşulda boş kalmaz.
@@ -5708,12 +5708,12 @@ if [ "$have_font" = "1" ]; then
 fi
 export theme
 
-menuentry "Ankora Linux 3.4  —  Canlı Masaüstü" {
+menuentry "Ankora Linux 3.5  —  Canlı Masaüstü" {
     linux /live/vmlinuz boot=live live-media-path=/live union=overlay components username=ankora hostname=ankora-live locales=tr_TR.UTF-8 keyboard-layouts=tr timezone=Europe/Istanbul utc=yes noeject splash quiet loglevel=3
     initrd /live/initrd
 }
 
-menuentry "Ankora Linux 3.4  —  Canlı Masaüstü (RAM'den Açılış / Ventoy)" {
+menuentry "Ankora Linux 3.5  —  Canlı Masaüstü (RAM'den Açılış / Ventoy)" {
     # Ventoy/USB giriş akışı: live-boot toram ile RO medyanın tamamını
     # RAM'e kopyalayıp oradan açar; flakey USB okuma/slow enumeration
     # sınıfı sorunlar bypass edilir. RAM ihtiyacı ≈ squashfs + ~1 GB
@@ -5723,14 +5723,14 @@ menuentry "Ankora Linux 3.4  —  Canlı Masaüstü (RAM'den Açılış / Ventoy
     initrd /live/initrd
 }
 
-menuentry "Ankora Linux 3.4  —  Güvenli Mod (Failsafe)" {
+menuentry "Ankora Linux 3.5  —  Güvenli Mod (Failsafe)" {
     # Metin kipi: grafik devri olmadan düz konsol logları (donanım sorunlarında)
     set gfxpayload="text"
     linux /live/vmlinuz boot=live live-media-path=/live union=overlay components username=ankora hostname=ankora-live locales=tr_TR.UTF-8 keyboard-layouts=tr timezone=Europe/Istanbul noeject nomodeset noapic noacpi
     initrd /live/initrd
 }
 
-menuentry "Ankora Linux 3.4  —  Donanım Teşhisi (Ayrıntılı Günlük)" {
+menuentry "Ankora Linux 3.5  —  Donanım Teşhisi (Ayrıntılı Günlük)" {
     # Ventoy/USB'de "Devuan..." yazısından sonra donan açılış (VM'de düzgün)
     # durumunda sorunun hangi aşamada takıldığını açık konsoldan görmek için:
     # plymouth yok, loglevel=7. Takılan son satırı fotoğraflayıp hata
