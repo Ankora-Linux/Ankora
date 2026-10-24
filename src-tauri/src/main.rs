@@ -53,10 +53,32 @@ const EXACT_ALLOWED_COMMANDS: &[&str] = &[
 
 /// Tekil parametreli komutlarda izin verilen ikili (binary) programlar
 const ALLOWED_UTILITIES: &[&str] = &[
-    "uname", "whoami", "uptime", "date", "hostname", "id",
-    "free", "df", "ls", "ps", "top", "which",
-    "cat", "pwd", "echo", "head", "tail", "grep", "wc",
-    "lscpu", "lsblk", "arch", "w", "who", "cal", "apt-cache",
+    "uname",
+    "whoami",
+    "uptime",
+    "date",
+    "hostname",
+    "id",
+    "free",
+    "df",
+    "ls",
+    "ps",
+    "top",
+    "which",
+    "cat",
+    "pwd",
+    "echo",
+    "head",
+    "tail",
+    "grep",
+    "wc",
+    "lscpu",
+    "lsblk",
+    "arch",
+    "w",
+    "who",
+    "cal",
+    "apt-cache",
 ];
 
 /// `cat` komutu ile okunmasına izin verilen güvenli telemetri dosyaları
@@ -93,23 +115,71 @@ const ALLOWED_AGENT_ACTIONS: &[&str] = &[
 
 /// Ankora Office tarafından okunabilecek güvenli belge uzantıları (.docx ikili dosya olduğundan metin/pdf listesinde yer almaz)
 const ALLOWED_DOC_EXTENSIONS: &[&str] = &[
-    "pdf", "md", "txt", "conf", "log", "json", "yaml", "yml", "ini",
-    "js", "py", "sh", "css", "html", "xml",
-    "png", "jpg", "jpeg", "webp", "gif",
+    "pdf", "md", "txt", "conf", "log", "json", "yaml", "yml", "ini", "js", "py", "sh", "css",
+    "html", "xml", "png", "jpg", "jpeg", "webp", "gif",
 ];
 
 /// Kesinlikle doğrudan veya dolaylı çalıştırılması yasaklanan tehlikeli sistem araçları (Kara Liste)
 const FORBIDDEN_LAUNCH_BINARIES: &[&str] = &[
-    "sudo", "su", "pkexec", "dd", "mkfs", "fdisk", "parted",
-    "sh", "bash", "zsh", "dash", "csh", "tcsh", "fish", "env",
-    "xargs", "passwd", "chpasswd", "chmod", "chown", "reboot",
-    "poweroff", "shutdown", "init", "systemctl", "telinit", "halt",
-    "chroot", "unshare", "nsenter", "mount", "umount",
-    "nc", "ncat", "socat", "ssh", "scp", "wget", "curl",
-    "kill", "pkill", "killall", "tee", "install", "ln",
-    "mkfifo", "mknod", "insmod", "modprobe", "rmmod",
-    "docker", "podman", "runuser", "sg", "newgrp",
-    "at", "batch", "crontab", "systemd-run",
+    "sudo",
+    "su",
+    "pkexec",
+    "dd",
+    "mkfs",
+    "fdisk",
+    "parted",
+    "sh",
+    "bash",
+    "zsh",
+    "dash",
+    "csh",
+    "tcsh",
+    "fish",
+    "env",
+    "xargs",
+    "passwd",
+    "chpasswd",
+    "chmod",
+    "chown",
+    "reboot",
+    "poweroff",
+    "shutdown",
+    "init",
+    "systemctl",
+    "telinit",
+    "halt",
+    "chroot",
+    "unshare",
+    "nsenter",
+    "mount",
+    "umount",
+    "nc",
+    "ncat",
+    "socat",
+    "ssh",
+    "scp",
+    "wget",
+    "curl",
+    "kill",
+    "pkill",
+    "killall",
+    "tee",
+    "install",
+    "ln",
+    "mkfifo",
+    "mknod",
+    "insmod",
+    "modprobe",
+    "rmmod",
+    "docker",
+    "podman",
+    "runuser",
+    "sg",
+    "newgrp",
+    "at",
+    "batch",
+    "crontab",
+    "systemd-run",
 ];
 
 /// Kesinlikle okunması engellenen hassas sistem dosyası ve dizin kalıpları
@@ -175,17 +245,22 @@ fn is_valid_disk_target(path: &str) -> bool {
         return false;
     }
     // sd[a-z]+ : dev starts with "sd", remainder is all ASCII lowercase letters (no partition digits!)
-    let is_sd = dev.starts_with("sd") && dev.len() >= 3 && dev[2..].chars().all(|c| c.is_ascii_lowercase());
+    let is_sd =
+        dev.starts_with("sd") && dev.len() >= 3 && dev[2..].chars().all(|c| c.is_ascii_lowercase());
     // vd[a-z]+ : dev starts with "vd", remainder is all ASCII lowercase letters (no partition digits!)
-    let is_vd = dev.starts_with("vd") && dev.len() >= 3 && dev[2..].chars().all(|c| c.is_ascii_lowercase());
+    let is_vd =
+        dev.starts_with("vd") && dev.len() >= 3 && dev[2..].chars().all(|c| c.is_ascii_lowercase());
     // mmcblk[0-9]+ : dev starts with "mmcblk", remainder is all digits (no 'p<part>' suffix!)
-    let is_mmcblk = dev.starts_with("mmcblk") && dev.len() >= 7 && dev[6..].chars().all(|c| c.is_ascii_digit());
+    let is_mmcblk =
+        dev.starts_with("mmcblk") && dev.len() >= 7 && dev[6..].chars().all(|c| c.is_ascii_digit());
     // nvme<ctrl>n<ns> : exactly digits for controller and namespace, no trailing 'p<part>' partition suffix
     let is_nvme = if dev.starts_with("nvme") {
         let rem = &dev[4..];
         if let Some((ns_ctrl, ns_id)) = rem.split_once('n') {
-            !ns_ctrl.is_empty() && ns_ctrl.chars().all(|c| c.is_ascii_digit())
-                && !ns_id.is_empty() && ns_id.chars().all(|c| c.is_ascii_digit())
+            !ns_ctrl.is_empty()
+                && ns_ctrl.chars().all(|c| c.is_ascii_digit())
+                && !ns_id.is_empty()
+                && ns_id.chars().all(|c| c.is_ascii_digit())
         } else {
             false
         }
@@ -301,10 +376,15 @@ fn is_valid_timezone(tz: &str) -> bool {
     if tz.is_empty() || tz.len() > 64 || tz.contains("..") || tz.starts_with('/') {
         return false;
     }
-    if !tz.chars().all(|c| c.is_ascii_alphanumeric() || c == '/' || c == '_' || c == '-' || c == '+') {
+    if !tz
+        .chars()
+        .all(|c| c.is_ascii_alphanumeric() || c == '/' || c == '_' || c == '-' || c == '+')
+    {
         return false;
     }
-    std::path::Path::new("/usr/share/zoneinfo").join(tz).is_file()
+    std::path::Path::new("/usr/share/zoneinfo")
+        .join(tz)
+        .is_file()
 }
 
 fn current_timezone() -> String {
@@ -486,7 +566,10 @@ fn fill_secure_random_bytes(buf: &mut [u8]) {
         }
     }
     // Deterministik olmayan yüksek çözünürlüklü zaman + işlem entropisi desteği
-    let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_nanos();
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_nanos();
     let mut hasher = Sha256::new();
     hasher.update(&now.to_le_bytes());
     hasher.update(b"ankora-csprng-entropy-seed-v3");
@@ -661,13 +744,17 @@ fn load_credentials() -> std::collections::HashMap<String, String> {
     if let Ok(data) = fs::read(&path) {
         // 1. Yeni şifreli formatı çöz
         if let Some(decrypted) = decrypt_vault_payload(&data) {
-            if let Ok(map) = serde_json::from_slice::<std::collections::HashMap<String, String>>(&decrypted) {
+            if let Ok(map) =
+                serde_json::from_slice::<std::collections::HashMap<String, String>>(&decrypted)
+            {
                 return map;
             }
         }
         // 2. Eski Base64 formatı varsa çöz ve güvenli formata otomatik terfi et
         if let Ok(decoded) = base64::engine::general_purpose::STANDARD.decode(&data) {
-            if let Ok(map) = serde_json::from_slice::<std::collections::HashMap<String, String>>(&decoded) {
+            if let Ok(map) =
+                serde_json::from_slice::<std::collections::HashMap<String, String>>(&decoded)
+            {
                 let _ = save_credentials(&map);
                 return map;
             }
@@ -779,7 +866,10 @@ fn is_lock_configured() -> Result<bool, String> {
     }
     let data = fs::read(&path).map_err(|e| e.to_string())?;
     if data.len() < 48 {
-        return Err("Güvenlik Hatası: Kilit dosyası bozulmuş veya geçersiz boyutta (48 bayttan kısa).".to_string());
+        return Err(
+            "Güvenlik Hatası: Kilit dosyası bozulmuş veya geçersiz boyutta (48 bayttan kısa)."
+                .to_string(),
+        );
     }
     Ok(true)
 }
@@ -800,7 +890,10 @@ fn set_lock_credentials(current_pin: Option<String>, new_pin: String) -> Result<
     }
 
     let mut salt = [0u8; 16];
-    let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_nanos();
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_nanos();
     for (i, b) in now.to_le_bytes().iter().enumerate() {
         salt[i] = *b ^ ((i as u8 + 1) * 31);
     }
@@ -816,7 +909,8 @@ fn set_lock_credentials(current_pin: Option<String>, new_pin: String) -> Result<
     out.extend_from_slice(&hash);
     if let Err(e) = fs::write(&path, &out) {
         let fallback_path = get_ankora_config_dir().join("lock.hash");
-        fs::write(&fallback_path, &out).map_err(|e2| format!("Kilit dosyası yazılamadı: {} / {}", e, e2))?;
+        fs::write(&fallback_path, &out)
+            .map_err(|e2| format!("Kilit dosyası yazılamadı: {} / {}", e, e2))?;
         #[cfg(unix)]
         {
             use std::os::unix::fs::PermissionsExt;
@@ -986,7 +1080,11 @@ fn parse_desktop_entry(path: &Path) -> Option<XdgApplication> {
                 "Comment" if comment.is_empty() => comment = val.to_string(),
                 "NoDisplay" => nodisplay = val.eq_ignore_ascii_case("true"),
                 "Categories" => {
-                    categories = val.split(';').filter(|s| !s.is_empty()).map(|s| s.to_string()).collect();
+                    categories = val
+                        .split(';')
+                        .filter(|s| !s.is_empty())
+                        .map(|s| s.to_string())
+                        .collect();
                 }
                 _ => {}
             }
@@ -1023,8 +1121,12 @@ fn scan_xdg_applications_blocking() -> Result<Vec<XdgApplication>, String> {
     #[cfg(target_os = "linux")]
     {
         let mut apps = Vec::new();
-        let user_apps_dir = dirs::data_dir().map(|d| d.join("applications")).unwrap_or_default();
-        let user_flatpak_dir = dirs::data_dir().map(|d| d.join("flatpak/exports/share/applications")).unwrap_or_default();
+        let user_apps_dir = dirs::data_dir()
+            .map(|d| d.join("applications"))
+            .unwrap_or_default();
+        let user_flatpak_dir = dirs::data_dir()
+            .map(|d| d.join("flatpak/exports/share/applications"))
+            .unwrap_or_default();
         let flatpak_sys_dir = PathBuf::from("/var/lib/flatpak/exports/share/applications");
         let search_dirs = [
             PathBuf::from("/usr/share/applications"),
@@ -1042,7 +1144,10 @@ fn scan_xdg_applications_blocking() -> Result<Vec<XdgApplication>, String> {
                         if path.extension().and_then(|s| s.to_str()) == Some("desktop") {
                             if let Some(mut app) = parse_desktop_entry(&path) {
                                 // Kullanıcı dizinleri veya Flatpak dizinlerindeki uygulamalar kullanıcı kurulumudur
-                                if dir == &user_apps_dir || dir == &user_flatpak_dir || dir == &flatpak_sys_dir {
+                                if dir == &user_apps_dir
+                                    || dir == &user_flatpak_dir
+                                    || dir == &flatpak_sys_dir
+                                {
                                     app.is_installed_by_user = true;
                                 }
                                 if !apps.iter().any(|a: &XdgApplication| a.id == app.id) {
@@ -1096,7 +1201,10 @@ fn install_deb_package_blocking(package_name: String) -> Result<XdgApplication, 
                 if helper.exists() {
                     root_command("/usr/local/bin/ayaz-pkg-helper", &["install", clean_pkg])
                 } else {
-                    root_command("apt-get", &["install", "-y", "--no-install-recommends", "--", clean_pkg])
+                    root_command(
+                        "apt-get",
+                        &["install", "-y", "--no-install-recommends", "--", clean_pkg],
+                    )
                 }
             };
             let mut attempt = run_install();
@@ -1104,12 +1212,15 @@ fn install_deb_package_blocking(package_name: String) -> Result<XdgApplication, 
             // locate package" ile düşer. Depo listelerini yenileyip bir kez daha
             // denemeden kurulum arayüzde başarısız görünüyordu.
             if let Ok(res) = &attempt {
-                let err_txt = format!("{}{}",
+                let err_txt = format!(
+                    "{}{}",
                     String::from_utf8_lossy(&res.stdout),
-                    String::from_utf8_lossy(&res.stderr));
-                let stale = !res.status.success() && (err_txt.contains("Unable to locate package")
-                    || err_txt.contains("was not found in")
-                    || err_txt.contains("E: "));
+                    String::from_utf8_lossy(&res.stderr)
+                );
+                let stale = !res.status.success()
+                    && (err_txt.contains("Unable to locate package")
+                        || err_txt.contains("was not found in")
+                        || err_txt.contains("E: "));
                 if stale && !helper.exists() {
                     let _ = root_command("apt-get", &["update"]);
                     attempt = run_install();
@@ -1124,15 +1235,38 @@ fn install_deb_package_blocking(package_name: String) -> Result<XdgApplication, 
                     let err = String::from_utf8_lossy(&res.stderr).trim().to_string();
                     let out = String::from_utf8_lossy(&res.stdout).trim().to_string();
                     let mut detail = if err.is_empty() {
-                        out.lines().rev().take(4).collect::<Vec<_>>().into_iter().rev().collect::<Vec<_>>().join("\n")
+                        out.lines()
+                            .rev()
+                            .take(4)
+                            .collect::<Vec<_>>()
+                            .into_iter()
+                            .rev()
+                            .collect::<Vec<_>>()
+                            .join("\n")
                     } else {
-                        err.lines().rev().take(6).collect::<Vec<_>>().into_iter().rev().collect::<Vec<_>>().join("\n")
+                        err.lines()
+                            .rev()
+                            .take(6)
+                            .collect::<Vec<_>>()
+                            .into_iter()
+                            .rev()
+                            .collect::<Vec<_>>()
+                            .join("\n")
                     };
                     let detail_l = detail.to_lowercase();
-                    if detail_l.contains("temporary failure") || detail_l.contains("connection refused") || detail_l.contains("could not resolve") {
-                        detail = format!(" — Ağ bağlantısı yok veya depolara ulaşılamıyor.\n{}", detail);
+                    if detail_l.contains("temporary failure")
+                        || detail_l.contains("connection refused")
+                        || detail_l.contains("could not resolve")
+                    {
+                        detail = format!(
+                            " — Ağ bağlantısı yok veya depolara ulaşılamıyor.\n{}",
+                            detail
+                        );
                     } else if !sudo_available() && pkexec_available() {
-                        detail = format!(" — Yönetici yetkisi penceresi açılmadıysa tekrar deneyin.\n{}", detail);
+                        detail = format!(
+                            " — Yönetici yetkisi penceresi açılmadıysa tekrar deneyin.\n{}",
+                            detail
+                        );
                     }
                     return Err(format!("Paket kurulumu başarısız:\n{}", detail));
                 }
@@ -1142,7 +1276,10 @@ fn install_deb_package_blocking(package_name: String) -> Result<XdgApplication, 
 
         // Kurulum sonrası XDG dizinini tara ve masaüstü/uygulamalar dizinine yerleştir
         let apps = scan_xdg_applications_blocking()?;
-        let final_app = if let Some(mut app) = apps.into_iter().find(|a| a.id.contains(clean_pkg) || clean_pkg.contains(&a.id)) {
+        let final_app = if let Some(mut app) = apps
+            .into_iter()
+            .find(|a| a.id.contains(clean_pkg) || clean_pkg.contains(&a.id))
+        {
             app.is_installed_by_user = true;
             app
         } else {
@@ -1347,7 +1484,9 @@ fn get_xdg_user_dirs() -> Result<XdgUserDirs, String> {
                 return p.to_string_lossy().to_string();
             }
         }
-        home.join(fallbacks.first().unwrap_or(&"Downloads")).to_string_lossy().to_string()
+        home.join(fallbacks.first().unwrap_or(&"Downloads"))
+            .to_string_lossy()
+            .to_string()
     };
     Ok(XdgUserDirs {
         home: home.to_string_lossy().to_string(),
@@ -1468,8 +1607,12 @@ fn remove_deb_package_blocking(package_name: String) -> Result<String, String> {
     #[cfg(target_os = "linux")]
     {
         if let Some(home_dir) = dirs::home_dir() {
-            let desktop_file = home_dir.join("Desktop").join(format!("{}.desktop", clean_pkg));
-            let local_file = home_dir.join(".local/share/applications").join(format!("{}.desktop", clean_pkg));
+            let desktop_file = home_dir
+                .join("Desktop")
+                .join(format!("{}.desktop", clean_pkg));
+            let local_file = home_dir
+                .join(".local/share/applications")
+                .join(format!("{}.desktop", clean_pkg));
             let _ = fs::remove_file(desktop_file);
             let _ = fs::remove_file(local_file);
         }
@@ -1503,7 +1646,11 @@ fn remove_deb_package_blocking(package_name: String) -> Result<String, String> {
 fn pkexec_available() -> bool {
     static PKEXEC_OK: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
     *PKEXEC_OK.get_or_init(|| {
-        Command::new("pkexec").arg("--version").output().map(|o| o.status.success()).unwrap_or(false)
+        Command::new("pkexec")
+            .arg("--version")
+            .output()
+            .map(|o| o.status.success())
+            .unwrap_or(false)
     })
 }
 
@@ -1524,7 +1671,11 @@ fn sudo_available() -> bool {
 // verirse doğrudan çalıştırma ve gerekirse pkexec (Polkit) yükseltmesi denenir.
 fn root_command(prog: &str, args: &[&str]) -> std::io::Result<std::process::Output> {
     if sudo_available() {
-        let out = Command::new("sudo").arg("-n").arg(prog).args(args).output()?;
+        let out = Command::new("sudo")
+            .arg("-n")
+            .arg(prog)
+            .args(args)
+            .output()?;
         if out.status.success() {
             return Ok(out);
         }
@@ -1542,7 +1693,9 @@ fn root_command(prog: &str, args: &[&str]) -> std::io::Result<std::process::Outp
     // penceresi kullanıcıdan istenir.
     let direct = Command::new(prog).args(args).output()?;
     let permission_denied = !direct.status.success()
-        && String::from_utf8_lossy(&direct.stderr).to_lowercase().contains("permission denied");
+        && String::from_utf8_lossy(&direct.stderr)
+            .to_lowercase()
+            .contains("permission denied");
     if permission_denied && pkexec_available() {
         let elevated = Command::new("pkexec").arg(prog).args(args).output();
         if let Ok(pk) = &elevated {
@@ -1566,7 +1719,9 @@ fn root_write(path: &str, data: &str) -> Result<(), String> {
             .spawn()
             .map_err(|e| format!("sudo tee başlatılamadı: {}", e))?;
         if let Some(mut stdin) = child.stdin.take() {
-            stdin.write_all(data.as_bytes()).map_err(|e| e.to_string())?;
+            stdin
+                .write_all(data.as_bytes())
+                .map_err(|e| e.to_string())?;
         }
         let out = child.wait_with_output().map_err(|e| e.to_string())?;
         if !out.status.success() {
@@ -1621,7 +1776,10 @@ fn is_terminal_command_permitted(command: &str) -> Result<(), String> {
         let arg_lower = arg.to_lowercase();
         for pattern in SENSITIVE_FILE_PATTERNS {
             if arg_lower.contains(&pattern.to_lowercase()) {
-                return Err(format!("Güvenlik İlkesi İhlali: Hassas dosya/sistem yoluna erişim engellendi: '{}'.", pattern));
+                return Err(format!(
+                    "Güvenlik İlkesi İhlali: Hassas dosya/sistem yoluna erişim engellendi: '{}'.",
+                    pattern
+                ));
             }
         }
     }
@@ -1651,7 +1809,8 @@ fn is_terminal_command_permitted(command: &str) -> Result<(), String> {
 /// doğrudan root_command üzerinden güvenli şekilde yürütür. Güncelleme ve
 /// kurulum bu geçit üzerinden mümkündür; kara liste ikilileri hâlâ engellidir.
 fn try_apt_get_passthrough(command: &str) -> Option<Result<String, String>> {
-    let segments: Vec<&str> = command.split("&&")
+    let segments: Vec<&str> = command
+        .split("&&")
         .map(|s| s.trim())
         .filter(|s| !s.is_empty())
         .collect();
@@ -1702,7 +1861,11 @@ fn try_apt_get_passthrough(command: &str) -> Option<Result<String, String>> {
                         return None;
                     }
                 }
-                let mut args = vec!["-y".to_string(), "--no-install-recommends".to_string(), "--".to_string()];
+                let mut args = vec![
+                    "-y".to_string(),
+                    "--no-install-recommends".to_string(),
+                    "--".to_string(),
+                ];
                 args.extend(pkgs.iter().map(|s| s.to_string()));
                 ops.push(("install".into(), args));
             }
@@ -1728,7 +1891,11 @@ fn try_apt_get_passthrough(command: &str) -> Option<Result<String, String>> {
                 if !stderr.is_empty() {
                     return Err(format!("apt-get {}: {}", op, stderr.trim()));
                 }
-                return Err(format!("apt-get {} komutu hata verdi (çıkış kodu {}).", op, out.status.code().unwrap_or(-1)));
+                return Err(format!(
+                    "apt-get {} komutu hata verdi (çıkış kodu {}).",
+                    op,
+                    out.status.code().unwrap_or(-1)
+                ));
             }
             if !stdout.is_empty() {
                 combined.push_str(&stdout);
@@ -1791,7 +1958,10 @@ fn run_terminal_command_blocking(command: String) -> Result<String, String> {
 
     #[cfg(not(target_os = "linux"))]
     {
-        Ok(format!("[Simüle bash çıkışı]: {} başarıyla yürütüldü.", cmd_trimmed))
+        Ok(format!(
+            "[Simüle bash çıkışı]: {} başarıyla yürütüldü.",
+            cmd_trimmed
+        ))
     }
 }
 
@@ -1808,7 +1978,7 @@ async fn launch_interactive_terminal(command: Option<String>) -> Result<String, 
             "sakura",
             "urxvt",
             "kitty",
-            "alacritty"
+            "alacritty",
         ];
         let mut chosen_term = None;
         for term in terminal_candidates {
@@ -1832,17 +2002,26 @@ async fn launch_interactive_terminal(command: Option<String>) -> Result<String, 
             }
             let first_word = cmd_str.split_whitespace().next().unwrap_or("");
             if FORBIDDEN_LAUNCH_BINARIES.contains(&first_word) {
-                return Err(format!("Güvenlik İlkesi İhlali: '{}' komutu doğrudan başlatılamaz.", first_word));
+                return Err(format!(
+                    "Güvenlik İlkesi İhlali: '{}' komutu doğrudan başlatılamaz.",
+                    first_word
+                ));
             }
             for pat in SENSITIVE_FILE_PATTERNS {
                 if cmd_str.to_lowercase().contains(&pat.to_lowercase()) {
-                    return Err(format!("Güvenlik İlkesi İhlali: Hassas sisteme erişim engellendi: '{}'.", pat));
+                    return Err(format!(
+                        "Güvenlik İlkesi İhlali: Hassas sisteme erişim engellendi: '{}'.",
+                        pat
+                    ));
                 }
             }
         }
 
         let mut spawn_cmd = Command::new(&term_bin);
-        spawn_cmd.env("DISPLAY", std::env::var("DISPLAY").unwrap_or_else(|_| ":0".to_string()));
+        spawn_cmd.env(
+            "DISPLAY",
+            std::env::var("DISPLAY").unwrap_or_else(|_| ":0".to_string()),
+        );
 
         if !cmd_str.is_empty() {
             let script = format!("{}; echo; echo '[İşlem tamamlandı, pencereyi kapatmak için Enter tuşuna basın]'; read -r _", cmd_str);
@@ -1873,9 +2052,16 @@ async fn read_document_file(file_path: String) -> Result<DocumentResult, String>
     }
 
     // 2. İzin verilen belge uzantısı kontrolü
-    let extension = raw_path.extension().and_then(|s| s.to_str()).unwrap_or("").to_lowercase();
+    let extension = raw_path
+        .extension()
+        .and_then(|s| s.to_str())
+        .unwrap_or("")
+        .to_lowercase();
     if !ALLOWED_DOC_EXTENSIONS.contains(&extension.as_str()) {
-        return Err(format!("Güvenlik Hatası: '.{}' uzantılı dosyalar güvenlik nedeniyle okunamaz.", extension));
+        return Err(format!(
+            "Güvenlik Hatası: '.{}' uzantılı dosyalar güvenlik nedeniyle okunamaz.",
+            extension
+        ));
     }
 
     // 3. Kanonik dosya yolunu çözümleme
@@ -1886,7 +2072,10 @@ async fn read_document_file(file_path: String) -> Result<DocumentResult, String>
 
     // 4. Kanonik dosya yolu üzerinde hassas sistem dosyası kalıp kontrolü
     let canonical_lower = canonical.to_string_lossy().to_lowercase();
-    if SENSITIVE_FILE_PATTERNS.iter().any(|pat| canonical_lower.contains(pat)) {
+    if SENSITIVE_FILE_PATTERNS
+        .iter()
+        .any(|pat| canonical_lower.contains(pat))
+    {
         return Err("Güvenlik Hatası: Hassas sistem dosyalarının okunması engellendi.".to_string());
     }
 
@@ -1900,13 +2089,16 @@ async fn read_document_file(file_path: String) -> Result<DocumentResult, String>
         std::env::current_dir().unwrap_or_default(),
     ];
 
-    let is_in_allowed_dir = allowed_dirs.iter().any(|d| {
-        !d.as_os_str().is_empty() && canonical.starts_with(d)
-    });
+    let is_in_allowed_dir = allowed_dirs
+        .iter()
+        .any(|d| !d.as_os_str().is_empty() && canonical.starts_with(d));
 
     if !is_in_allowed_dir {
         let file_name = canonical.file_name().unwrap_or_default().to_string_lossy();
-        if file_name != "ankora-sistem-rehberi.pdf" && file_name != "kiosk-ayarlari.txt" && file_name != "kiosk-ayarlari.md" {
+        if file_name != "ankora-sistem-rehberi.pdf"
+            && file_name != "kiosk-ayarlari.txt"
+            && file_name != "kiosk-ayarlari.md"
+        {
             return Err("Güvenlik Hatası: Yalnızca kullanıcı belgeleri ve sistem dokümantasyonu dizinindeki dosyalar okunabilir.".to_string());
         }
     }
@@ -1919,7 +2111,11 @@ async fn read_document_file(file_path: String) -> Result<DocumentResult, String>
         return Err("Dosya boyutu çok büyük (50 MB üstü kabul edilmez).".to_string());
     }
 
-    let file_name = canonical.file_name().unwrap_or_default().to_string_lossy().to_string();
+    let file_name = canonical
+        .file_name()
+        .unwrap_or_default()
+        .to_string_lossy()
+        .to_string();
 
     match extension.as_str() {
         "pdf" => {
@@ -1957,10 +2153,15 @@ async fn read_document_file(file_path: String) -> Result<DocumentResult, String>
             })
         }
         _ => {
-            let text = fs::read_to_string(&canonical).map_err(|e| format!("Dosya okunamadı: {}", e))?;
+            let text =
+                fs::read_to_string(&canonical).map_err(|e| format!("Dosya okunamadı: {}", e))?;
             Ok(DocumentResult {
                 file_name,
-                file_type: if extension == "docx" { "docx".to_string() } else { "text".to_string() },
+                file_type: if extension == "docx" {
+                    "docx".to_string()
+                } else {
+                    "text".to_string()
+                },
                 file_size,
                 content: text,
             })
@@ -2091,7 +2292,9 @@ fn validate_ai_endpoint_url(raw_url: &str) -> Result<String, String> {
         return Err("Yalnızca HTTP veya HTTPS protokolü desteklenir.".to_string());
     }
 
-    let host_str = parsed.host_str().ok_or_else(|| "URL ana makine adı (host) içermelidir.".to_string())?;
+    let host_str = parsed
+        .host_str()
+        .ok_or_else(|| "URL ana makine adı (host) içermelidir.".to_string())?;
     let lower_host = host_str.to_lowercase();
 
     // Bulut sağlayıcı meta veri etki alanları
@@ -2105,13 +2308,16 @@ fn validate_ai_endpoint_url(raw_url: &str) -> Result<String, String> {
         return Err("Güvenlik İlkesi İhlali: Bulut sağlayıcı meta veri uç noktalarına (SSRF) erişim kesinlikle yasaktır.".to_string());
     }
 
-    let is_localhost = lower_host == "localhost" || lower_host == "127.0.0.1" || lower_host == "::1";
+    let is_localhost =
+        lower_host == "localhost" || lower_host == "127.0.0.1" || lower_host == "::1";
 
     if !is_localhost && scheme != "https" {
         return Err("Güvenlik İlkesi: Yerel olmayan harici AI uç noktaları güvenli HTTPS protokolü kullanmalıdır.".to_string());
     }
 
-    let port = parsed.port_or_known_default().unwrap_or(if scheme == "https" { 443 } else { 80 });
+    let port = parsed
+        .port_or_known_default()
+        .unwrap_or(if scheme == "https" { 443 } else { 80 });
     let socket_addr_str = format!("{}:{}", host_str, port);
 
     if !is_localhost {
@@ -2131,11 +2337,17 @@ fn validate_ai_endpoint_url(raw_url: &str) -> Result<String, String> {
                     }
                 }
                 if !found {
-                    return Err("Güvenlik İlkesi İhlali: Alan adı geçerli bir IP adresine çözümlenemedi.".to_string());
+                    return Err(
+                        "Güvenlik İlkesi İhlali: Alan adı geçerli bir IP adresine çözümlenemedi."
+                            .to_string(),
+                    );
                 }
             }
             Err(e) => {
-                return Err(format!("Güvenlik İlkesi İhlali: Alan adı DNS çözümlemesi başarısız: {}", e));
+                return Err(format!(
+                    "Güvenlik İlkesi İhlali: Alan adı DNS çözümlemesi başarısız: {}",
+                    e
+                ));
             }
         }
     }
@@ -2146,7 +2358,10 @@ fn validate_ai_endpoint_url(raw_url: &str) -> Result<String, String> {
 static PENDING_AGENT_ACTION: Mutex<Option<(String, String, Instant)>> = Mutex::new(None);
 
 fn generate_agent_action_token(cmd: &str) -> String {
-    let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_nanos();
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_nanos();
     let mut hasher = Sha256::new();
     hasher.update(now.to_le_bytes());
     hasher.update(b"ankora-agent-action-token-salt");
@@ -2185,7 +2400,15 @@ fn build_local_ai_diagnostic_response(prompt: &str, mode: &str) -> AiResponse {
     let disk_pct = tele.disk_percent.unwrap_or(0) as u64;
     let uptime_mins = tele.uptime_seconds / 60;
 
-    if p_lower.contains("doktor") || p_lower.contains("doctor") || p_lower.contains("onar") || p_lower.contains("sağlık") || mode == "doctor" && (p_lower.contains("tara") || p_lower.contains("kontrol") || p_lower.contains("durum")) {
+    if p_lower.contains("doktor")
+        || p_lower.contains("doctor")
+        || p_lower.contains("onar")
+        || p_lower.contains("sağlık")
+        || mode == "doctor"
+            && (p_lower.contains("tara")
+                || p_lower.contains("kontrol")
+                || p_lower.contains("durum"))
+    {
         let cmd = "/usr/local/bin/ankora-doctor".to_string();
         let token = generate_agent_action_token(&cmd);
         return AiResponse {
@@ -2200,7 +2423,11 @@ fn build_local_ai_diagnostic_response(prompt: &str, mode: &str) -> AiResponse {
         };
     }
 
-    if p_lower.contains("temizle") || p_lower.contains("önbellek") || p_lower.contains("cache") || p_lower.contains("çöp") {
+    if p_lower.contains("temizle")
+        || p_lower.contains("önbellek")
+        || p_lower.contains("cache")
+        || p_lower.contains("çöp")
+    {
         let cmd = "apt-get clean && rm -rf /tmp/*".to_string();
         let token = generate_agent_action_token(&cmd);
         return AiResponse {
@@ -2215,7 +2442,13 @@ fn build_local_ai_diagnostic_response(prompt: &str, mode: &str) -> AiResponse {
         };
     }
 
-    if p_lower.contains("süreç") || p_lower.contains("işlem") || p_lower.contains("process") || p_lower.contains("cpu") || p_lower.contains("işlemci") || p_lower.contains("yavaş") {
+    if p_lower.contains("süreç")
+        || p_lower.contains("işlem")
+        || p_lower.contains("process")
+        || p_lower.contains("cpu")
+        || p_lower.contains("işlemci")
+        || p_lower.contains("yavaş")
+    {
         let cmd = "top -b -n 1".to_string();
         let token = generate_agent_action_token(&cmd);
         return AiResponse {
@@ -2230,7 +2463,12 @@ fn build_local_ai_diagnostic_response(prompt: &str, mode: &str) -> AiResponse {
         };
     }
 
-    if p_lower.contains("zram") || p_lower.contains("takas") || p_lower.contains("swap") || p_lower.contains("bellek") || p_lower.contains("ram") {
+    if p_lower.contains("zram")
+        || p_lower.contains("takas")
+        || p_lower.contains("swap")
+        || p_lower.contains("bellek")
+        || p_lower.contains("ram")
+    {
         let cmd = "free -h".to_string();
         let token = generate_agent_action_token(&cmd);
         return AiResponse {
@@ -2245,7 +2483,12 @@ fn build_local_ai_diagnostic_response(prompt: &str, mode: &str) -> AiResponse {
         };
     }
 
-    if p_lower.contains("disk") || p_lower.contains("depolama") || p_lower.contains("alan") || p_lower.contains("bölüm") || p_lower.contains("lsblk") {
+    if p_lower.contains("disk")
+        || p_lower.contains("depolama")
+        || p_lower.contains("alan")
+        || p_lower.contains("bölüm")
+        || p_lower.contains("lsblk")
+    {
         let cmd = "df -h / && free -m".to_string();
         let token = generate_agent_action_token(&cmd);
         return AiResponse {
@@ -2260,7 +2503,12 @@ fn build_local_ai_diagnostic_response(prompt: &str, mode: &str) -> AiResponse {
         };
     }
 
-    if p_lower.contains("donanım") || p_lower.contains("hardware") || p_lower.contains("çekirdek") || p_lower.contains("kernel") || p_lower.contains("mimari") {
+    if p_lower.contains("donanım")
+        || p_lower.contains("hardware")
+        || p_lower.contains("çekirdek")
+        || p_lower.contains("kernel")
+        || p_lower.contains("mimari")
+    {
         let cmd = "lscpu".to_string();
         let token = generate_agent_action_token(&cmd);
         return AiResponse {
@@ -2275,7 +2523,12 @@ fn build_local_ai_diagnostic_response(prompt: &str, mode: &str) -> AiResponse {
         };
     }
 
-    if p_lower.contains("ağ") || p_lower.contains("wifi") || p_lower.contains("internet") || p_lower.contains("ip") || p_lower.contains("dns") {
+    if p_lower.contains("ağ")
+        || p_lower.contains("wifi")
+        || p_lower.contains("internet")
+        || p_lower.contains("ip")
+        || p_lower.contains("dns")
+    {
         let net = get_network_info();
         return AiResponse {
             reply: format!(
@@ -2289,7 +2542,11 @@ fn build_local_ai_diagnostic_response(prompt: &str, mode: &str) -> AiResponse {
         };
     }
 
-    if p_lower.contains("durum") || p_lower.contains("özet") || p_lower.contains("rapor") || p_lower.contains("analiz") {
+    if p_lower.contains("durum")
+        || p_lower.contains("özet")
+        || p_lower.contains("rapor")
+        || p_lower.contains("analiz")
+    {
         let cmd = "df -h / && free -m".to_string();
         let token = generate_agent_action_token(&cmd);
         return AiResponse {
@@ -2336,8 +2593,12 @@ async fn query_local_ai(
     model: Option<String>,
     agent_mode: Option<String>,
 ) -> Result<AiResponse, String> {
-    let prov = provider.unwrap_or_else(|| "ollama".to_string()).to_lowercase();
-    let mode = agent_mode.unwrap_or_else(|| "sysadmin".to_string()).to_lowercase();
+    let prov = provider
+        .unwrap_or_else(|| "ollama".to_string())
+        .to_lowercase();
+    let mode = agent_mode
+        .unwrap_or_else(|| "sysadmin".to_string())
+        .to_lowercase();
 
     let tele_summary = if let Ok(t) = collect_system_telemetry() {
         format!(
@@ -2394,29 +2655,34 @@ async fn query_local_ai(
         .build()
         .map_err(|e| e.to_string())?;
 
-    let parse_action_from_text = |text: &str| -> (String, bool, Option<String>, Option<String>, Option<String>) {
-        if let Some(start_idx) = text.find("<<<ACTION:") {
-            if let Some(end_idx) = text[start_idx..].find(">>>") {
-                let json_str = &text[start_idx + 10..start_idx + end_idx];
-                let clean_reply = text[..start_idx].trim().to_string();
+    let parse_action_from_text =
+        |text: &str| -> (String, bool, Option<String>, Option<String>, Option<String>) {
+            if let Some(start_idx) = text.find("<<<ACTION:") {
+                if let Some(end_idx) = text[start_idx..].find(">>>") {
+                    let json_str = &text[start_idx + 10..start_idx + end_idx];
+                    let clean_reply = text[..start_idx].trim().to_string();
 
-                if let Ok(action_val) = serde_json::from_str::<serde_json::Value>(json_str) {
-                    let proposed_cmd = action_val["command"].as_str().unwrap_or("").trim().to_string();
-                    if ALLOWED_AGENT_ACTIONS.contains(&proposed_cmd.as_str()) {
-                        let token = generate_agent_action_token(&proposed_cmd);
-                        return (
-                            clean_reply,
-                            true,
-                            Some(proposed_cmd),
-                            action_val["desc"].as_str().map(|s| s.to_string()),
-                            Some(token),
-                        );
+                    if let Ok(action_val) = serde_json::from_str::<serde_json::Value>(json_str) {
+                        let proposed_cmd = action_val["command"]
+                            .as_str()
+                            .unwrap_or("")
+                            .trim()
+                            .to_string();
+                        if ALLOWED_AGENT_ACTIONS.contains(&proposed_cmd.as_str()) {
+                            let token = generate_agent_action_token(&proposed_cmd);
+                            return (
+                                clean_reply,
+                                true,
+                                Some(proposed_cmd),
+                                action_val["desc"].as_str().map(|s| s.to_string()),
+                                Some(token),
+                            );
+                        }
                     }
                 }
             }
-        }
-        (text.to_string(), false, None, None, None)
-    };
+            (text.to_string(), false, None, None, None)
+        };
 
     // 1. OLLAMA (Yalnızca yerel IP / localhost)
     if prov == "ollama" {
@@ -2435,12 +2701,19 @@ async fn query_local_ai(
             if resp.status().is_success() {
                 if let Ok(json_data) = resp.json::<serde_json::Value>().await {
                     let raw_reply = json_data["response"].as_str().unwrap_or("").to_string();
-                    let (reply, has_action, action_command, action_desc, action_token) = parse_action_from_text(&raw_reply);
-                    return Ok(AiResponse { reply, has_action, action_command, action_desc, action_token });
+                    let (reply, has_action, action_command, action_desc, action_token) =
+                        parse_action_from_text(&raw_reply);
+                    return Ok(AiResponse {
+                        reply,
+                        has_action,
+                        action_command,
+                        action_desc,
+                        action_token,
+                    });
                 }
             }
         }
-    } 
+    }
     // 2. GOOGLE GEMINI (Resmi Güvenli Endpoint)
     else if prov == "gemini" {
         if resolved_key.is_empty() {
@@ -2474,13 +2747,26 @@ async fn query_local_ai(
         {
             Ok(resp) if resp.status().is_success() => {
                 if let Ok(json_data) = resp.json::<serde_json::Value>().await {
-                    let text = json_data["candidates"][0]["content"]["parts"][0]["text"].as_str().unwrap_or("").to_string();
-                    let (reply, has_action, action_command, action_desc, action_token) = parse_action_from_text(&text);
-                    return Ok(AiResponse { reply, has_action, action_command, action_desc, action_token });
+                    let text = json_data["candidates"][0]["content"]["parts"][0]["text"]
+                        .as_str()
+                        .unwrap_or("")
+                        .to_string();
+                    let (reply, has_action, action_command, action_desc, action_token) =
+                        parse_action_from_text(&text);
+                    return Ok(AiResponse {
+                        reply,
+                        has_action,
+                        action_command,
+                        action_desc,
+                        action_token,
+                    });
                 }
             }
             Ok(resp) => {
-                return Err(format!("Gemini API Hatası (HTTP {}): API anahtarını veya model adını kontrol edin.", resp.status()));
+                return Err(format!(
+                    "Gemini API Hatası (HTTP {}): API anahtarını veya model adını kontrol edin.",
+                    resp.status()
+                ));
             }
             Err(e) => return Err(format!("Gemini bağlantı hatası: {}", e)),
         }
@@ -2488,11 +2774,21 @@ async fn query_local_ai(
     // 3. OPENAI / GROQ / OPENROUTER / CUSTOM (SSRF ve Redirect Korumalı)
     else {
         let (url, default_model) = match prov.as_str() {
-            "openai" => ("https://api.openai.com/v1/chat/completions".to_string(), "gpt-4o-mini".to_string()),
-            "groq" => ("https://api.groq.com/openai/v1/chat/completions".to_string(), "llama-3.3-70b-versatile".to_string()),
-            "openrouter" => ("https://openrouter.ai/api/v1/chat/completions".to_string(), "anthropic/claude-3.5-sonnet".to_string()),
+            "openai" => (
+                "https://api.openai.com/v1/chat/completions".to_string(),
+                "gpt-4o-mini".to_string(),
+            ),
+            "groq" => (
+                "https://api.groq.com/openai/v1/chat/completions".to_string(),
+                "llama-3.3-70b-versatile".to_string(),
+            ),
+            "openrouter" => (
+                "https://openrouter.ai/api/v1/chat/completions".to_string(),
+                "anthropic/claude-3.5-sonnet".to_string(),
+            ),
             _ => {
-                let custom_url = endpoint.unwrap_or_else(|| "http://127.0.0.1:8000/v1/chat/completions".to_string());
+                let custom_url = endpoint
+                    .unwrap_or_else(|| "http://127.0.0.1:8000/v1/chat/completions".to_string());
                 let validated_url = validate_ai_endpoint_url(&custom_url)?;
                 (validated_url, "default".to_string())
             }
@@ -2518,17 +2814,34 @@ async fn query_local_ai(
         match req.json(&payload).send().await {
             Ok(resp) if resp.status().is_success() => {
                 if let Ok(json_data) = resp.json::<serde_json::Value>().await {
-                    let text = json_data["choices"][0]["message"]["content"].as_str().unwrap_or("").to_string();
-                    let (reply, has_action, action_command, action_desc, action_token) = parse_action_from_text(&text);
-                    return Ok(AiResponse { reply, has_action, action_command, action_desc, action_token });
+                    let text = json_data["choices"][0]["message"]["content"]
+                        .as_str()
+                        .unwrap_or("")
+                        .to_string();
+                    let (reply, has_action, action_command, action_desc, action_token) =
+                        parse_action_from_text(&text);
+                    return Ok(AiResponse {
+                        reply,
+                        has_action,
+                        action_command,
+                        action_desc,
+                        action_token,
+                    });
                 }
             }
             Ok(resp) => {
-                return Err(format!("API Servis Hatası (HTTP {}): API anahtarı veya servis adresi doğrulanamadı.", resp.status()));
+                return Err(format!(
+                    "API Servis Hatası (HTTP {}): API anahtarı veya servis adresi doğrulanamadı.",
+                    resp.status()
+                ));
             }
             Err(e) => {
                 if prov != "ollama" {
-                    return Err(format!("{} servisine bağlanılamadı: {}", prov.to_uppercase(), e));
+                    return Err(format!(
+                        "{} servisine bağlanılamadı: {}",
+                        prov.to_uppercase(),
+                        e
+                    ));
                 }
             }
         }
@@ -2572,9 +2885,12 @@ fn live_boot_disks() -> Vec<String> {
     if let Ok(mounts) = fs::read_to_string("/proc/mounts") {
         for line in mounts.lines() {
             let parts: Vec<&str> = line.split_whitespace().collect();
-            if parts.len() >= 2 && live_mounts.contains(&parts[1]) && parts[0].starts_with("/dev/") {
+            if parts.len() >= 2 && live_mounts.contains(&parts[1]) && parts[0].starts_with("/dev/")
+            {
                 let raw = parts[0].trim_start_matches("/dev/");
-                let base = if (raw.starts_with("nvme") || raw.starts_with("mmcblk")) && raw.contains('p') {
+                let base = if (raw.starts_with("nvme") || raw.starts_with("mmcblk"))
+                    && raw.contains('p')
+                {
                     if let Some((head, tail)) = raw.rsplit_once('p') {
                         if !tail.is_empty() && tail.chars().all(|c| c.is_ascii_digit()) {
                             head.to_string()
@@ -2585,7 +2901,8 @@ fn live_boot_disks() -> Vec<String> {
                         raw.to_string()
                     }
                 } else {
-                    raw.trim_end_matches(|c: char| c.is_ascii_digit()).to_string()
+                    raw.trim_end_matches(|c: char| c.is_ascii_digit())
+                        .to_string()
                 };
                 if !base.is_empty() && !boot_disks.contains(&base) {
                     boot_disks.push(base);
@@ -2609,7 +2926,9 @@ fn get_storage_devices_blocking() -> Result<Vec<StorageDisk>, String> {
     {
         let boot_disks = live_boot_disks();
         // JSON formatında parse ederek boşluklu MODEL adlarını doğru yakalıyoruz
-        let output = Command::new("lsblk").args(["-d", "-b", "-J", "-o", "NAME,SIZE,MODEL,RM,TYPE"]).output();
+        let output = Command::new("lsblk")
+            .args(["-d", "-b", "-J", "-o", "NAME,SIZE,MODEL,RM,TYPE"])
+            .output();
         if let Ok(out) = output {
             if out.status.success() {
                 let stdout = String::from_utf8_lossy(&out.stdout);
@@ -2630,12 +2949,22 @@ fn get_storage_devices_blocking() -> Result<Vec<StorageDisk>, String> {
                             {
                                 continue;
                             }
-                            let size_bytes = dev["size"].as_u64()
+                            let size_bytes = dev["size"]
+                                .as_u64()
                                 .or_else(|| dev["size"].as_str().and_then(|s| s.parse().ok()))
                                 .unwrap_or(0);
-                            let model = dev["model"].as_str().unwrap_or("Sabit Disk").trim().to_string();
-                            let model = if model.is_empty() { "Sabit Disk".to_string() } else { model };
-                            let is_removable = dev["rm"].as_bool()
+                            let model = dev["model"]
+                                .as_str()
+                                .unwrap_or("Sabit Disk")
+                                .trim()
+                                .to_string();
+                            let model = if model.is_empty() {
+                                "Sabit Disk".to_string()
+                            } else {
+                                model
+                            };
+                            let is_removable = dev["rm"]
+                                .as_bool()
                                 .or_else(|| dev["rm"].as_str().map(|s| s == "1"))
                                 .or_else(|| dev["rm"].as_u64().map(|v| v == 1))
                                 .unwrap_or(false);
@@ -2671,7 +3000,7 @@ fn get_storage_devices_blocking() -> Result<Vec<StorageDisk>, String> {
             size_gb: 512.0,
             model: "NVMe M.2 SSD".to_string(),
             is_removable: false,
-        }
+        },
     ])
 }
 
@@ -2693,7 +3022,10 @@ fn execute_system_installation_blocking(payload: InstallPayload) -> Result<Strin
     {
         let target_base = target.trim_start_matches("/dev/").to_string();
         if live_boot_disks().contains(&target_base) {
-            return Err("Canlı oturumun çalıştığı önyükleme medyası hedef disk olarak seçilemez.".to_string());
+            return Err(
+                "Canlı oturumun çalıştığı önyükleme medyası hedef disk olarak seçilemez."
+                    .to_string(),
+            );
         }
     }
 
@@ -2704,11 +3036,17 @@ fn execute_system_installation_blocking(payload: InstallPayload) -> Result<Strin
 
     let hostname = payload.hostname.trim();
     if !is_valid_hostname(hostname) {
-        return Err("Geçersiz makine adı (hostname). RFC 1123 standartlarına uygun olmalıdır.".to_string());
+        return Err(
+            "Geçersiz makine adı (hostname). RFC 1123 standartlarına uygun olmalıdır.".to_string(),
+        );
     }
 
     let password = payload.password.trim();
-    if password.is_empty() || password.contains('\0') || password.contains('\n') || password.contains('\r') {
+    if password.is_empty()
+        || password.contains('\0')
+        || password.contains('\n')
+        || password.contains('\r')
+    {
         return Err("Geçersiz parola karakterleri tespit edildi.".to_string());
     }
 
@@ -2731,7 +3069,12 @@ fn execute_system_installation_blocking(payload: InstallPayload) -> Result<Strin
             if !res.status.success() {
                 let err = String::from_utf8_lossy(&res.stderr);
                 cleanup_mounts();
-                return Err(format!("'{}' işlemi başarısız oldu (Çıkış Kodu {}): {}", prog, res.status.code().unwrap_or(-1), err.trim()));
+                return Err(format!(
+                    "'{}' işlemi başarısız oldu (Çıkış Kodu {}): {}",
+                    prog,
+                    res.status.code().unwrap_or(-1),
+                    err.trim()
+                ));
             }
             Ok(())
         };
@@ -2739,20 +3082,38 @@ fn execute_system_installation_blocking(payload: InstallPayload) -> Result<Strin
         // 1. Bölümleme: Hibrit BIOS + UEFI Uyumlu GPT Bölümleme
         let _ = root_command("wipefs", &["-a", "-f", target]);
         run_step("parted", &["-s", target, "mklabel", "gpt"])?;
-        run_step("parted", &["-s", target, "mkpart", "bios_boot", "1MiB", "3MiB"])?;
+        run_step(
+            "parted",
+            &["-s", target, "mkpart", "bios_boot", "1MiB", "3MiB"],
+        )?;
         let _ = root_command("parted", &["-s", target, "set", "1", "bios_grub", "on"]);
-        run_step("parted", &["-s", target, "mkpart", "ESP", "fat32", "3MiB", "515MiB"])?;
+        run_step(
+            "parted",
+            &["-s", target, "mkpart", "ESP", "fat32", "3MiB", "515MiB"],
+        )?;
         run_step("parted", &["-s", target, "set", "2", "esp", "on"])?;
-        run_step("parted", &["-s", target, "mkpart", "primary", "ext4", "515MiB", "100%"])?;
+        run_step(
+            "parted",
+            &["-s", target, "mkpart", "primary", "ext4", "515MiB", "100%"],
+        )?;
 
         let _ = root_command("partprobe", &[target]);
         let _ = root_command("udevadm", &["settle"]);
 
-        let (_bios_part, efi_part, root_part) = if target.chars().last().map_or(false, |c| c.is_ascii_digit()) {
-            (format!("{}p1", target), format!("{}p2", target), format!("{}p3", target))
-        } else {
-            (format!("{}1", target), format!("{}2", target), format!("{}3", target))
-        };
+        let (_bios_part, efi_part, root_part) =
+            if target.chars().last().map_or(false, |c| c.is_ascii_digit()) {
+                (
+                    format!("{}p1", target),
+                    format!("{}p2", target),
+                    format!("{}p3", target),
+                )
+            } else {
+                (
+                    format!("{}1", target),
+                    format!("{}2", target),
+                    format!("{}3", target),
+                )
+            };
 
         // 2. Dosya Sistemleri
         run_step("mkfs.vfat", &["-F32", &efi_part])?;
@@ -2775,16 +3136,35 @@ fn execute_system_installation_blocking(payload: InstallPayload) -> Result<Strin
             let _ = root_command("unsquashfs", &["-f", "-d", "/target", sq]);
             if Path::new("/usr/share/ayaz/vendor-debs/eta-touchdrv.deb").is_file() {
                 let _ = root_command("mkdir", &["-p", "/target/usr/share/ayaz/vendor-debs"]);
-                let _ = root_command("cp", &["/usr/share/ayaz/vendor-debs/eta-touchdrv.deb", "/target/usr/share/ayaz/vendor-debs/eta-touchdrv.deb"]);
+                let _ = root_command(
+                    "cp",
+                    &[
+                        "/usr/share/ayaz/vendor-debs/eta-touchdrv.deb",
+                        "/target/usr/share/ayaz/vendor-debs/eta-touchdrv.deb",
+                    ],
+                );
             }
         } else {
-            run_step("rsync", &[
-                "-aAX", "--info=progress2", "/", "/target/",
-                "--exclude=/proc/*", "--exclude=/sys/*", "--exclude=/dev/*",
-                "--exclude=/tmp/*", "--exclude=/run/*", "--exclude=/mnt/*",
-                "--exclude=/media/*", "--exclude=/target/*", "--exclude=/home/*",
-                "--exclude=/lib/live/mount/*", "--exclude=/var/log/*"
-            ])?;
+            run_step(
+                "rsync",
+                &[
+                    "-aAX",
+                    "--info=progress2",
+                    "/",
+                    "/target/",
+                    "--exclude=/proc/*",
+                    "--exclude=/sys/*",
+                    "--exclude=/dev/*",
+                    "--exclude=/tmp/*",
+                    "--exclude=/run/*",
+                    "--exclude=/mnt/*",
+                    "--exclude=/media/*",
+                    "--exclude=/target/*",
+                    "--exclude=/home/*",
+                    "--exclude=/lib/live/mount/*",
+                    "--exclude=/var/log/*",
+                ],
+            )?;
         }
 
         // 5. /etc/fstab Yapılandırması (UUID eşlemesi ile kalıcı ve hatasız bağlama)
@@ -2799,8 +3179,16 @@ fn execute_system_installation_blocking(payload: InstallPayload) -> Result<Strin
             .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
             .unwrap_or_default();
 
-        let root_dev = if !root_uuid.is_empty() { format!("UUID={}", root_uuid) } else { root_part.clone() };
-        let efi_dev = if !efi_uuid.is_empty() { format!("UUID={}", efi_uuid) } else { efi_part.clone() };
+        let root_dev = if !root_uuid.is_empty() {
+            format!("UUID={}", root_uuid)
+        } else {
+            root_part.clone()
+        };
+        let efi_dev = if !efi_uuid.is_empty() {
+            format!("UUID={}", efi_uuid)
+        } else {
+            efi_part.clone()
+        };
 
         let fstab_content = format!(
             "# /etc/fstab generated by Ankora Linux Installer\n{} / ext4 errors=remount-ro 0 1\n{} /boot/efi vfat umask=0077 0 1\ntmpfs /tmp tmpfs defaults,noatime,mode=1777 0 0\n",
@@ -2828,18 +3216,55 @@ fn execute_system_installation_blocking(payload: InstallPayload) -> Result<Strin
         }
         if Path::new("/sys/firmware/efi/efivars").is_dir() {
             let _ = root_command("mkdir", &["-p", "/target/sys/firmware/efi/efivars"]);
-            let _ = root_command("mount", &["--bind", "/sys/firmware/efi/efivars", "/target/sys/firmware/efi/efivars"]);
+            let _ = root_command(
+                "mount",
+                &[
+                    "--bind",
+                    "/sys/firmware/efi/efivars",
+                    "/target/sys/firmware/efi/efivars",
+                ],
+            );
         }
 
         // 8. Kullanıcı Oluşturma: ankora zaten varsa ezmeden ev dizinini yapılandır
         if username == "ankora" {
             let _ = root_command("mkdir", &["-p", "/target/home/ankora"]);
-            let _ = root_command("sh", &["-c", "cp -rT /target/etc/skel /target/home/ankora 2>/dev/null || true"]);
-            let _ = root_command("chroot", &["/target", "chown", "-R", "ankora:ankora", "/home/ankora"]);
-            let _ = root_command("chroot", &["/target", "usermod", "-aG", "sudo,audio,video,plugdev,netdev", "ankora"]);
+            let _ = root_command(
+                "sh",
+                &[
+                    "-c",
+                    "cp -rT /target/etc/skel /target/home/ankora 2>/dev/null || true",
+                ],
+            );
+            let _ = root_command(
+                "chroot",
+                &["/target", "chown", "-R", "ankora:ankora", "/home/ankora"],
+            );
+            let _ = root_command(
+                "chroot",
+                &[
+                    "/target",
+                    "usermod",
+                    "-aG",
+                    "sudo,audio,video,plugdev,netdev",
+                    "ankora",
+                ],
+            );
             let _ = root_command("chroot", &["/target", "usermod", "-U", "ankora"]);
         } else {
-            run_step("chroot", &["/target", "useradd", "-m", "-s", "/bin/bash", "-G", "sudo,audio,video,plugdev,netdev", username])?;
+            run_step(
+                "chroot",
+                &[
+                    "/target",
+                    "useradd",
+                    "-m",
+                    "-s",
+                    "/bin/bash",
+                    "-G",
+                    "sudo,audio,video,plugdev,netdev",
+                    username,
+                ],
+            )?;
         }
 
         // 9. Parola Belirleme: Parola doğrudan STDIN borusundan beslenir
@@ -2860,10 +3285,14 @@ fn execute_system_installation_blocking(payload: InstallPayload) -> Result<Strin
 
         if let Some(mut stdin) = chpasswd_child.stdin.take() {
             let pair = format!("{}:{}\n", username, password);
-            stdin.write_all(pair.as_bytes()).map_err(|e| format!("Parola stdin'e aktarılamadı: {}", e))?;
+            stdin
+                .write_all(pair.as_bytes())
+                .map_err(|e| format!("Parola stdin'e aktarılamadı: {}", e))?;
             drop(stdin);
         }
-        let chpasswd_res = chpasswd_child.wait_with_output().map_err(|e| e.to_string())?;
+        let chpasswd_res = chpasswd_child
+            .wait_with_output()
+            .map_err(|e| e.to_string())?;
         if !chpasswd_res.status.success() {
             cleanup_mounts();
             return Err("Kullanıcı parolası güncellenemedi.".to_string());
@@ -2878,7 +3307,10 @@ fn execute_system_installation_blocking(payload: InstallPayload) -> Result<Strin
         let mut inittab_yazildi = false;
         if let Ok(icerik) = fs::read_to_string(inittab_path) {
             let yeni_satir = if payload.autologin {
-                format!("1:2345:respawn:/sbin/getty --autologin {} --noclear 38400 tty1 linux", username)
+                format!(
+                    "1:2345:respawn:/sbin/getty --autologin {} --noclear 38400 tty1 linux",
+                    username
+                )
             } else {
                 "1:2345:respawn:/sbin/getty 38400 tty1 linux".to_string()
             };
@@ -2913,8 +3345,17 @@ fn execute_system_installation_blocking(payload: InstallPayload) -> Result<Strin
             // Kullanıcıya sınırsız şifresiz NOPASSWD: ALL verilmez; yalnızca onaylı sistem yardımcıları NOPASSWD alır.
             let _ = root_command("chroot", &["/target", "usermod", "-aG", "sudo", &username]);
             let _ = root_command("chroot", &["/target", "gpasswd", "-d", "ankora", "sudo"]);
-            let _ = root_command("chroot", &["/target", "sed", "-i", "/^ankora /d", "/etc/sudoers.d/ankora-updater"]);
-            let upd_entry = format!("{} ALL=(root) NOPASSWD: /usr/local/bin/ayaz-update-helper, /usr/local/bin/ayaz-pkg-helper, /usr/local/bin/ankora-doctor, /bin/true, /usr/bin/true, /sbin/poweroff, /sbin/reboot, /sbin/shutdown\n", username);
+            let _ = root_command(
+                "chroot",
+                &[
+                    "/target",
+                    "sed",
+                    "-i",
+                    "/^ankora /d",
+                    "/etc/sudoers.d/ankora-updater",
+                ],
+            );
+            let upd_entry = format!("{} ALL=(root) NOPASSWD: /usr/local/bin/ayaz-update-helper, /usr/local/bin/ayaz-pkg-helper, /usr/local/bin/ankora-doctor, /bin/true, /usr/bin/true, /sbin/poweroff, /usr/sbin/poweroff, /sbin/reboot, /usr/sbin/reboot, /sbin/shutdown, /usr/sbin/shutdown\n", username);
             let _ = root_write("/target/etc/sudoers.d/ankora-updater", &upd_entry);
             let _ = root_command("chmod", &["0440", "/target/etc/sudoers.d/ankora-updater"]);
             if inittab_yazildi {
@@ -2926,11 +3367,30 @@ fn execute_system_installation_blocking(payload: InstallPayload) -> Result<Strin
 
         // 10b. Bölge / dil / saat kurulu sisteme taşınır: kurulum sihirbazındaki
         // seçimler (yoksa canlı oturumun değerleri) hedefe yazılır.
-        let want_tz = payload.timezone.clone().filter(|t| is_valid_timezone(t)).unwrap_or_else(current_timezone);
-        let want_kb = payload.keyboard_layout.clone().filter(|k| ALLOWED_KEYBOARDS.contains(&k.as_str())).unwrap_or_else(current_keyboard_layout);
-        let want_lang = payload.language.clone().filter(|l| ALLOWED_LANGUAGES.contains(&l.as_str())).unwrap_or_else(current_language);
+        let want_tz = payload
+            .timezone
+            .clone()
+            .filter(|t| is_valid_timezone(t))
+            .unwrap_or_else(current_timezone);
+        let want_kb = payload
+            .keyboard_layout
+            .clone()
+            .filter(|k| ALLOWED_KEYBOARDS.contains(&k.as_str()))
+            .unwrap_or_else(current_keyboard_layout);
+        let want_lang = payload
+            .language
+            .clone()
+            .filter(|l| ALLOWED_LANGUAGES.contains(&l.as_str()))
+            .unwrap_or_else(current_language);
         let _ = root_write("/target/etc/timezone", &format!("{}\n", want_tz));
-        let _ = root_command("ln", &["-sf", &format!("/usr/share/zoneinfo/{}", want_tz), "/target/etc/localtime"]);
+        let _ = root_command(
+            "ln",
+            &[
+                "-sf",
+                &format!("/usr/share/zoneinfo/{}", want_tz),
+                "/target/etc/localtime",
+            ],
+        );
         let _ = root_command("chroot", &["/target", "sh", "-c", "DEBIAN_FRONTEND=noninteractive dpkg-reconfigure -f noninteractive tzdata 2>/dev/null; true"]);
         let (kb_layout, kb_variant) = match want_kb.as_str() {
             "tr_f" => ("tr", "f"),
@@ -2938,7 +3398,16 @@ fn execute_system_installation_blocking(payload: InstallPayload) -> Result<Strin
         };
         let _ = root_write("/target/etc/default/keyboard", &format!("XKBMODEL=\"pc105\"\nXKBLAYOUT=\"{}\"\nXKBVARIANT=\"{}\"\nXKBOPTIONS=\"\"\nBACKSPACE=\"guess\"\n", kb_layout, kb_variant));
         let lang_short = want_lang.split('.').next().unwrap_or(&want_lang);
-        let _ = root_write("/target/etc/default/locale", &format!("LANG={}\nLANGUAGE={}:{}\nLC_ALL={}\n", want_lang, lang_short, lang_short.split('_').next().unwrap_or(lang_short), want_lang));
+        let _ = root_write(
+            "/target/etc/default/locale",
+            &format!(
+                "LANG={}\nLANGUAGE={}:{}\nLC_ALL={}\n",
+                want_lang,
+                lang_short,
+                lang_short.split('_').next().unwrap_or(lang_short),
+                want_lang
+            ),
+        );
         let _ = root_command("chroot", &["/target", "sh", "-c", &format!("command -v update-locale >/dev/null && update-locale LANG={} 2>/dev/null; command -v locale-gen >/dev/null && locale-gen {} en_US.UTF-8 2>/dev/null; true", want_lang, want_lang)]);
 
         // ZRAM Takas Servisi ve Optimizasyonunu kurulu sisteme kur
@@ -2947,16 +3416,65 @@ fn execute_system_installation_blocking(payload: InstallPayload) -> Result<Strin
         let zram_script = "#!/bin/sh\ncase \"$1\" in\n  start)\n    modprobe zram num_devices=1 2>/dev/null || true\n    if [ -e /dev/zram0 ]; then\n      for alg in zstd lz4 lzo; do\n        if grep -q \"$alg\" /sys/block/zram0/comp_algorithm 2>/dev/null; then\n          echo \"$alg\" > /sys/block/zram0/comp_algorithm 2>/dev/null && break\n        fi\n      done\n      MEM_TOTAL_KB=$(grep MemTotal /proc/meminfo 2>/dev/null | awk '{print $2}')\n      DISKSIZE=$(( MEM_TOTAL_KB * 1024 / 2 ))\n      echo \"$DISKSIZE\" > /sys/block/zram0/disksize 2>/dev/null || true\n      mkswap /dev/zram0 >/dev/null 2>&1 || true\n      swapon -p 100 /dev/zram0 2>/dev/null || true\n    fi\n    ;;\n  stop)\n    swapoff /dev/zram0 2>/dev/null || true\n    echo 1 > /sys/block/zram0/reset 2>/dev/null || true\n    ;;\n  restart)\n    $0 stop; $0 start;;\nesac\nexit 0\n";
         let _ = root_write("/target/etc/init.d/zram-swap", zram_script);
         let _ = root_command("chmod", &["0755", "/target/etc/init.d/zram-swap"]);
-        let _ = root_command("chroot", &["/target", "update-rc.d", "zram-swap", "defaults", "05", "95"]);
+        let _ = root_command(
+            "chroot",
+            &[
+                "/target",
+                "update-rc.d",
+                "zram-swap",
+                "defaults",
+                "05",
+                "95",
+            ],
+        );
 
         // 11. Grub & Temizlik (Hibrit EFI + BIOS desteği)
         let is_efi = Path::new("/sys/firmware/efi").is_dir();
         if is_efi {
-            let _ = run_step("chroot", &["/target", "grub-install", "--target=x86_64-efi", "--efi-directory=/boot/efi", "--bootloader-id=ankora", "--recheck"]);
-            let _ = root_command("chroot", &["/target", "grub-install", "--target=x86_64-efi", "--efi-directory=/boot/efi", "--bootloader-id=ankora", "--removable", "--recheck"]);
-            let _ = root_command("chroot", &["/target", "grub-install", "--target=i386-pc", "--recheck", target]);
+            let _ = run_step(
+                "chroot",
+                &[
+                    "/target",
+                    "grub-install",
+                    "--target=x86_64-efi",
+                    "--efi-directory=/boot/efi",
+                    "--bootloader-id=ankora",
+                    "--recheck",
+                ],
+            );
+            let _ = root_command(
+                "chroot",
+                &[
+                    "/target",
+                    "grub-install",
+                    "--target=x86_64-efi",
+                    "--efi-directory=/boot/efi",
+                    "--bootloader-id=ankora",
+                    "--removable",
+                    "--recheck",
+                ],
+            );
+            let _ = root_command(
+                "chroot",
+                &[
+                    "/target",
+                    "grub-install",
+                    "--target=i386-pc",
+                    "--recheck",
+                    target,
+                ],
+            );
         } else {
-            run_step("chroot", &["/target", "grub-install", "--target=i386-pc", "--recheck", target])?;
+            run_step(
+                "chroot",
+                &[
+                    "/target",
+                    "grub-install",
+                    "--target=i386-pc",
+                    "--recheck",
+                    target,
+                ],
+            )?;
         }
         // 11b. Ankora önyükleyici görünümü: modern GRUB menüsü + açılış ekranı.
         // Tema ve varsayılanlar canlı sistemden (/usr/share/ayaz) hedefe
@@ -2967,14 +3485,20 @@ fn execute_system_installation_blocking(payload: InstallPayload) -> Result<Strin
         let theme_ok = Path::new(grub_theme_src).is_file();
         if theme_ok {
             let _ = root_command("mkdir", &["-p", "/target/boot/grub/themes/ankora"]);
-            let _ = root_command("cp", &[grub_theme_src, "/target/boot/grub/themes/ankora/theme.txt"]);
+            let _ = root_command(
+                "cp",
+                &[grub_theme_src, "/target/boot/grub/themes/ankora/theme.txt"],
+            );
         }
         if Path::new(grub_default_src).is_file() {
             let _ = root_command("cp", &[grub_default_src, "/target/etc/default/grub"]);
         } else {
             let grub_defaults = "GRUB_DEFAULT=0\nGRUB_TIMEOUT_STYLE=menu\nGRUB_TIMEOUT=5\nGRUB_DISTRIBUTOR=\"Ankora Linux\"\nGRUB_CMDLINE_LINUX_DEFAULT=\"quiet splash loglevel=3\"\nGRUB_CMDLINE_LINUX=\"\"\nGRUB_GFXMODE=1920x1080,1366x768,auto\nGRUB_GFXPAYLOAD_LINUX=keep\nGRUB_DISABLE_OS_PROBER=false\nGRUB_DISABLE_RECOVERY=true\n";
             let with_theme = if theme_ok {
-                format!("{}GRUB_THEME=/boot/grub/themes/ankora/theme.txt\n", grub_defaults)
+                format!(
+                    "{}GRUB_THEME=/boot/grub/themes/ankora/theme.txt\n",
+                    grub_defaults
+                )
             } else {
                 grub_defaults.to_string()
             };
@@ -2985,21 +3509,50 @@ fn execute_system_installation_blocking(payload: InstallPayload) -> Result<Strin
         if Path::new(&format!("{}/ankora.plymouth", plymouth_src_dir)).is_file() {
             let _ = root_command("mkdir", &["-p", "/target/usr/share/plymouth/themes/ankora"]);
             let _ = root_command("sh", &["-c", "cp -r /usr/share/ayaz/plymouth-theme-ankora/* /target/usr/share/plymouth/themes/ankora/ 2>/dev/null || true"]);
-            let _ = root_command("chroot", &["/target", "plymouth-set-default-theme", "-R", "ankora"]);
+            let _ = root_command(
+                "chroot",
+                &["/target", "plymouth-set-default-theme", "-R", "ankora"],
+            );
         }
         run_step("chroot", &["/target", "update-grub"])?;
 
         // 12. Sistem Temizliği: machine-id sıfırlama ve eski SSH anahtarlarının temizlenmesi
-        let _ = root_command("rm", &["-f", "/target/etc/machine-id", "/target/var/lib/dbus/machine-id"]);
-        let _ = root_command("chroot", &["/target", "dbus-uuidgen", "--ensure=/var/lib/dbus/machine-id"]);
-        let _ = root_command("cp", &["/target/var/lib/dbus/machine-id", "/target/etc/machine-id"]);
+        let _ = root_command(
+            "rm",
+            &[
+                "-f",
+                "/target/etc/machine-id",
+                "/target/var/lib/dbus/machine-id",
+            ],
+        );
+        let _ = root_command(
+            "chroot",
+            &[
+                "/target",
+                "dbus-uuidgen",
+                "--ensure=/var/lib/dbus/machine-id",
+            ],
+        );
+        let _ = root_command(
+            "cp",
+            &["/target/var/lib/dbus/machine-id", "/target/etc/machine-id"],
+        );
         let _ = root_command("sh", &["-c", "rm -f /target/etc/ssh/ssh_host_* /target/var/lib/dhcp/* /target/root/.bash_history"]);
         let _ = root_command("sh", &["-c", "find /target/var/log -type f -delete 2>/dev/null; rm -rf /target/var/tmp/* 2>/dev/null; true"]);
         // Canlı paketler kurulu sistemde kalırsa live-config her açılışta
         // canlı kullanıcıyı ve otomatik girişi yeniden kurabilir.
         let _ = root_command("sh", &["-c", "chroot /target dpkg --purge live-config live-config-sysvinit live-boot live-boot-initramfs-tools live-tools 2>/dev/null; rm -f /target/etc/rcS.d/S*live-config* /target/etc/init.d/live-config*; true"]);
-        let _ = root_command("chroot", &["/target", "update-initramfs", "-u", "-k", "all"]);
-        let _ = root_command("sh", &["-c", "[ -x /target/usr/bin/ssh-keygen ] && chroot /target ssh-keygen -A; true"]);
+        let _ = root_command(
+            "chroot",
+            &["/target", "update-initramfs", "-u", "-k", "all"],
+        );
+        let _ = root_command(
+            "sh",
+            &[
+                "-c",
+                "[ -x /target/usr/bin/ssh-keygen ] && chroot /target ssh-keygen -A; true",
+            ],
+        );
 
         cleanup_mounts();
 
@@ -3008,7 +3561,10 @@ fn execute_system_installation_blocking(payload: InstallPayload) -> Result<Strin
 
     #[cfg(not(target_os = "linux"))]
     {
-        Ok(format!("Kurulum simülasyonu başarıyla tamamlandı: {} -> {}", target, username))
+        Ok(format!(
+            "Kurulum simülasyonu başarıyla tamamlandı: {} -> {}",
+            target, username
+        ))
     }
 }
 
@@ -3024,10 +3580,16 @@ async fn launch_application(exec: String) -> Result<String, String> {
 
     // 1. Kabuk kontrol karakterleri koruması
     let has_shell_metachars = clean.chars().any(|c| {
-        matches!(c, ';' | '&' | '|' | '`' | '$' | '>' | '<' | '\\' | '(' | ')' | '\n' | '\r')
+        matches!(
+            c,
+            ';' | '&' | '|' | '`' | '$' | '>' | '<' | '\\' | '(' | ')' | '\n' | '\r'
+        )
     });
     if has_shell_metachars {
-        return Err("Güvenlik Hatası: Uygulama komutunda kabuk kontrol karakterleri tespit edildi.".to_string());
+        return Err(
+            "Güvenlik Hatası: Uygulama komutunda kabuk kontrol karakterleri tespit edildi."
+                .to_string(),
+        );
     }
 
     // 2. Argümanları güvenle ayrıştırma
@@ -3076,23 +3638,35 @@ async fn launch_application(exec: String) -> Result<String, String> {
     }
 
     if bin_name.contains('/') {
-        let allowed_prefixes = ["/usr/bin/", "/bin/", "/usr/local/bin/", "/usr/games/", "/opt/"];
-        if !allowed_prefixes.iter().any(|prefix| bin_name.starts_with(prefix)) {
-            return Err("Güvenlik Hatası: Uygulama yolu izin verilen sistem dizinlerinde değil.".to_string());
+        let allowed_prefixes = [
+            "/usr/bin/",
+            "/bin/",
+            "/usr/local/bin/",
+            "/usr/games/",
+            "/opt/",
+        ];
+        if !allowed_prefixes
+            .iter()
+            .any(|prefix| bin_name.starts_with(prefix))
+        {
+            return Err(
+                "Güvenlik Hatası: Uygulama yolu izin verilen sistem dizinlerinde değil."
+                    .to_string(),
+            );
         }
 
         // Kanonik hedef kontrolü (symlink bypass önleme)
         if let Ok(canonical) = fs::canonicalize(bin_name) {
-            let canon_base = canonical
-                .file_name()
-                .and_then(|s| s.to_str())
-                .unwrap_or("");
+            let canon_base = canonical.file_name().and_then(|s| s.to_str()).unwrap_or("");
             if FORBIDDEN_LAUNCH_BINARIES.contains(&canon_base) {
                 return Err("Güvenlik İlkesi İhlali: Program kısayolu izin verilmeyen bir sistem aracına işaret ediyor.".to_string());
             }
         }
     } else {
-        if !bin_name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-' || c == '.') {
+        if !bin_name
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-' || c == '.')
+        {
             return Err("Güvenlik Hatası: Geçersiz uygulama adı karakterleri.".to_string());
         }
     }
@@ -3216,7 +3790,10 @@ fn collect_system_telemetry() -> Result<SystemTelemetry, String> {
         if let Ok(os_rel) = fs::read_to_string("/etc/os-release") {
             for line in os_rel.lines() {
                 if line.starts_with("PRETTY_NAME=") {
-                    os_name = line.trim_start_matches("PRETTY_NAME=").trim_matches('"').to_string();
+                    os_name = line
+                        .trim_start_matches("PRETTY_NAME=")
+                        .trim_matches('"')
+                        .to_string();
                     break;
                 }
             }
@@ -3224,13 +3801,20 @@ fn collect_system_telemetry() -> Result<SystemTelemetry, String> {
 
         // 4. Çekirdek Sürümü (/proc/version)
         let kernel = if let Ok(proc_ver) = fs::read_to_string("/proc/version") {
-            proc_ver.split_whitespace().take(3).collect::<Vec<_>>().join(" ")
+            proc_ver
+                .split_whitespace()
+                .take(3)
+                .collect::<Vec<_>>()
+                .join(" ")
         } else {
             "Linux 6.1.0-22-amd64".to_string()
         };
 
         // 5. İnit Sistemi (/proc/1/comm)
-        let init_comm = fs::read_to_string("/proc/1/comm").unwrap_or_default().trim().to_string();
+        let init_comm = fs::read_to_string("/proc/1/comm")
+            .unwrap_or_default()
+            .trim()
+            .to_string();
         let init_system = if init_comm == "systemd" {
             "systemd".to_string()
         } else {
@@ -3268,7 +3852,9 @@ fn collect_system_telemetry() -> Result<SystemTelemetry, String> {
             init_system,
             memory_used_mb,
             memory_total_mb: mem_total_mb,
-            cpu_cores: std::thread::available_parallelism().map(|p| p.get()).unwrap_or(4),
+            cpu_cores: std::thread::available_parallelism()
+                .map(|p| p.get())
+                .unwrap_or(4),
             uptime_seconds,
             battery_percent,
             battery_status,
@@ -3287,7 +3873,9 @@ fn collect_system_telemetry() -> Result<SystemTelemetry, String> {
             init_system: "SysVinit (systemd-free)".to_string(),
             memory_used_mb: 1140,
             memory_total_mb: 8192,
-            cpu_cores: std::thread::available_parallelism().map(|p| p.get()).unwrap_or(4),
+            cpu_cores: std::thread::available_parallelism()
+                .map(|p| p.get())
+                .unwrap_or(4),
             uptime_seconds: 7200,
             battery_percent: None,
             battery_status: None,
@@ -3328,7 +3916,10 @@ fn get_volume() -> Result<u32, String> {
     #[cfg(target_os = "linux")]
     {
         // 1. pactl ile PulseAudio / PipeWire kontrolü
-        if let Ok(out) = Command::new("pactl").args(["get-sink-volume", "@DEFAULT_SINK@"]).output() {
+        if let Ok(out) = Command::new("pactl")
+            .args(["get-sink-volume", "@DEFAULT_SINK@"])
+            .output()
+        {
             if out.status.success() {
                 let s = String::from_utf8_lossy(&out.stdout);
                 if let Some(pos) = s.find('%') {
@@ -3368,8 +3959,12 @@ fn set_volume(level: u32) -> Result<u32, String> {
     #[cfg(target_os = "linux")]
     {
         let arg = format!("{}%", clamped);
-        let _ = Command::new("pactl").args(["set-sink-volume", "@DEFAULT_SINK@", &arg]).output();
-        let _ = Command::new("amixer").args(["sset", "Master", &arg]).output();
+        let _ = Command::new("pactl")
+            .args(["set-sink-volume", "@DEFAULT_SINK@", &arg])
+            .output();
+        let _ = Command::new("amixer")
+            .args(["sset", "Master", &arg])
+            .output();
     }
     Ok(clamped)
 }
@@ -3404,7 +3999,10 @@ fn optimize_system_memory() -> Result<MemoryTrimResult, String> {
         }
 
         let after = collect_system_telemetry().ok();
-        let after_used = after.as_ref().map(|t| t.memory_used_mb).unwrap_or(before_used);
+        let after_used = after
+            .as_ref()
+            .map(|t| t.memory_used_mb)
+            .unwrap_or(before_used);
         let after_total = after.as_ref().map(|t| t.memory_total_mb).unwrap_or(8192);
         let freed = if before_used > after_used {
             before_used - after_used
@@ -3418,9 +4016,13 @@ fn optimize_system_memory() -> Result<MemoryTrimResult, String> {
             current_used_mb: after_used,
             current_total_mb: after_total,
             message: if freed > 0 {
-                format!("Çekirdek ve işlemci bellek havuzlarından {} MB bellek serbest bırakıldı.", freed)
+                format!(
+                    "Çekirdek ve işlemci bellek havuzlarından {} MB bellek serbest bırakıldı.",
+                    freed
+                )
             } else {
-                "Bellek önbellekleri senkronize edildi. Sistem zaten optimum düzeyde çalışıyor.".to_string()
+                "Bellek önbellekleri senkronize edildi. Sistem zaten optimum düzeyde çalışıyor."
+                    .to_string()
             },
         })
     }
@@ -3492,7 +4094,9 @@ fn apply_keyboard_layout(clean: &str) -> Result<String, String> {
     #[cfg(target_os = "linux")]
     {
         if clean == "tr_f" {
-            let _ = Command::new("setxkbmap").args(["tr", "-variant", "f"]).output();
+            let _ = Command::new("setxkbmap")
+                .args(["tr", "-variant", "f"])
+                .output();
         } else {
             let _ = Command::new("setxkbmap").arg(clean).output();
         }
@@ -3500,7 +4104,10 @@ fn apply_keyboard_layout(clean: &str) -> Result<String, String> {
     if persist_ok {
         Ok(format!("Klavye: {} (kalıcı)", clean))
     } else {
-        Err("Klavye o anki oturumda değişti, ancak kalıcı kayıt için yönetici yetkisi gerekiyor.".to_string())
+        Err(
+            "Klavye o anki oturumda değişti, ancak kalıcı kayıt için yönetici yetkisi gerekiyor."
+                .to_string(),
+        )
     }
 }
 
@@ -3557,8 +4164,15 @@ async fn set_timezone(timezone: String) -> Result<String, String> {
     // /etc/localtime sembolik bağı + /etc/timezone + tzdata yeniden yapılandırma.
     root_write("/etc/timezone", &format!("{}\n", tz))
         .map_err(|e| format!("Saat dilimi yazılamadı (yönetici yetkisi gerekiyor): {}", e))?;
-    let link_out = root_command("ln", &["-sf", &format!("/usr/share/zoneinfo/{}", tz), "/etc/localtime"])
-        .map_err(|e| format!("Saat dilimi bağlanamadı: {}", e))?;
+    let link_out = root_command(
+        "ln",
+        &[
+            "-sf",
+            &format!("/usr/share/zoneinfo/{}", tz),
+            "/etc/localtime",
+        ],
+    )
+    .map_err(|e| format!("Saat dilimi bağlanamadı: {}", e))?;
     if !link_out.status.success() {
         return Err("Saat dilimi bağlanamadı (yönetici yetkisi gerekiyor).".to_string());
     }
@@ -3596,16 +4210,28 @@ async fn set_system_language(language: String) -> Result<String, String> {
     if Path::new(SNAP_HELPER).exists() {
         if let Ok(out) = root_command(SNAP_HELPER, &["set-language", lang]) {
             if out.status.success() {
-                return Ok(format!("Sistem dili: {} (oturumu yeniden başlatınca uygulanır)", lang));
+                return Ok(format!(
+                    "Sistem dili: {} (oturumu yeniden başlatınca uygulanır)",
+                    lang
+                ));
             }
         }
     }
     let short = lang.split('.').next().unwrap_or(lang);
-    let locale_conf = format!("LANG={}\nLANGUAGE={}:{}\nLC_ALL={}\n", lang, short, short.split('_').next().unwrap_or(short), lang);
+    let locale_conf = format!(
+        "LANG={}\nLANGUAGE={}:{}\nLC_ALL={}\n",
+        lang,
+        short,
+        short.split('_').next().unwrap_or(short),
+        lang
+    );
     root_write("/etc/default/locale", &locale_conf)
         .map_err(|e| format!("Sistem dili yazılamadı (yönetici yetkisi gerekiyor): {}", e))?;
     let _ = root_command("sh", &["-c", &format!("command -v update-locale >/dev/null && update-locale LANG={} LANGUAGE={} 2>/dev/null; command -v locale-gen >/dev/null && locale-gen {} en_US.UTF-8 2>/dev/null; true", lang, short, lang)]);
-    Ok(format!("Sistem dili: {} (oturumu yeniden başlatınca uygulanır)", lang))
+    Ok(format!(
+        "Sistem dili: {} (oturumu yeniden başlatınca uygulanır)",
+        lang
+    ))
 }
 
 // ============================================================================
@@ -3651,20 +4277,32 @@ struct GitHubRelease {
     assets: Option<Vec<GitHubAsset>>,
 }
 
-pub fn parse_semver(v: &str) -> (u32, u32, u32) {
+// (majör, minör, yama, revizyon) dördlüğü; "3.4.0-2" gibi deb tarzı son ekler
+// yükseltme karşılaştırmasında yok sayılmıyor (hata: 3.4.0-2 == 3.4.0 algısı).
+pub fn parse_semver(v: &str) -> (u32, u32, u32, u32) {
     let clean = v.trim().trim_start_matches('v').trim_start_matches('V');
-    let mut parts = clean.split('.').filter_map(|s| s.parse::<u32>().ok());
+    // Ön süreçler ("3.4.0-2", "3.4.1-ayaz") → sonraki rakam grubunu revizyon kabul et.
+    let core_rev: Vec<&str> = clean.split(|c| c == '-' || c == '+').collect();
+    let core = core_rev.first().copied().unwrap_or("");
+    let revision = core_rev
+        .get(1)
+        .and_then(|r| {
+            r.split('-')
+                .find(|seg| !seg.is_empty() && seg.chars().all(|c| c.is_ascii_digit()))
+                .and_then(|seg| seg.parse::<u32>().ok())
+        })
+        .unwrap_or(0u32);
+    let mut parts = core.split('.').filter_map(|s| s.parse::<u32>().ok());
     (
         parts.next().unwrap_or(0),
         parts.next().unwrap_or(0),
         parts.next().unwrap_or(0),
+        revision,
     )
 }
 
 pub fn is_newer_version(remote: &str, current: &str) -> bool {
-    let r = parse_semver(remote);
-    let c = parse_semver(current);
-    r > c
+    parse_semver(remote) > parse_semver(current)
 }
 
 fn process_github_release(release: GitHubRelease, current_ver: &str) -> UpdateReleaseInfo {
@@ -3682,7 +4320,10 @@ fn process_github_release(release: GitHubRelease, current_ver: &str) -> UpdateRe
             if lower_name.ends_with(".deb") {
                 deb_url = Some(asset.browser_download_url);
                 deb_size = asset.size;
-            } else if lower_name.ends_with(".sha256") || lower_name.ends_with(".sha256sum") || lower_name == "sha256sums" {
+            } else if lower_name.ends_with(".sha256")
+                || lower_name.ends_with(".sha256sum")
+                || lower_name == "sha256sums"
+            {
                 sha256_url = Some(asset.browser_download_url);
             }
         }
@@ -3703,7 +4344,9 @@ fn process_github_release(release: GitHubRelease, current_ver: &str) -> UpdateRe
         current_version: current_ver.to_string(),
         latest_version: latest_tag.to_string(),
         release_name: release.name.unwrap_or_else(|| latest_tag.to_string()),
-        release_notes: release.body.unwrap_or_else(|| "Sürüm notu bulunamadı.".to_string()),
+        release_notes: release
+            .body
+            .unwrap_or_else(|| "Sürüm notu bulunamadı.".to_string()),
         download_url: deb_url,
         published_at: release.published_at.unwrap_or_default(),
         package_size_bytes: deb_size,
@@ -3717,7 +4360,10 @@ fn process_github_release(release: GitHubRelease, current_ver: &str) -> UpdateRe
 // Uç nokta yalnız sürüm bilgisini besler; indirme adresi yine
 // download_and_apply_de_update içinde Ankora-Linux deposuyla sınırlıdır.
 fn protocol_4_endpoint(target_repo: &str) -> String {
-    let default_url = format!("https://api.github.com/repos/{}/releases/latest", target_repo);
+    let default_url = format!(
+        "https://api.github.com/repos/{}/releases/latest",
+        target_repo
+    );
     let path = get_ankora_config_dir().join("update-endpoint");
     if let Ok(val) = fs::read_to_string(&path) {
         let val = val.trim();
@@ -3736,13 +4382,18 @@ async fn check_de_update(repo_override: Option<String>) -> Result<UpdateReleaseI
     let target_repo = match repo_override {
         Some(ref r) => {
             let parts: Vec<&str> = r.split('/').collect();
-            if parts.len() == 2 && parts[0] == "Ankora-Linux" && parts[1].chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_') {
+            if parts.len() == 2
+                && parts[0] == "Ankora-Linux"
+                && parts[1]
+                    .chars()
+                    .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+            {
                 r.clone()
             } else {
                 return Err("Güvenlik İlkesi İhlali: Yalnızca resmi Ankora-Linux deposundan güncelleme alınabilir.".to_string());
             }
         }
-        None => "Ankora-Linux/Ayaz".to_string(),
+        None => "Ankora-Linux/Ankora".to_string(),
     };
 
     let client = reqwest::Client::builder()
@@ -3759,9 +4410,12 @@ async fn check_de_update(repo_override: Option<String>) -> Result<UpdateReleaseI
             if response.status() == reqwest::StatusCode::NOT_FOUND
                 && url.starts_with("https://api.github.com/")
             {
-                // Eğer Ankora-Linux/Ayaz reposunda henüz release yoksa, Ankora-Linux ana reposunu dene
-                if target_repo == "Ankora-Linux/Ayaz" {
-                    let fallback_url = "https://api.github.com/repos/Ankora-Linux/Ankora-Linux/releases/latest";
+                // Hedef repoda release yoksa (404) resmî ana depoyu dene:
+                // gerçek merkez repo Ankora-Linux/Ankora'dır (hata: 3.4'e kadar
+                // yanlış repo hedeflendiğinden hiçbir sürüm tespit edilemiyordu).
+                if target_repo != "Ankora-Linux/Ankora" {
+                    let fallback_url =
+                        "https://api.github.com/repos/Ankora-Linux/Ankora/releases/latest";
                     if let Ok(fallback_resp) = client.get(fallback_url).send().await {
                         if fallback_resp.status().is_success() {
                             if let Ok(release) = fallback_resp.json::<GitHubRelease>().await {
@@ -3802,12 +4456,10 @@ async fn check_de_update(repo_override: Option<String>) -> Result<UpdateReleaseI
 
             Ok(process_github_release(release, current_ver))
         }
-        Err(e) => {
-            Err(format!(
-                "Güncelleme sunucusuna bağlanılamadı: {}. Lütfen internet bağlantınızı kontrol edin.",
-                e
-            ))
-        }
+        Err(e) => Err(format!(
+            "Güncelleme sunucusuna bağlanılamadı: {}. Lütfen internet bağlantınızı kontrol edin.",
+            e
+        )),
     }
 }
 
@@ -3828,18 +4480,24 @@ async fn download_and_apply_de_update(
         );
     }
 
-    let _ = window.emit("update-progress", UpdateProgressPayload {
-        percent: 10,
-        stage: "connecting".to_string(),
-        message: "Ayaz DE paketine bağlanılıyor...".to_string(),
-    });
+    let _ = window.emit(
+        "update-progress",
+        UpdateProgressPayload {
+            percent: 10,
+            stage: "connecting".to_string(),
+            message: "Ayaz DE paketine bağlanılıyor...".to_string(),
+        },
+    );
 
     let client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(300))
         .build()
         .map_err(|e| format!("İstemci hatası: {}", e))?;
 
-    let res = client.get(&download_url).send().await
+    let res = client
+        .get(&download_url)
+        .send()
+        .await
         .map_err(|e| format!("İndirme bağlantısı kurulamadı: {}", e))?;
 
     if !res.status().is_success() {
@@ -3848,17 +4506,26 @@ async fn download_and_apply_de_update(
 
     let total_size = res.content_length().unwrap_or(0);
 
-    let _ = window.emit("update-progress", UpdateProgressPayload {
-        percent: 30,
-        stage: "downloading".to_string(),
-        message: if total_size > 0 {
-            format!("Ayaz DE indiriliyor ({:.1} MB)...", total_size as f64 / 1_048_576.0)
-        } else {
-            "Ayaz DE paketi indiriliyor...".to_string()
+    let _ = window.emit(
+        "update-progress",
+        UpdateProgressPayload {
+            percent: 30,
+            stage: "downloading".to_string(),
+            message: if total_size > 0 {
+                format!(
+                    "Ayaz DE indiriliyor ({:.1} MB)...",
+                    total_size as f64 / 1_048_576.0
+                )
+            } else {
+                "Ayaz DE paketi indiriliyor...".to_string()
+            },
         },
-    });
+    );
 
-    let bytes = res.bytes().await.map_err(|e| format!("Paket verisi indirilirken hata: {}", e))?;
+    let bytes = res
+        .bytes()
+        .await
+        .map_err(|e| format!("Paket verisi indirilirken hata: {}", e))?;
 
     // SHA-256 Bütünlük ve İmza Kontrolü (Bulgu #5 Giderildi)
     let mut computed_hasher = Sha256::new();
@@ -3942,7 +4609,12 @@ async fn download_and_apply_de_update(
         let stage_src = tmp_deb.to_string_lossy().to_string();
         let stage_sha = computed_sha256.to_lowercase();
         let stage_status = Command::new("sudo")
-            .args([helper_str.as_str(), "--stage", stage_src.as_str(), stage_sha.as_str()])
+            .args([
+                helper_str.as_str(),
+                "--stage",
+                stage_src.as_str(),
+                stage_sha.as_str(),
+            ])
             .status();
         let _ = fs::remove_dir_all(&tmp_dir);
         match stage_status {
@@ -3964,11 +4636,14 @@ async fn download_and_apply_de_update(
         let _ = fs::rename(&tmp_deb, &deb_path);
     }
 
-    let _ = window.emit("update-progress", UpdateProgressPayload {
-        percent: 80,
-        stage: "installing".to_string(),
-        message: "Ayaz Masaüstü Ortamı sisteme kuruluyor (dpkg)...".to_string(),
-    });
+    let _ = window.emit(
+        "update-progress",
+        UpdateProgressPayload {
+            percent: 80,
+            stage: "installing".to_string(),
+            message: "Ayaz Masaüstü Ortamı sisteme kuruluyor (dpkg)...".to_string(),
+        },
+    );
 
     #[cfg(target_os = "linux")]
     {
@@ -3977,10 +4652,8 @@ async fn download_and_apply_de_update(
 
         // Yardımcıya beklenen sürüm de iletilir: kurulum sonunda kurulu
         // sürüm bu değerle doğrulanır, uyuşmazlıkta geri alma tetiklenir.
-        let mut helper_args: Vec<String> = vec![
-            "/usr/local/bin/ayaz-update-helper".to_string(),
-            deb_str,
-        ];
+        let mut helper_args: Vec<String> =
+            vec!["/usr/local/bin/ayaz-update-helper".to_string(), deb_str];
         if let Some(ref ev) = expected_version {
             let ev = ev.trim();
             if !ev.is_empty() {
@@ -3989,9 +4662,7 @@ async fn download_and_apply_de_update(
         }
 
         let install_status = if helper_path.exists() {
-            Command::new("sudo")
-                .args(&helper_args)
-                .status()
+            Command::new("sudo").args(&helper_args).status()
         } else {
             return Err("Güvenlik İlkesi İhlali: /usr/local/bin/ayaz-update-helper bulunamadı. Güncelleme yalnızca doğrulanmış yardımcı üzerinden kurulabilir.".to_string());
         };
@@ -4005,23 +4676,26 @@ async fn download_and_apply_de_update(
                 });
                 Ok("Ayaz DE başarıyla güncellendi.".to_string())
             }
-            Ok(status) => {
-                Err(format!("Kurulum başarısız oldu (Çıkış Kodu: {}).", status.code().unwrap_or(-1)))
-            }
-            Err(e) => {
-                Err(format!("Kurulum yardımcısı çalıştırılamadı: {}", e))
-            }
+            Ok(status) => Err(format!(
+                "Kurulum başarısız oldu (Çıkış Kodu: {}).",
+                status.code().unwrap_or(-1)
+            )),
+            Err(e) => Err(format!("Kurulum yardımcısı çalıştırılamadı: {}", e)),
         }
     }
 
     #[cfg(not(target_os = "linux"))]
     {
         tokio::time::sleep(std::time::Duration::from_millis(600)).await;
-        let _ = window.emit("update-progress", UpdateProgressPayload {
-            percent: 100,
-            stage: "completed".to_string(),
-            message: "Simülasyon: Ayaz Masaüstü Ortamı başarıyla doğrulandı ve kuruldu.".to_string(),
-        });
+        let _ = window.emit(
+            "update-progress",
+            UpdateProgressPayload {
+                percent: 100,
+                stage: "completed".to_string(),
+                message: "Simülasyon: Ayaz Masaüstü Ortamı başarıyla doğrulandı ve kuruldu."
+                    .to_string(),
+            },
+        );
         Ok("Simülasyon güncellemesi tamamlandı.".to_string())
     }
 }
@@ -4087,10 +4761,18 @@ async fn list_directory(path: Option<String>) -> Result<DirectoryListing, String
     if let Ok(entries) = fs::read_dir(&canonical) {
         for entry in entries.flatten() {
             let p = entry.path();
-            let name = p.file_name().unwrap_or_default().to_string_lossy().to_string();
+            let name = p
+                .file_name()
+                .unwrap_or_default()
+                .to_string_lossy()
+                .to_string();
             let is_hidden = name.starts_with('.');
             let is_dir = p.is_dir();
-            let ext = p.extension().unwrap_or_default().to_string_lossy().to_lowercase();
+            let ext = p
+                .extension()
+                .unwrap_or_default()
+                .to_string_lossy()
+                .to_lowercase();
             let size_str = if is_dir {
                 "-".to_string()
             } else if let Ok(meta) = entry.metadata() {
@@ -4130,12 +4812,10 @@ async fn list_directory(path: Option<String>) -> Result<DirectoryListing, String
         }
     }
 
-    items.sort_by(|a, b| {
-        match (a.is_dir, b.is_dir) {
-            (true, false) => std::cmp::Ordering::Less,
-            (false, true) => std::cmp::Ordering::Greater,
-            _ => a.name.to_lowercase().cmp(&b.name.to_lowercase()),
-        }
+    items.sort_by(|a, b| match (a.is_dir, b.is_dir) {
+        (true, false) => std::cmp::Ordering::Less,
+        (false, true) => std::cmp::Ordering::Greater,
+        _ => a.name.to_lowercase().cmp(&b.name.to_lowercase()),
     });
 
     Ok(DirectoryListing {
@@ -4153,8 +4833,8 @@ async fn create_folder(path: String) -> Result<String, String> {
     }
     let p = Path::new(clean);
     let restricted = [
-        "/bin", "/sbin", "/usr", "/etc", "/boot", "/dev", "/proc", "/sys",
-        "/lib", "/lib64", "/var", "/opt", "/srv", "/root",
+        "/bin", "/sbin", "/usr", "/etc", "/boot", "/dev", "/proc", "/sys", "/lib", "/lib64",
+        "/var", "/opt", "/srv", "/root",
     ];
     for r in &restricted {
         if clean == *r || clean.starts_with(&format!("{}/", r)) {
@@ -4173,8 +4853,8 @@ async fn write_text_file(path: String, content: String) -> Result<String, String
     }
     let p = Path::new(clean);
     let restricted = [
-        "/bin", "/sbin", "/usr", "/etc", "/boot", "/dev", "/proc", "/sys",
-        "/lib", "/lib64", "/var", "/opt", "/srv", "/root",
+        "/bin", "/sbin", "/usr", "/etc", "/boot", "/dev", "/proc", "/sys", "/lib", "/lib64",
+        "/var", "/opt", "/srv", "/root",
     ];
     for r in &restricted {
         if clean == *r || clean.starts_with(&format!("{}/", r)) {
@@ -4208,26 +4888,35 @@ async fn open_path(path: String) -> Result<String, String> {
     if lower.ends_with(".appimage") {
         #[cfg(target_os = "linux")]
         {
-            let canonical = fs::canonicalize(clean).map_err(|_| "Geçersiz dosya yolu.".to_string())?;
+            let canonical =
+                fs::canonicalize(clean).map_err(|_| "Geçersiz dosya yolu.".to_string())?;
             let canon_str = canonical.to_string_lossy().to_string();
             let home_str = dirs::home_dir()
                 .unwrap_or_else(|| PathBuf::from("/home/ankora"))
                 .to_string_lossy()
                 .to_string();
             // AppImage yalnız kullanıcı ev dizini veya /tmp altından çalıştırılabilir
-            if !canon_str.starts_with(&format!("{}/", home_str)) && !canon_str.starts_with("/tmp/") {
+            if !canon_str.starts_with(&format!("{}/", home_str)) && !canon_str.starts_with("/tmp/")
+            {
                 return Err("Güvenlik Hatası: AppImage yalnızca kullanıcı çalışma alanından çalıştırılabilir.".to_string());
             }
             let _ = Command::new("chmod").args(["+x", &canon_str]).output();
             let dsp = std::env::var("DISPLAY").unwrap_or_else(|_| ":0".to_string());
-            Command::new(&canon_str).env("DISPLAY", dsp).spawn().map_err(|e| e.to_string())?;
+            Command::new(&canon_str)
+                .env("DISPLAY", dsp)
+                .spawn()
+                .map_err(|e| e.to_string())?;
             return Ok(format!("AppImage başlatıldı: {}", canon_str));
         }
     }
     #[cfg(target_os = "linux")]
     {
         let dsp = std::env::var("DISPLAY").unwrap_or_else(|_| ":0".to_string());
-        let _ = Command::new("xdg-open").arg(clean).env("DISPLAY", dsp).spawn().map_err(|e| e.to_string())?;
+        let _ = Command::new("xdg-open")
+            .arg(clean)
+            .env("DISPLAY", dsp)
+            .spawn()
+            .map_err(|e| e.to_string())?;
     }
     Ok(format!("Açıldı: {}", clean))
 }
@@ -4276,9 +4965,14 @@ async fn delete_file(path: String) -> Result<String, String> {
         "/mnt/".to_string(),
     ];
 
-    let is_allowed = allowed_prefixes.iter().any(|prefix| canon_str.starts_with(prefix));
+    let is_allowed = allowed_prefixes
+        .iter()
+        .any(|prefix| canon_str.starts_with(prefix));
     if !is_allowed || canon_str == "/" || canon_str == "/home" || canon_str == home_str {
-        return Err("Güvenlik İlkesi İhlali: Yalnızca kullanıcı çalışma alanındaki dosyalar silinebilir.".to_string());
+        return Err(
+            "Güvenlik İlkesi İhlali: Yalnızca kullanıcı çalışma alanındaki dosyalar silinebilir."
+                .to_string(),
+        );
     }
 
     // Sembolik bağlantı (symlink) güvenliği: Sembolik bağlantı ise hedef dizini değil,
@@ -4297,17 +4991,43 @@ async fn delete_file(path: String) -> Result<String, String> {
     Ok(format!("Silindi: {}", clean))
 }
 
+// Aynı komutu ikinci kez yalın yanıtla tekrar çalıştırmak yerine önemelik
+// denemeyi tek tek sırayla yapar: her zincir gözlemlenir, başarısızsa sıradaki.
+fn try_sudo_poweroff() -> bool {
+    const VARIANTS: [&[&str]; 4] = [
+        &["-n", "/sbin/poweroff"],
+        &["-n", "/usr/sbin/poweroff"],
+        &["-n", "/sbin/shutdown", "-h", "now"],
+        &["-n", "/usr/sbin/shutdown", "-h", "now"],
+    ];
+    for variant in VARIANTS {
+        if let Ok(status) = Command::new("sudo").args(variant).status() {
+            if status.success() {
+                return true;
+            }
+        }
+    }
+    false
+}
+
+fn try_loginctl_power(action: &str) -> bool {
+    Command::new("loginctl")
+        .arg(action)
+        .status()
+        .map(|s| s.success())
+        .unwrap_or(false)
+}
+
 #[tauri::command]
 fn system_poweroff() -> Result<String, String> {
     #[cfg(target_os = "linux")]
     {
-        let _ = if sudo_available() {
-            Command::new("sudo").args(["-n", "/sbin/poweroff"]).spawn()
-        } else {
-            Command::new("/sbin/poweroff").spawn()
-                .or_else(|_| Command::new("shutdown").args(["-h", "now"]).spawn())
-                .or_else(|_| Command::new("init").arg("0").spawn())
-        };
+        // 1) NOPASSWD sudoers izniyle sudo (canlı + kurulu her ortamda ilk yol)
+        if !try_sudo_poweroff() {
+            // 2) Elogind polkit: oturulan canlı koltuk (active seat) kapatmaya
+            //    müsaade eder (lxpolkit ajanı xinitrc'de başlatılır).
+            try_loginctl_power("poweroff");
+        }
     }
     Ok("Sistem kapatılıyor.".to_string())
 }
@@ -4316,13 +5036,24 @@ fn system_poweroff() -> Result<String, String> {
 fn system_reboot() -> Result<String, String> {
     #[cfg(target_os = "linux")]
     {
-        let _ = if sudo_available() {
-            Command::new("sudo").args(["-n", "/sbin/reboot"]).spawn()
-        } else {
-            Command::new("/sbin/reboot").spawn()
-                .or_else(|_| Command::new("shutdown").args(["-r", "now"]).spawn())
-                .or_else(|_| Command::new("init").arg("6").spawn())
-        };
+        if sudo_available() {
+            for cmd in [
+                ["-n", "/sbin/reboot"],
+                ["-n", "/usr/sbin/reboot"],
+                ["-n", "/sbin/shutdown", "-r", "now"],
+                ["-n", "/usr/sbin/shutdown", "-r", "now"],
+            ] {
+                if let Ok(st) = Command::new("sudo").args(cmd).status() {
+                    if st.success() {
+                        return Ok("Sistem yeniden başlatılıyor.".to_string());
+                    }
+                }
+            }
+        }
+        // sudo başarısız: elogind polkit yolu, sonra düz çekiçleme.
+        if !try_loginctl_power("reboot") {
+            let _ = Command::new("shutdown").args(["-r", "now"]).spawn();
+        }
     }
     Ok("Sistem yeniden başlatılıyor.".to_string())
 }
@@ -4436,9 +5167,16 @@ fn take_screenshot_core(
     // çözülür (Türkçe oturumda ~/Resimler).
     let pic_dir = screenshot_pictures_dir(&home);
     // Kullanıcı diske kaydı kapatırsa geçici dizine yazılır (pano için).
-    let target_dir = if save_to_disk { pic_dir } else { PathBuf::from("/tmp") };
+    let target_dir = if save_to_disk {
+        pic_dir
+    } else {
+        PathBuf::from("/tmp")
+    };
 
-    let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs();
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs();
     let filename = format!("Ekran-Goruntusu_{}.png", now);
     let filepath = target_dir.join(&filename);
     let filepath_str = filepath.to_string_lossy().to_string();
@@ -4456,14 +5194,26 @@ fn take_screenshot_core(
         }
         scrot.arg(&filepath_str);
 
-        let out = scrot.output().map_err(|e| format!("scrot çalıştırılamadı: {}", e))?;
+        let out = scrot
+            .output()
+            .map_err(|e| format!("scrot çalıştırılamadı: {}", e))?;
         if !out.status.success() {
-            return Err(format!("Ekran görüntüsü alınamadı: {}", String::from_utf8_lossy(&out.stderr)));
+            return Err(format!(
+                "Ekran görüntüsü alınamadı: {}",
+                String::from_utf8_lossy(&out.stderr)
+            ));
         }
 
         if copy_clipboard {
             let _ = Command::new("xclip")
-                .args(["-selection", "clipboard", "-t", "image/png", "-i", &filepath_str])
+                .args([
+                    "-selection",
+                    "clipboard",
+                    "-t",
+                    "image/png",
+                    "-i",
+                    &filepath_str,
+                ])
                 .output();
         }
 
@@ -4532,7 +5282,9 @@ fn get_radio_state() -> RadioState {
         state.wifi_enabled = wifi.trim() == "enabled";
         state.bluetooth_enabled = bt.trim() == "enabled";
         if state.wifi_enabled {
-            if let Some(list) = run_capture("nmcli", &["-t", "-f", "ACTIVE,SSID", "dev", "wifi", "list"]) {
+            if let Some(list) =
+                run_capture("nmcli", &["-t", "-f", "ACTIVE,SSID", "dev", "wifi", "list"])
+            {
                 for line in list.lines() {
                     let mut parts = line.splitn(2, ':');
                     let active = parts.next().unwrap_or("");
@@ -4582,14 +5334,21 @@ fn set_radio_state(kind: String, enabled: bool) -> Result<RadioState, String> {
 fn scan_wifi_networks() -> Result<Vec<WifiNetwork>, String> {
     // Yeniden tarama isteği başarısız olsa bile mevcut liste okunur.
     let _ = run_capture("nmcli", &["dev", "wifi", "rescan"]);
-    let out = run_capture("nmcli", &["-t", "-f", "ACTIVE,SSID,SIGNAL", "dev", "wifi", "list"])
-        .ok_or_else(|| "Kablosuz tarama için NetworkManager (nmcli) kurulu olmalı.".to_string())?;
+    let out = run_capture(
+        "nmcli",
+        &["-t", "-f", "ACTIVE,SSID,SIGNAL", "dev", "wifi", "list"],
+    )
+    .ok_or_else(|| "Kablosuz tarama için NetworkManager (nmcli) kurulu olmalı.".to_string())?;
     let mut networks = Vec::new();
     for line in out.lines() {
         let mut parts = line.splitn(3, ':');
         let active = parts.next().unwrap_or("");
         // nmcli -t, özel karakterleri ters eğik çizgiyle kaçırır (":" -> "\:").
-        let ssid = parts.next().unwrap_or("").replace("\\:", ":").replace("\\\\", "\\");
+        let ssid = parts
+            .next()
+            .unwrap_or("")
+            .replace("\\:", ":")
+            .replace("\\\\", "\\");
         let signal = parts.next().unwrap_or("").parse::<u8>().unwrap_or(0);
         if ssid.is_empty() {
             continue;
@@ -4620,8 +5379,9 @@ fn wifi_connect(ssid: String, password: Option<String>) -> Result<String, String
             args.push(&pass_str);
         }
     }
-    let out = Command::new("nmcli").args(&args).output()
-        .map_err(|_| "nmcli bulunamadı: kablosuz bağlantı için NetworkManager gerekli.".to_string())?;
+    let out = Command::new("nmcli").args(&args).output().map_err(|_| {
+        "nmcli bulunamadı: kablosuz bağlantı için NetworkManager gerekli.".to_string()
+    })?;
     if out.status.success() {
         return Ok(format!("Bağlanıldı: {}", clean));
     }
@@ -4673,7 +5433,11 @@ fn read_processes() -> Result<Vec<ProcessInfo>, String> {
             })
         })
         .collect();
-    list.sort_by(|a, b| b.cpu.partial_cmp(&a.cpu).unwrap_or(std::cmp::Ordering::Equal));
+    list.sort_by(|a, b| {
+        b.cpu
+            .partial_cmp(&a.cpu)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
     list.truncate(300);
     Ok(list)
 }
@@ -4867,7 +5631,9 @@ fn minimize_native_window(id: String) -> Result<(), String> {
     #[cfg(target_os = "linux")]
     {
         let clean = id.trim();
-        let _ = Command::new("wmctrl").args(["-i", "-r", clean, "-b", "add,hidden"]).spawn();
+        let _ = Command::new("wmctrl")
+            .args(["-i", "-r", clean, "-b", "add,hidden"])
+            .spawn();
     }
     Ok(())
 }
@@ -5028,7 +5794,11 @@ fn get_display_modes() -> Result<DisplayModesInfo, String> {
 }
 
 #[tauri::command]
-fn set_display_mode(mode: String, rate: String, output: String) -> Result<DisplayApplyResponse, String> {
+fn set_display_mode(
+    mode: String,
+    rate: String,
+    output: String,
+) -> Result<DisplayApplyResponse, String> {
     #[cfg(target_os = "linux")]
     {
         let out_name = if !output.trim().is_empty() {
@@ -5050,11 +5820,24 @@ fn set_display_mode(mode: String, rate: String, output: String) -> Result<Displa
         };
 
         if mode == "preferred" || mode == "auto" {
-            let _ = Command::new("xrandr").args(["--output", &out_name, "--auto"]).output();
+            let _ = Command::new("xrandr")
+                .args(["--output", &out_name, "--auto"])
+                .output();
         } else if !rate.trim().is_empty() {
-            let _ = Command::new("xrandr").args(["--output", &out_name, "--mode", mode.trim(), "--rate", rate.trim()]).output();
+            let _ = Command::new("xrandr")
+                .args([
+                    "--output",
+                    &out_name,
+                    "--mode",
+                    mode.trim(),
+                    "--rate",
+                    rate.trim(),
+                ])
+                .output();
         } else {
-            let _ = Command::new("xrandr").args(["--output", &out_name, "--mode", mode.trim()]).output();
+            let _ = Command::new("xrandr")
+                .args(["--output", &out_name, "--mode", mode.trim()])
+                .output();
         }
 
         Ok(DisplayApplyResponse {
@@ -5178,7 +5961,10 @@ fn get_all_monitors() -> Result<MultiDisplayStatus, String> {
 
         let connected_count = monitors.iter().filter(|m| m.connected).count();
         if primary_name.is_none() {
-            primary_name = monitors.iter().find(|m| m.connected).map(|m| m.name.clone());
+            primary_name = monitors
+                .iter()
+                .find(|m| m.connected)
+                .map(|m| m.name.clone());
         }
 
         Ok(MultiDisplayStatus {
@@ -5191,24 +5977,26 @@ fn get_all_monitors() -> Result<MultiDisplayStatus, String> {
     {
         Ok(MultiDisplayStatus {
             primary_output: Some("VGA-0".into()),
-            monitors: vec![
-                MonitorOutputInfo {
-                    name: "VGA-0".into(),
-                    connected: true,
-                    is_primary: true,
-                    current_mode: Some("1366x768".into()),
-                    current_rate: Some("60.0".into()),
-                    position: Some("0+0".into()),
-                    modes: vec!["1366x768".into(), "1024x768".into()],
-                }
-            ],
+            monitors: vec![MonitorOutputInfo {
+                name: "VGA-0".into(),
+                connected: true,
+                is_primary: true,
+                current_mode: Some("1366x768".into()),
+                current_rate: Some("60.0".into()),
+                position: Some("0+0".into()),
+                modes: vec!["1366x768".into(), "1024x768".into()],
+            }],
             connected_count: 1,
         })
     }
 }
 
 #[tauri::command]
-fn set_multi_monitor_layout(layout: String, primary: Option<String>, secondary: Option<String>) -> Result<String, String> {
+fn set_multi_monitor_layout(
+    layout: String,
+    primary: Option<String>,
+    secondary: Option<String>,
+) -> Result<String, String> {
     #[cfg(target_os = "linux")]
     {
         let pri = primary.unwrap_or_else(|| {
@@ -5221,7 +6009,8 @@ fn set_multi_monitor_layout(layout: String, primary: Option<String>, secondary: 
 
         let sec = secondary.unwrap_or_else(|| {
             if let Ok(info) = get_all_monitors() {
-                info.monitors.iter()
+                info.monitors
+                    .iter()
                     .find(|m| m.connected && m.name != pri)
                     .map(|m| m.name.clone())
                     .unwrap_or_else(|| "HDMI-1".to_string())
@@ -5233,25 +6022,66 @@ fn set_multi_monitor_layout(layout: String, primary: Option<String>, secondary: 
         match layout.as_str() {
             "extend-right" => {
                 let _ = Command::new("xrandr")
-                    .args(["--output", &pri, "--auto", "--primary", "--output", &sec, "--auto", "--right-of", &pri])
+                    .args([
+                        "--output",
+                        &pri,
+                        "--auto",
+                        "--primary",
+                        "--output",
+                        &sec,
+                        "--auto",
+                        "--right-of",
+                        &pri,
+                    ])
                     .output();
                 Ok(format!("Ekran sağa genişletildi: {} -> {}", pri, sec))
             }
             "extend-left" => {
                 let _ = Command::new("xrandr")
-                    .args(["--output", &pri, "--auto", "--primary", "--output", &sec, "--auto", "--left-of", &pri])
+                    .args([
+                        "--output",
+                        &pri,
+                        "--auto",
+                        "--primary",
+                        "--output",
+                        &sec,
+                        "--auto",
+                        "--left-of",
+                        &pri,
+                    ])
                     .output();
                 Ok(format!("Ekran sola genişletildi: {} <- {}", sec, pri))
             }
             "mirror" => {
                 let _ = Command::new("xrandr")
-                    .args(["--output", &pri, "--auto", "--primary", "--output", &sec, "--auto", "--same-as", &pri])
+                    .args([
+                        "--output",
+                        &pri,
+                        "--auto",
+                        "--primary",
+                        "--output",
+                        &sec,
+                        "--auto",
+                        "--same-as",
+                        &pri,
+                    ])
                     .output();
-                Ok(format!("Ekranlar klonlandı (Ayna modu): {} == {}", pri, sec))
+                Ok(format!(
+                    "Ekranlar klonlandı (Ayna modu): {} == {}",
+                    pri, sec
+                ))
             }
             "single-primary" => {
                 let _ = Command::new("xrandr")
-                    .args(["--output", &pri, "--auto", "--primary", "--output", &sec, "--off"])
+                    .args([
+                        "--output",
+                        &pri,
+                        "--auto",
+                        "--primary",
+                        "--output",
+                        &sec,
+                        "--off",
+                    ])
                     .output();
                 Ok(format!("Yalnızca birincil ekran etkinleştirildi: {}", pri))
             }
@@ -5288,7 +6118,10 @@ fn default_removable_flag() -> bool {
 fn get_removable_drives() -> Result<Vec<RemovableDriveEntry>, String> {
     #[cfg(target_os = "linux")]
     {
-        let out = match Command::new("lsblk").args(["-J", "-o", "NAME,SIZE,LABEL,MOUNTPOINT,RM,TYPE,FSTYPE"]).output() {
+        let out = match Command::new("lsblk")
+            .args(["-J", "-o", "NAME,SIZE,LABEL,MOUNTPOINT,RM,TYPE,FSTYPE"])
+            .output()
+        {
             Ok(o) if o.status.success() => String::from_utf8_lossy(&o.stdout).to_string(),
             _ => return Ok(vec![]),
         };
@@ -5302,9 +6135,16 @@ fn get_removable_drives() -> Result<Vec<RemovableDriveEntry>, String> {
         if let Some(blockdevices) = parsed.get("blockdevices").and_then(|v| v.as_array()) {
             for dev in blockdevices {
                 let is_rm = dev.get("rm").and_then(|r| r.as_bool()).unwrap_or(false)
-                    || dev.get("rm").and_then(|r| r.as_str()).map(|s| s == "1" || s == "true").unwrap_or(false);
+                    || dev
+                        .get("rm")
+                        .and_then(|r| r.as_str())
+                        .map(|s| s == "1" || s == "true")
+                        .unwrap_or(false);
                 let dev_name = dev.get("name").and_then(|n| n.as_str()).unwrap_or("");
-                if dev_name.starts_with("loop") || dev_name.starts_with("zram") || dev_name.starts_with("sr") {
+                if dev_name.starts_with("loop")
+                    || dev_name.starts_with("zram")
+                    || dev_name.starts_with("sr")
+                {
                     continue;
                 }
 
@@ -5319,15 +6159,42 @@ fn get_removable_drives() -> Result<Vec<RemovableDriveEntry>, String> {
 
                 for item in targets {
                     let name = item.get("name").and_then(|n| n.as_str()).unwrap_or("");
-                    if name.is_empty() { continue; }
-                    let size = item.get("size").and_then(|s| s.as_str()).unwrap_or("").to_string();
-                    let label = item.get("label").and_then(|l| l.as_str()).unwrap_or("").to_string();
-                    let fstype = item.get("fstype").and_then(|f| f.as_str()).unwrap_or("").to_string();
-                    let mut mountpoint = item.get("mountpoint").and_then(|m| m.as_str()).map(|s| s.to_string());
+                    if name.is_empty() {
+                        continue;
+                    }
+                    let size = item
+                        .get("size")
+                        .and_then(|s| s.as_str())
+                        .unwrap_or("")
+                        .to_string();
+                    let label = item
+                        .get("label")
+                        .and_then(|l| l.as_str())
+                        .unwrap_or("")
+                        .to_string();
+                    let fstype = item
+                        .get("fstype")
+                        .and_then(|f| f.as_str())
+                        .unwrap_or("")
+                        .to_string();
+                    let mut mountpoint = item
+                        .get("mountpoint")
+                        .and_then(|m| m.as_str())
+                        .map(|s| s.to_string());
 
-                    if is_rm && mountpoint.is_none() && !fstype.is_empty() && fstype != "swap" {
+                    // Dahili diskler için de otomatik bağlama denenir (hata #6:
+                    // takılı olmayan bölümler dosya yöneticisinde hiç görünmüyordu).
+                    if mountpoint.is_none()
+                        && !fstype.is_empty()
+                        && fstype != "swap"
+                        && fstype != "linux-swap"
+                        && fstype != "iso9660"
+                    {
                         let dev_path = format!("/dev/{}", name);
-                        if let Ok(m_out) = Command::new("udisksctl").args(["mount", "-b", &dev_path, "--no-user-interaction"]).output() {
+                        if let Ok(m_out) = Command::new("udisksctl")
+                            .args(["mount", "-b", &dev_path, "--no-user-interaction"])
+                            .output()
+                        {
                             if m_out.status.success() {
                                 let m_str = String::from_utf8_lossy(&m_out.stdout);
                                 if let Some(idx) = m_str.find(" at ") {
@@ -5340,14 +6207,22 @@ fn get_removable_drives() -> Result<Vec<RemovableDriveEntry>, String> {
                     // Kullanıcı şikayeti — dahili (RM=0) diskler üstünde
                     // takas olmayan gerçek bir dosya sistemi varsa da listeye
                     // gir; yoksa dahili disk dosya yöneticisinde asla görünmez.
-                    let is_real_fs = !fstype.is_empty() && fstype != "swap" && fstype != "linux-swap";
+                    let is_real_fs =
+                        !fstype.is_empty() && fstype != "swap" && fstype != "linux-swap";
                     if is_rm
                         || (is_real_fs && (is_rm || mountpoint.is_some()))
-                        || mountpoint.as_deref().map(|p| p.starts_with("/media") || p.starts_with("/mnt")).unwrap_or(false)
+                        || mountpoint
+                            .as_deref()
+                            .map(|p| p.starts_with("/media") || p.starts_with("/mnt"))
+                            .unwrap_or(false)
                     {
                         drives.push(RemovableDriveEntry {
                             name: name.to_string(),
-                            label: if label.is_empty() { name.to_string() } else { label },
+                            label: if label.is_empty() {
+                                name.to_string()
+                            } else {
+                                label
+                            },
                             mountpoint,
                             size,
                             fstype,
@@ -5370,7 +6245,11 @@ fn unmount_drive(device: String) -> Result<String, String> {
     #[cfg(target_os = "linux")]
     {
         let target = device.trim();
-        let dev_arg = if target.starts_with('/') { target.to_string() } else { format!("/dev/{}", target) };
+        let dev_arg = if target.starts_with('/') {
+            target.to_string()
+        } else {
+            format!("/dev/{}", target)
+        };
         let out = Command::new("udisksctl")
             .args(["unmount", "-b", &dev_arg, "--no-user-interaction"])
             .output();
@@ -5392,7 +6271,10 @@ fn unmount_drive(device: String) -> Result<String, String> {
 fn get_clipboard_text() -> Result<String, String> {
     #[cfg(target_os = "linux")]
     {
-        if let Ok(out) = Command::new("xclip").args(["-selection", "clipboard", "-o"]).output() {
+        if let Ok(out) = Command::new("xclip")
+            .args(["-selection", "clipboard", "-o"])
+            .output()
+        {
             if out.status.success() {
                 return Ok(String::from_utf8_lossy(&out.stdout).to_string());
             }
@@ -5424,10 +6306,17 @@ fn set_clipboard_text(text: String) -> Result<(), String> {
 fn list_installed_deb_packages() -> Result<Vec<String>, String> {
     #[cfg(target_os = "linux")]
     {
-        if let Ok(out) = Command::new("dpkg-query").args(["-W", "-f=${Package}\n"]).output() {
+        if let Ok(out) = Command::new("dpkg-query")
+            .args(["-W", "-f=${Package}\n"])
+            .output()
+        {
             if out.status.success() {
                 let s = String::from_utf8_lossy(&out.stdout);
-                let pkgs: Vec<String> = s.lines().map(|l| l.trim().to_string()).filter(|l| !l.is_empty()).collect();
+                let pkgs: Vec<String> = s
+                    .lines()
+                    .map(|l| l.trim().to_string())
+                    .filter(|l| !l.is_empty())
+                    .collect();
                 return Ok(pkgs);
             }
         }
@@ -5459,13 +6348,15 @@ fn get_storage_stats() -> Result<StorageStatsPayload, String> {
             for line in s.lines().skip(1) {
                 let parts: Vec<&str> = line.split_whitespace().collect();
                 if parts.len() >= 6 {
-                    if let (Ok(tot), Ok(used)) = (parts[1].parse::<u64>(), parts[2].parse::<u64>()) {
+                    if let (Ok(tot), Ok(used)) = (parts[1].parse::<u64>(), parts[2].parse::<u64>())
+                    {
                         stats.disk_total = tot;
                         stats.disk_used = used;
                         break;
                     }
                 } else if parts.len() >= 5 {
-                    if let (Ok(tot), Ok(used)) = (parts[0].parse::<u64>(), parts[1].parse::<u64>()) {
+                    if let (Ok(tot), Ok(used)) = (parts[0].parse::<u64>(), parts[1].parse::<u64>())
+                    {
                         stats.disk_total = tot;
                         stats.disk_used = used;
                         break;
@@ -5491,14 +6382,23 @@ fn get_storage_stats() -> Result<StorageStatsPayload, String> {
 fn system_browser_available() -> Result<bool, String> {
     #[cfg(target_os = "linux")]
     {
-        for cand in &["brave-browser", "google-chrome", "chromium", "firefox", "x-www-browser"] {
+        for cand in &[
+            "brave-browser",
+            "google-chrome",
+            "chromium",
+            "firefox",
+            "x-www-browser",
+        ] {
             if let Ok(out) = Command::new("which").arg(cand).output() {
                 if out.status.success() {
                     return Ok(true);
                 }
             }
         }
-        if let Ok(out) = Command::new("xdg-mime").args(["query", "default", "x-scheme-handler/https"]).output() {
+        if let Ok(out) = Command::new("xdg-mime")
+            .args(["query", "default", "x-scheme-handler/https"])
+            .output()
+        {
             let handler = String::from_utf8_lossy(&out.stdout).trim().to_string();
             if handler.ends_with(".desktop") {
                 return Ok(true);
@@ -5516,7 +6416,8 @@ fn system_browser_available() -> Result<bool, String> {
 fn get_cpu_governor() -> Result<String, String> {
     #[cfg(target_os = "linux")]
     {
-        if let Ok(gov) = fs::read_to_string("/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor") {
+        if let Ok(gov) = fs::read_to_string("/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor")
+        {
             let clean = gov.trim().to_lowercase();
             if clean == "schedutil" || clean == "ondemand" || clean == "conservative" {
                 return Ok("balanced".to_string());
@@ -5533,10 +6434,16 @@ fn get_cpu_governor() -> Result<String, String> {
 fn set_cpu_governor(governor: Option<String>, profile: Option<String>) -> Result<String, String> {
     #[cfg(target_os = "linux")]
     {
-        let mut gov = governor.or(profile).unwrap_or_default().trim().to_lowercase();
+        let mut gov = governor
+            .or(profile)
+            .unwrap_or_default()
+            .trim()
+            .to_lowercase();
         if gov == "balanced" {
             gov = "schedutil".to_string();
-            if let Ok(avail) = fs::read_to_string("/sys/devices/system/cpu/cpu0/cpufreq/scaling_available_governors") {
+            if let Ok(avail) = fs::read_to_string(
+                "/sys/devices/system/cpu/cpu0/cpufreq/scaling_available_governors",
+            ) {
                 for cand in &["schedutil", "ondemand", "conservative"] {
                     if avail.contains(cand) {
                         gov = cand.to_string();
@@ -5545,7 +6452,13 @@ fn set_cpu_governor(governor: Option<String>, profile: Option<String>) -> Result
                 }
             }
         }
-        let valid_govs = ["performance", "powersave", "ondemand", "conservative", "schedutil"];
+        let valid_govs = [
+            "performance",
+            "powersave",
+            "ondemand",
+            "conservative",
+            "schedutil",
+        ];
         if !valid_govs.contains(&gov.as_str()) {
             return Err("Geçersiz CPU profili".to_string());
         }
@@ -5556,7 +6469,10 @@ fn set_cpu_governor(governor: Option<String>, profile: Option<String>) -> Result
                 if name.starts_with("cpu") && name[3..].chars().all(|c| c.is_ascii_digit()) {
                     let path = entry.path().join("cpufreq/scaling_governor");
                     if path.exists() {
-                        let _ = root_command("sh", &["-c", &format!("echo {} > {}", gov, path.display())]);
+                        let _ = root_command(
+                            "sh",
+                            &["-c", &format!("echo {} > {}", gov, path.display())],
+                        );
                     }
                 }
             }
@@ -5570,7 +6486,11 @@ fn set_cpu_governor(governor: Option<String>, profile: Option<String>) -> Result
 }
 
 #[tauri::command]
-fn set_dpms_timeout(seconds: Option<u32>, timeout: Option<u32>, value: Option<u32>) -> Result<String, String> {
+fn set_dpms_timeout(
+    seconds: Option<u32>,
+    timeout: Option<u32>,
+    value: Option<u32>,
+) -> Result<String, String> {
     #[cfg(target_os = "linux")]
     {
         let secs = seconds.or(timeout).or(value).unwrap_or(0);
@@ -5580,7 +6500,9 @@ fn set_dpms_timeout(seconds: Option<u32>, timeout: Option<u32>, value: Option<u3
         } else {
             let s_str = secs.to_string();
             let _ = Command::new("xset").args(["+dpms"]).output();
-            let _ = Command::new("xset").args(["dpms", &s_str, &s_str, &s_str]).output();
+            let _ = Command::new("xset")
+                .args(["dpms", &s_str, &s_str, &s_str])
+                .output();
             let _ = Command::new("xset").args(["s", &s_str, &s_str]).output();
         }
 
@@ -5603,19 +6525,29 @@ fn confirm_display_mode() -> Result<bool, String> {
 }
 
 #[tauri::command]
-fn revert_display_mode(output: Option<String>, mode: Option<String>, rate: Option<String>) -> Result<bool, String> {
+fn revert_display_mode(
+    output: Option<String>,
+    mode: Option<String>,
+    rate: Option<String>,
+) -> Result<bool, String> {
     #[cfg(target_os = "linux")]
     {
         let out_name = output.unwrap_or_default();
         if !out_name.is_empty() {
             if let Some(m) = mode {
                 if let Some(r) = rate {
-                    let _ = Command::new("xrandr").args(["--output", &out_name, "--mode", &m, "--rate", &r]).output();
+                    let _ = Command::new("xrandr")
+                        .args(["--output", &out_name, "--mode", &m, "--rate", &r])
+                        .output();
                 } else {
-                    let _ = Command::new("xrandr").args(["--output", &out_name, "--mode", &m]).output();
+                    let _ = Command::new("xrandr")
+                        .args(["--output", &out_name, "--mode", &m])
+                        .output();
                 }
             } else {
-                let _ = Command::new("xrandr").args(["--output", &out_name, "--auto"]).output();
+                let _ = Command::new("xrandr")
+                    .args(["--output", &out_name, "--auto"])
+                    .output();
             }
         }
     }
@@ -5628,7 +6560,9 @@ fn set_display_scale(percent: Option<f32>) -> Result<String, String> {
     {
         let pct = percent.unwrap_or(100.0).clamp(50.0, 300.0);
         let dpi = (96.0 * pct / 100.0).round() as u32;
-        let _ = Command::new("xrandr").args(["--dpi", &dpi.to_string()]).output();
+        let _ = Command::new("xrandr")
+            .args(["--dpi", &dpi.to_string()])
+            .output();
         Ok(format!("Ekran ölçeği ayarlandı: %{}", pct))
     }
     #[cfg(not(target_os = "linux"))]
@@ -5687,10 +6621,17 @@ async fn remove_flatpak_app(app_id: String) -> Result<String, String> {
 fn list_installed_flatpaks() -> Result<Vec<String>, String> {
     #[cfg(target_os = "linux")]
     {
-        if let Ok(out) = Command::new("flatpak").args(["list", "--app", "--columns=application"]).output() {
+        if let Ok(out) = Command::new("flatpak")
+            .args(["list", "--app", "--columns=application"])
+            .output()
+        {
             if out.status.success() {
                 let s = String::from_utf8_lossy(&out.stdout);
-                let apps: Vec<String> = s.lines().map(|l| l.trim().to_string()).filter(|l| !l.is_empty()).collect();
+                let apps: Vec<String> = s
+                    .lines()
+                    .map(|l| l.trim().to_string())
+                    .filter(|l| !l.is_empty())
+                    .collect();
                 return Ok(apps);
             }
         }
@@ -5728,16 +6669,25 @@ async fn move_to_trash(path: String) -> Result<String, String> {
     let _ = fs::create_dir_all(&files_dir);
     let _ = fs::create_dir_all(&info_dir);
 
-    let file_name = p.file_name().unwrap_or_default().to_string_lossy().to_string();
+    let file_name = p
+        .file_name()
+        .unwrap_or_default()
+        .to_string_lossy()
+        .to_string();
     let dest_file = files_dir.join(&file_name);
     let dest_info = info_dir.join(format!("{}.trashinfo", file_name));
 
-    let info_content = format!("[Trash Info]\nPath={}\nDeletionDate=2026-01-01T00:00:00\n", canon_str);
+    let info_content = format!(
+        "[Trash Info]\nPath={}\nDeletionDate=2026-01-01T00:00:00\n",
+        canon_str
+    );
     let _ = fs::write(&dest_info, info_content);
 
     if fs::rename(&canonical, &dest_file).is_err() {
         if p.is_dir() {
-            let _ = Command::new("mv").args([&canon_str, &dest_file.to_string_lossy().to_string()]).output();
+            let _ = Command::new("mv")
+                .args([&canon_str, &dest_file.to_string_lossy().to_string()])
+                .output();
         } else {
             let _ = fs::copy(&canonical, &dest_file);
             let _ = fs::remove_file(&canonical);
@@ -5757,8 +6707,16 @@ async fn list_trash() -> Result<Vec<DirectoryItem>, String> {
                 let p = entry.path();
                 let name = entry.file_name().to_string_lossy().to_string();
                 let is_dir = p.is_dir();
-                let size = if is_dir { 0 } else { p.metadata().map(|m| m.len()).unwrap_or(0) };
-                let ext = p.extension().and_then(|s| s.to_str()).unwrap_or("").to_lowercase();
+                let size = if is_dir {
+                    0
+                } else {
+                    p.metadata().map(|m| m.len()).unwrap_or(0)
+                };
+                let ext = p
+                    .extension()
+                    .and_then(|s| s.to_str())
+                    .unwrap_or("")
+                    .to_lowercase();
                 items.push(DirectoryItem {
                     name,
                     path: p.to_string_lossy().to_string(),
@@ -5767,12 +6725,22 @@ async fn list_trash() -> Result<Vec<DirectoryItem>, String> {
                     ext,
                     is_hidden: false,
                     size_bytes: size,
-                    mtime: p.metadata().ok().and_then(|m| m.modified().ok()).and_then(|t| t.duration_since(UNIX_EPOCH).ok()).map(|d| d.as_secs()).unwrap_or(0),
+                    mtime: p
+                        .metadata()
+                        .ok()
+                        .and_then(|m| m.modified().ok())
+                        .and_then(|t| t.duration_since(UNIX_EPOCH).ok())
+                        .map(|d| d.as_secs())
+                        .unwrap_or(0),
                 });
             }
         }
     }
-    items.sort_by(|a, b| b.is_dir.cmp(&a.is_dir).then(a.name.to_lowercase().cmp(&b.name.to_lowercase())));
+    items.sort_by(|a, b| {
+        b.is_dir
+            .cmp(&a.is_dir)
+            .then(a.name.to_lowercase().cmp(&b.name.to_lowercase()))
+    });
     Ok(items)
 }
 
@@ -5781,7 +6749,9 @@ async fn restore_trash_item(fileName: String) -> Result<String, String> {
     let home = dirs::home_dir().unwrap_or_else(|| PathBuf::from("/home/ankora"));
     let trash_dir = home.join(".local/share/Trash");
     let file_path = trash_dir.join("files").join(&fileName);
-    let info_path = trash_dir.join("info").join(format!("{}.trashinfo", fileName));
+    let info_path = trash_dir
+        .join("info")
+        .join(format!("{}.trashinfo", fileName));
 
     if !file_path.exists() {
         return Err("Geri yüklenecek dosya bulunamadı.".to_string());
@@ -5840,27 +6810,45 @@ async fn extract_archive(archivePath: String, destDir: Option<String>) -> Result
         return Err("Arşiv dosyası bulunamadı.".to_string());
     }
     let target_dest = destDir.unwrap_or_else(|| {
-        p.parent().unwrap_or_else(|| Path::new("/home/ankora")).to_string_lossy().to_string()
+        p.parent()
+            .unwrap_or_else(|| Path::new("/home/ankora"))
+            .to_string_lossy()
+            .to_string()
     });
 
     let lower = archivePath.to_lowercase();
     let res = if lower.ends_with(".zip") {
-        Command::new("unzip").args(["-q", "-o", &archivePath, "-d", &target_dest]).output()
+        Command::new("unzip")
+            .args(["-q", "-o", &archivePath, "-d", &target_dest])
+            .output()
     } else if lower.ends_with(".tar.gz") || lower.ends_with(".tgz") {
-        Command::new("tar").args(["-xzf", &archivePath, "-C", &target_dest]).output()
+        Command::new("tar")
+            .args(["-xzf", &archivePath, "-C", &target_dest])
+            .output()
     } else if lower.ends_with(".tar.xz") || lower.ends_with(".txz") {
-        Command::new("tar").args(["-xJf", &archivePath, "-C", &target_dest]).output()
+        Command::new("tar")
+            .args(["-xJf", &archivePath, "-C", &target_dest])
+            .output()
     } else if lower.ends_with(".tar.bz2") {
-        Command::new("tar").args(["-xjf", &archivePath, "-C", &target_dest]).output()
+        Command::new("tar")
+            .args(["-xjf", &archivePath, "-C", &target_dest])
+            .output()
     } else if lower.ends_with(".7z") {
-        Command::new("7z").args(["x", "-y", &archivePath, &format!("-o{}", target_dest)]).output()
+        Command::new("7z")
+            .args(["x", "-y", &archivePath, &format!("-o{}", target_dest)])
+            .output()
     } else {
-        Command::new("tar").args(["-xf", &archivePath, "-C", &target_dest]).output()
+        Command::new("tar")
+            .args(["-xf", &archivePath, "-C", &target_dest])
+            .output()
     };
 
     match res {
         Ok(out) if out.status.success() => Ok(format!("Arşiv çıkarıldı: {}", target_dest)),
-        Ok(out) => Err(format!("Arşiv çıkarılamadı: {}", String::from_utf8_lossy(&out.stderr))),
+        Ok(out) => Err(format!(
+            "Arşiv çıkarılamadı: {}",
+            String::from_utf8_lossy(&out.stderr)
+        )),
         Err(e) => Err(format!("Arşiv aracı çalıştırılamadı (tar/unzip/7z): {}", e)),
     }
 }
@@ -5872,7 +6860,11 @@ async fn create_archive(sourcePath: String, archiveType: String) -> Result<Strin
         return Err("Arşivlenecek dosya/klasör bulunamadı.".to_string());
     }
     let parent = p.parent().unwrap_or_else(|| Path::new("."));
-    let file_name = p.file_name().unwrap_or_default().to_string_lossy().to_string();
+    let file_name = p
+        .file_name()
+        .unwrap_or_default()
+        .to_string_lossy()
+        .to_string();
 
     let out_archive = if archiveType == "zip" {
         format!("{}.zip", sourcePath)
@@ -5881,15 +6873,477 @@ async fn create_archive(sourcePath: String, archiveType: String) -> Result<Strin
     };
 
     let res = if archiveType == "zip" {
-        Command::new("zip").current_dir(parent).args(["-r", "-q", &out_archive, &file_name]).output()
+        Command::new("zip")
+            .current_dir(parent)
+            .args(["-r", "-q", &out_archive, &file_name])
+            .output()
     } else {
-        Command::new("tar").current_dir(parent).args(["-czf", &out_archive, &file_name]).output()
+        Command::new("tar")
+            .current_dir(parent)
+            .args(["-czf", &out_archive, &file_name])
+            .output()
     };
 
     match res {
         Ok(out) if out.status.success() => Ok(format!("Arşiv oluşturuldu: {}", out_archive)),
-        Ok(out) => Err(format!("Arşiv oluşturma başarısız: {}", String::from_utf8_lossy(&out.stderr))),
+        Ok(out) => Err(format!(
+            "Arşiv oluşturma başarısız: {}",
+            String::from_utf8_lossy(&out.stderr)
+        )),
         Err(e) => Err(format!("Arşivleme komutu çalıştırılamadı: {}", e)),
+    }
+}
+// ----------------------------------------------------------------------------
+// 12c. DOSYA YÖNETİCİSİ GELİŞMİŞ İŞLEMLER: kopyala/yapıştır (canlı ilerleme),
+// özellikler (stat), izinler, yazdır, e-posta, varsayılan uygulama ata.
+// İlerleme "fs-progress" olayıyla webview'e iletilir.
+// ----------------------------------------------------------------------------
+
+fn path_sanitize_input(p: &str) -> Result<PathBuf, String> {
+    let clean = p.trim();
+    if clean.is_empty() {
+        return Err("Boş yol.".into());
+    }
+    if clean.contains('\0') {
+        return Err("Geçersiz yol.".into());
+    }
+    Ok(PathBuf::from(clean))
+}
+
+fn path_accessible_for_ops(p: &Path) -> Result<(), String> {
+    let clean = p.to_string_lossy().to_string();
+    for forbidden in ["/root", "/proc", "/sys", "/dev"] {
+        if clean == forbidden || clean.starts_with(&format!("{}/", forbidden)) {
+            return Err("Güvenlik İlkesi İhlali: Bu yola işlem yapılamaz.".into());
+        }
+    }
+    Ok(())
+}
+
+#[derive(Clone, Serialize)]
+struct FsProgressPayload {
+    op: String,
+    files_done: u32,
+    total_files: u32,
+    bytes_done: u64,
+    total_bytes: u64,
+    current: String,
+}
+
+struct CopyState {
+    files: u32,
+    total_files: u32,
+    bytes: u64,
+    total_bytes: u64,
+    current: String,
+}
+
+fn emit_fs_progress(window: Option<&tauri::Window>, op: &str, state: &CopyState) {
+    if let Some(w) = window {
+        let _ = w.emit(
+            "fs-progress",
+            FsProgressPayload {
+                op: op.to_string(),
+                files_done: state.files,
+                total_files: state.total_files,
+                bytes_done: state.bytes,
+                total_bytes: state.total_bytes,
+                current: state.current.clone(),
+            },
+        );
+    }
+}
+
+// Özyinelemeli kopya; her dosyada ilerleme olayı yayınlanır.
+fn copy_tree_progress(
+    src: &Path,
+    dest: &Path,
+    state: &mut CopyState,
+    window: Option<&tauri::Window>,
+) -> Result<(), String> {
+    if src.metadata().map_err(|e| e.to_string())?.is_dir() {
+        state.files += 1;
+        state.current = src.to_string_lossy().to_string();
+        emit_fs_progress(window, "copy", state);
+        fs::create_dir_all(dest).map_err(|e| e.to_string())?;
+        for entry in fs::read_dir(src).map_err(|e| e.to_string())? {
+            let entry = entry.map_err(|e| e.to_string())?;
+            copy_tree_progress(&entry.path(), &dest.join(entry.file_name()), state, window)?;
+        }
+        Ok(())
+    } else {
+        if let Some(parent) = dest.parent() {
+            let _ = fs::create_dir_all(parent);
+        }
+        fs::copy(src, dest).map_err(|e| e.to_string())?;
+        state.files += 1;
+        state.bytes += src.metadata().map(|m| m.len()).unwrap_or(0);
+        state.current = src.to_string_lossy().to_string();
+        emit_fs_progress(window, "copy", state);
+        Ok(())
+    }
+}
+
+// Öge sayısı + toplam boyut (klasörler için).
+fn count_entries(p: &Path) -> (u32, u64) {
+    let mut files = 0u32;
+    let mut bytes = 0u64;
+    let mut stack = vec![p.to_path_buf()];
+    while let Some(cur) = stack.pop() {
+        if let Ok(rd) = fs::read_dir(&cur) {
+            for entry in rd.flatten() {
+                files += 1;
+                match entry.metadata() {
+                    Ok(meta) if meta.is_dir() => stack.push(entry.path()),
+                    Ok(meta) => bytes += meta.len(),
+                    Err(_) => {}
+                }
+            }
+        } else if let Ok(meta) = fs::metadata(&cur) {
+            bytes += meta.len();
+            files += 1;
+        }
+    }
+    (files, bytes)
+}
+
+fn unique_dest(dest: PathBuf) -> Result<PathBuf, String> {
+    if !dest.exists() {
+        return Ok(dest);
+    }
+    let parent = dest.parent().unwrap_or(Path::new("/")).to_path_buf();
+    let stem = dest
+        .file_stem()
+        .map(|s| s.to_string_lossy().to_string())
+        .unwrap_or_else(|| "kopya".into());
+    let ext = dest
+        .extension()
+        .map(|e| format!(".{}", e.to_string_lossy()))
+        .unwrap_or_default();
+    for n in 1..512 {
+        let cand = if ext.is_empty() {
+            parent.join(format!("{} ({})", stem, n))
+        } else {
+            parent.join(format!("{} ({}).{}", stem, n, ext.trim_start_matches('.')))
+        };
+        if !cand.exists() {
+            return Ok(cand);
+        }
+    }
+    Err("Hedefte uygun ad bulunamadı.".into())
+}
+
+#[tauri::command]
+async fn copy_path_c(
+    window: tauri::Window,
+    sourcePath: String,
+    destPath: String,
+    moveOp: Option<bool>,
+) -> Result<String, String> {
+    let src = path_sanitize_input(&sourcePath)?;
+    if !src.exists() {
+        return Err("Kaynak bulunamadı.".into());
+    }
+    let mut dest = path_sanitize_input(&destPath)?;
+    if dest.is_dir() {
+        if let Some(fname) = src.file_name() {
+            dest = dest.join(fname);
+        }
+    }
+    if src == dest {
+        return Err("Kaynak ve hedef aynı.".into());
+    }
+    path_accessible_for_ops(&src)?;
+    if dest.exists() {
+        dest = unique_dest(dest)?;
+    }
+    let move_op = moveOp.unwrap_or(false);
+    if move_op {
+        // Aynı dosya sistemi: düz mv en verimlisidir.
+        if let Ok(o) = Command::new("mv")
+            .args([
+                src.to_string_lossy().to_string(),
+                dest.to_string_lossy().to_string(),
+            ])
+            .output()
+        {
+            if o.status.success() {
+                return Ok(format!("Öge taşındı: {}", dest.to_string_lossy()));
+            }
+        }
+        // Farklı dosya sistemi (USB vb.): kopyala + kaynak sil.
+        let (total_files, total_bytes) = count_entries(&src);
+        let mut state = CopyState {
+            files: 0,
+            total_files,
+            bytes: 0,
+            total_bytes,
+            current: String::new(),
+        };
+        copy_tree_progress(&src, &dest, &mut state, Some(&window))?;
+        let rm_res = if src.is_dir() {
+            fs::remove_dir_all(&src)
+        } else {
+            fs::remove_file(&src)
+        };
+        rm_res.map_err(|e| {
+            format!(
+                "Kopyalandı ama silinemedi ({}): {}",
+                src.to_string_lossy(),
+                e
+            )
+        })?;
+        Ok(format!("Öge taşındı: {}", dest.to_string_lossy()))
+    } else {
+        let (total_files, total_bytes) = count_entries(&src);
+        let mut state = CopyState {
+            files: 0,
+            total_files,
+            bytes: 0,
+            total_bytes,
+            current: String::new(),
+        };
+        copy_tree_progress(&src, &dest, &mut state, Some(&window))?;
+        Ok(format!("Öge kopyalandı: {}", dest.to_string_lossy()))
+    }
+}
+
+#[tauri::command]
+fn file_stat(path: String) -> Result<serde_json::Value, String> {
+    let p = path_sanitize_input(&path)?;
+    let meta = fs::symlink_metadata(&p).map_err(|e| format!("Okunamadı: {}", e))?;
+    let name = p
+        .file_name()
+        .map(|n| n.to_string_lossy().to_string())
+        .unwrap_or_else(|| p.to_string_lossy().to_string());
+    let is_dir = meta.is_dir();
+    let is_symlink = meta.file_type().is_symlink();
+    let size = if is_dir {
+        count_entries(&p).1
+    } else {
+        meta.len()
+    };
+    let mtime = meta
+        .modified()
+        .ok()
+        .and_then(|t| t.duration_since(UNIX_EPOCH).ok())
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
+    let ctime = meta
+        .created()
+        .ok()
+        .and_then(|t| t.duration_since(UNIX_EPOCH).ok())
+        .map(|d| d.as_secs())
+        .unwrap_or(mtime);
+
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::MetadataExt;
+        let mode = meta.mode();
+        let perms = format!("{:o}", mode & 0o777);
+        let owner = users_get_name(meta.uid()).unwrap_or_else(|| format!("uid{}", meta.uid()));
+        let child_count = if is_dir {
+            fs::read_dir(&p).map(|rd| rd.count()).unwrap_or(0)
+        } else {
+            0
+        };
+        return Ok(serde_json::json!({
+            "name": name,
+            "path": p.to_string_lossy(),
+            "is_dir": is_dir,
+            "is_symlink": is_symlink,
+            "size": size,
+            "mtime": mtime,
+            "ctime": ctime,
+            "owner": owner,
+            "perms": perms,
+            "executable": mode & 0o111 != 0,
+            "child_count": child_count,
+            "kind": if is_dir { "Klasör" } else if is_symlink { "Bağlantı" } else { "Dosya" },
+        }));
+    }
+    #[cfg(not(unix))]
+    {
+        return Ok(serde_json::json!({
+            "name": name,
+            "path": p.to_string_lossy(),
+            "is_dir": is_dir,
+            "is_symlink": is_symlink,
+            "size": size,
+            "mtime": mtime,
+            "ctime": ctime,
+            "owner": "",
+            "perms": "",
+            "executable": false,
+            "child_count": 0,
+            "kind": if is_dir { "Klasör" } else { "Dosya" },
+        }));
+    }
+}
+
+fn users_get_name(uid: u32) -> Option<String> {
+    fs::read_to_string("/etc/passwd").ok().and_then(|passwd| {
+        passwd
+            .lines()
+            .find(|l| {
+                l.split(':')
+                    .nth(2)
+                    .map(|v| v == uid.to_string())
+                    .unwrap_or(false)
+            })
+            .and_then(|l| l.split(':').next().map(|n| n.to_string()))
+    })
+}
+
+// Özellikler penceresi "kapasite / kullanım" satırı: dosyanın üstündeki dosya
+// sisteminin istatistiği (df -PLB1).
+#[tauri::command]
+fn path_fs_usage(path: String) -> Result<serde_json::Value, String> {
+    let p = path_sanitize_input(&path)?;
+    let out = Command::new("df")
+        .args(["-PLB1", &p.to_string_lossy().to_string()])
+        .output()
+        .map_err(|e| e.to_string())?;
+    let text = String::from_utf8_lossy(&out.stdout);
+    let mut total = 0u64;
+    let mut used = 0u64;
+    if let Some(line) = text.lines().nth(1) {
+        let parts: Vec<&str> = line.split_whitespace().collect();
+        if parts.len() >= 4 {
+            total = parts[1].parse().unwrap_or(0);
+            used = parts[2].parse().unwrap_or(0);
+        }
+    }
+    Ok(serde_json::json!({
+        "total": total,
+        "used": used,
+        "free": total.saturating_sub(used),
+    }))
+}
+
+#[tauri::command]
+fn set_file_permissions(path: String, mode: String) -> Result<String, String> {
+    let p = path_sanitize_input(&path)?;
+    path_accessible_for_ops(&p)?;
+    // Yalnızca sekmeli oktal izin kümesi kabul edilir (600/400/000 vb.).
+    if mode.is_empty() || mode.len() > 4 || !mode.chars().all(|c| c.is_ascii_digit()) {
+        return Err("Geçersiz izin kümesi.".into());
+    }
+    let out = Command::new("chmod")
+        .args([&mode, &p.to_string_lossy().to_string()])
+        .status()
+        .map_err(|e| e.to_string())?;
+    if out.success() {
+        Ok("İzinler güncellendi.".into())
+    } else {
+        Err("chmod başarısız oldu.".into())
+    }
+}
+
+#[tauri::command]
+fn set_file_executable(path: String, executable: bool) -> Result<String, String> {
+    let p = path_sanitize_input(&path)?;
+    path_accessible_for_ops(&p)?;
+    let bits = if executable { "+x" } else { "-x" };
+    let out = Command::new("chmod")
+        .args([bits, &p.to_string_lossy().to_string()])
+        .status()
+        .map_err(|e| e.to_string())?;
+    if out.success() {
+        Ok(if executable {
+            "Dosya artık program olarak çalıştırılabilir.".to_string()
+        } else {
+            "Çalıştırma izni kaldırıldı.".to_string()
+        })
+    } else {
+        Err("chmod başarısız oldu.".into())
+    }
+}
+
+#[tauri::command]
+async fn print_file(path: String) -> Result<String, String> {
+    let p = path_sanitize_input(&path)?;
+    path_accessible_for_ops(&p)?;
+    let out = Command::new("lp")
+        .arg(&p.to_string_lossy().to_string())
+        .output();
+    if out.map(|o| o.status.success()).unwrap_or(false) {
+        return Ok("Dosya yazıcı kuyruğuna gönderildi.".into());
+    }
+    Err("Yazıcı bulunamadı: 'lp' komutu mevcut değil ya da kuyruk yok.".into())
+}
+
+#[tauri::command]
+async fn email_file(path: String) -> Result<String, String> {
+    let p = path_sanitize_input(&path)?;
+    path_accessible_for_ops(&p)?;
+    Command::new("xdg-email")
+        .args(["--attach", &p.to_string_lossy().to_string()])
+        .spawn()
+        .map_err(|e| format!("E-posta uygulaması açılamadı: {}", e))?;
+    Ok("E-posta uygulaması açıldı.".into())
+}
+
+// .desktop dosyasını kendi MimeType listesindeki türlerin varsayılan açıcısı yapar.
+#[tauri::command]
+async fn set_as_default_app(appPath: String) -> Result<String, String> {
+    let p = path_sanitize_input(&appPath)?;
+    let content =
+        fs::read_to_string(&p).map_err(|e| format!("Masaüstü dosyası okunamadı: {}", e))?;
+    let desktop_id = p
+        .file_name()
+        .map(|n| n.to_string_lossy().to_string())
+        .unwrap_or_default();
+    let mut mimes: Vec<String> = Vec::new();
+    for line in content.lines() {
+        if let Some(v) = line.strip_prefix("MimeType=") {
+            mimes.extend(
+                v.split(';')
+                    .map(|m| m.trim().to_string())
+                    .filter(|m| !m.is_empty()),
+            );
+        }
+    }
+    if mimes.is_empty() {
+        return Err("Bu masaüstü dosyası MimeType satırı içermiyor.".into());
+    }
+    let mime_args: Vec<String> = vec!["default".to_string(), desktop_id.clone()];
+    let mut args = mime_args;
+    args.extend(mimes.clone());
+    let out = Command::new("xdg-mime")
+        .args(&args)
+        .status()
+        .map_err(|e| e.to_string())?;
+    if out.success() {
+        Ok(format!(
+            "'{}' seçilen dosya türlerini açmak için varsayılan uygulama atandı ({})",
+            desktop_id,
+            mimes.join(", ")
+        ))
+    } else {
+        Err("xdg-mime başarısız oldu.".into())
+    }
+}
+
+#[tauri::command]
+fn create_symlink(sourcePath: String, linkPath: String) -> Result<String, String> {
+    let src = path_sanitize_input(&sourcePath)?;
+    let link = path_sanitize_input(&linkPath)?;
+    if !src.exists() {
+        return Err("Kısayol hedefi bulunamadı.".into());
+    }
+    if link.exists() {
+        return Err("Aynı adlı bir kısayol zaten var.".into());
+    }
+    #[cfg(unix)]
+    {
+        std::os::unix::fs::symlink(&src, &link)
+            .map_err(|e| format!("Bağ oluşturulamadı: {}", e))?;
+        return Ok("Kısayol oluşturuldu.".into());
+    }
+    #[cfg(not(unix))]
+    {
+        Err("Bu sistemde sembolik bağ desteklenmiyor.".into())
     }
 }
 
@@ -5907,10 +7361,19 @@ async fn move_path(sourcePath: String, destPath: String) -> Result<String, Strin
     }
     #[cfg(target_os = "linux")]
     {
-        let out = Command::new("mv").args([sourcePath.clone(), dest.to_string_lossy().to_string()]).output();
+        let out = Command::new("mv")
+            .args([sourcePath.clone(), dest.to_string_lossy().to_string()])
+            .output();
         match out {
-            Ok(o) if o.status.success() => return Ok(format!("Öge taşındı: {}", dest.to_string_lossy())),
-            Ok(o) => return Err(format!("Taşıma hatası: {}", String::from_utf8_lossy(&o.stderr))),
+            Ok(o) if o.status.success() => {
+                return Ok(format!("Öge taşındı: {}", dest.to_string_lossy()))
+            }
+            Ok(o) => {
+                return Err(format!(
+                    "Taşıma hatası: {}",
+                    String::from_utf8_lossy(&o.stderr)
+                ))
+            }
             Err(e) => return Err(format!("mv komutu çalıştırılamadı: {}", e)),
         }
     }
@@ -5976,9 +7439,30 @@ fn sync_desktop_theme(isDark: bool, _accent: String) -> Result<bool, String> {
         let _ = Command::new("pkill").args(["-HUP", "xsettingsd"]).output();
 
         // 5. gsettings
-        let _ = Command::new("gsettings").args(["set", "org.gnome.desktop.interface", "color-scheme", color_scheme]).output();
-        let _ = Command::new("gsettings").args(["set", "org.gnome.desktop.interface", "gtk-theme", theme_name]).output();
-        let _ = Command::new("gsettings").args(["set", "org.gnome.desktop.interface", "icon-theme", icon_name]).output();
+        let _ = Command::new("gsettings")
+            .args([
+                "set",
+                "org.gnome.desktop.interface",
+                "color-scheme",
+                color_scheme,
+            ])
+            .output();
+        let _ = Command::new("gsettings")
+            .args([
+                "set",
+                "org.gnome.desktop.interface",
+                "gtk-theme",
+                theme_name,
+            ])
+            .output();
+        let _ = Command::new("gsettings")
+            .args([
+                "set",
+                "org.gnome.desktop.interface",
+                "icon-theme",
+                icon_name,
+            ])
+            .output();
     }
     Ok(true)
 }
@@ -5988,8 +7472,14 @@ fn set_native_workspace(index: u32) -> Result<bool, String> {
     #[cfg(target_os = "linux")]
     {
         let idx_str = index.to_string();
-        let _ = Command::new("wmctrl").args(["-s", &idx_str]).output()
-            .or_else(|_| Command::new("xdotool").args(["set_desktop", &idx_str]).output());
+        let _ = Command::new("wmctrl")
+            .args(["-s", &idx_str])
+            .output()
+            .or_else(|_| {
+                Command::new("xdotool")
+                    .args(["set_desktop", &idx_str])
+                    .output()
+            });
     }
     Ok(true)
 }
@@ -6049,16 +7539,28 @@ fn get_audio_devices() -> Result<AudioDevicesResult, String> {
             for line in text.lines() {
                 let trimmed = line.trim();
                 if trimmed.starts_with("Name: ") {
-                    cur_name = trimmed.strip_prefix("Name: ").unwrap_or("").trim().to_string();
+                    cur_name = trimmed
+                        .strip_prefix("Name: ")
+                        .unwrap_or("")
+                        .trim()
+                        .to_string();
                 } else if trimmed.starts_with("Description: ") {
-                    cur_desc = trimmed.strip_prefix("Description: ").unwrap_or("").trim().to_string();
+                    cur_desc = trimmed
+                        .strip_prefix("Description: ")
+                        .unwrap_or("")
+                        .trim()
+                        .to_string();
                 } else if trimmed.starts_with("Sink #") || trimmed.is_empty() {
                     if !cur_name.is_empty() {
                         let is_def = cur_name == default_sink;
                         sinks.push(AudioDeviceItem {
                             id: cur_name.clone(),
                             name: cur_name.clone(),
-                            description: if cur_desc.is_empty() { cur_name.clone() } else { cur_desc.clone() },
+                            description: if cur_desc.is_empty() {
+                                cur_name.clone()
+                            } else {
+                                cur_desc.clone()
+                            },
                             is_default: is_def,
                         });
                         cur_name.clear();
@@ -6071,7 +7573,11 @@ fn get_audio_devices() -> Result<AudioDevicesResult, String> {
                 sinks.push(AudioDeviceItem {
                     id: cur_name.clone(),
                     name: cur_name.clone(),
-                    description: if cur_desc.is_empty() { cur_name.clone() } else { cur_desc },
+                    description: if cur_desc.is_empty() {
+                        cur_name.clone()
+                    } else {
+                        cur_desc
+                    },
                     is_default: is_def,
                 });
             }
@@ -6084,16 +7590,28 @@ fn get_audio_devices() -> Result<AudioDevicesResult, String> {
             for line in text.lines() {
                 let trimmed = line.trim();
                 if trimmed.starts_with("Name: ") {
-                    cur_name = trimmed.strip_prefix("Name: ").unwrap_or("").trim().to_string();
+                    cur_name = trimmed
+                        .strip_prefix("Name: ")
+                        .unwrap_or("")
+                        .trim()
+                        .to_string();
                 } else if trimmed.starts_with("Description: ") {
-                    cur_desc = trimmed.strip_prefix("Description: ").unwrap_or("").trim().to_string();
+                    cur_desc = trimmed
+                        .strip_prefix("Description: ")
+                        .unwrap_or("")
+                        .trim()
+                        .to_string();
                 } else if trimmed.starts_with("Source #") || trimmed.is_empty() {
                     if !cur_name.is_empty() {
                         let is_def = cur_name == default_source;
                         sources.push(AudioDeviceItem {
                             id: cur_name.clone(),
                             name: cur_name.clone(),
-                            description: if cur_desc.is_empty() { cur_name.clone() } else { cur_desc.clone() },
+                            description: if cur_desc.is_empty() {
+                                cur_name.clone()
+                            } else {
+                                cur_desc.clone()
+                            },
                             is_default: is_def,
                         });
                         cur_name.clear();
@@ -6106,7 +7624,11 @@ fn get_audio_devices() -> Result<AudioDevicesResult, String> {
                 sources.push(AudioDeviceItem {
                     id: cur_name.clone(),
                     name: cur_name.clone(),
-                    description: if cur_desc.is_empty() { cur_name.clone() } else { cur_desc },
+                    description: if cur_desc.is_empty() {
+                        cur_name.clone()
+                    } else {
+                        cur_desc
+                    },
                     is_default: is_def,
                 });
             }
@@ -6161,11 +7683,18 @@ fn get_audio_devices() -> Result<AudioDevicesResult, String> {
 fn set_default_audio_device(kind: String, deviceName: String) -> Result<bool, String> {
     #[cfg(target_os = "linux")]
     {
-        let arg = if kind == "source" { "set-default-source" } else { "set-default-sink" };
+        let arg = if kind == "source" {
+            "set-default-source"
+        } else {
+            "set-default-sink"
+        };
         let out = Command::new("pactl").args([arg, &deviceName]).output();
         match out {
             Ok(o) if o.status.success() => Ok(true),
-            Ok(o) => Err(format!("Aygıt değiştirilemedi: {}", String::from_utf8_lossy(&o.stderr))),
+            Ok(o) => Err(format!(
+                "Aygıt değiştirilemedi: {}",
+                String::from_utf8_lossy(&o.stderr)
+            )),
             Err(e) => Err(format!("pactl komutu çalıştırılamadı: {}", e)),
         }
     }
@@ -6202,7 +7731,10 @@ fn get_bluetooth_status() -> Result<BluetoothStatusResult, String> {
         let mut is_powered = false;
         let mut devices = Vec::new();
 
-        if let Ok(out) = Command::new("timeout").args(["1.5", "bluetoothctl", "show"]).output() {
+        if let Ok(out) = Command::new("timeout")
+            .args(["1.5", "bluetoothctl", "show"])
+            .output()
+        {
             let text = String::from_utf8_lossy(&out.stdout);
             if !text.is_empty() && !text.contains("No default controller available") {
                 is_available = true;
@@ -6213,7 +7745,10 @@ fn get_bluetooth_status() -> Result<BluetoothStatusResult, String> {
         }
 
         if is_available {
-            if let Ok(out) = Command::new("timeout").args(["1.5", "bluetoothctl", "devices"]).output() {
+            if let Ok(out) = Command::new("timeout")
+                .args(["1.5", "bluetoothctl", "devices"])
+                .output()
+            {
                 let text = String::from_utf8_lossy(&out.stdout);
                 for line in text.lines() {
                     let parts: Vec<&str> = line.split_whitespace().collect();
@@ -6253,8 +7788,12 @@ fn toggle_bluetooth(powered: bool) -> Result<bool, String> {
     #[cfg(target_os = "linux")]
     {
         let val = if powered { "on" } else { "off" };
-        let _ = Command::new("timeout").args(["2", "bluetoothctl", "power", val]).output();
-        let _ = Command::new("rfkill").args([if powered { "unblock" } else { "block" }, "bluetooth"]).output();
+        let _ = Command::new("timeout")
+            .args(["2", "bluetoothctl", "power", val])
+            .output();
+        let _ = Command::new("rfkill")
+            .args([if powered { "unblock" } else { "block" }, "bluetooth"])
+            .output();
         Ok(powered)
     }
     #[cfg(not(target_os = "linux"))]
@@ -6268,7 +7807,9 @@ fn scan_bluetooth(enable: bool) -> Result<bool, String> {
     #[cfg(target_os = "linux")]
     {
         let val = if enable { "on" } else { "off" };
-        let _ = Command::new("timeout").args(["2", "bluetoothctl", "scan", val]).output();
+        let _ = Command::new("timeout")
+            .args(["2", "bluetoothctl", "scan", val])
+            .output();
         Ok(enable)
     }
     #[cfg(not(target_os = "linux"))]
@@ -6281,10 +7822,15 @@ fn scan_bluetooth(enable: bool) -> Result<bool, String> {
 fn connect_bluetooth_device(address: String) -> Result<String, String> {
     #[cfg(target_os = "linux")]
     {
-        let out = Command::new("timeout").args(["5", "bluetoothctl", "connect", &address]).output();
+        let out = Command::new("timeout")
+            .args(["5", "bluetoothctl", "connect", &address])
+            .output();
         match out {
             Ok(o) if o.status.success() => Ok(format!("{} aygıtına bağlanıldı.", address)),
-            Ok(o) => Err(format!("Bağlantı hatası: {}", String::from_utf8_lossy(&o.stderr))),
+            Ok(o) => Err(format!(
+                "Bağlantı hatası: {}",
+                String::from_utf8_lossy(&o.stderr)
+            )),
             Err(e) => Err(format!("Komut hatası: {}", e)),
         }
     }
@@ -6298,7 +7844,9 @@ fn connect_bluetooth_device(address: String) -> Result<String, String> {
 fn disconnect_bluetooth_device(address: String) -> Result<String, String> {
     #[cfg(target_os = "linux")]
     {
-        let out = Command::new("timeout").args(["3", "bluetoothctl", "disconnect", &address]).output();
+        let out = Command::new("timeout")
+            .args(["3", "bluetoothctl", "disconnect", &address])
+            .output();
         match out {
             Ok(o) if o.status.success() => Ok(format!("{} bağlantısı kesildi.", address)),
             Ok(o) => Err(format!("Hata: {}", String::from_utf8_lossy(&o.stderr))),
@@ -6359,11 +7907,22 @@ async fn spotlight_search_files(query: String) -> Result<Vec<SpotlightSearchResu
                 }
                 if fname.to_lowercase().contains(&q_lower) {
                     let is_dir = path.is_dir();
-                    let ext = path.extension().and_then(|s| s.to_str()).unwrap_or("").to_lowercase();
+                    let ext = path
+                        .extension()
+                        .and_then(|s| s.to_str())
+                        .unwrap_or("")
+                        .to_lowercase();
                     let size = entry.metadata().map(|m| m.len()).unwrap_or(0);
-                    let size_str = if is_dir { "Klasör".to_string() } else { format_file_size(size) };
+                    let size_str = if is_dir {
+                        "Klasör".to_string()
+                    } else {
+                        format_file_size(size)
+                    };
 
-                    if !results.iter().any(|r: &SpotlightSearchResult| r.path == path.to_string_lossy().as_ref()) {
+                    if !results
+                        .iter()
+                        .any(|r: &SpotlightSearchResult| r.path == path.to_string_lossy().as_ref())
+                    {
                         results.push(SpotlightSearchResult {
                             name: fname,
                             path: path.to_string_lossy().to_string(),
@@ -6472,9 +8031,18 @@ fn send_desktop_notification(
             .args(["-a", &app, &headline, &body])
             .output();
     }
-    let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs();
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs();
     let item = DesktopNotificationItem {
-        id: format!("{}", SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_millis()),
+        id: format!(
+            "{}",
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_millis()
+        ),
         app_name: app,
         summary: headline,
         body,
@@ -6482,7 +8050,11 @@ fn send_desktop_notification(
         read: false,
     };
     if let Ok(json) = serde_json::to_string(&item) {
-        if let Ok(mut f) = fs::OpenOptions::new().create(true).append(true).open("/tmp/ayaz-notifications.jsonl") {
+        if let Ok(mut f) = fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open("/tmp/ayaz-notifications.jsonl")
+        {
             let _ = writeln!(f, "{}", json);
         }
     }
@@ -6529,13 +8101,45 @@ fn parse_system_users() -> Vec<SystemUserEntry> {
         .map(|g| {
             g.lines()
                 .filter(|l| l.starts_with("sudo:"))
-                .flat_map(|l| l.split(':').nth(3).unwrap_or("").split(',').map(|s| s.trim().to_string()).collect::<Vec<_>>())
+                .flat_map(|l| {
+                    l.split(':')
+                        .nth(3)
+                        .unwrap_or("")
+                        .split(',')
+                        .map(|s| s.trim().to_string())
+                        .collect::<Vec<_>>()
+                })
                 .collect()
         })
         .unwrap_or_default();
 
-    let me = Command::new("whoami").output().ok()
+    // Aktif oturum kullanıcı tespiti (hata #7): tek bir whoami yanıldığında
+    // "Oturumda aktif kullanıcı bulunamadı" hatası dönüyordu. Artık birden
+    // çok kaynak (env USER/LOGNAME/SUDO_USER, whoami, id -un) denenir;
+    // hiçbiri insan hesabıyla eşleşmezse ilk eşyükü (uid >= 1000) hesap
+    // son çare olarak işaretlenir.
+    let mut me_candidates: Vec<String> = Vec::new();
+    for key in ["SUDO_USER", "LOGNAME", "USER"] {
+        if let Ok(v) = std::env::var(key) {
+            let v = v.trim().to_string();
+            if !v.is_empty() {
+                me_candidates.push(v);
+            }
+        }
+    }
+    let whoami = Command::new("whoami")
+        .output()
+        .ok()
         .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string());
+    if let Some(w) = whoami.filter(|w| !w.is_empty()) {
+        me_candidates.push(w);
+    }
+    if let Ok(id_out) = Command::new("id").arg("-un").output() {
+        let id_me = String::from_utf8_lossy(&id_out.stdout).trim().to_string();
+        if !id_me.is_empty() {
+            me_candidates.push(id_me);
+        }
+    }
 
     for line in passwd.lines() {
         let f: Vec<&str> = line.split(':').collect();
@@ -6551,8 +8155,9 @@ fn parse_system_users() -> Vec<SystemUserEntry> {
             continue;
         }
         let username = f[0].to_string();
+        let is_current = me_candidates.iter().any(|c| c == &username);
         users.push(SystemUserEntry {
-            is_current: me.as_deref() == Some(username.as_str()),
+            is_current,
             in_sudo_group: sudo_members.iter().any(|m| *m == username),
             full_name: f[4].split(',').next().unwrap_or("").to_string(),
             username,
@@ -6560,6 +8165,13 @@ fn parse_system_users() -> Vec<SystemUserEntry> {
             home: f[5].to_string(),
             shell: f[6].to_string(),
         });
+    }
+    // Hiçbir kaynak eşleşmediyse: ilk insan hesabı "aktif" kabul edilir ki
+    // UI tarafı boş hata yerine makul bir oyuncu göstersin.
+    if !users.is_empty() && !users.iter().any(|u| u.is_current) {
+        if let Some(first) = users.first_mut() {
+            first.is_current = true;
+        }
     }
     users
 }
@@ -6572,10 +8184,12 @@ fn list_system_users() -> Result<Vec<SystemUserEntry>, String> {
 #[tauri::command]
 fn system_user_info(username: Option<String>) -> Result<SystemUserEntry, String> {
     let users = parse_system_users();
-    let target = username
-        .filter(|u| !u.is_empty())
-        .map(|u| u)
-        .or_else(|| users.iter().find(|u| u.is_current).map(|u| u.username.clone()));
+    let target = username.filter(|u| !u.is_empty()).map(|u| u).or_else(|| {
+        users
+            .iter()
+            .find(|u| u.is_current)
+            .map(|u| u.username.clone())
+    });
     let target = match target {
         Some(t) => t,
         None => return Err("Oturumda aktif kullanıcı bulunamadı.".into()),
@@ -6589,16 +8203,24 @@ fn system_user_info(username: Option<String>) -> Result<SystemUserEntry, String>
 fn valid_system_username(name: &str) -> bool {
     // Debian kuralı: küçük harf/alt çizgi başlar; harf, rakam, -, _ devam eder.
     let b = name.as_bytes();
-    b.len().ge(&1) && b.len().le(&31)
+    b.len().ge(&1)
+        && b.len().le(&31)
         && (b[0].is_ascii_lowercase() || b[0] == b'_')
-        && b.iter().all(|&c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == b'-' || c == b'_')
+        && b.iter()
+            .all(|&c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == b'-' || c == b'_')
 }
 
 #[tauri::command]
-fn system_user_add(username: String, password: String, full_name: Option<String>) -> Result<String, String> {
+fn system_user_add(
+    username: String,
+    password: String,
+    full_name: Option<String>,
+) -> Result<String, String> {
     let username = username.trim().to_string();
     let password = password.to_string();
-    let full_name = full_name.unwrap_or_default().replace(['\n', '\r', ':'], " ");
+    let full_name = full_name
+        .unwrap_or_default()
+        .replace(['\n', '\r', ':'], " ");
 
     if !valid_system_username(&username) {
         return Err("Geçersiz kullanıcı adı. Küçük harf, rakam, '-' ve '_' kullanılabilir (en fazla 31 karakter).".into());
@@ -6610,14 +8232,27 @@ fn system_user_add(username: String, password: String, full_name: Option<String>
         return Err(format!("'{}' kullanıcısı zaten mevcut.", username));
     }
 
-    let out = root_command("useradd", &[
-        "-m", "-s", "/bin/bash", "-G", "sudo,audio,video,plugdev,netdev",
-        "-c", &full_name, &username,
-    ]).map_err(|e| format!("useradd çalıştırılamadı: {}", e))?;
+    let out = root_command(
+        "useradd",
+        &[
+            "-m",
+            "-s",
+            "/bin/bash",
+            "-G",
+            "sudo,audio,video,plugdev,netdev",
+            "-c",
+            &full_name,
+            &username,
+        ],
+    )
+    .map_err(|e| format!("useradd çalıştırılamadı: {}", e))?;
     if !out.status.success() {
         let err = String::from_utf8_lossy(&out.stderr).trim().to_string();
         return Err(if err.is_empty() {
-            format!("Kullanıcı oluşturulamadı (çıkış kodu {}).", out.status.code().unwrap_or(-1))
+            format!(
+                "Kullanıcı oluşturulamadı (çıkış kodu {}).",
+                out.status.code().unwrap_or(-1)
+            )
         } else {
             err
         });
@@ -6625,7 +8260,8 @@ fn system_user_add(username: String, password: String, full_name: Option<String>
 
     // Parola chpasswd ile stdin üzerinden beslenir (komut satırına hash yazılmaz).
     if sudo_available() {
-        let mut child = Command::new("sudo").args(["-n", "chpasswd"])
+        let mut child = Command::new("sudo")
+            .args(["-n", "chpasswd"])
             .stdin(Stdio::piped())
             .stdout(Stdio::null())
             .stderr(Stdio::piped())
@@ -6664,7 +8300,10 @@ fn system_user_remove(username: String) -> Result<String, String> {
     if !out.status.success() {
         let err = String::from_utf8_lossy(&out.stderr).trim().to_string();
         return Err(if err.is_empty() {
-            format!("Kullanıcı kaldırılamadı (çıkış kodu {}).", out.status.code().unwrap_or(-1))
+            format!(
+                "Kullanıcı kaldırılamadı (çıkış kodu {}).",
+                out.status.code().unwrap_or(-1)
+            )
         } else {
             err
         });
@@ -6738,7 +8377,11 @@ fn get_mpris_status() -> Result<MprisStatus, String> {
                                 is_active: true,
                                 player_name,
                                 playback_status,
-                                title: if title.is_empty() { "Bilinmeyen Parça".into() } else { title },
+                                title: if title.is_empty() {
+                                    "Bilinmeyen Parça".into()
+                                } else {
+                                    title
+                                },
                                 artist,
                                 album,
                                 art_url,
@@ -6888,10 +8531,7 @@ fn get_open_with_apps(file_path: String) -> Result<Vec<OpenWithAppInfo>, String>
             _ => String::new(),
         };
 
-        let app_dirs = [
-            "/usr/share/applications",
-            "/usr/local/share/applications",
-        ];
+        let app_dirs = ["/usr/share/applications", "/usr/local/share/applications"];
 
         for d in app_dirs {
             let dir_path = Path::new(d);
@@ -6901,12 +8541,18 @@ fn get_open_with_apps(file_path: String) -> Result<Vec<OpenWithAppInfo>, String>
                     if ep.extension().and_then(|s| s.to_str()) == Some("desktop") {
                         if let Ok(content) = fs::read_to_string(&ep) {
                             let matches_mime = if !mime_type.is_empty() {
-                                content.lines().any(|l| l.starts_with("MimeType=") && l.contains(&mime_type))
+                                content
+                                    .lines()
+                                    .any(|l| l.starts_with("MimeType=") && l.contains(&mime_type))
                             } else {
                                 false
                             };
 
-                            let file_name = ep.file_name().unwrap_or_default().to_string_lossy().to_string();
+                            let file_name = ep
+                                .file_name()
+                                .unwrap_or_default()
+                                .to_string_lossy()
+                                .to_string();
                             let is_default = !def_app.is_empty() && file_name == def_app;
 
                             if matches_mime || is_default {
@@ -6920,7 +8566,13 @@ fn get_open_with_apps(file_path: String) -> Result<Vec<OpenWithAppInfo>, String>
                                         name = l.trim_start_matches("Name=").to_string();
                                     } else if l.starts_with("Exec=") && exec.is_empty() {
                                         exec = l.trim_start_matches("Exec=").to_string();
-                                        exec = exec.replace("%f", "").replace("%F", "").replace("%u", "").replace("%U", "").trim().to_string();
+                                        exec = exec
+                                            .replace("%f", "")
+                                            .replace("%F", "")
+                                            .replace("%u", "")
+                                            .replace("%U", "")
+                                            .trim()
+                                            .to_string();
                                     } else if l.starts_with("Icon=") && icon.is_empty() {
                                         icon = l.trim_start_matches("Icon=").to_string();
                                     } else if l == "NoDisplay=true" {
@@ -7026,7 +8678,12 @@ fn get_usb_flash_targets() -> Result<Vec<UsbDiskInfo>, String> {
     #[cfg(target_os = "linux")]
     {
         let out = Command::new("lsblk")
-            .args(["-J", "-b", "-o", "NAME,PATH,SIZE,TYPE,TRAN,MODEL,VENDOR,RM,MOUNTPOINT,ROTA"])
+            .args([
+                "-J",
+                "-b",
+                "-o",
+                "NAME,PATH,SIZE,TYPE,TRAN,MODEL,VENDOR,RM,MOUNTPOINT,ROTA",
+            ])
             .output()
             .map_err(|e| format!("lsblk çalıştırılamadı: {}", e))?;
 
@@ -7045,7 +8702,10 @@ fn get_usb_flash_targets() -> Result<Vec<UsbDiskInfo>, String> {
                 }
 
                 let tran = dev.get("tran").and_then(|v| v.as_str()).unwrap_or("");
-                let rm = dev.get("rm").map(|v| v.as_bool().unwrap_or(false) || v.as_i64() == Some(1)).unwrap_or(false);
+                let rm = dev
+                    .get("rm")
+                    .map(|v| v.as_bool().unwrap_or(false) || v.as_i64() == Some(1))
+                    .unwrap_or(false);
 
                 if tran != "usb" && !rm {
                     continue;
@@ -7071,19 +8731,45 @@ fn get_usb_flash_targets() -> Result<Vec<UsbDiskInfo>, String> {
                     continue;
                 }
 
-                let name = dev.get("name").and_then(|v| v.as_str()).unwrap_or("").to_string();
-                let path = dev.get("path").and_then(|v| v.as_str()).unwrap_or("").to_string();
-                let model = dev.get("model").and_then(|v| v.as_str()).unwrap_or("").trim().to_string();
-                let vendor = dev.get("vendor").and_then(|v| v.as_str()).unwrap_or("").trim().to_string();
+                let name = dev
+                    .get("name")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_string();
+                let path = dev
+                    .get("path")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_string();
+                let model = dev
+                    .get("model")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .trim()
+                    .to_string();
+                let vendor = dev
+                    .get("vendor")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .trim()
+                    .to_string();
                 let size_bytes = dev.get("size").and_then(|v| v.as_u64()).unwrap_or(0);
 
                 let size_human = format_file_size(size_bytes);
 
-                let dev_path = if path.is_empty() { format!("/dev/{}", name) } else { path };
+                let dev_path = if path.is_empty() {
+                    format!("/dev/{}", name)
+                } else {
+                    path
+                };
                 targets.push(UsbDiskInfo {
                     name,
                     path: dev_path,
-                    model: if model.is_empty() { "USB Sürücü".into() } else { model },
+                    model: if model.is_empty() {
+                        "USB Sürücü".into()
+                    } else {
+                        model
+                    },
                     vendor,
                     size_human,
                     size_bytes,
@@ -7108,7 +8794,11 @@ fn flash_iso_to_usb(iso_path: String, target_device: String) -> Result<String, S
     }
 
     let dev_name = target_device.strip_prefix("/dev/").unwrap_or("");
-    if dev_name.is_empty() || !dev_name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-') {
+    if dev_name.is_empty()
+        || !dev_name
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')
+    {
         return Err("Geçersiz hedef cihaz biçimi".into());
     }
 
@@ -7117,7 +8807,10 @@ fn flash_iso_to_usb(iso_path: String, target_device: String) -> Result<String, S
     }
 
     for mnt in &["/", "/boot", "/home", "/etc"] {
-        if let Ok(o) = Command::new("findmnt").args(["-n", "-o", "SOURCE", mnt]).output() {
+        if let Ok(o) = Command::new("findmnt")
+            .args(["-n", "-o", "SOURCE", mnt])
+            .output()
+        {
             let root_src = String::from_utf8_lossy(&o.stdout);
             if root_src.contains(&target_device) {
                 return Err("Kritik Güvenlik Uyarısı: Sistem kök diskine yazma engellendi!".into());
@@ -7135,7 +8828,10 @@ fn flash_iso_to_usb(iso_path: String, target_device: String) -> Result<String, S
         if Path::new(SNAP_HELPER).exists() {
             if let Ok(out) = root_command(SNAP_HELPER, &["usb-flash", &iso_p, &tgt]) {
                 if out.status.success() {
-                    let _ = fs::write(progress_file, "100.0:done:ISO başarıyla USB belleğe yazdırıldı!");
+                    let _ = fs::write(
+                        progress_file,
+                        "100.0:done:ISO başarıyla USB belleğe yazdırıldı!",
+                    );
                     return;
                 }
             }
@@ -7155,15 +8851,24 @@ fn flash_iso_to_usb(iso_path: String, target_device: String) -> Result<String, S
 
         let if_arg = format!("if={}", iso_p);
         let of_arg = format!("of={}", tgt);
-        let res = root_command("dd", &[&if_arg, &of_arg, "bs=4M", "status=none", "conv=fsync"]);
+        let res = root_command(
+            "dd",
+            &[&if_arg, &of_arg, "bs=4M", "status=none", "conv=fsync"],
+        );
 
         match res {
             Ok(s) if s.status.success() => {
                 let _ = Command::new("sync").output();
-                let _ = fs::write(progress_file, "100.0:done:ISO başarıyla USB belleğe yazdırıldı!");
+                let _ = fs::write(
+                    progress_file,
+                    "100.0:done:ISO başarıyla USB belleğe yazdırıldı!",
+                );
             }
             Ok(_) => {
-                let _ = fs::write(progress_file, "0.0:error:Yazma işlemi hata koduyla sonuçlandı.");
+                let _ = fs::write(
+                    progress_file,
+                    "0.0:error:Yazma işlemi hata koduyla sonuçlandı.",
+                );
             }
             Err(e) => {
                 let _ = fs::write(progress_file, format!("0.0:error:Hata: {}", e));
@@ -7191,7 +8896,11 @@ fn get_flash_progress() -> Result<FlashProgress, String> {
         let percent: f32 = parts[0].parse().unwrap_or(0.0);
         let status = parts[1].to_string();
         let message = parts[2].to_string();
-        Ok(FlashProgress { percent, status, message })
+        Ok(FlashProgress {
+            percent,
+            status,
+            message,
+        })
     } else {
         Ok(FlashProgress {
             percent: 0.0,
@@ -7202,13 +8911,21 @@ fn get_flash_progress() -> Result<FlashProgress, String> {
 }
 
 #[tauri::command]
-fn format_usb_drive(target_device: String, filesystem: String, label: String) -> Result<String, String> {
+fn format_usb_drive(
+    target_device: String,
+    filesystem: String,
+    label: String,
+) -> Result<String, String> {
     if !target_device.starts_with("/dev/") {
         return Err("Geçersiz hedef cihaz yolu".into());
     }
 
     let dev_name = target_device.strip_prefix("/dev/").unwrap_or("");
-    if dev_name.is_empty() || !dev_name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-') {
+    if dev_name.is_empty()
+        || !dev_name
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')
+    {
         return Err("Geçersiz hedef cihaz biçimi".into());
     }
 
@@ -7217,7 +8934,10 @@ fn format_usb_drive(target_device: String, filesystem: String, label: String) ->
     }
 
     for mnt in &["/", "/boot", "/home", "/etc"] {
-        if let Ok(o) = Command::new("findmnt").args(["-n", "-o", "SOURCE", mnt]).output() {
+        if let Ok(o) = Command::new("findmnt")
+            .args(["-n", "-o", "SOURCE", mnt])
+            .output()
+        {
             let root_src = String::from_utf8_lossy(&o.stdout);
             if root_src.contains(&target_device) {
                 return Err("Sistem kök sürücüsü biçimlendirilemez!".into());
@@ -7226,13 +8946,24 @@ fn format_usb_drive(target_device: String, filesystem: String, label: String) ->
     }
 
     let clean_label = label.replace(|c: char| !c.is_alphanumeric() && c != '_' && c != '-', "");
-    let safe_label = if clean_label.is_empty() { "ANKORA" } else { &clean_label };
+    let safe_label = if clean_label.is_empty() {
+        "ANKORA"
+    } else {
+        &clean_label
+    };
     let fs_lower = filesystem.to_lowercase();
 
     if Path::new(SNAP_HELPER).exists() {
-        if let Ok(out) = root_command(SNAP_HELPER, &["usb-format", &target_device, &fs_lower, safe_label]) {
+        if let Ok(out) = root_command(
+            SNAP_HELPER,
+            &["usb-format", &target_device, &fs_lower, safe_label],
+        ) {
             if out.status.success() {
-                return Ok(format!("{} başarıyla {} olarak biçimlendirildi.", target_device, filesystem.to_uppercase()));
+                return Ok(format!(
+                    "{} başarıyla {} olarak biçimlendirildi.",
+                    target_device,
+                    filesystem.to_uppercase()
+                ));
             }
         }
     }
@@ -7250,15 +8981,23 @@ fn format_usb_drive(target_device: String, filesystem: String, label: String) ->
     }
 
     let status = match fs_lower.as_str() {
-        "vfat" | "fat32" => root_command("mkfs.vfat", &["-F", "32", "-n", safe_label, &target_device]),
+        "vfat" | "fat32" => {
+            root_command("mkfs.vfat", &["-F", "32", "-n", safe_label, &target_device])
+        }
         "ext4" => root_command("mkfs.ext4", &["-F", "-L", safe_label, &target_device]),
         "ntfs" => root_command("mkfs.ntfs", &["-Q", "-L", safe_label, &target_device]),
         _ => return Err("Desteklenmeyen dosya sistemi".into()),
     };
 
     match status {
-        Ok(s) if s.status.success() => Ok(format!("{} başarıyla {} olarak biçimlendirildi.", target_device, filesystem.to_uppercase())),
-        Ok(_) => Err("Biçimlendirme başarısız oldu. Sürücünün kullanımda olmadığından emin olun.".into()),
+        Ok(s) if s.status.success() => Ok(format!(
+            "{} başarıyla {} olarak biçimlendirildi.",
+            target_device,
+            filesystem.to_uppercase()
+        )),
+        Ok(_) => {
+            Err("Biçimlendirme başarısız oldu. Sürücünün kullanımda olmadığından emin olun.".into())
+        }
         Err(e) => Err(format!("Komut yürütülemedi: {}", e)),
     }
 }
@@ -7296,14 +9035,21 @@ pub const SNAP_HELPER: &str = "/usr/local/bin/ayaz-pkg-helper";
 
 fn snap_helper(action: &str, arg: &str) -> Result<String, String> {
     if !Path::new(SNAP_HELPER).exists() {
-        return Err("Kurtarma noktası yardımcısı (ayaz-pkg-helper) bulunamadı; sistem kurulumu eksik.".into());
+        return Err(
+            "Kurtarma noktası yardımcısı (ayaz-pkg-helper) bulunamadı; sistem kurulumu eksik."
+                .into(),
+        );
     }
     let out = root_command(SNAP_HELPER, &[action, arg])
         .map_err(|e| format!("Yardımcı çalıştırılamadı: {}", e))?;
     if !out.status.success() {
         let err = String::from_utf8_lossy(&out.stderr);
         let fallback = String::from_utf8_lossy(&out.stdout);
-        let msg = if err.trim().is_empty() { fallback.trim() } else { err.trim() };
+        let msg = if err.trim().is_empty() {
+            fallback.trim()
+        } else {
+            err.trim()
+        };
         return Err(if msg.is_empty() {
             "Kurtarma noktası işlemi başarısız oldu".to_string()
         } else {
@@ -7315,8 +9061,15 @@ fn snap_helper(action: &str, arg: &str) -> Result<String, String> {
 
 #[tauri::command]
 fn create_system_snapshot(name: String, description: String) -> Result<SystemSnapshotInfo, String> {
-    let clean_name = name.chars().filter(|c| c.is_alphanumeric() || *c == '_' || *c == '-').collect::<String>();
-    let safe_name = if clean_name.is_empty() { "snapshot".to_string() } else { clean_name };
+    let clean_name = name
+        .chars()
+        .filter(|c| c.is_alphanumeric() || *c == '_' || *c == '-')
+        .collect::<String>();
+    let safe_name = if clean_name.is_empty() {
+        "snapshot".to_string()
+    } else {
+        clean_name
+    };
 
     let output = snap_helper("snapshot-create", &safe_name)?;
     let mut snap: SystemSnapshotInfo = serde_json::from_str(&output)
@@ -7342,10 +9095,17 @@ fn list_system_snapshots() -> Result<Vec<SystemSnapshotInfo>, String> {
 
 #[tauri::command]
 fn restore_system_snapshot(snapshot_id: String) -> Result<String, String> {
-    if snapshot_id.is_empty() || snapshot_id.contains("..") || snapshot_id.contains('/') || snapshot_id.contains('\\') {
+    if snapshot_id.is_empty()
+        || snapshot_id.contains("..")
+        || snapshot_id.contains('/')
+        || snapshot_id.contains('\\')
+    {
         return Err("Geçersiz snapshot kimliği".into());
     }
-    if !snapshot_id.chars().all(|c| c.is_alphanumeric() || c == '_' || c == '-') {
+    if !snapshot_id
+        .chars()
+        .all(|c| c.is_alphanumeric() || c == '_' || c == '-')
+    {
         return Err("Geçersiz snapshot kimliği".into());
     }
     let _ = snap_helper("snapshot-restore", &snapshot_id)?;
@@ -7354,10 +9114,17 @@ fn restore_system_snapshot(snapshot_id: String) -> Result<String, String> {
 
 #[tauri::command]
 fn delete_system_snapshot(snapshot_id: String) -> Result<String, String> {
-    if snapshot_id.is_empty() || snapshot_id.contains("..") || snapshot_id.contains('/') || snapshot_id.contains('\\') {
+    if snapshot_id.is_empty()
+        || snapshot_id.contains("..")
+        || snapshot_id.contains('/')
+        || snapshot_id.contains('\\')
+    {
         return Err("Geçersiz snapshot kimliği".into());
     }
-    if !snapshot_id.chars().all(|c| c.is_alphanumeric() || c == '_' || c == '-') {
+    if !snapshot_id
+        .chars()
+        .all(|c| c.is_alphanumeric() || c == '_' || c == '-')
+    {
         return Err("Geçersiz snapshot kimliği".into());
     }
     let _ = snap_helper("snapshot-delete", &snapshot_id)?;
@@ -7419,6 +9186,15 @@ fn main() {
             download_and_apply_de_update,
             restart_desktop_process,
             list_directory,
+            copy_path_c,
+            create_symlink,
+            file_stat,
+            path_fs_usage,
+            set_file_permissions,
+            set_file_executable,
+            print_file,
+            email_file,
+            set_as_default_app,
             create_folder,
             write_text_file,
             open_path,
@@ -7526,7 +9302,10 @@ fn main() {
                     }
                     std::thread::spawn(|| {
                         if let Ok(res) = take_screenshot_core(
-                            Some("fullscreen".to_string()), Some(0), Some(true), Some(true)
+                            Some("fullscreen".to_string()),
+                            Some(0),
+                            Some(true),
+                            Some(true),
                         ) {
                             let _ = Command::new("notify-send")
                                 .args(["-a", "AyazDE", "-i", "camera"])
@@ -7585,7 +9364,7 @@ mod tests {
 
         assert!(!is_valid_username(""));
         assert!(!is_valid_username("1user")); // Rakamla başlayamaz
-        assert!(!is_valid_username("User"));  // Büyük harf içeremez
+        assert!(!is_valid_username("User")); // Büyük harf içeremez
         assert!(!is_valid_username("user;rm")); // Tehlikeli karakter
     }
 
