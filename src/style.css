@@ -27,6 +27,11 @@
   --accent-gray: #888a9f;
   --accent-active: #2563eb;
 
+  /* Cam yüzeyler ve masaüstü zemini tema değişkenleri (tema paketleri override eder) */
+  --glass-taskbar: rgba(14, 16, 23, 0.64);
+  --glass-flyout: rgba(18, 20, 28, 0.7);
+  --desktop-bg: #040405;
+
   --taskbar-height: 44px;
   --radius-window: 8px;
   --radius-ui: 6px;
@@ -262,6 +267,9 @@ body.theme-cinar {
 
   --surface-flyout: #fbf8f0;
   --taskbar-bg: rgba(251, 248, 240, 0.94);
+  --desktop-bg: #f4efe3;
+  --glass-taskbar: rgba(251, 248, 240, 0.66);
+  --glass-flyout: rgba(251, 248, 240, 0.78);
 }
 
 body.theme-meltem {
@@ -290,6 +298,9 @@ body.theme-meltem {
 
   --surface-flyout: #f4f8fa;
   --taskbar-bg: rgba(244, 248, 250, 0.94);
+  --desktop-bg: #e8eef2;
+  --glass-taskbar: rgba(244, 248, 250, 0.7);
+  --glass-flyout: rgba(255, 255, 255, 0.78);
 }
 
 body.theme-kor {
@@ -311,7 +322,9 @@ body.theme-kor {
 
   --surface-flyout: #241e17;
   --taskbar-bg: rgba(27, 22, 17, 0.92);
-  --accent-active: #e08a3c;
+  --desktop-bg: #140f0a;
+  --glass-taskbar: rgba(36, 30, 23, 0.66);
+  --glass-flyout: rgba(36, 30, 23, 0.72);
 }
 
 body.theme-dem {
@@ -333,7 +346,9 @@ body.theme-dem {
 
   --surface-flyout: #191a1f;
   --taskbar-bg: rgba(19, 20, 23, 0.94);
-  --accent-active: #d64545;
+  --desktop-bg: #0f1013;
+  --glass-taskbar: rgba(19, 20, 23, 0.7);
+  --glass-flyout: rgba(19, 20, 23, 0.74);
 }
 
 body.theme-bogaz {
@@ -355,7 +370,9 @@ body.theme-bogaz {
 
   --surface-flyout: #112028;
   --taskbar-bg: rgba(13, 23, 27, 0.92);
-  --accent-active: #c9a24b;
+  --desktop-bg: #09121a;
+  --glass-taskbar: rgba(17, 30, 36, 0.68);
+  --glass-flyout: rgba(17, 30, 36, 0.74);
 }
 
 /* Tema değişkenlerine bağlanan sabit yüzeyler — koyu temalarda varsayılan
@@ -390,6 +407,51 @@ body.theme-nord .window-header,
 body.theme-evergreen .window-header,
 body.theme-ember .window-header {
   background: transparent;
+}
+/* Yeni koyu temalar (Kor, Dem, Boğaz) kendi pencere yüzeyini taşır. */
+body.theme-kor .window {
+  background: rgba(27, 22, 17, 0.88);
+  border-color: var(--border-medium);
+}
+body.theme-dem .window {
+  background: rgba(19, 20, 23, 0.9);
+  border-color: var(--border-medium);
+}
+body.theme-bogaz .window {
+  background: rgba(13, 23, 27, 0.88);
+  border-color: var(--border-medium);
+}
+body.theme-kor .window-header,
+body.theme-dem .window-header,
+body.theme-bogaz .window-header {
+  background: transparent;
+}
+/* Yeni açık temalar (Çınar, Meltem) pencere yüzeyi: tam okunur, sıcak/serin tint. */
+body.theme-cinar .window {
+  background: rgba(255, 253, 247, 0.96);
+  box-shadow: 0 16px 48px rgba(90, 75, 40, 0.12);
+  border-color: rgba(64, 51, 28, 0.16);
+}
+body.theme-meltem .window {
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 16px 48px rgba(40, 70, 85, 0.12);
+  border-color: rgba(24, 45, 55, 0.14);
+}
+body.theme-cinar .window.active {
+  border-color: var(--accent-active, #3f6b45);
+  box-shadow: 0 20px 52px rgba(63, 107, 69, 0.16), 0 0 0 1px rgba(63, 107, 69, 0.42);
+}
+body.theme-meltem .window.active {
+  border-color: var(--accent-active, #0d7a8c);
+  box-shadow: 0 20px 52px rgba(13, 122, 140, 0.16), 0 0 0 1px rgba(13, 122, 140, 0.42);
+}
+body.theme-cinar .window-header {
+  background: #fbf8f0;
+  border-bottom-color: rgba(64, 51, 28, 0.1);
+}
+body.theme-meltem .window-header {
+  background: #f4f8fa;
+  border-bottom-color: rgba(24, 45, 55, 0.09);
 }
 /* --- Geniş tema seti sonu --- */
 
@@ -890,7 +952,7 @@ html, body {
   margin: 0;
   padding: 0;
   overflow: hidden;
-  background-color: #040405;
+  background-color: var(--desktop-bg, #040405);
 }
 
 .desktop-wallpaper {
@@ -3922,19 +3984,35 @@ body.theme-light .desktop-context-menu {
   }
 
   .taskbar {
-    background: rgba(14, 16, 23, 0.64);
+    background: var(--glass-taskbar, rgba(14, 16, 23, 0.64));
   }
 
   .start-flyout {
-    background: rgba(18, 20, 28, 0.7);
+    background: var(--glass-flyout, rgba(18, 20, 28, 0.7));
   }
 
   body.theme-light .taskbar {
-    background: rgba(255, 255, 255, 0.66);
+    background: var(--glass-taskbar, rgba(255, 255, 255, 0.66));
   }
 
   body.theme-light .start-flyout {
-    background: rgba(255, 255, 255, 0.78);
+    background: var(--glass-flyout, rgba(255, 255, 255, 0.78));
+  }
+
+  body.theme-cinar .taskbar {
+    background: var(--glass-taskbar);
+  }
+
+  body.theme-cinar .start-flyout {
+    background: var(--glass-flyout);
+  }
+
+  body.theme-meltem .taskbar {
+    background: var(--glass-taskbar);
+  }
+
+  body.theme-meltem .start-flyout {
+    background: var(--glass-flyout);
   }
 }
 
@@ -5517,26 +5595,44 @@ body.glass-high .window.active {
   -webkit-backdrop-filter: none;
 }
 
-body.theme-light.glass-solid .window {
+body.theme-light.glass-solid .window,
+body.theme-cinar.glass-solid .window,
+body.theme-meltem.glass-solid .window {
   background: #ffffff;
   backdrop-filter: none !important;
 }
 
-body.theme-light.glass-balanced .window {
+body.theme-cinar.glass-solid .window {
+  background: var(--bg-surface);
+}
+
+body.theme-meltem.glass-solid .window {
+  background: var(--bg-surface);
+}
+
+body.theme-light.glass-balanced .window,
+body.theme-cinar.glass-balanced .window,
+body.theme-meltem.glass-balanced .window {
   background: rgba(255, 255, 255, 0.94);
   backdrop-filter: none;
 }
 
-body.theme-light.glass-balanced .window.active {
+body.theme-light.glass-balanced .window.active,
+body.theme-cinar.glass-balanced .window.active,
+body.theme-meltem.glass-balanced .window.active {
   backdrop-filter: none !important;
 }
 
-body.theme-light.glass-high .window {
+body.theme-light.glass-high .window,
+body.theme-cinar.glass-high .window,
+body.theme-meltem.glass-high .window {
   background: rgba(255, 255, 255, 0.82);
   backdrop-filter: none;
 }
 
-body.theme-light.glass-high .window.active {
+body.theme-light.glass-high .window.active,
+body.theme-cinar.glass-high .window.active,
+body.theme-meltem.glass-high .window.active {
   backdrop-filter: none !important;
 }
 
