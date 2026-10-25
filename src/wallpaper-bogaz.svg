@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+  <defs>
+    <linearGradient id="bz-sea" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0b1418"/>
+      <stop offset="0.55" stop-color="#0f1c23"/>
+      <stop offset="1" stop-color="#12232c"/>
+    </linearGradient>
+  </defs>
+  <rect width="1280" height="720" fill="url(#bz-sea)"/>
+  <g fill="none" stroke="#23404a" stroke-width="2" opacity="0.7">
+    <path d="M-20 360 C 200 320, 380 400, 620 350 S 1000 300, 1300 380"/>
+    <path d="M-20 250 C 260 210, 420 290, 680 240 S 1040 200, 1300 260"/>
+  </g>
+  <g fill="none" stroke="#c9a24b" stroke-width="1.4" opacity="0.3">
+    <circle cx="180" cy="200" r="10"/>
+    <path d="M180 216 v10 M180 174 v10 M164 200 h-10 M196 200 h10"/>
+  </g>
+</svg>

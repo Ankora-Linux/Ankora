@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+  <defs>
+    <linearGradient id="mt-sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#dfeaf0"/>
+      <stop offset="0.6" stop-color="#eef4f6"/>
+      <stop offset="1" stop-color="#f6f9fa"/>
+    </linearGradient>
+  </defs>
+  <rect width="1280" height="720" fill="url(#mt-sky)"/>
+  <g fill="none" stroke="#aac4cf" stroke-width="2" opacity="0.6">
+    <path d="M-20 500 Q 320 420 640 500 T 1300 470"/>
+    <path d="M-20 580 Q 320 500 640 580 T 1300 550"/>
+  </g>
+  <g fill="#0d7a8c" opacity="0.45">
+    <path d="M180 172 l9 4 -9 4 3 -4z"/>
+    <path d="M165 176 h22 M173 158 l3 -1 -1 3z M158 162 c1 4 4 5 8 5" stroke="#0d7a8c" stroke-width="2" fill="none"/>
+  </g>
+</svg>

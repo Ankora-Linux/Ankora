@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+  <defs>
+    <radialGradient id="kr-glow" cx="0.8" cy="0" r="0.9">
+      <stop offset="0" stop-color="#2c2118"/>
+      <stop offset="1" stop-color="#1b1611" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1280" height="720" fill="#1b1611"/>
+  <rect width="1280" height="720" fill="url(#kr-glow)"/>
+  <g fill="none" stroke="#4a3826" stroke-width="2" opacity="0.7">
+    <path d="M-20 620 C 300 540, 500 660, 800 560 S 1200 520, 1300 600"/>
+    <path d="M-20 680 C 320 620, 560 700, 860 620 S 1180 600, 1300 660"/>
+  </g>
+  <g fill="none" stroke="#e08a3c" stroke-width="2" opacity="0.35">
+    <circle cx="1080" cy="170" r="52"/>
+    <path d="M1080 90 v-24 M1080 250 v24 M1000 170 h-24 M1160 170 h24"/>
+  </g>
+</svg>

@@ -6552,7 +6552,7 @@
   const ThemeManager = {
     currentTheme: 'theme-dark',
     // Açık temaları ayrı liste olarak yürüt; GTK tarafına da bunlar 'isDark=false' gider.
-    LIGHT_THEMES: ['theme-light', 'theme-arctic'],
+    LIGHT_THEMES: ['theme-light', 'theme-arctic', 'theme-cinar', 'theme-meltem'],
     // TÜM SİSTEM TEMA PAKETLERİ: Bir tema seçildiğinde yalnızca pencere
     // renkleri değil, eşleşen duvar kağıdı + ikon seti + vurgu rengi de
     // birlikte uygulanır (kullanıcı "bütün sistemin teması değişsin" isteği).
@@ -6564,7 +6564,12 @@
       'theme-nord':      { wallpaper: 'wallpaper-zenith.svg',        iconset: 'nordic',   accent: '#ffffff' },
       'theme-evergreen': { wallpaper: 'wallpaper-topo.svg',          iconset: 'emerald',  accent: '#059669' },
       'theme-ember':     { wallpaper: 'wallpaper-matrix.svg',        iconset: 'sunset',   accent: '#ea580c' },
-      'theme-arctic':    { wallpaper: 'wallpaper-abstract-lines.svg',iconset: 'pastel',   accent: '#059669' }
+      'theme-arctic':    { wallpaper: 'wallpaper-abstract-lines.svg',iconset: 'pastel',   accent: '#059669' },
+      'theme-cinar':     { wallpaper: 'wallpaper-cinar.svg',         iconset: 'outline',  accent: '#3f6b45' },
+      'theme-meltem':    { wallpaper: 'wallpaper-meltem.svg',        iconset: 'outline',  accent: '#0d7a8c' },
+      'theme-kor':       { wallpaper: 'wallpaper-kor.svg',           iconset: 'sunset',   accent: '#e08a3c' },
+      'theme-dem':       { wallpaper: 'wallpaper-dem.svg',           iconset: 'monokrom', accent: '#d64545' },
+      'theme-bogaz':     { wallpaper: 'wallpaper-bogaz.svg',         iconset: 'ink',      accent: '#c9a24b' }
     },
 
     isFullSystemTheme() {

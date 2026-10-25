@@ -235,6 +235,129 @@ body.theme-arctic {
   --taskbar-bg: rgba(238, 243, 248, 0.92);
 }
 
+/* Yeni tema seti: Çınar, Meltem, Kor, Dem, Boğaz (kullanıcı önizlemelerinden) */
+body.theme-cinar {
+  --bg-deep: #eae4d4;
+  --bg-base: #f4efe3;
+  --bg-panel: #fbf8f0;
+  --bg-surface: #fffdf7;
+  --bg-surface-hover: #f2ecdd;
+  --bg-surface-active: #e7dfcc;
+
+  --border-subtle: rgba(64, 51, 28, 0.10);
+  --border-medium: rgba(64, 51, 28, 0.18);
+  --border-focus: rgba(63, 107, 69, 0.5);
+  --border-active-window: var(--accent-active, #3f6b45);
+  --border-highlight: #2b2415;
+
+  --text-primary: #2b2415;
+  --text-secondary: #6d6250;
+  --text-muted: #7a6f5c;
+  --text-inverse: #ffffff;
+
+  --accent-white: #2b2415;
+  --accent-gray: #6d6250;
+  --accent-active: #3f6b45;
+  --accent-hover: rgba(63, 107, 69, 0.12);
+
+  --surface-flyout: #fbf8f0;
+  --taskbar-bg: rgba(251, 248, 240, 0.94);
+}
+
+body.theme-meltem {
+  --bg-deep: #dbe6ec;
+  --bg-base: #e8eef2;
+  --bg-panel: #f4f8fa;
+  --bg-surface: #ffffff;
+  --bg-surface-hover: #e6eef2;
+  --bg-surface-active: #d5e1e8;
+
+  --border-subtle: rgba(24, 45, 55, 0.09);
+  --border-medium: rgba(24, 45, 55, 0.16);
+  --border-focus: rgba(13, 122, 140, 0.5);
+  --border-active-window: var(--accent-active, #0d7a8c);
+  --border-highlight: #1f2b33;
+
+  --text-primary: #1f2b33;
+  --text-secondary: #5d6f7a;
+  --text-muted: #6b7e89;
+  --text-inverse: #ffffff;
+
+  --accent-white: #1f2b33;
+  --accent-gray: #5d6f7a;
+  --accent-active: #0d7a8c;
+  --accent-hover: rgba(13, 122, 140, 0.12);
+
+  --surface-flyout: #f4f8fa;
+  --taskbar-bg: rgba(244, 248, 250, 0.94);
+}
+
+body.theme-kor {
+  --bg-deep: #140f0a;
+  --bg-base: #1b1611;
+  --bg-panel: #241e17;
+  --bg-surface: #2a231b;
+  --bg-surface-hover: #332a20;
+  --bg-surface-active: #3d3226;
+
+  --border-subtle: rgba(241, 232, 219, 0.09);
+  --border-medium: rgba(241, 232, 219, 0.17);
+  --border-focus: rgba(224, 138, 60, 0.5);
+  --border-active-window: #e08a3c;
+
+  --text-primary: #f1e8db;
+  --text-secondary: #a89a86;
+  --text-muted: #b3a592;
+
+  --surface-flyout: #241e17;
+  --taskbar-bg: rgba(27, 22, 17, 0.92);
+  --accent-active: #e08a3c;
+}
+
+body.theme-dem {
+  --bg-deep: #0f1013;
+  --bg-base: #131417;
+  --bg-panel: #191a1f;
+  --bg-surface: #1e2026;
+  --bg-surface-hover: #272931;
+  --bg-surface-active: #30333c;
+
+  --border-subtle: rgba(232, 234, 240, 0.08);
+  --border-medium: rgba(232, 234, 240, 0.15);
+  --border-focus: rgba(214, 69, 69, 0.55);
+  --border-active-window: #d64545;
+
+  --text-primary: #e8eaf0;
+  --text-secondary: #8f94a3;
+  --text-muted: #9aa0af;
+
+  --surface-flyout: #191a1f;
+  --taskbar-bg: rgba(19, 20, 23, 0.94);
+  --accent-active: #d64545;
+}
+
+body.theme-bogaz {
+  --bg-deep: #09121a;
+  --bg-base: #0d171b;
+  --bg-panel: #112028;
+  --bg-surface: #14232b;
+  --bg-surface-hover: #1a2c35;
+  --bg-surface-active: #21363f;
+
+  --border-subtle: rgba(230, 238, 242, 0.08);
+  --border-medium: rgba(230, 238, 242, 0.15);
+  --border-focus: rgba(201, 162, 75, 0.55);
+  --border-active-window: #c9a24b;
+
+  --text-primary: #e6eef2;
+  --text-secondary: #8ba4b0;
+  --text-muted: #97aeb9;
+
+  --surface-flyout: #112028;
+  --taskbar-bg: rgba(13, 23, 27, 0.92);
+  --accent-active: #c9a24b;
+}
+
 /* Tema değişkenlerine bağlanan sabit yüzeyler — koyu temalarda varsayılan
    değer, theme-* sınıfıyla override edilir. */
 .start-flyout {
@@ -251,7 +374,9 @@ body.theme-arctic {
   background: var(--surface-flyout, #141724);
 }
 body.theme-light .start-flyout,
-body.theme-arctic .start-flyout {
+body.theme-arctic .start-flyout,
+body.theme-cinar .start-flyout,
+body.theme-meltem .start-flyout {
   background: var(--surface-flyout, #ffffff);
 }
 /* Yeni koyu temalarda pencere yüzeyi tema değişkenlerinden okunur. */
@@ -4594,6 +4719,57 @@ body.theme-light .desktop-context-menu {
 }
 .theme-preview-box.midnight .preview-mini-card {
   background: #182245;
+}
+.theme-preview-box.cinar {
+  background: #f4efe3;
+}
+.theme-preview-box.cinar .preview-mini-bar {
+  background: #fbf8f0;
+  border-bottom: 1px solid #ddd3bd;
+}
+.theme-preview-box.cinar .preview-mini-card {
+  background: #fffdf7;
+  border: 1px solid #e4dcc8;
+}
+.theme-preview-box.meltem {
+  background: #e8eef2;
+}
+.theme-preview-box.meltem .preview-mini-bar {
+  background: #f4f8fa;
+  border-bottom: 1px solid #c9d6de;
+}
+.theme-preview-box.meltem .preview-mini-card {
+  background: #ffffff;
+}
+.theme-preview-box.kor {
+  background: #1b1611;
+}
+.theme-preview-box.kor .preview-mini-bar {
+  background: #241e17;
+  border-bottom: 1px solid rgba(224, 138, 60, 0.35);
+}
+.theme-preview-box.kor .preview-mini-card {
+  background: #3d3226;
+}
+.theme-preview-box.dem {
+  background: #131417;
+}
+.theme-preview-box.dem .preview-mini-bar {
+  background: #191a1f;
+  border-bottom: 1px solid #2e3138;
+}
+.theme-preview-box.dem .preview-mini-card {
+  background: #30333c;
+}
+.theme-preview-box.bogaz {
+  background: #0d171b;
+}
+.theme-preview-box.bogaz .preview-mini-bar {
+  background: #112028;
+  border-bottom: 1px solid rgba(201, 162, 75, 0.35);
+}
+.theme-preview-box.bogaz .preview-mini-card {
+  background: #21363f;
 }
 
 .preview-mini-bar {
