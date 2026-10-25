@@ -22,7 +22,7 @@ AYAZ_VERSION=$(sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' "$ROOT_DIR/src-tauri/
 if [ -z "$AYAZ_VERSION" ] && [ -f "$ROOT_DIR/VERSION" ]; then
     AYAZ_VERSION=$(tr -d '[:space:]' < "$ROOT_DIR/VERSION")
 fi
-[ -z "$AYAZ_VERSION" ] && AYAZ_VERSION="3.5.0"
+[ -z "$AYAZ_VERSION" ] && AYAZ_VERSION="3.6.0"
 ISO_NAME="ankora-linux-${AYAZ_VERSION}-ayaz-amd64.iso"
 echo
 echo "======================================================================"
@@ -4296,7 +4296,7 @@ exit 0
         return True
 
     elif cmd == 'check_de_update':
-        current_ver = '3.5.0'
+        current_ver = '3.6.0'
         result = {
             'has_update': False,
             'current_version': current_ver,
@@ -4346,7 +4346,7 @@ exit 0
         os.makedirs(staging, exist_ok=True)
         target_deb = os.path.join(staging, 'ayaz-update.deb')
         try:
-            req = urllib.request.Request(download_url, headers={'User-Agent': 'ayaz-updater/3.5.0'})
+            req = urllib.request.Request(download_url, headers={'User-Agent': 'ayaz-updater/3.6.0'})
             with urllib.request.urlopen(req, timeout=120) as resp, open(target_deb, 'wb') as f:
                 content = resp.read()
                 f.write(content)
@@ -5551,7 +5551,7 @@ echo "[MANIFEST] Sistem künyesi yazılıyor..."
 AYAZ_VERSION=$(sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' "$ROOT_DIR/src-tauri/tauri.conf.json")
 AYAZ_VERSION="${AYAZ_VERSION%%$'\n'*}"
 if [ -z "$AYAZ_VERSION" ]; then
-    AYAZ_VERSION="3.5.0"
+    AYAZ_VERSION="3.6.0"
 fi
 # git yoksa (ör. WSL) .git/HEAD + ref dosyaları doğrudan okunur; revizyon
 # manifestte hiçbir koşulda boş kalmaz.

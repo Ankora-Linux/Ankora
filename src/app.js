@@ -311,10 +311,10 @@
         case 'check_de_update':
           return {
             has_update: false,
-            current_version: '3.5.0',
-            latest_version: '3.5.0',
-            release_name: 'Ayaz DE v3.5.0 (Daedalus / Son Kararlı Sürüm)',
-            release_notes: '## Ayaz DE v3.5.0\n- Ankora Linux için geliştirilen minimalist masaüstü ortamı.\n- SysVinit uyumlu Kiosk tasarımı.\n- Güvenlik duvarı ve yerel AI ajan entegrasyonu.',
+            current_version: '3.6.0',
+            latest_version: '3.6.0',
+            release_name: 'Ayaz DE v3.6.0 (Daedalus / Son Kararlı Sürüm)',
+            release_notes: '## Ayaz DE v3.6.0\n- Ankora Linux için geliştirilen minimalist masaüstü ortamı.\n- SysVinit uyumlu Kiosk tasarımı.\n- Güvenlik duvarı ve yerel AI ajan entegrasyonu.',
             download_url: null,
             published_at: new Date().toISOString(),
             package_size_bytes: 0
@@ -610,6 +610,8 @@
     _desktopHidden: false,
     tabsContainer: null,
     _isLayerAbove: false,
+    // Tembel render: kapatılıp DOM'dan çıkarılan pencereler açılışta geri takılır.
+    detached: new Map(),
 
     ensureDesktopLayer(above) {
       if (this._isLayerAbove === above) return;
@@ -1009,6 +1011,18 @@
       const win = typeof winId === 'string' ? document.getElementById(winId) : winId;
       if (!win) return;
 
+      // Tembel render: kapatılıp DOM'dan çıkarılmış pencere, açılışta geri
+      // takılır (dinleyiciler elemanla birlikte kaldığı için yeniden kurulmaz).
+      if (win.id && this.detached.has(win.id)) {
+        const det = this.detached.get(win.id);
+        this.detached.delete(win.id);
+        if (det.next && det.next.parentNode === det.cont) {
+          det.cont.insertBefore(det.el, det.next);
+        } else {
+          det.cont.appendChild(det.el);
+        }
+      }
+
       WorkspaceManager.adopt(win);
       win.classList.remove('minimized');
       win.classList.add('open');
@@ -1047,6 +1061,21 @@
           this.checkAllMinimizedOrClosed();
         }
         SessionManager.touch();
+        // Tembel render: kapanış 30 sn sonra hâlâ açık değilse eleman DOM'dan
+        // çıkarılır; iframe kaynakları boşaltılır. Açılışta open() geri takar.
+        if (win.id && !this.detached.has(win.id)) {
+          setTimeout(() => {
+            if (win.classList.contains('open')) return;
+            const cont = win.parentNode;
+            if (!cont) return;
+            try {
+              win.querySelectorAll('iframe').forEach(f => { f.src = 'about:blank'; });
+            } catch (e2) { /* iframe erişimi olmadıysa boş ver */ }
+            this.detached.set(win.id, { el: win, cont, next: win.nextSibling });
+            win.remove();
+            this.syncTabs();
+          }, 30 * 1000);
+        }
       } catch (err) {
         console.warn('[WindowManager.close]', err);
         this.syncTabs();
@@ -9031,7 +9060,7 @@
   // 11. ANKORA GÜNCELLEYİCİ (ANKORA DE UPDATE MANAGER)
   // ============================================================================
   const UpdaterManager = {
-    currentVersion: '3.5.0',
+    currentVersion: '3.6.0',
     latestRelease: null,
 
     init() {
@@ -10072,12 +10101,21 @@
     init() {
 
       // 1. Eco RAM Modu Tercihini Yükle
-      const savedEco = SafeStorage.getItem('ankora_eco_ram_mode') === 'true';
-      this.setEcoMode(savedEco, false);
+      // Kayıtlı tercih yoksa ve sistem belleği 4 GB altındaysa Eco varsayılan açık:
+      // blur ve gölge katmanları düşük RAM'de en pahalı bileşenlerdır.
+      const savedEcoRaw = SafeStorage.getItem('ankora_eco_ram_mode');
+      this.setEcoMode(savedEcoRaw === 'true', false);
+      if (savedEcoRaw === null) {
+        TauriBridge.invoke('get_system_telemetry').then((tele) => {
+          if (tele && typeof tele.memory_total_mb === 'number' && tele.memory_total_mb > 0 && tele.memory_total_mb < 4096) {
+            this.setEcoMode(true, true);
+          }
+        }).catch(() => {});
+      }
 
       const chkEco = document.getElementById('chk-eco-ram-mode');
       if (chkEco) {
-        chkEco.checked = savedEco;
+        chkEco.checked = this.isEcoMode;
         chkEco.addEventListener('change', (e) => {
           this.setEcoMode(e.target.checked, true);
         });
@@ -11020,7 +11058,7 @@
         md += `#### Sistem Tanılama Verileri\n`;
         md += `\`\`\`yaml\n`;
         md += `İşletim Sistemi : ${this.telemetry.os_name}\n`;
-        md += `Masaüstü Ortamı : Ayaz DE v3.5.0 (Ankora Kiosk / X11)\n`;
+        md += `Masaüstü Ortamı : Ayaz DE v3.6.0 (Ankora Kiosk / X11)\n`;
         md += `Çekirdek (Kernel): ${this.telemetry.kernel}\n`;
         md += `İnit Sistemi     : ${this.telemetry.init_system}\n`;
         md += `CPU Çekirdek     : ${this.telemetry.cpu_cores} İş parçacığı\n`;

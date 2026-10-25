@@ -1,5 +1,12 @@
 # Ankora Linux — Sürüm Notları
 
+## 3.6.0 (2026-10-25)
+- Düşük RAM (< 4 GB) sistemlerde Eco RAM Modu ilk açılışta varsayılan açık (kullanıcı tercihi yoksa)
+- Tembel render: kapatılan pencere 30 sn sonra DOM'dan çıkarılır, iframe kaynakları boşaltılır; yeniden açılışta geri takılır
+- Görev çubuğu / başlat menüsü cam zemini ve masaüstü zemini tema değişkenlerine bağlandı
+- Yeni temalar: Çınar, Meltem, Kor, Dem, Boğaz; her biri eşleşen duvar kağıdı + ikon seti + vurgu paketiyle
+- Duvar kağıdı sayısı 13'e çıktı; tema seçici paketleri Ayarlar'dan tek tıkla değişiyor
+
 ## 3.5.0 (2026-10-24)
 - Ayaz DE: dosya yöneticisi sağ-tık menüsü, menü çubuğu (Dosya/Düzen/Görünüm), kopyala-yapıştır canlı ilerleme, özellikler/izinler, yazdırma ve "şuraya kopyala"
 - Uygulama sabitleme: Başlat menüsüne Sabitle, Araç Çubuna Ekle, Masaüstüne Ekle, Kaldır (sağ tık)
