@@ -375,6 +375,33 @@ body.theme-bogaz {
   --glass-flyout: rgba(17, 30, 36, 0.74);
 }
 
+/* Ayna: Hyprland esintili aşırı modern tema. Keskin köşe, ince vurgu çizgisi,
+   mono durum bilgisi. Vurgu camgöbeği tek noktada. */
+body.theme-ayna {
+  --bg-deep: #040507;
+  --bg-base: #060709;
+  --bg-panel: #0d0f14;
+  --bg-surface: #101319;
+  --bg-surface-hover: #171b22;
+  --bg-surface-active: #1e242d;
+
+  --border-subtle: rgba(232, 236, 241, 0.07);
+  --border-medium: rgba(232, 236, 241, 0.13);
+  --border-focus: rgba(6, 182, 212, 0.55);
+  --border-active-window: #06b6d4;
+
+  --text-primary: #e8ecf1;
+  --text-secondary: #7c8695;
+  --text-muted: #87919f;
+
+  --surface-flyout: #0d0f14;
+  --taskbar-bg: rgba(13, 15, 20, 0.94);
+  --desktop-bg: #040507;
+  --glass-taskbar: rgba(13, 15, 20, 0.7);
+  --glass-flyout: rgba(13, 15, 20, 0.74);
+  --accent-active: #06b6d4;
+}
+
 /* Tema değişkenlerine bağlanan sabit yüzeyler — koyu temalarda varsayılan
    değer, theme-* sınıfıyla override edilir. */
 .start-flyout {
@@ -4848,6 +4875,17 @@ body.theme-light .desktop-context-menu {
 }
 .theme-preview-box.bogaz .preview-mini-card {
   background: #21363f;
+}
+.theme-preview-box.ayna {
+  background: #060709;
+}
+.theme-preview-box.ayna .preview-mini-bar {
+  background: #0d0f14;
+  border-bottom: 1px solid rgba(6, 182, 212, 0.4);
+}
+.theme-preview-box.ayna .preview-mini-card {
+  background: #171b22;
+  border-left: 2px solid #06b6d4;
 }
 
 .preview-mini-bar {

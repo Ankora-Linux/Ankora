@@ -41,7 +41,7 @@ Ayaz DE, Ankora Linux için geliştirilmiş, SysVinit tabanlı hafif ve kiosk od
 * Gereksiz arka plan servisleri olmadan çalışır; boşta yaklaşık 80–120 MB RAM kullanır.
 * Ayaz Güncelleyici, sistemi masaüstünden günceller; kurulum ve güncelleme işlemleri terminale ihtiyaç duymadan yapılır.
 * Yapay zeka ajanı Ollama (localhost), Google Gemini ve Groq ile çalışır; `apt-get clean`, `df -h` gibi işlemlerin onaylı çalıştırılmasını sağlar.
-* 12 tema (Nordik Açık, Modern Grafit, Derin Gece, Kuzey Fjordu, Çam Ormanı, Kor Ateşi, Arktik Serinlik, Çınar, Meltem, Kor, Dem, Boğaz) ve 13 vektörel monokrom duvar kağıdı içerir.
+* 13 tema (Nordik Açık, Modern Grafit, Derin Gece, Kuzey Fjordu, Çam Ormanı, Kor Ateşi, Arktik Serinlik, Çınar, Meltem, Kor, Dem, Boğaz, Ayna) ve 14 vektörel monokrom duvar kağıdı içerir.
 * Görev çubuğu ve başlat menüsü ortalanır; düzen Windows 11 ve Chrome OS Flex'ten esinlenir.
 * İkili kara liste, `sudo`, `su`, `pkexec`, `dd` gibi araçların yetkisiz çalıştırılmasını engeller.
 * Belge görüntüleyici, hardlink ve path traversal saldırılarına karşı korunur; PDF, Markdown ve metin dosyalarını açar.
