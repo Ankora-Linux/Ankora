@@ -311,10 +311,10 @@
         case 'check_de_update':
           return {
             has_update: false,
-            current_version: '3.6.0',
-            latest_version: '3.6.0',
-            release_name: 'Ayaz DE v3.6.0 (Daedalus / Son Kararlı Sürüm)',
-            release_notes: '## Ayaz DE v3.6.0\n- Ankora Linux için geliştirilen minimalist masaüstü ortamı.\n- SysVinit uyumlu Kiosk tasarımı.\n- Güvenlik duvarı ve yerel AI ajan entegrasyonu.',
+            current_version: '3.7.0',
+            latest_version: '3.7.0',
+            release_name: 'Ayaz DE v3.7.0 (Daedalus / Son Kararlı Sürüm)',
+            release_notes: '## Ayaz DE v3.7.0\n- Ankora Linux için geliştirilen minimalist masaüstü ortamı.\n- SysVinit uyumlu Kiosk tasarımı.\n- Güvenlik duvarı ve yerel AI ajan entegrasyonu.',
             download_url: null,
             published_at: new Date().toISOString(),
             package_size_bytes: 0
@@ -1008,20 +1008,20 @@
     },
 
     open(winId) {
-      const win = typeof winId === 'string' ? document.getElementById(winId) : winId;
-      if (!win) return;
-
-      // Tembel render: kapatılıp DOM'dan çıkarılmış pencere, açılışta geri
-      // takılır (dinleyiciler elemanla birlikte kaldığı için yeniden kurulmaz).
-      if (win.id && this.detached.has(win.id)) {
-        const det = this.detached.get(win.id);
-        this.detached.delete(win.id);
-        if (det.next && det.next.parentNode === det.cont) {
-          det.cont.insertBefore(det.el, det.next);
-        } else {
-          det.cont.appendChild(det.el);
+      const targetId = typeof winId === 'string' ? winId : (winId && winId.id ? winId.id : null);
+      if (targetId && this.detached && this.detached.has(targetId)) {
+        const det = this.detached.get(targetId);
+        this.detached.delete(targetId);
+        if (det.cont) {
+          if (det.next && det.next.parentNode === det.cont) {
+            det.cont.insertBefore(det.el, det.next);
+          } else {
+            det.cont.appendChild(det.el);
+          }
         }
       }
+      const win = typeof winId === 'string' ? document.getElementById(winId) : winId;
+      if (!win) return;
 
       WorkspaceManager.adopt(win);
       win.classList.remove('minimized');
@@ -6768,7 +6768,10 @@
         document.documentElement.style.setProperty('--accent-active', colorHex);
         document.documentElement.style.setProperty('--border-active-window', colorHex);
       }
-
+      if (document.body && document.body.style && document.body.style.setProperty) {
+        document.body.style.setProperty('--accent-active', colorHex);
+        document.body.style.setProperty('--border-active-window', colorHex);
+      }
       document.querySelectorAll('.accent-pill-btn').forEach(btn => {
         btn.classList.toggle('active', btn.getAttribute('data-accent') === colorHex);
       });
@@ -8509,31 +8512,7 @@
     });
 
     // 6. Güç ve Kilit Aksiyonları (Gerçek Linux Kapatma & Yeniden Başlatma)
-    const btnRestart = document.getElementById('btn-restart');
-    if (btnRestart) {
-      btnRestart.addEventListener('click', async () => {
-        Terminal.log('[SİSTEM] Yeniden başlatılıyor...', 'cmd');
-        try {
-          await TauriBridge.invoke('system_reboot');
-        } catch (e) {
-          // Yedek komut izin listesinden geçmez; hata görünürde bildirilir.
-          ReportManager.showToast(`Yeniden başlatılamadı: ${e.message || e}`);
-        }
-      });
-    }
-
-    const btnShutdown = document.getElementById('btn-shutdown');
-    if (btnShutdown) {
-      btnShutdown.addEventListener('click', async () => {
-        Terminal.log('[SİSTEM] Kapatılıyor...', 'cmd');
-        try {
-          await TauriBridge.invoke('system_poweroff');
-        } catch (e) {
-          // Yedek komut izin listesinden geçmez; hata görünürde bildirilir.
-          ReportManager.showToast(`Kapatılamadı: ${e.message || e}`);
-        }
-      });
-    }
+    // 6. Güç ve Kilit Aksiyonları — PowerDialog üzerinden onaylı yürütülür
 
     const lockBtns = [document.getElementById('btn-lock')].filter(Boolean);
     lockBtns.forEach(btn => {
@@ -9061,7 +9040,7 @@
   // 11. ANKORA GÜNCELLEYİCİ (ANKORA DE UPDATE MANAGER)
   // ============================================================================
   const UpdaterManager = {
-    currentVersion: '3.6.0',
+    currentVersion: '3.7.0',
     latestRelease: null,
 
     init() {
@@ -11059,7 +11038,7 @@
         md += `#### Sistem Tanılama Verileri\n`;
         md += `\`\`\`yaml\n`;
         md += `İşletim Sistemi : ${this.telemetry.os_name}\n`;
-        md += `Masaüstü Ortamı : Ayaz DE v3.6.0 (Ankora Kiosk / X11)\n`;
+        md += `Masaüstü Ortamı : Ayaz DE v3.7.0 (Ankora Kiosk / X11)\n`;
         md += `Çekirdek (Kernel): ${this.telemetry.kernel}\n`;
         md += `İnit Sistemi     : ${this.telemetry.init_system}\n`;
         md += `CPU Çekirdek     : ${this.telemetry.cpu_cores} İş parçacığı\n`;
@@ -12894,7 +12873,7 @@
         sinkSelect.addEventListener('change', (e) => {
           const val = e.target.value;
           if (!val) return;
-          TauriBridge.invoke('set_default_audio_device', { name: val, isSink: true })
+          TauriBridge.invoke('set_default_audio_device', { name: val, isSink: true, deviceName: val, kind: 'sink' })
             .then(() => {
               if (typeof ReportManager !== 'undefined' && ReportManager.showToast) {
                 ReportManager.showToast('Ses çıkış aygıtı değiştirildi: ' + e.target.options[e.target.selectedIndex].text);
@@ -12912,7 +12891,7 @@
         sourceSelect.addEventListener('change', (e) => {
           const val = e.target.value;
           if (!val) return;
-          TauriBridge.invoke('set_default_audio_device', { name: val, isSink: false })
+          TauriBridge.invoke('set_default_audio_device', { name: val, isSink: false, deviceName: val, kind: 'source' })
             .then(() => {
               if (typeof ReportManager !== 'undefined' && ReportManager.showToast) {
                 ReportManager.showToast('Mikrofon giriş aygıtı değiştirildi: ' + e.target.options[e.target.selectedIndex].text);
@@ -12931,15 +12910,18 @@
 
     async refreshDevices() {
       try {
-        const devices = await TauriBridge.invoke('get_audio_devices');
-        if (!Array.isArray(devices)) return;
-
+        const res = await TauriBridge.invoke('get_audio_devices');
+        let sinks = [];
+        let sources = [];
+        if (Array.isArray(res)) {
+          sinks = res.filter(d => d.is_sink);
+          sources = res.filter(d => !d.is_sink);
+        } else if (res && typeof res === 'object') {
+          sinks = Array.isArray(res.sinks) ? res.sinks : [];
+          sources = Array.isArray(res.sources) ? res.sources : [];
+        }
         const sinkSelect = document.getElementById('select-audio-sink');
         const sourceSelect = document.getElementById('select-audio-source');
-
-        const sinks = devices.filter(d => d.is_sink);
-        const sources = devices.filter(d => !d.is_sink);
-
         if (sinkSelect && sinks.length > 0) {
           sinkSelect.innerHTML = sinks.map(s => `
             <option value="${escapeHtml(s.name)}" ${s.is_default ? 'selected' : ''}>
@@ -13002,7 +12984,7 @@
 
     async togglePower(enable) {
       try {
-        await TauriBridge.invoke('toggle_bluetooth', { enable });
+        await TauriBridge.invoke('toggle_bluetooth', { enable, powered: Boolean(enable) });
         if (typeof ReportManager !== 'undefined' && ReportManager.showToast) {
           ReportManager.showToast(enable ? 'Bluetooth etkinleştirildi.' : 'Bluetooth kapatıldı.');
         }
@@ -13025,7 +13007,7 @@
       }
 
       try {
-        const devs = await TauriBridge.invoke('scan_bluetooth');
+        const devs = await TauriBridge.invoke('scan_bluetooth', { enable: true });
         if (Array.isArray(devs)) {
           this.status.devices = devs;
         }
@@ -13120,9 +13102,10 @@
         const row = document.createElement('div');
         row.className = 'bt-device-row';
 
+        const isConnected = Boolean(d.is_connected ?? d.connected);
         let badgeStyle = 'background:rgba(255,255,255,0.08);color:var(--text-secondary,#cbd5e1);';
         let badgeText = 'Eşleşti';
-        if (d.connected) {
+        if (isConnected) {
           badgeStyle = 'background:rgba(34,197,94,0.15);color:#4ade80;border:1px solid rgba(34,197,94,0.3);';
           badgeText = 'Bağlı';
         }
@@ -13136,7 +13119,7 @@
             <span class="bt-device-addr">${escapeHtml(d.address)}</span>
           </div>
           <div style="display:flex;gap:6px;">
-            ${d.connected 
+            ${isConnected 
               ? `<button class="btn-pkg btn-bt-disconnect" style="padding:4px 10px;font-size:11px;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.25);color:#f87171;border-radius:4px;cursor:pointer;">Bağlantıyı Kes</button>`
               : `<button class="btn-pkg btn-pkg-primary btn-bt-connect" style="padding:4px 10px;font-size:11px;border-radius:4px;cursor:pointer;">Bağlan</button>`
             }
@@ -13253,21 +13236,63 @@
     evaluateMath(expr) {
       const clean = expr.trim();
       if (!clean) return null;
-      if (!/^[\d\s\+\-\*\/\%\^\(\)\.\,]|(sqrt|sin|cos|tan|log|abs|pi|pow)/i.test(clean)) return null;
-      if (!/[\+\-\*\/\%\^]/.test(clean) && !/(sqrt|sin|cos|tan|log|abs)/i.test(clean)) return null;
+      if (!/^[\d\s\+\-\*\/\%\^\(\)\.\,e]+$/i.test(clean)) return null;
+      if (!/[\+\-\*\/\%\^]/.test(clean)) return null;
       try {
-        const jsExpr = clean
-          .replace(/,/g, '.')
-          .replace(/\bsqrt\b/gi, 'Math.sqrt')
-          .replace(/\bsin\b/gi, 'Math.sin')
-          .replace(/\bcos\b/gi, 'Math.cos')
-          .replace(/\btan\b/gi, 'Math.tan')
-          .replace(/\babs\b/gi, 'Math.abs')
-          .replace(/\bpi\b/gi, 'Math.PI')
-          .replace(/\^/g, '**');
-        const val = Function('"use strict"; return (' + jsExpr + ')')();
+        const sanitized = clean.replace(/,/g, '.');
+        const tokens = sanitized.match(/\d+(?:\.\d+)?|[+\-*/%^()]/g);
+        if (!tokens || tokens.join('').replace(/\s+/g, '') !== sanitized.replace(/\s+/g, '')) return null;
+
+        let pos = 0;
+        function parsePrimary() {
+          let token = tokens[pos];
+          if (token === '(') {
+            pos++;
+            let res = parseExpr();
+            if (tokens[pos] === ')') pos++;
+            return res;
+          }
+          if (token === '+' || token === '-') {
+            pos++;
+            let num = parsePrimary();
+            return token === '-' ? -num : num;
+          }
+          pos++;
+          return parseFloat(token);
+        }
+        function parseFactor() {
+          let left = parsePrimary();
+          while (pos < tokens.length && tokens[pos] === '^') {
+            pos++;
+            let right = parsePrimary();
+            left = Math.pow(left, right);
+          }
+          return left;
+        }
+        function parseTerm() {
+          let left = parseFactor();
+          while (pos < tokens.length && (tokens[pos] === '*' || tokens[pos] === '/' || tokens[pos] === '%')) {
+            let op = tokens[pos++];
+            let right = parseFactor();
+            if (op === '*') left *= right;
+            else if (op === '/') left = right === 0 ? NaN : left / right;
+            else if (op === '%') left %= right;
+          }
+          return left;
+        }
+        function parseExpr() {
+          let left = parseTerm();
+          while (pos < tokens.length && (tokens[pos] === '+' || tokens[pos] === '-')) {
+            let op = tokens[pos++];
+            let right = parseTerm();
+            if (op === '+') left += right;
+            else if (op === '-') left -= right;
+          }
+          return left;
+        }
+        const val = parseExpr();
         if (typeof val === 'number' && !isNaN(val) && isFinite(val)) {
-          return val;
+          return Math.round(val * 1000000) / 1000000;
         }
       } catch (e) {}
       return null;
@@ -13420,7 +13445,7 @@
             files.forEach(f => {
               items.push({
                 title: f.name,
-                subtitle: `${f.path} • ${f.size_human}`,
+                subtitle: `${f.path}${f.size_str ? ` • ${f.size_str}` : (f.size_human ? ` • ${f.size_human}` : '')}`,
                 badge: f.is_dir ? 'KLASÖR' : 'DOSYA',
                 iconSvg: f.is_dir 
                   ? '<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>'

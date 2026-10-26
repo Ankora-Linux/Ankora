@@ -1692,10 +1692,14 @@ fn root_command(prog: &str, args: &[&str]) -> std::io::Result<std::process::Outp
     // tek seferlik yükseltme denenir — masaüstü oturumunda yetkilendirme
     // penceresi kullanıcıdan istenir.
     let direct = Command::new(prog).args(args).output()?;
+    let err_str = String::from_utf8_lossy(&direct.stderr).to_lowercase();
     let permission_denied = !direct.status.success()
-        && String::from_utf8_lossy(&direct.stderr)
-            .to_lowercase()
-            .contains("permission denied");
+        && (err_str.contains("permission denied")
+            || err_str.contains("erişim engellendi")
+            || err_str.contains("izin reddedildi")
+            || err_str.contains("yetki")
+            || direct.status.code() == Some(1)
+            || direct.status.code() == Some(126));
     if permission_denied && pkexec_available() {
         let elevated = Command::new("pkexec").arg(prog).args(args).output();
         if let Ok(pk) = &elevated {
@@ -5122,10 +5126,14 @@ fn screenshot_pictures_dir(home: &str) -> PathBuf {
 fn take_screenshot(
     mode: Option<String>,
     delay: Option<u32>,
+    saveToDisk: Option<bool>,
     save_to_disk: Option<bool>,
+    copyClipboard: Option<bool>,
     copy_clipboard: Option<bool>,
 ) -> Result<ScreenshotResult, String> {
-    take_screenshot_core(mode, delay, save_to_disk, copy_clipboard)
+    let save = saveToDisk.or(save_to_disk);
+    let copy = copyClipboard.or(copy_clipboard);
+    take_screenshot_core(mode, delay, save, copy)
 }
 
 /// "Klasörde Göster" için güvenli yol: beyaz listeye tabi olmayan xdg-open
@@ -5215,9 +5223,11 @@ fn take_screenshot_core(
                     "-i",
                     &filepath_str,
                 ])
-                .output();
+                .stdin(Stdio::null())
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .spawn();
         }
-
         let b64 = if let Ok(bytes) = fs::read(&filepath) {
             Some(base64::engine::general_purpose::STANDARD.encode(&bytes))
         } else {
@@ -6185,25 +6195,8 @@ fn get_removable_drives() -> Result<Vec<RemovableDriveEntry>, String> {
 
                     // Dahili diskler için de otomatik bağlama denenir (hata #6:
                     // takılı olmayan bölümler dosya yöneticisinde hiç görünmüyordu).
-                    if mountpoint.is_none()
-                        && !fstype.is_empty()
-                        && fstype != "swap"
-                        && fstype != "linux-swap"
-                        && fstype != "iso9660"
-                    {
-                        let dev_path = format!("/dev/{}", name);
-                        if let Ok(m_out) = Command::new("udisksctl")
-                            .args(["mount", "-b", &dev_path, "--no-user-interaction"])
-                            .output()
-                        {
-                            if m_out.status.success() {
-                                let m_str = String::from_utf8_lossy(&m_out.stdout);
-                                if let Some(idx) = m_str.find(" at ") {
-                                    mountpoint = Some(m_str[idx + 4..].trim().to_string());
-                                }
-                            }
-                        }
-                    }
+                    // Takılı olmayan bölümler için otomatik bağlama arka planda yapılmaz;
+                    // mountpoint boş olarak raporlanır.
 
                     // Kullanıcı şikayeti — dahili (RM=0) diskler üstünde
                     // takas olmayan gerçek bir dosya sistemi varsa da listeye
@@ -6686,11 +6679,16 @@ async fn move_to_trash(path: String) -> Result<String, String> {
 
     if fs::rename(&canonical, &dest_file).is_err() {
         if p.is_dir() {
-            let _ = Command::new("mv")
+            let status = Command::new("mv")
                 .args([&canon_str, &dest_file.to_string_lossy().to_string()])
-                .output();
+                .status()
+                .map_err(|e| format!("Dizin taşınamadı: {}", e))?;
+            if !status.success() {
+                return Err("Dizin çöp kutusuna taşınamadı.".to_string());
+            }
         } else {
-            let _ = fs::copy(&canonical, &dest_file);
+            fs::copy(&canonical, &dest_file)
+                .map_err(|e| format!("Dosya çöp kutusuna kopyalanamadı: {}", e))?;
             let _ = fs::remove_file(&canonical);
         }
     }
@@ -6962,7 +6960,15 @@ fn copy_tree_progress(
     state: &mut CopyState,
     window: Option<&tauri::Window>,
 ) -> Result<(), String> {
-    if src.metadata().map_err(|e| e.to_string())?.is_dir() {
+    let sym_meta = src.symlink_metadata().map_err(|e| e.to_string())?;
+    if sym_meta.file_type().is_symlink() {
+        #[cfg(unix)]
+        if let Ok(target) = fs::read_link(src) {
+            let _ = std::os::unix::fs::symlink(target, dest);
+        }
+        return Ok(());
+    }
+    if sym_meta.is_dir() {
         state.files += 1;
         state.current = src.to_string_lossy().to_string();
         emit_fs_progress(window, "copy", state);
@@ -7051,8 +7057,8 @@ async fn copy_path_c(
             dest = dest.join(fname);
         }
     }
-    if src == dest {
-        return Err("Kaynak ve hedef aynı.".into());
+    if src == dest || dest.starts_with(&src) {
+        return Err("Hedef kaynak ile aynı veya kaynağın alt dizini olamaz.".into());
     }
     path_accessible_for_ops(&src)?;
     if dest.exists() {
@@ -7681,15 +7687,25 @@ fn get_audio_devices() -> Result<AudioDevicesResult, String> {
 }
 
 #[tauri::command]
-fn set_default_audio_device(kind: String, deviceName: String) -> Result<bool, String> {
+fn set_default_audio_device(
+    kind: Option<String>,
+    deviceName: Option<String>,
+    name: Option<String>,
+    isSink: Option<bool>,
+) -> Result<bool, String> {
+    let dev = deviceName.or(name).unwrap_or_default();
+    if dev.is_empty() {
+        return Err("Aygıt adı belirtilmedi.".into());
+    }
+    let is_source = kind.as_deref() == Some("source") || isSink == Some(false);
     #[cfg(target_os = "linux")]
     {
-        let arg = if kind == "source" {
+        let arg = if is_source {
             "set-default-source"
         } else {
             "set-default-sink"
         };
-        let out = Command::new("pactl").args([arg, &deviceName]).output();
+        let out = Command::new("pactl").args([arg, &dev]).output();
         match out {
             Ok(o) if o.status.success() => Ok(true),
             Ok(o) => Err(format!(
@@ -7701,7 +7717,7 @@ fn set_default_audio_device(kind: String, deviceName: String) -> Result<bool, St
     }
     #[cfg(not(target_os = "linux"))]
     {
-        let _ = (kind, deviceName);
+        let _ = dev;
         Ok(true)
     }
 }
@@ -7785,37 +7801,39 @@ fn get_bluetooth_status() -> Result<BluetoothStatusResult, String> {
 }
 
 #[tauri::command]
-fn toggle_bluetooth(powered: bool) -> Result<bool, String> {
+fn toggle_bluetooth(powered: Option<bool>, enable: Option<bool>) -> Result<bool, String> {
+    let state = powered.or(enable).unwrap_or(true);
     #[cfg(target_os = "linux")]
     {
-        let val = if powered { "on" } else { "off" };
+        let val = if state { "on" } else { "off" };
         let _ = Command::new("timeout")
             .args(["2", "bluetoothctl", "power", val])
             .output();
         let _ = Command::new("rfkill")
-            .args([if powered { "unblock" } else { "block" }, "bluetooth"])
+            .args([if state { "unblock" } else { "block" }, "bluetooth"])
             .output();
-        Ok(powered)
+        Ok(state)
     }
     #[cfg(not(target_os = "linux"))]
     {
-        Ok(powered)
+        Ok(state)
     }
 }
 
 #[tauri::command]
-fn scan_bluetooth(enable: bool) -> Result<bool, String> {
+fn scan_bluetooth(enable: Option<bool>) -> Result<bool, String> {
+    let state = enable.unwrap_or(true);
     #[cfg(target_os = "linux")]
     {
-        let val = if enable { "on" } else { "off" };
+        let val = if state { "on" } else { "off" };
         let _ = Command::new("timeout")
             .args(["2", "bluetoothctl", "scan", val])
             .output();
-        Ok(enable)
+        Ok(state)
     }
     #[cfg(not(target_os = "linux"))]
     {
-        Ok(enable)
+        Ok(state)
     }
 }
 
@@ -8827,11 +8845,26 @@ fn flash_iso_to_usb(iso_path: String, target_device: String) -> Result<String, S
 
     std::thread::spawn(move || {
         if Path::new(SNAP_HELPER).exists() {
-            if let Ok(out) = root_command(SNAP_HELPER, &["usb-flash", &iso_p, &tgt]) {
-                if out.status.success() {
+            match root_command(SNAP_HELPER, &["usb-flash", &iso_p, &tgt]) {
+                Ok(out) if out.status.success() => {
                     let _ = fs::write(
                         progress_file,
                         "100.0:done:ISO başarıyla USB belleğe yazdırıldı!",
+                    );
+                    return;
+                }
+                Ok(out) => {
+                    let err = String::from_utf8_lossy(&out.stderr);
+                    let _ = fs::write(
+                        progress_file,
+                        format!("0.0:error:Yazma reddedildi: {}", err.trim()),
+                    );
+                    return;
+                }
+                Err(e) => {
+                    let _ = fs::write(
+                        progress_file,
+                        format!("0.0:error:Yardımcı çalıştırılamadı: {}", e),
                     );
                     return;
                 }
@@ -8955,16 +8988,23 @@ fn format_usb_drive(
     let fs_lower = filesystem.to_lowercase();
 
     if Path::new(SNAP_HELPER).exists() {
-        if let Ok(out) = root_command(
+        match root_command(
             SNAP_HELPER,
             &["usb-format", &target_device, &fs_lower, safe_label],
         ) {
-            if out.status.success() {
+            Ok(out) if out.status.success() => {
                 return Ok(format!(
                     "{} başarıyla {} olarak biçimlendirildi.",
                     target_device,
                     filesystem.to_uppercase()
                 ));
+            }
+            Ok(out) => {
+                let err = String::from_utf8_lossy(&out.stderr);
+                return Err(format!("Biçimlendirme reddedildi: {}", err.trim()));
+            }
+            Err(e) => {
+                return Err(format!("Yardımcı çalıştırılamadı: {}", e));
             }
         }
     }
@@ -9206,6 +9246,7 @@ fn main() {
             system_suspend,
             system_logout,
             take_screenshot,
+            open_pictures_folder,
             get_radio_state,
             set_radio_state,
             scan_wifi_networks,

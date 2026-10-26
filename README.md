@@ -5,7 +5,7 @@
   <p><b>Resmî ana depo · Ayaz Desktop Environment (Ayaz DE)</b></p>
 
   <p>
-    <img src="https://img.shields.io/badge/S%C3%9CR%C3%9CM-3.6.0-ffffff?style=for-the-badge&labelColor=111111" alt="Sürüm">
+    <img src="https://img.shields.io/badge/S%C3%9CR%C3%9CM-3.7.0-ffffff?style=for-the-badge&labelColor=111111" alt="Sürüm">
     <img src="https://img.shields.io/badge/HEDEF-ANKORA_LINUX-2563eb?style=for-the-badge&labelColor=111111" alt="Dağıtım">
   </p>
   <p>
@@ -118,8 +118,8 @@ bileşenlerini enjekte etmek için derleyici tarafından kullanılır.
 Depoda yeni bir etiket push edildiğinde:
 
 ```bash
-git tag v3.6.0
-git push origin v3.6.0
+git tag v3.7.0
+git push origin v3.7.0
 ```
 
 `build-iso.yml` iş akışı ISO'yu derler ve GitHub Releases sayfasına

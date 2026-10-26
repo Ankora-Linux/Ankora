@@ -122,6 +122,12 @@ body.theme-light {
   --accent-white: #0f172a;
   --accent-gray: #64748b;
   --accent-active: #2563eb;
+
+  --desktop-bg: #f8fafc;
+  --glass-taskbar: rgba(255, 255, 255, 0.76);
+  --glass-flyout: rgba(255, 255, 255, 0.88);
+  --surface-flyout: #ffffff;
+  --taskbar-bg: rgba(248, 250, 252, 0.94);
 }
 
 body.theme-midnight {
@@ -139,8 +145,13 @@ body.theme-midnight {
 
   --text-primary: #f0f4ff;
   --text-secondary: #9cb0d8;
-  /* WCAG AA (4.5:1) için en açık yüzeyde bile tutacak şekilde açıldı */
   --text-muted: #8398c5;
+
+  --desktop-bg: #060914;
+  --glass-taskbar: rgba(11, 16, 34, 0.72);
+  --glass-flyout: rgba(17, 24, 50, 0.82);
+  --surface-flyout: #111832;
+  --taskbar-bg: rgba(11, 16, 34, 0.94);
 }
 
 /* ==============================================================================
@@ -168,6 +179,9 @@ body.theme-nord {
   --surface-flyout: #2e3440;
   --taskbar-bg: rgba(36, 41, 51, 0.92);
   --accent-active: #88c0d0;
+  --desktop-bg: #20242c;
+  --glass-taskbar: rgba(36, 41, 51, 0.72);
+  --glass-flyout: rgba(46, 52, 64, 0.82);
 }
 
 body.theme-evergreen {
@@ -238,6 +252,9 @@ body.theme-arctic {
 
   --surface-flyout: #ffffff;
   --taskbar-bg: rgba(238, 243, 248, 0.92);
+  --desktop-bg: #e6eef5;
+  --glass-taskbar: rgba(240, 245, 250, 0.76);
+  --glass-flyout: rgba(255, 255, 255, 0.88);
 }
 
 /* Yeni tema seti: Çınar, Meltem, Kor, Dem, Boğaz (kullanıcı önizlemelerinden) */

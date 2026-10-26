@@ -128,10 +128,11 @@ meb_install_cert() {
             local user
             user="$(basename "$home")"
             local db
-            for db in "$home/.config/BraveSoftware/Brave-Browser" \
+            mkdir -p "$home/.pki/nssdb" 2>/dev/null || true
+            for db in "$home/.pki/nssdb" \
+                      "$home/.config/BraveSoftware/Brave-Browser" \
                       "$home/.config/google-chrome" \
                       "$home/.config/chromium"; do
-                [ -d "$db" ] || continue
                 if certutil -d "sql:$db" -A -t "C,," -n "MEB" -i "$cert_file" 2>/dev/null \
                    || certutil -d "$db" -A -t "C,," -n "MEB" -i "$cert_file" 2>/dev/null; then
                     injected=1
@@ -213,13 +214,14 @@ snapshot_create() { # $1 = ad
     dir="$SNAP_BASE/$id"
     mkdir -p "$dir"
     chmod 0755 "$SNAP_BASE"
+    chmod 0700 "$dir"
     /usr/bin/dpkg --get-selections > "$dir/packages.list" 2>/dev/null || true
-    /bin/tar -czf "$dir/etc-backup.tar.gz" --exclude=/etc/mtab -C / etc 2>/dev/null || true
+    /bin/tar -czf "$dir/etc-backup.tar.gz" --exclude=/etc/mtab --exclude=etc/shadow* --exclude=etc/gshadow* --exclude=etc/sudoers.d/* -C / etc 2>/dev/null || true
     if [ ! -s "$dir/etc-backup.tar.gz" ]; then
         echo "[HATA] /etc arşivi oluşturulamadı." >&2
         return 7
     fi
-    chmod 0644 "$dir/etc-backup.tar.gz"
+    chmod 0600 "$dir/etc-backup.tar.gz"
     local size_bytes size_human date_str
     size_bytes="$(stat -c '%s' "$dir/etc-backup.tar.gz" 2>/dev/null || echo 0)"
     date_str="$(date '+%Y-%m-%d %H:%M')"

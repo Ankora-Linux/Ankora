@@ -22,7 +22,7 @@ AYAZ_VERSION=$(sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' "$ROOT_DIR/src-tauri/
 if [ -z "$AYAZ_VERSION" ] && [ -f "$ROOT_DIR/VERSION" ]; then
     AYAZ_VERSION=$(tr -d '[:space:]' < "$ROOT_DIR/VERSION")
 fi
-[ -z "$AYAZ_VERSION" ] && AYAZ_VERSION="3.6.0"
+[ -z "$AYAZ_VERSION" ] && AYAZ_VERSION="3.7.0"
 ISO_NAME="ankora-linux-${AYAZ_VERSION}-ayaz-amd64.iso"
 echo
 echo "======================================================================"
@@ -1817,21 +1817,31 @@ def execute_ayaz_command(cmd, args):
         return [p.strip() for p in out.splitlines() if p.strip()]
 
     elif cmd == 'system_poweroff':
-        _root_run(['sh', '-c', 'poweroff 2>/dev/null || /sbin/poweroff -f || true'])
+        for b in ('/sbin/poweroff', '/usr/sbin/poweroff', '/bin/systemctl'):
+            if os.path.exists(b):
+                _root_run([b])
+                break
         return 'Sistem kapatılıyor...'
 
     elif cmd == 'system_reboot':
-        _root_run(['sh', '-c', 'reboot 2>/dev/null || /sbin/reboot -f || true'])
+        for b in ('/sbin/reboot', '/usr/sbin/reboot', '/bin/systemctl'):
+            if os.path.exists(b):
+                _root_run([b])
+                break
         return 'Sistem yeniden başlatılıyor...'
 
     elif cmd == 'system_suspend':
-        _root_run(['sh', '-c', 'loginctl suspend 2>/dev/null || pm-suspend 2>/dev/null || echo mem > /sys/power/state 2>/dev/null || true'])
+        if os.path.exists('/usr/local/bin/ayaz-pkg-helper'):
+            _root_run(['/usr/local/bin/ayaz-pkg-helper', 'suspend'])
+        elif os.path.exists('/bin/loginctl'):
+            subprocess.run(['loginctl', 'suspend'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         return 'Sistem askıya alınıyor...'
 
     elif cmd == 'system_logout':
-        subprocess.Popen(['sh', '-c', 'pkill -u ankora xinit 2>/dev/null || pkill -u ankora Xorg 2>/dev/null || pkill -f ayaz 2>/dev/null || true'])
+        import getpass
+        curr_user = getpass.getuser()
+        subprocess.Popen(['sh', '-c', f'pkill -u {curr_user} xinit 2>/dev/null || pkill -u {curr_user} Xorg 2>/dev/null || pkill -f ayaz 2>/dev/null || true'])
         return 'Oturum kapatılıyor...'
-
     elif cmd == 'take_screenshot':
         mode = args.get('mode', 'fullscreen')
         delay = int(args.get('delay', 0))
@@ -4296,25 +4306,25 @@ exit 0
         return True
 
     elif cmd == 'check_de_update':
-        current_ver = '3.6.0'
+        current_ver = '3.7.0'
         result = {
             'has_update': False,
             'current_version': current_ver,
             'latest_version': current_ver,
-            'release_name': 'Ankora Linux 3.5 (AyazDE)',
-            'release_notes': 'Sisteminiz güncel. AyazDE v3.3 kararlı sürüm devrededir.',
+            'release_name': 'Ankora Linux 3.7 (AyazDE)',
+            'release_notes': 'Sisteminiz güncel. AyazDE v3.7 kararlı sürüm devrededir.',
             'download_url': None,
-            'published_at': '2026-10-19',
+            'published_at': '2026-10-26',
             'package_size_bytes': 0,
             'expected_sha256': None,
             'sha256_url': None
         }
         try:
             req = urllib.request.Request(
-                'https://api.github.com/repos/Ankora-Linux/Ayaz/releases/latest',
+                'https://api.github.com/repos/Ankora-Linux/Ankora/releases/latest',
                 headers={'User-Agent': f'ayaz-updater/{current_ver}'}
             )
-            with urllib.request.urlopen(req, timeout=6) as resp:
+            with urllib.request.urlopen(req, timeout=8) as resp:
                 if resp.status == 200:
                     data = json.loads(resp.read().decode('utf-8'))
                     tag = data.get('tag_name', '').lstrip('v')
@@ -4325,58 +4335,82 @@ exit 0
                         result['release_notes'] = data.get('body', 'Yeni özellikler ve hata düzeltmeleri.')
                         result['published_at'] = data.get('published_at', '')
                         for asset in data.get('assets', []):
-                            if asset.get('name', '').endswith('.deb'):
+                            aname = asset.get('name', '').lower()
+                            if aname.endswith('.deb'):
                                 result['download_url'] = asset.get('browser_download_url')
                                 result['package_size_bytes'] = asset.get('size', 0)
-                                break
+                            elif aname.endswith('.sha256'):
+                                result['sha256_url'] = asset.get('browser_download_url')
         except Exception:
             pass
         return result
 
     elif cmd == 'download_and_apply_de_update':
-        download_url = args.get('download_url')
+        download_url = args.get('downloadUrl', args.get('download_url'))
         if not download_url:
             return 'Güncelleme paketi URL adresi belirtilmedi.'
-        # GÜVENLİK (İZİN LİSTESİ): Yalnızca resmi Ankora-Linux GitHub deposundan indirmeye izin ver
         if not str(download_url).startswith('https://github.com/Ankora-Linux/'):
             return 'Güvenlik İlkesi İhlali: İndirme bağlantısı resmi Ankora-Linux deposuna ait değil.'
 
-        expected_sha256 = args.get('expected_sha256')
-        staging = '/var/cache/ayaz-updates'
-        os.makedirs(staging, exist_ok=True)
-        target_deb = os.path.join(staging, 'ayaz-update.deb')
+        expected_sha256 = args.get('expectedSha256', args.get('expected_sha256'))
+        sha256_url = args.get('sha256Url', args.get('sha256_url'))
+
+        import tempfile, hashlib
+        with tempfile.NamedTemporaryFile(suffix='.deb', delete=False) as tf:
+            tmp_path = tf.name
+
         try:
-            req = urllib.request.Request(download_url, headers={'User-Agent': 'ayaz-updater/3.6.0'})
-            with urllib.request.urlopen(req, timeout=120) as resp, open(target_deb, 'wb') as f:
+            req = urllib.request.Request(download_url, headers={'User-Agent': 'ayaz-updater/3.7.0'})
+            with urllib.request.urlopen(req, timeout=180) as resp, open(tmp_path, 'wb') as f:
                 content = resp.read()
                 f.write(content)
 
-            # GÜVENLİK: Zorunlu SHA-256 bütünlük doğrulaması
-            import hashlib
             computed_sha256 = hashlib.sha256(content).hexdigest().lower()
+            if not expected_sha256 and sha256_url and str(sha256_url).startswith('https://github.com/Ankora-Linux/'):
+                try:
+                    with urllib.request.urlopen(sha256_url, timeout=30) as s_resp:
+                        s_txt = s_resp.read().decode('utf-8', errors='ignore')
+                        for word in s_txt.split():
+                            w_clean = re.sub(r'[^a-fA-F0-9]', '', word)
+                            if len(w_clean) == 64:
+                                expected_sha256 = w_clean.lower()
+                                break
+                except Exception:
+                    pass
+
             if not expected_sha256:
-                if os.path.exists(target_deb):
-                    os.remove(target_deb)
-                return 'Güvenlik İlkesi İhlali: Güncelleme paketi için geçerli bir SHA-256 doğrulama özeti bulunamadı. Bütünlüğü doğrulanmamış paketlerin kurulumu engellendi.'
+                if os.path.exists(tmp_path):
+                    os.unlink(tmp_path)
+                return 'Güvenlik İlkesi İhlali: Güncelleme paketi için geçerli bir SHA-256 doğrulama özeti bulunamadı.'
 
             if computed_sha256 != str(expected_sha256).strip().lower():
-                if os.path.exists(target_deb):
-                    os.remove(target_deb)
+                if os.path.exists(tmp_path):
+                    os.unlink(tmp_path)
                 return 'Güvenlik İlkesi İhlali: SHA-256 doğrulama başarısız! Paket bozulmuş veya değiştirilmiş olabilir.'
 
             helper = '/usr/local/bin/ayaz-update-helper'
             if os.path.exists(helper):
-                proc = subprocess.run(['sudo', helper, target_deb],
+                stage_proc = subprocess.run(['sudo', '-n', helper, '--stage', tmp_path, computed_sha256],
+                                            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+                if os.path.exists(tmp_path):
+                    os.unlink(tmp_path)
+                if stage_proc.returncode != 0:
+                    return f'Güncelleme hazırlık hatası: {stage_proc.stderr or stage_proc.stdout}'
+
+                proc = subprocess.run(['sudo', '-n', helper],
                                       stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
                 if proc.returncode == 0:
                     return 'Ayaz DE başarıyla güncellendi!'
                 else:
                     return f'Güncelleme yardımcısı hata verdi: {proc.stderr or proc.stdout}'
             else:
-                return 'Güvenlik İlkesi İhlali: /usr/local/bin/ayaz-update-helper bulunamadı. Kurulum güvenlik gerekçesiyle durduruldu.'
+                if os.path.exists(tmp_path):
+                    os.unlink(tmp_path)
+                return 'Güvenlik İlkesi İhlali: /usr/local/bin/ayaz-update-helper bulunamadı.'
         except Exception as e:
+            if os.path.exists(tmp_path):
+                os.unlink(tmp_path)
             return f'Güncelleme uygulanamadı: {e}'
-
     elif cmd == 'restart_desktop_process':
         subprocess.Popen(['pkill', '-x', 'ayaz'])
         return True
@@ -4638,7 +4672,8 @@ exit 0
         def do_flash():
             try:
                 if os.path.exists('/usr/local/bin/ayaz-pkg-helper'):
-                    rc, _, _ = _root_run(['/usr/local/bin/ayaz-pkg-helper', 'usb-flash', iso_path, target_device])
+                    p_res = _root_run(['/usr/local/bin/ayaz-pkg-helper', 'usb-flash', iso_path, target_device], timeout=1800)
+                    rc = p_res.returncode
                 else:
                     _root_run(['umount', '-f', target_device])
                     if os.path.exists('/proc/mounts'):
@@ -4650,8 +4685,8 @@ exit 0
                                         _root_run(['umount', '-f', parts[0]])
                         except Exception:
                             pass
-                    rc, _, _ = _root_run(['dd', f'if={iso_path}', f'of={target_device}', 'bs=4M', 'status=none', 'conv=fsync'])
-                if rc == 0:
+                    p_res = _root_run(['dd', f'if={iso_path}', f'of={target_device}', 'bs=4M', 'status=none', 'conv=fsync'], timeout=1800)
+                    rc = p_res.returncode
                     subprocess.run(['sync'])
                     with open(progress_file, 'w') as f:
                         f.write('100.0:done:ISO başarıyla USB belleğe yazdırıldı!')
@@ -4708,11 +4743,10 @@ exit 0
                     raise e
 
         if os.path.exists('/usr/local/bin/ayaz-pkg-helper'):
-            rc, out, err = _root_run(['/usr/local/bin/ayaz-pkg-helper', 'usb-format', target_device, filesystem, label])
-            if rc == 0:
+            p_res = _root_run(['/usr/local/bin/ayaz-pkg-helper', 'usb-format', target_device, filesystem, label])
+            if p_res.returncode == 0:
                 return f'{target_device} başarıyla {filesystem.upper()} olarak biçimlendirildi.'
-            raise Exception(f'Biçimlendirme hatası: {err or out}')
-
+            raise Exception(f'Biçimlendirme hatası: {p_res.stderr or p_res.stdout}')
         _root_run(['umount', '-f', target_device])
         if os.path.exists('/proc/mounts'):
             try:
@@ -4733,10 +4767,10 @@ exit 0
         else:
             raise Exception('Desteklenmeyen dosya sistemi')
 
-        rc, out, err = _root_run(cmd_args)
-        if rc == 0:
+        p_res = _root_run(cmd_args)
+        if p_res.returncode == 0:
             return f'{target_device} başarıyla {filesystem.upper()} olarak biçimlendirildi.'
-        raise Exception(f'Biçimlendirme hatası: {err or out}')
+        raise Exception(f'Biçimlendirme hatası: {p_res.stderr or p_res.stdout}')
 
     elif cmd == 'create_system_snapshot':
         raw_name = str(args.get('name', 'Snapshot'))
@@ -4875,6 +4909,209 @@ exit 0
         else:
             subprocess.run(['xrandr', '--auto'])
             return "Monitörler otomatik yapılandırıldı."
+
+    elif cmd == 'copy_path_c':
+        src = args.get('sourcePath', '')
+        dest = args.get('destPath', '')
+        move_op = bool(args.get('moveOp', False))
+        if not src or not os.path.exists(src):
+            raise Exception('Kaynak dosya veya klasör bulunamadı.')
+        if not dest:
+            raise Exception('Hedef yol belirtilmedi.')
+        if os.path.isdir(dest):
+            dest = os.path.join(dest, os.path.basename(src))
+        if src == dest or dest.startswith(src + os.sep):
+            raise Exception('Hedef kaynak ile aynı veya kaynağın alt dizini olamaz.')
+        if os.path.exists(dest):
+            parent = os.path.dirname(dest) or '.'
+            stem, ext = os.path.splitext(os.path.basename(dest))
+            for n in range(1, 512):
+                cand = os.path.join(parent, f"{stem} ({n}){ext}")
+                if not os.path.exists(cand):
+                    dest = cand
+                    break
+        if move_op:
+            shutil.move(src, dest)
+            return 'Öğe taşındı.'
+        else:
+            if os.path.isdir(src):
+                shutil.copytree(src, dest, symlinks=True)
+            else:
+                shutil.copy2(src, dest)
+            return 'Öğe kopyalandı.'
+
+    elif cmd == 'create_symlink':
+        src = args.get('sourcePath', '')
+        link = args.get('linkPath', '')
+        if not src or not os.path.exists(src):
+            raise Exception('Kısayol hedefi bulunamadı.')
+        if not link or os.path.exists(link):
+            raise Exception('Geçersiz hedef veya aynı adlı bir kısayol zaten var.')
+        os.symlink(src, link)
+        return 'Kısayol oluşturuldu.'
+
+    elif cmd == 'file_stat':
+        path = args.get('path', '')
+        if not path or not os.path.exists(path):
+            raise Exception('Dosya bulunamadı.')
+        st = os.lstat(path)
+        is_dir = os.path.isdir(path)
+        is_symlink = os.path.islink(path)
+        child_count = len(os.listdir(path)) if is_dir else 0
+        owner = ''
+        try:
+            import pwd
+            owner = pwd.getpwuid(st.st_uid).pw_name
+        except Exception:
+            owner = str(st.st_uid)
+        return {
+            'name': os.path.basename(path) or path,
+            'path': path,
+            'is_dir': is_dir,
+            'is_symlink': is_symlink,
+            'size': st.st_size,
+            'mtime': int(st.st_mtime),
+            'ctime': int(st.st_ctime),
+            'owner': owner,
+            'perms': oct(st.st_mode & 0o777)[2:],
+            'executable': bool(st.st_mode & 0o111),
+            'child_count': child_count,
+            'kind': 'Klasör' if is_dir else ('Bağlantı' if is_symlink else 'Dosya')
+        }
+
+    elif cmd == 'path_fs_usage':
+        path = args.get('path', '')
+        if not path or not os.path.exists(path):
+            path = '/'
+        st = os.statvfs(path)
+        total = st.f_blocks * st.f_frsize
+        free = st.f_bavail * st.f_frsize
+        used = total - free
+        return {'total': total, 'used': used, 'free': free}
+
+    elif cmd == 'set_file_permissions':
+        path = args.get('path', '')
+        mode = str(args.get('mode', ''))
+        if not path or not os.path.exists(path) or not mode.isdigit():
+            raise Exception('Geçersiz dosya yolu veya izin.')
+        os.chmod(path, int(mode, 8))
+        return 'İzinler güncellendi.'
+
+    elif cmd == 'set_file_executable':
+        path = args.get('path', '')
+        executable = bool(args.get('executable', True))
+        if not path or not os.path.exists(path):
+            raise Exception('Dosya bulunamadı.')
+        current_mode = os.stat(path).st_mode
+        new_mode = (current_mode | 0o111) if executable else (current_mode & ~0o111)
+        os.chmod(path, new_mode)
+        return 'Dosya artık çalıştırılabilir.' if executable else 'Çalıştırma izni kaldırıldı.'
+
+    elif cmd == 'print_file':
+        path = args.get('path', '')
+        if not path or not os.path.exists(path):
+            raise Exception('Yazdırılacak dosya bulunamadı.')
+        res = subprocess.run(['lp', path], stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True)
+        if res.returncode == 0:
+            return 'Dosya yazıcı kuyruğuna gönderildi.'
+        raise Exception('Yazıcı bulunamadı ya da kuyruk yok.')
+
+    elif cmd == 'email_file':
+        path = args.get('path', '')
+        if not path or not os.path.exists(path):
+            raise Exception('Paylaşılacak dosya bulunamadı.')
+        subprocess.Popen(['xdg-email', '--attach', path])
+        return 'E-posta uygulaması açıldı.'
+
+    elif cmd == 'set_as_default_app':
+        app_path = args.get('appPath', '')
+        if not app_path or not os.path.exists(app_path):
+            raise Exception('Masaüstü dosyası bulunamadı.')
+        desktop_id = os.path.basename(app_path)
+        mimes = []
+        with open(app_path, 'r', encoding='utf-8', errors='ignore') as f:
+            for line in f:
+                if line.startswith('MimeType='):
+                    mimes = [m.strip() for m in line[9:].split(';') if m.strip()]
+                    break
+        if not mimes:
+            raise Exception('Bu masaüstü dosyası MimeType satırı içermiyor.')
+        subprocess.run(['xdg-mime', 'default', desktop_id] + mimes)
+        return f"'{desktop_id}' seçilen dosya türleri için varsayılan atandı."
+
+    elif cmd == 'list_system_users':
+        users = []
+        import pwd
+        curr = os.environ.get('USER', '')
+        for p in pwd.getpwall():
+            if (1000 <= p.pw_uid <= 60000) or p.pw_uid == 0:
+                users.append({
+                    'username': p.pw_name,
+                    'uid': p.pw_uid,
+                    'gid': p.pw_gid,
+                    'full_name': p.pw_gecos.split(',')[0],
+                    'home_dir': p.pw_dir,
+                    'shell': p.pw_shell,
+                    'is_current': p.pw_name == curr,
+                    'is_admin': p.pw_uid == 0
+                })
+        return users
+
+    elif cmd == 'system_user_info':
+        uname = args.get('username') or os.environ.get('USER', '')
+        import pwd
+        try:
+            p = pwd.getpwnam(uname)
+            return {
+                'username': p.pw_name,
+                'uid': p.pw_uid,
+                'gid': p.pw_gid,
+                'full_name': p.pw_gecos.split(',')[0],
+                'home_dir': p.pw_dir,
+                'shell': p.pw_shell,
+                'is_current': p.pw_name == os.environ.get('USER', ''),
+                'is_admin': p.pw_uid == 0
+            }
+        except Exception:
+            raise Exception(f"'{uname}' kullanıcı hesabı bulunamadı.")
+
+    elif cmd == 'system_user_add':
+        uname = args.get('username', '').strip()
+        pwd = args.get('password', '')
+        full = args.get('fullName', '')
+        if not uname or not pwd:
+            raise Exception('Kullanıcı adı ve parola zorunludur.')
+        _root_run(['useradd', '-m', '-s', '/bin/bash', '-G', 'sudo,audio,video,plugdev,netdev', '-c', full, uname])
+        p = subprocess.Popen(['sudo', '-n', 'chpasswd'], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        p.communicate(input=f"{uname}:{pwd}\n".encode('utf-8'))
+        return f"'{uname}' kullanıcısı oluşturuldu."
+
+    elif cmd == 'system_user_remove':
+        uname = args.get('username', '').strip()
+        if not uname or uname == 'root' or uname == os.environ.get('USER', ''):
+            raise Exception('Geçersiz veya silinemez kullanıcı.')
+        _root_run(['userdel', '-r', uname])
+        return f"'{uname}' kullanıcısı kaldırıldı."
+
+    elif cmd == 'system_update_apt':
+        do_up = bool(args.get('upgrade', args.get('doUpgrade', False)))
+        proc = _root_run(['apt-get', 'update'], timeout=300)
+        out = (proc.stdout or '') + (proc.stderr or '')
+        if do_up:
+            proc2 = _root_run(['apt-get', 'upgrade', '-y', '--no-install-recommends'], timeout=1200)
+            out += '\n' + (proc2.stdout or '') + (proc2.stderr or '')
+        return out.strip()
+
+    elif cmd == 'mark_notifications_read':
+        return True
+
+    elif cmd == 'open_pictures_folder':
+        pics = os.path.expanduser('~/Resimler')
+        if not os.path.exists(pics):
+            pics = os.path.expanduser('~/Pictures')
+            os.makedirs(pics, exist_ok=True)
+        subprocess.Popen(['xdg-open', pics])
+        return True
 
     # Bilinmeyen komut sessizce "işlendi" derse arayüz hiçbir zaman hata görmez;
     # köprü ile uyuşmayan her çağrı gerçek bir hata olarak döner.

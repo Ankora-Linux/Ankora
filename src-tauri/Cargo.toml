@@ -1,6 +1,6 @@
 [package]
 name = "ayaz-de"
-version = "3.6.0"
+version = "3.7.0"
 description = "Ayaz Minimalist Kiosk Desktop Environment for Ankora Linux"
 authors = ["Ankora Linux Team"]
 edition = "2021"

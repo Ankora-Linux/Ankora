@@ -14,6 +14,9 @@ have() { command -v "$1" >/dev/null 2>&1; }
 # Faz tahtalarda görülen dokunmatik adları + yaygın USB çerçeveler.
 is_touch_name() {
     case "$1" in
+        *[Tt]ouchpad*|*[Tt]ouch[Pp]ad*|*[Cc]amera*|*[Ww]ebcam*) return 1 ;;
+    esac
+    case "$1" in
         *[Tt]ouchscreen*|*[Tt]ouch*|*IR*|*IRTOUCH*|*Vestel*|*VESTEL*|*Arcelik*|*Arçelik*|*ARÇELİK*|*Faz*|*FAZ*|*ETA*|*Eta*|*eGalax*|*EGALAX*|*NextWindow*|*Quanta*|*Weida*|*Sahara*|*HID*touch*|*ILITEK*|*Elan*Touch*|*ELAN*Touch*|*Wacom*Finger*|*Atmel*|*Synaptics*Touch*|*Goodix*) return 0 ;;
     esac
     return 1
@@ -41,11 +44,11 @@ do_enable() {
         id="${line%% *}"
         name="${line#* }"
         xinput --enable "$id" 2>/dev/null || true
-        # Dokunuş = sol tık, sürükleme çalışsın: libinput + evdev güvenle denenir.
-        xinput --set-prop "$id" "libinput Calibration Matrix" 1 0 0 0 1 0 0 0 1 2>/dev/null || true
-        xinput --set-prop "$id" "Evdev Axis Calibration" 2>/dev/null || true
-        xinput --set-prop "$id" "Evdev Axes Swap" 0 2>/dev/null || true
-        # Tek parmak tıklasın, sağ tık iki parmak/uzun basım ile gelsin.
+        if [ "${RESET_CALIB:-0}" = "1" ]; then
+            xinput --set-prop "$id" "libinput Calibration Matrix" 1 0 0 0 1 0 0 0 1 2>/dev/null || true
+            xinput --set-prop "$id" "Evdev Axis Calibration" 2>/dev/null || true
+            xinput --set-prop "$id" "Evdev Axes Swap" 0 2>/dev/null || true
+        fi
         xinput --set-prop "$id" "libinput Tapping Enabled" 1 2>/dev/null || true
         log "etkin: [$id] $name"
         count=$((count + 1))

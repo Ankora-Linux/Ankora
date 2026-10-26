@@ -1,5 +1,16 @@
 # Ankora Linux — Sürüm Notları
 
+## 3.7.0 (2026-10-26)
+- Tembel render pencere açılış hatası düzeltildi: 30 sn sonra sökülen pencereler sorunsuz yeniden açılıyor
+- 16 IPC komutu Canlı ISO kabuğuna ve Rust çekirdeğine eşitlendi (Dosya Yöneticisi kopyalama, izinler, sembolik bağlar, kullanıcı yönetimi)
+- Nordik Açık (theme-light) ve koyu temalarda görev çubuğu/başlat menüsü cam kontrastı ve renk geçişleri düzeltildi
+- Sistem kapatma/yeniden başlatma düğmeleri onaylı diyaloğa bağlandı; ani kapanma engellendi
+- USB yazdırıcı (Flasher) ve biçimlendiricideki çökme ve güvenlik açıkları giderildi; sistem diskleri korumaya alındı
+- Kurtarma noktaları (snapshot) izinleri 0700/0600 olarak sıkılaştırıldı; hassas dosya ifşası önlendi
+- MEB okul ağı kök sertifikası kurulumu tarayıcı NSS veritabanlarıyla tam uyumlu hale getirildi
+- ETA dokunmatik sürücüsünde dizüstü touchpad çakışması önlendi ve kalibrasyon koruması eklendi
+- Ankora Doctor aracı terminalden ve AI ajanından tam yetkiyle onarım yapacak şekilde güncellendi
+- Ayaz Güncelleyici indirme ve doğrulama boru hattı GitHub Releases ile tam uyumlu hale getirildi
 ## 3.6.0 (2026-10-25)
 - Düşük RAM (< 4 GB) sistemlerde Eco RAM Modu ilk açılışta varsayılan açık (kullanıcı tercihi yoksa)
 - Tembel render: kapatılan pencere 30 sn sonra DOM'dan çıkarılır, iframe kaynakları boşaltılır; yeniden açılışta geri takılır

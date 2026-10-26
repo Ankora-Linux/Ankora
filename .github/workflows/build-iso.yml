@@ -136,6 +136,7 @@ jobs:
           files: |
             ${{ env.iso_file }}
             ${{ env.iso_file }}.sha256
+            dist/ayaz-de-latest-amd64.deb
           generate_release_notes: true
           name: Ankora Linux ${{ env.ankora_version }} (${{ github.ref_name }})
           draft: false
