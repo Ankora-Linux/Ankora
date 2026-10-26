@@ -2378,7 +2378,7 @@ fn generate_agent_action_token(cmd: &str) -> String {
 fn build_local_ai_diagnostic_response(prompt: &str, mode: &str) -> AiResponse {
     let p_lower = prompt.to_lowercase();
     let tele = collect_system_telemetry().unwrap_or(SystemTelemetry {
-        os_name: "Ankora Linux 3.5".to_string(),
+        os_name: "Ankora Linux 3.6".to_string(),
         kernel: "Linux 6.1 (Devuan Daedalus)".to_string(),
         init_system: "SysVinit (systemd-free)".to_string(),
         memory_used_mb: 512,
@@ -2551,7 +2551,7 @@ fn build_local_ai_diagnostic_response(prompt: &str, mode: &str) -> AiResponse {
         let token = generate_agent_action_token(&cmd);
         return AiResponse {
             reply: format!(
-                "Ankora Linux 3.5 Canlı Sistem Raporu:\n• Sistem: {} ({})\n• Çekirdek: {}\n• CPU: {} Çekirdek (Yük: %{:.1})\n• RAM: {} MB / {} MB (%{})\n• Disk: {:.1} GB / {:.1} GB (%{})\n• Çalışma Süresi: {} dk\n\nAyrıntılı disk ve bellek çıktısı için aşağıdaki komutu onaylayabilirsiniz.",
+                "Ankora Linux 3.6 Canlı Sistem Raporu:\n• Sistem: {} ({})\n• Çekirdek: {}\n• CPU: {} Çekirdek (Yük: %{:.1})\n• RAM: {} MB / {} MB (%{})\n• Disk: {:.1} GB / {:.1} GB (%{})\n• Çalışma Süresi: {} dk\n\nAyrıntılı disk ve bellek çıktısı için aşağıdaki komutu onaylayabilirsiniz.",
                 tele.os_name, tele.init_system, tele.kernel, tele.cpu_cores, tele.cpu_percent, tele.memory_used_mb, tele.memory_total_mb, ram_pct, tele.disk_used_gb, tele.disk_total_gb, disk_pct, uptime_mins
             ),
             has_action: true,
@@ -2606,7 +2606,7 @@ async fn query_local_ai(
             t.os_name, t.kernel, t.init_system, t.memory_used_mb, t.memory_total_mb, t.cpu_cores, t.cpu_percent, t.disk_used_gb, t.disk_total_gb
         )
     } else {
-        "[Sistem Özeti: Ankora Linux 3.5 | Devuan Daedalus | SysVinit]".to_string()
+        "[Sistem Özeti: Ankora Linux 3.6 | Devuan Daedalus | SysVinit]".to_string()
     };
 
     let base_sys_prompt = match mode.as_str() {
