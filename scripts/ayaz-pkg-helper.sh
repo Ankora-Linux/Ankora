@@ -9,7 +9,7 @@ ACTION="${1:-}"
 PKG="${2:-}"
 
 if [[ -z "$ACTION" ]]; then
-    echo "[HATA] Kullanım: ayaz-pkg-helper <install|remove|vendor|mebcert|snapshot-create|snapshot-restore|snapshot-delete|set-timezone|set-keyboard|set-language|sync-ntp|drop-caches|usb-flash|usb-format> [argümanlar]" >&2
+    echo "[HATA] Kullanım: ayaz-pkg-helper <install|remove|vendor|mebcert|mebcert-remove|snapshot-create|snapshot-restore|snapshot-delete|set-timezone|set-keyboard|set-language|sync-ntp|drop-caches|usb-flash|usb-format> [argümanlar]" >&2
     exit 1
 fi
 
@@ -30,6 +30,21 @@ need_net_tools() {
         echo "[HATA] curl/gpg bulunamadı; resmi depo kurulumu yapılamıyor." >&2
         exit 6
     fi
+}
+
+# MEB sertifikası yalnız indirme + X.509 doğrulama yapar. Vendor depolarının
+# aksine gpg'ye ihtiyaç duymaz; okul ağında TLS denetimi henüz kurulmamışken
+# apt-get update başarısız olsa bile mevcut curl ile devam edebilmelidir.
+need_curl() {
+    if ! command -v curl >/dev/null 2>&1; then
+        /usr/bin/apt-get update -qq || true
+        /usr/bin/apt-get install -y --no-install-recommends curl >/dev/null 2>&1 || true
+    fi
+    if ! command -v curl >/dev/null 2>&1; then
+        echo "[HATA] curl bulunamadı; MEB sertifikası indirilemiyor." >&2
+        return 6
+    fi
+    return 0
 }
 
 vendor_brave() {
@@ -66,8 +81,41 @@ vendor_antigravity() {
 # ---------------------------------------------------------------------
 # MEB OKUL AĞI SERTİFİKASI (mebcert)
 # ---------------------------------------------------------------------
+# Chromium ailesi (Brave/Chrome/Chromium) Linux'ta NSS veritabanı olarak
+# ~/.pki/nssdb kullanır. Profil klasörlerine cert9.db yazmak işe yaramaz;
+# yalnız gerçek veritabanına dokunulur ve sahipliği kullanıcıya bırakılır.
+meb_inject_nss() {
+    local db="$1" user="$2" cert="$3"
+    command -v certutil >/dev/null 2>&1 || return 1
+    mkdir -p "$db" 2>/dev/null || return 1
+
+    if [[ ! -f "$db/cert9.db" && ! -f "$db/cert8.db" ]]; then
+        certutil -d "sql:$db" -N --empty-password >/dev/null 2>&1 || true
+    fi
+
+    # Eski "MEB" kaydı kalmışsa (süresi dolmuş/eski dosya) temizle.
+    certutil -d "sql:$db" -D -n "MEB" >/dev/null 2>&1 || true
+    local add_ok=1
+    certutil -d "sql:$db" -A -t "C,," -n "MEB" -i "$cert" >/dev/null 2>&1 || add_ok=0
+
+    # DB kök olarak oluşturulduysa sahipliği her durumda kullanıcıya bırak;
+    # aksi hâlde tarayıcı veritabanını açamaz.
+    if id "$user" >/dev/null 2>&1; then
+        chown "$user" "$(dirname "$db")" 2>/dev/null || true
+        chown "$user" "$db" 2>/dev/null || true
+        chown "$user" "$db/cert9.db" "$db/key4.db" "$db/pkcs11.txt" 2>/dev/null \
+            || chown -R "$user" "$db" 2>/dev/null || true
+    fi
+    return $add_ok
+}
+
 meb_install_cert() {
-    need_net_tools
+    need_curl || return $?
+    if ! command -v openssl >/dev/null 2>&1; then
+        echo "[HATA] openssl bulunamadı; sertifika doğrulanamıyor." >&2
+        return 6
+    fi
+
     local workdir cert_file
     workdir="$(mktemp -d /tmp/mebcert-XXXXXX)"
     cert_file="$workdir/meb.crt"
@@ -81,27 +129,26 @@ meb_install_cert() {
     local ok=0
     local u
     for u in "${urls[@]}"; do
+        # -k YOK: okul ağı sertifikayı henüz güvenmiyorsa HTTPS doğrulaması
+        # başarısız olur. Bu durumda kullanıcıya net hata verilir; doğrulama
+        # atlatılmaz.
         if curl -fsSL --retry 2 --max-time 60 -o "$cert_file" "$u" && [ -s "$cert_file" ]; then
             ok=1
             break
         fi
     done
     if [[ "$ok" != "1" ]]; then
-        echo "[HATA] MEB sertifikası resmi adresten indirilemedi (sertifika.meb.gov.tr)." >&2
+        echo "[HATA] MEB sertifikası resmi adresten indirilemedi (sertifika.meb.gov.tr). Ağ bağlantısını ve TLS denetimini kontrol edin." >&2
         return 6
     fi
 
     # DER gelirse PEM'e çevir; zaten PEM ise aynen kalır.
     if ! head -c 10 "$cert_file" | grep -q "BEGIN CERT"; then
-        if command -v openssl >/dev/null 2>&1 && openssl x509 -inform DER -in "$cert_file" -out "$workdir/meb.pem" 2>/dev/null; then
+        if openssl x509 -inform DER -in "$cert_file" -out "$workdir/meb.pem" 2>/dev/null; then
             cert_file="$workdir/meb.pem"
         fi
     fi
 
-    if ! command -v openssl >/dev/null 2>&1; then
-        echo "[HATA] openssl bulunamadı; sertifika doğrulanamıyor." >&2
-        return 6
-    fi
     local subject issuer
     subject="$(openssl x509 -in "$cert_file" -noout -subject 2>/dev/null || true)"
     issuer="$(openssl x509 -in "$cert_file" -noout -issuer 2>/dev/null || true)"
@@ -115,37 +162,21 @@ meb_install_cert() {
     fi
 
     # 1. Sistem deposu
+    mkdir -p /usr/local/share/ca-certificates
     cp -f "$cert_file" /usr/local/share/ca-certificates/meb-kok.crt
     chmod 0644 /usr/local/share/ca-certificates/meb-kok.crt
     /usr/sbin/update-ca-certificates >/dev/null 2>&1 || update-ca-certificates >/dev/null 2>&1 || true
 
-    # 2. Tarayıcı NSS veritabanları (Brave öncelikli)
+    # 2. Tarayıcı NSS veritabanları (her kullanıcı için ~/.pki/nssdb)
     local injected=0
     if command -v certutil >/dev/null 2>&1; then
-        local home
+        local home user
         for home in /home/* /root; do
             [ -d "$home" ] || continue
-            local user
             user="$(basename "$home")"
-            local db
-            mkdir -p "$home/.pki/nssdb" 2>/dev/null || true
-            for db in "$home/.pki/nssdb" \
-                      "$home/.config/BraveSoftware/Brave-Browser" \
-                      "$home/.config/google-chrome" \
-                      "$home/.config/chromium"; do
-                if certutil -d "sql:$db" -A -t "C,," -n "MEB" -i "$cert_file" 2>/dev/null \
-                   || certutil -d "$db" -A -t "C,," -n "MEB" -i "$cert_file" 2>/dev/null; then
-                    injected=1
-                    if id "$user" >/dev/null 2>&1; then
-                        chown -R "$user" "$db" 2>/dev/null || true
-                    fi
-                else
-                    certutil -d "sql:$db" -D -n "MEB" 2>/dev/null || true
-                    if certutil -d "sql:$db" -A -t "C,," -n "MEB" -i "$cert_file" 2>/dev/null; then
-                        injected=1
-                    fi
-                fi
-            done
+            if meb_inject_nss "$home/.pki/nssdb" "$user" "$cert_file"; then
+                injected=1
+            fi
         done
     else
         echo "[UYARI] certutil (libnss3-tools) yok; tarayıcı NSS kurulumu atlandı, sistem deposu kuruldu." >&2
@@ -155,7 +186,36 @@ meb_install_cert() {
     if [[ "$injected" == "1" ]]; then
         echo "[AYAZ] Brave/Chrome NSS veritabanlarına işlendi."
     else
-        echo "[AYAZ] Not: Brave profili bulunamadı; Brave ilk açılışta sistem deposunu kullanır."
+        echo "[AYAZ] Not: tarayıcı NSS deposuna yazılamadı; sistem deposu yine de geçerli."
+    fi
+    return 0
+}
+
+meb_remove_cert() {
+    local removed=0
+    if [[ -f /usr/local/share/ca-certificates/meb-kok.crt ]]; then
+        rm -f /usr/local/share/ca-certificates/meb-kok.crt
+        removed=1
+    fi
+    /usr/sbin/update-ca-certificates --fresh >/dev/null 2>&1 \
+        || update-ca-certificates --fresh >/dev/null 2>&1 \
+        || update-ca-certificates >/dev/null 2>&1 || true
+
+    if command -v certutil >/dev/null 2>&1; then
+        local home db
+        for home in /home/* /root; do
+            db="$home/.pki/nssdb"
+            [[ -d "$db" ]] || continue
+            if certutil -d "sql:$db" -D -n "MEB" >/dev/null 2>&1; then
+                removed=1
+            fi
+        done
+    fi
+
+    if [[ "$removed" == "1" ]]; then
+        echo "[AYAZ] MEB kök sertifikası sistemden ve tarayıcı NSS depolarından kaldırıldı."
+    else
+        echo "[AYAZ] Kaldırılacak MEB sertifikası kaydı bulunamadı."
     fi
     return 0
 }
@@ -434,6 +494,11 @@ if [[ "$ACTION" == "mebcert" ]]; then
     exit $?
 fi
 
+if [[ "$ACTION" == "mebcert-remove" ]]; then
+    meb_remove_cert
+    exit $?
+fi
+
 if [[ "$ACTION" == "snapshot-create" || "$ACTION" == "snapshot-restore" || "$ACTION" == "snapshot-delete" ]]; then
     run_snapshot_action "$ACTION" "$PKG"
     exit $?
@@ -516,7 +581,7 @@ case "$ACTION" in
         esac
         ;;
     *)
-        echo "[HATA] Bilinmeyen işlem: '$ACTION'. Kabul edilenler: install, remove, vendor, mebcert, snapshot-create, snapshot-restore, snapshot-delete, set-timezone, set-keyboard, set-language, sync-ntp, drop-caches, usb-flash, usb-format" >&2
+        echo "[HATA] Bilinmeyen işlem: '$ACTION'. Kabul edilenler: install, remove, vendor, mebcert, mebcert-remove, snapshot-create, snapshot-restore, snapshot-delete, set-timezone, set-keyboard, set-language, sync-ntp, drop-caches, usb-flash, usb-format" >&2
         exit 4
         ;;
 esac

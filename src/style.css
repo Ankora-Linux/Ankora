@@ -1776,11 +1776,13 @@ body.is-dragging button {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  flex-wrap: wrap;
+  gap: 8px 12px;
 }
 
 .store-search {
-  flex: 1;
+  flex: 1 1 220px;
+  min-width: 180px;
   max-width: 320px;
   background: var(--bg-base);
   border: 1px solid var(--border-medium);
@@ -1797,7 +1799,10 @@ body.is-dragging button {
 
 .store-nav {
   display: flex;
+  flex-wrap: wrap;
   gap: 4px;
+  flex: 1 1 auto;
+  justify-content: flex-end;
 }
 
 .store-filter-btn {
@@ -1825,8 +1830,10 @@ body.is-dragging button {
 .store-source-nav {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 6px;
-  margin-top: 8px;
+  flex-basis: 100%;
+  margin-top: 0;
 }
 
 .store-source-label {
@@ -1867,6 +1874,7 @@ body.is-dragging button {
 .store-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(255px, 1fr));
+  align-content: start;
   gap: 14px;
   padding-bottom: 14px;
 }
@@ -1876,6 +1884,8 @@ body.is-dragging button {
   display: flex;
   flex-direction: column;
   gap: 18px;
+  grid-column: 1 / -1;
+  min-width: 0;
 }
 .store-home-hero {
   display: flex;
@@ -10531,4 +10541,307 @@ html[data-iconset='nordic'] .ayaz-desktop-shortcut:hover .item-icon {
   .start-flyout .dynamic-start-grid { max-height: 34vh; }
   .pinned-app-card { padding: 6px 4px; }
   .pinned-icon-box { width: 30px; height: 30px; margin-bottom: 4px; }
+}
+
+/* ==========================================================================
+   ANKORA AI: EKRANI İZLE ÇERÇEVESİ, PLAN KARTI, DOSYA BIRAKMA, GÜNÜN PLANI
+   ========================================================================== */
+
+/* Ekran çevresinde akan dalgalı mavi çizgi. Tıklamaları engellemez. */
+.ai-watch-wave {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483000;
+  pointer-events: none;
+}
+.ai-watch-wave[hidden] {
+  display: none;
+}
+.ai-watch-wave-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.ai-watch-wave .wave-line {
+  fill: none;
+  stroke: #38bdf8;
+  stroke-width: 3;
+  vector-effect: non-scaling-stroke;
+  stroke-linecap: round;
+  stroke-dasharray: 16 10;
+  filter: drop-shadow(0 0 6px rgba(56, 189, 248, 0.9));
+  animation: ai-wave-flow 1.5s linear infinite;
+}
+.ai-watch-wave .wave-glow {
+  fill: none;
+  stroke: rgba(37, 99, 235, 0.55);
+  stroke-width: 11;
+  vector-effect: non-scaling-stroke;
+  filter: blur(7px);
+  animation: ai-wave-pulse 2.6s ease-in-out infinite;
+}
+@keyframes ai-wave-flow {
+  to { stroke-dashoffset: -52; }
+}
+@keyframes ai-wave-pulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.85; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ai-watch-wave .wave-line,
+  .ai-watch-wave .wave-glow {
+    animation: none;
+  }
+}
+body.theme-light .ai-watch-wave .wave-line,
+body.theme-arctic .ai-watch-wave .wave-line,
+body.theme-cinar .ai-watch-wave .wave-line,
+body.theme-meltem .ai-watch-wave .wave-line {
+  stroke: #2563eb;
+  filter: drop-shadow(0 0 5px rgba(37, 99, 235, 0.5));
+}
+body.theme-light .ai-watch-wave .wave-glow,
+body.theme-arctic .ai-watch-wave .wave-glow,
+body.theme-cinar .ai-watch-wave .wave-glow,
+body.theme-meltem .ai-watch-wave .wave-glow {
+  stroke: rgba(37, 99, 235, 0.35);
+}
+
+/* Görev çubuğundaki "Bak ve anlat" göz düğmesi. Açık temalarda koyu
+   maviye döner; hard-coded cyan beyaz panelde okunmaz. */
+.taskbar-pin-btn.ai-look-pin {
+  color: #38bdf8;
+}
+.taskbar-pin-btn.ai-look-pin:hover {
+  color: #7dd3fc;
+}
+body.theme-light .taskbar-pin-btn.ai-look-pin,
+body.theme-arctic .taskbar-pin-btn.ai-look-pin,
+body.theme-cinar .taskbar-pin-btn.ai-look-pin,
+body.theme-meltem .taskbar-pin-btn.ai-look-pin {
+  color: #0369a1;
+}
+body.theme-light .taskbar-pin-btn.ai-look-pin:hover,
+body.theme-arctic .taskbar-pin-btn.ai-look-pin:hover,
+body.theme-cinar .taskbar-pin-btn.ai-look-pin:hover,
+body.theme-meltem .taskbar-pin-btn.ai-look-pin:hover {
+  color: #075985;
+}
+
+/* Mini AI'ya dosya bırakma */
+.ai-mini-popover.drop-active {
+  outline: 2px dashed #38bdf8;
+  outline-offset: -5px;
+}
+.ai-mini-drop-overlay {
+  position: absolute;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: #e0f2fe;
+  background: rgba(8, 47, 73, 0.82);
+  backdrop-filter: blur(3px);
+  border-radius: 18px;
+  pointer-events: none;
+  z-index: 5;
+}
+.ai-mini-popover.drop-active .ai-mini-drop-overlay {
+  display: flex;
+}
+.ai-mini-file-card {
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 9px 10px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+}
+.ai-mini-file-name {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+.ai-mini-file-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.ai-mini-file-btn {
+  background: transparent;
+  border: 1px solid var(--border-medium);
+  color: var(--text-secondary);
+  font-size: 11px;
+  padding: 5px 9px;
+  border-radius: 7px;
+  cursor: pointer;
+}
+.ai-mini-file-btn:hover {
+  color: var(--text-primary);
+  border-color: var(--accent-active, #2563eb);
+}
+
+/* Çok adımlı plan kartı */
+.ai-plan-card {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  margin: 8px 0 4px 40px;
+  padding: 12px 14px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-medium);
+  border-radius: 12px;
+  max-width: min(640px, calc(100% - 40px));
+}
+.ai-plan-card > strong {
+  font-size: 12.5px;
+  color: var(--text-primary);
+}
+.ai-plan-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.ai-plan-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 9px;
+  background: var(--bg-surface);
+}
+.ai-plan-step.done {
+  border-color: rgba(16, 185, 129, 0.4);
+}
+.ai-plan-step.disabled {
+  opacity: 0.6;
+}
+.ai-plan-num {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-medium);
+}
+.ai-plan-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.ai-plan-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.ai-plan-detail {
+  font-size: 11px;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+.ai-plan-status {
+  font-size: 10.5px;
+  color: var(--text-muted);
+  max-width: 150px;
+  text-align: right;
+}
+.ai-plan-approve {
+  flex: none;
+}
+
+/* Takvim flyout'unda "Bugün Ne Var" özeti */
+.cal-today-section {
+  padding: 2px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.cal-today-count {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+.cal-today-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  max-height: 108px;
+  overflow-y: auto;
+}
+.cal-today-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 9px;
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 7px;
+}
+.cal-today-item > span:last-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.cal-today-item .cal-today-clock {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+  flex: none;
+}
+.cal-today-empty {
+  padding: 8px 0;
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+body.theme-light .cal-today-item {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(0, 0, 0, 0.07);
+}
+
+/* Günün Planı masaüstü widget'ı */
+.dw-day-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.dw-day-item {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  font-size: 11.5px;
+  color: var(--text-secondary);
+}
+.dw-day-item > span:last-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.dw-day-item .dw-day-clock {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.dw-day-empty {
+  font-size: 11.5px;
+  color: var(--text-muted);
 }

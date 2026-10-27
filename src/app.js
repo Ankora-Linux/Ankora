@@ -244,6 +244,9 @@
         case 'install_meb_certificate':
           throw new Error('MEB sertifikası için yerel sistem köprüsü gereklidir.');
 
+        case 'remove_meb_certificate':
+          throw new Error('MEB sertifikası kaldırma için yerel sistem köprüsü gereklidir.');
+
         case 'get_app_icon':
           return null;
 
@@ -2962,6 +2965,7 @@
       { id: 'flatpak-lutris', name: 'Lutris Açık Oyun Yöneticisi', flatpak: 'net.lutris.Lutris', desc: 'Tüm emülatör, Windows ve Linux oyunlarını tek çatıda toplayan kütüphane', cat: 'util', size: '95 MB', installed: false },
       { id: 'flatpak-onlyoffice', name: 'ONLYOFFICE Desktop Editors', flatpak: 'org.onlyoffice.desktopeditors', desc: 'Microsoft Office belgeleriyle %100 uyumlu modern ofis paketi', cat: 'office', size: '320 MB', installed: false },
       { id: 'flatpak-obsidian', name: 'Obsidian Not & Bilgi Tabanı', flatpak: 'md.obsidian.Obsidian', desc: 'Markdown tabanlı, bağlantılı ikinci beyin ve kişisel not bankası', cat: 'office', size: '130 MB', installed: false },
+      { id: 'flatpak-zoom', name: 'Zoom Video Konferans', flatpak: 'us.zoom.Zoom', desc: 'Ders, toplantı ve görüntülü görüşme için resmî Zoom masaüstü istemcisi', cat: 'net', size: '260 MB', installed: false },
 
       // 1. POPÜLER & TEMEL UYGULAMALAR (FLAGSHIP)
       { id: 'firefox-esr', name: 'Firefox ESR Web Tarayıcısı', deb: 'firefox-esr', desc: 'Mozilla güvenli, gizlilik odaklı ve hızlı web tarayıcısı', cat: 'net', size: '78 MB', featured: true, installed: false },
@@ -2996,7 +3000,7 @@
       { id: 'opencode-desktop', name: 'OpenCode Masaüstü (AI Kod Ajanı)', deb: '', extUrl: 'https://opencode.ai', desc: 'Terminal, masaüstü ve IDE eklentisi olarak çalışan açık kaynak yapay zekâ kod ajanı', cat: 'dev', size: 'Site', installed: false },
 
       // 1b. OKUL & EĞİTİM (sınıfta doğrudan işe yarar)
-      { id: 'meb-cert', name: 'MEB Okul Ağı Sertifikası', action: 'meb-cert', desc: 'Okul internetindeki güvenlik uyarılarını bitirir; resmi MEB adresinden indirip sisteme ve Brave profiline kurar', cat: 'net', size: '1 MB', featured: true, installed: false },
+      { id: 'meb-cert', name: 'MEB Okul Ağı Sertifikası', action: 'meb-cert', desc: 'Okul internetindeki güvenlik uyarılarını bitirir; resmi MEB adresinden indirip sistem ve tarayıcı güven deposuna kurar', cat: 'net', size: '1 MB', featured: true, installed: false },
       { id: 'scratch', name: 'Scratch 3 (Güncel Sürüm)', flatpak: 'org.scratch.Scratch', desc: 'Blok tabanlı kodlama ile oyun ve animasyon yapmayı öğreten güncel Scratch masaüstü sürümü', cat: 'dev', size: '180 MB', featured: true, installed: false },
       { id: 'gcompris', name: 'GCompris Eğitim Paketi', deb: 'gcompris', desc: '2-10 yaş için 100ü aşkın eğitsel etkinlik: okuma, matematik, fen ve bilgisayar kullanımı', cat: 'util', size: '95 MB', featured: true, installed: false },
       { id: 'tuxmath', name: 'TuxMath Matematik Oyunu', deb: 'tuxmath', desc: 'Dört işlemi arcade oyunuyla öğreten eğlenceli matematik alıştırması', cat: 'util', size: '18 MB', installed: false },
@@ -3370,7 +3374,7 @@
           ${pkg.extUrl ? `
             <button class="btn-pkg btn-pkg-site" id="btn-site-${pkg.id}">Resmî Site</button>
           ` : pkg.installed ? `
-            <button class="btn-pkg btn-pkg-open" id="btn-open-${pkg.id}">Aç</button>
+            ${pkg.action === 'meb-cert' ? '' : `<button class="btn-pkg btn-pkg-open" id="btn-open-${pkg.id}">Aç</button>`}
             <button class="btn-pkg installed" id="btn-pkg-${pkg.id}">Kaldır</button>
           ` : `
             <button class="btn-pkg" id="btn-pkg-${pkg.id}">Kur</button>
@@ -3447,9 +3451,20 @@
       // betik çalışır. Kaldırma, yalnızca yerel durumu sıfırlar.
       if (pkg.action === 'meb-cert') {
         if (pkg.installed) {
-          this.syncInstalledState(pkg.id, false);
-          this.saveInstalledState();
-          this.render(document.getElementById('store-search')?.value || '');
+          if (btn) { btn.disabled = true; btn.textContent = 'Kaldırılıyor...'; }
+          Terminal.log('[SİSTEM] MEB kök sertifikası sistemden ve tarayıcı depolarından kaldırılıyor...', 'cmd');
+          try {
+            const msg = await TauriBridge.invoke('remove_meb_certificate', {});
+            this.syncInstalledState(pkg.id, false);
+            this.saveInstalledState();
+            Terminal.log(`[BAŞARILI] ${msg || 'MEB sertifikası kaldırıldı.'}`, 'success');
+            ReportManager.showToast('MEB sertifikası kaldırıldı.');
+            this.render(document.getElementById('store-search')?.value || '');
+          } catch (err) {
+            if (btn) { btn.disabled = false; btn.textContent = 'Kaldır'; }
+            Terminal.log(`[ERR] MEB sertifika kaldırma hatası: ${err}`, 'error');
+            ReportManager.showToast(`Kaldırma hatası: ${err.message || err}`, 'error');
+          }
           return;
         }
         if (btn) { btn.disabled = true; btn.textContent = 'Kuruluyor...'; }
@@ -3459,7 +3474,7 @@
           this.syncInstalledState(pkg.id, true);
           this.saveInstalledState();
           Terminal.log(`[BAŞARILI] ${msg || 'MEB sertifikası kuruldu.'}`, 'success');
-          ReportManager.showToast('MEB sertifikası kuruldu; Brave hazır.');
+          ReportManager.showToast('MEB sertifikası kuruldu; tarayıcı güven deposu güncellendi.');
           this.render(document.getElementById('store-search')?.value || '');
         } catch (err) {
           if (btn) { btn.disabled = false; btn.textContent = 'Kur'; }
@@ -5900,6 +5915,7 @@
         screenToggle.addEventListener('change', () => {
           this.watchScreen = Boolean(screenToggle.checked);
           SafeStorage.setItem('ankora_ai_watch', this.watchScreen ? '1' : '0');
+          if (typeof window.syncAiMiniWatch === 'function') window.syncAiMiniWatch();
           if (this.watchScreen) {
             this.appendMsg('bot', 'Ekran izleme açıldı. Bundan sonra her soruda ekran karesi alınır ve bulut modeline gönderilir; kimseyle paylaşılırken önden ayrıca onay istenmez. Yerel Ollama metin modeli görüntüyü işleyemez.');
           }
@@ -6295,10 +6311,35 @@
       };
     },
 
-    async handleQuery(text) {
-      this.appendMsg('user', text);
+    async handleQuery(text, options = {}) {
+      const clean = String(text || '').trim();
+      if (!clean) return;
+      const display = String(options.displayText || clean);
+
+      // Doğal dil çok adımlı plan: "X'i kur ve saat 05'te ..." gibi
+      // istekler model yanıtından önce adım adım onay kartına dönüşür.
+      if (!options.skipPlan) {
+        const plan = this.buildPlan(clean);
+        if (plan) {
+          this.appendMsg('user', display);
+          this.renderPlanCard(plan);
+          return;
+        }
+      }
+
+      // Yerel TODO komutu: "TODO'ya süt al ekle", "görev ekle: raporu bitir".
+      // Model çağrısı yapılmaz; görev listesine doğrudan yazılır.
+      if (!options.skipPlan) {
+        const todoReply = this.tryAddTodo(clean);
+        if (todoReply) {
+          this.appendMsg('user', display);
+          this.appendMsg('bot', todoReply);
+          return;
+        }
+      }
+
+      this.appendMsg('user', display);
       const loadingEntry = this.showTyping();
-      this.mirror('user', text);
 
       let res = null;
       let teleContext = '';
@@ -6315,7 +6356,8 @@
       // görüntü işleyebilen bulut modellerine gönderilir.
       // Yerel Ollama yolu metin modeliyle sınırlıdır.
       let shotB64 = null;
-      if (this.watchScreen) {
+      if (this.watchScreen || options.forceShot) {
+        if (options.forceShot && !this.watchScreen) window.flashAiWatchWave?.();
         try {
           const shot = await TauriBridge.invoke('take_screenshot', {
             mode: 'fullscreen',
@@ -6331,7 +6373,7 @@
           }
         } catch (shotErr) {
           if (loadingEntry && loadingEntry.parentNode) loadingEntry.parentNode.removeChild(loadingEntry);
-          this.appendMsg('bot', `⚠ Ekran görüntüsü alınamadı: ${shotErr}\nEkran izleme demoda kapatıldı; sorgu görüntüsüz devam edecektir.`);
+          this.appendMsg('bot', `⚠ Ekran görüntüsü alınamadı: ${shotErr}\nEkran yakalama aracını (scrot) ve X11 oturumunu kontrol edin.`);
           return;
         }
         if (!this.activeKey && !['openai', 'gemini', 'openrouter'].includes(this.provider)) {
@@ -6563,6 +6605,394 @@
 
       this.feed.appendChild(card);
       this.feed.scrollTop = this.feed.scrollHeight;
+    },
+
+    // Tek tuş "Bak ve anlat": ekran karesini alıp ekrandaki hatayı/dialogu
+    // açıklar. Ekranı İzle tercihini kalıcı açmaz; yalnız bu sorgu için
+    // görüntü gönderir ve dalgalı çerçeveyi kısa süre gösterir.
+    lookAndTell() {
+      return this.handleQuery(
+        'Şu anki ekranımda ne kaymıyor? Ekrandaki hata mesajını, uyarı penceresini veya terminal çıktısını açıkla; nedenini ve adım adım çözümünü Türkçe anlat.',
+        { forceShot: true, flash: true, skipPlan: true }
+      );
+    },
+
+    // "TODO'ya X ekle" / "görev ekle: X" kalıbını yerelde yakalar.
+    // Zaman verilmişse görev saatine göre bugüne (geçtiyse yarına) yazılır.
+    tryAddTodo(text) {
+      const t = String(text || '').trim();
+      if (!t) return null;
+      if (!/(todo|yapılacak|görev)/i.test(t)) return null;
+      if (!/\bekle\b/i.test(t)) return null;
+
+      let label = t
+        .replace(/\b(todo|yapılacaklar|yapılacak|görevler|görev)(?:'?[a-zçğıöşü]+)?\b/gi, ' ')
+        .replace(/\b(listesine|listeme|listesini|listemize|listeye)\b/gi, ' ')
+        .replace(/\bekle\b/gi, ' ')
+        .replace(/^[\s,:;\-–]+|[\s,:;\-–]+$/g, '')
+        .replace(/\s{2,}/g, ' ')
+        .trim();
+      if (!label || label.length < 2) return null;
+
+      const now = new Date();
+      let at = null;
+      const withTime = label.match(/(?:saat\s*)?\b([01]?\d|2[0-3])[:.]([0-5]\d)\b/i);
+      if (withTime) {
+        const hh = parseInt(withTime[1], 10);
+        const mm = parseInt(withTime[2], 10);
+        at = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hh, mm, 0, 0);
+        if (at.getTime() <= now.getTime()) at.setDate(at.getDate() + 1);
+        const cleaned = label.replace(withTime[0], '').replace(/^[\s,:;\-–]+|[\s,:;\-–]+$/g, '').trim();
+        if (cleaned) label = cleaned;
+      }
+
+      const prefix = at
+        ? `${String(at.getHours()).padStart(2, '0')}:${String(at.getMinutes()).padStart(2, '0')} · `
+        : '';
+      const entry = { t: `${prefix}${label}`, done: false };
+      if (at) entry.at = at.toISOString();
+
+      if (typeof WidgetManager !== 'undefined' && WidgetManager.todoLoad) {
+        const items = WidgetManager.todoLoad();
+        items.push(entry);
+        WidgetManager.todoSave(items);
+        if (WidgetManager.todoRender) WidgetManager.todoRender();
+      } else {
+        try {
+          const items = JSON.parse(SafeStorage.getItem('ankora_todo_items') || '[]') || [];
+          items.push(entry);
+          SafeStorage.setItem('ankora_todo_items', JSON.stringify(items.slice(0, 30)));
+        } catch (e) {}
+      }
+      if (typeof window.refreshDayPlan === 'function') window.refreshDayPlan();
+      return at
+        ? `${label} görevi ${prefix.trim().replace(' ·', '')} için yapılacaklara eklendi.`
+        : `${label} yapılacaklara eklendi.`;
+    },
+
+    // Doğal dil planı: yalnız "kur/yükle" + ikinci bir adım (zaman, ve, sonra)
+    // birlikte geldiğinde devreye girer. Tek komutlar normal ajana gider.
+    buildPlan(text) {
+      const raw = String(text || '').trim();
+      const t = raw.toLowerCase();
+      if (!t || raw.length > 400) return null;
+      const hasInstall = /\b(kur|kurar|yükle|yükler|kurmak)\b/.test(t);
+      if (!hasInstall) return null;
+
+      const clauses = raw.split(/\bve\b|\bsonra\b|\bardından\b|,|;/i);
+      const steps = [];
+      const seenPkgs = new Set();
+
+      clauses.forEach((clause) => {
+        if (!/\b(kur|kurar|yükle|yükler|kurmak)\b/i.test(clause)) return;
+        if (typeof StoreManager === 'undefined' || !Array.isArray(StoreManager.packages)) return;
+        const m = clause.match(/([A-Za-zÇĞİÖŞÜçğıöşü0-9][A-Za-zÇĞİÖŞÜçğıöşü0-9 .&+-]{0,30}?)(?:['’][A-Za-zÇĞİÖŞÜçğıöşü]+)?\s*(?:kur|yükle)/i);
+        const target = m ? m[1].trim().toLowerCase()
+          .replace(/\b(uygulamasını|uygulamasini|programını|programini|paketini)\b/g, '')
+          .trim() : '';
+        if (!target) return;
+        const pkg = StoreManager.packages.find((p) => {
+          if (!p.flatpak && !p.deb && p.action !== 'meb-cert') return false;
+          const n = p.name.toLowerCase();
+          return n.startsWith(target) || n.includes(target)
+            || p.id === target
+            || (p.deb && p.deb.toLowerCase() === target)
+            || (p.flatpak && p.flatpak.toLowerCase() === target);
+        });
+        if (pkg && seenPkgs.has(pkg.id)) return;
+        if (pkg) seenPkgs.add(pkg.id);
+        steps.push({
+          kind: 'install',
+          title: pkg ? `${pkg.name} kurulumu` : `"${m[1].trim()}" kurulumu`,
+          detail: pkg
+            ? (pkg.action === 'meb-cert'
+                ? 'Sistem sertifikası · MEB'
+                : (pkg.flatpak ? `Flatpak · ${pkg.flatpak}` : `APT · ${pkg.deb || pkg.id}`))
+            : 'Mağazada eşleşen paket bulunamadı',
+          pkg: pkg || null,
+          ready: Boolean(pkg)
+        });
+      });
+
+      // Zaman: "05:00", "05.00", "05'te", "saat 5"
+      const timeMatch =
+        raw.match(/\b(?:saat\s*)?([01]?\d|2[0-3])\s*[:.]\s*([0-5]\d)\b/) ||
+        raw.match(/\b([01]?\d|2[0-3])\s*['’]\s*te\b/i) ||
+        raw.match(/\bsaat\s*([01]?\d|2[0-3])\b/i);
+      if (timeMatch) {
+        const hh = parseInt(timeMatch[1], 10);
+        const mm = parseInt(timeMatch[2] || '0', 10);
+        let label = raw.slice((timeMatch.index || 0) + timeMatch[0].length);
+        label = label
+          .replace(/\b(bana\s+)?(söyle|soyle|bildir|haber\s+ver)\b/gi, '')
+          .replace(/\b(yapıp|yapip|yap|etsin|et)\b/gi, '')
+          .replace(/^[\s,.;:]+|[\s,.;:]+$/g, '')
+          .trim();
+        if (!label) label = 'Planlı hatırlatma';
+        steps.push({
+          kind: 'remind',
+          title: `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')} hatırlatıcısı`,
+          detail: label,
+          when: { hh, mm },
+          ready: true
+        });
+      }
+
+      if (steps.length < 2) return null;
+      return { text: raw, steps };
+    },
+
+    renderPlanCard(plan) {
+      if (!this.feed || !plan) return;
+
+      // Plan kartı tam sohbet akışında yaşar; mini balondan tetiklendiyse
+      // kullanıcı adımları görebilsin diye AI penceresi açılır.
+      const aiWin = document.getElementById('win-ai');
+      if (!aiWin || !aiWin.classList.contains('open')) {
+        if (typeof WindowManager !== 'undefined' && WindowManager.open) {
+          WindowManager.open('win-ai');
+        }
+        if (typeof window.toggleAiMiniChat === 'function') window.toggleAiMiniChat(false);
+      }
+
+      const card = document.createElement('div');
+      card.className = 'ai-plan-card';
+
+      const title = document.createElement('strong');
+      title.textContent = `Çok adımlı plan · ${plan.steps.length} adım`;
+      const hint = document.createElement('span');
+      hint.className = 'ai-plan-hint';
+      hint.textContent = 'Her adımı ayrı onayla; sıradaki adım ancak önceki bitince açılır.';
+      card.appendChild(title);
+      card.appendChild(hint);
+
+      const rows = [];
+      plan.steps.forEach((step, idx) => {
+        const row = document.createElement('div');
+        row.className = 'ai-plan-step' + (step.ready ? '' : ' disabled');
+
+        const num = document.createElement('span');
+        num.className = 'ai-plan-num';
+        num.textContent = String(idx + 1);
+
+        const body = document.createElement('div');
+        body.className = 'ai-plan-body';
+        const name = document.createElement('span');
+        name.className = 'ai-plan-title';
+        name.textContent = step.title;
+        const detail = document.createElement('span');
+        detail.className = 'ai-plan-detail';
+        detail.textContent = step.detail;
+        body.appendChild(name);
+        body.appendChild(detail);
+
+        const status = document.createElement('span');
+        status.className = 'ai-plan-status';
+
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'btn-pkg ai-plan-approve';
+        btn.textContent = 'Onayla';
+        btn.disabled = true;
+
+        row.appendChild(num);
+        row.appendChild(body);
+        row.appendChild(status);
+        row.appendChild(btn);
+        card.appendChild(row);
+        rows.push({ row, btn, status, step });
+      });
+
+      this.feed.appendChild(card);
+      this.feed.scrollTop = this.feed.scrollHeight;
+
+      const unlock = (start = 0) => {
+        for (let i = start; i < rows.length; i++) {
+          if (rows[i].btn.dataset.done === '1') continue;
+          rows[i].btn.disabled = !rows[i].step.ready;
+          return;
+        }
+      };
+      unlock(0);
+
+      rows.forEach((entry, idx) => {
+        entry.btn.addEventListener('click', async () => {
+          if (entry.btn.dataset.done === '1') return;
+          entry.btn.disabled = true;
+          entry.btn.textContent = 'Çalışıyor...';
+          try {
+            const msg = await this.executePlanStep(entry.step);
+            entry.btn.dataset.done = '1';
+            entry.btn.textContent = '✓ Tamam';
+            entry.row.classList.add('done');
+            entry.status.textContent = msg;
+            this.mirrorInfo(`✓ ${entry.step.title}: ${msg}`);
+            unlock(idx + 1);
+          } catch (err) {
+            entry.btn.disabled = false;
+            entry.btn.textContent = 'Yeniden Dene';
+            entry.status.textContent = `Hata: ${err.message || err}`;
+            this.mirrorInfo(`✕ ${entry.step.title}: ${err.message || err}`);
+          }
+        });
+      });
+
+      this.mirrorInfo(`Plan hazır: ${plan.steps.map(s => s.title).join(' → ')}`);
+    },
+
+    async executePlanStep(step) {
+      if (step.kind === 'install') {
+        if (!step.pkg) throw new Error('Mağazada eşleşen paket yok');
+        if (step.pkg.installed) return 'zaten kurulu';
+        if (typeof StoreManager === 'undefined' || !StoreManager.togglePackage) {
+          throw new Error('Mağaza yöneticisi kullanılamıyor');
+        }
+        await StoreManager.togglePackage(step.pkg);
+        if (!step.pkg.installed) throw new Error('kurulum tamamlanmadı');
+        if (typeof StoreManager.saveInstalledState === 'function') StoreManager.saveInstalledState();
+        return 'kuruldu';
+      }
+      if (step.kind === 'remind') {
+        return this.scheduleReminder(step.when, step.detail);
+      }
+      return 'atlandı';
+    },
+
+    scheduleReminder(when, label) {
+      const now = new Date();
+      const hh = when && Number.isFinite(when.hh) ? when.hh : 9;
+      const mm = when && Number.isFinite(when.mm) ? when.mm : 0;
+      const target = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hh, mm, 0, 0);
+      if (target.getTime() <= now.getTime()) target.setDate(target.getDate() + 1);
+
+      const clock = `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
+      const entry = {
+        t: `${clock} · ${label}`,
+        done: false,
+        at: target.toISOString()
+      };
+
+      if (typeof WidgetManager !== 'undefined' && WidgetManager.todoLoad) {
+        const items = WidgetManager.todoLoad();
+        items.push(entry);
+        WidgetManager.todoSave(items);
+        if (WidgetManager.todoRender) WidgetManager.todoRender();
+      } else {
+        try {
+          const items = JSON.parse(SafeStorage.getItem('ankora_todo_items') || '[]') || [];
+          items.push(entry);
+          SafeStorage.setItem('ankora_todo_items', JSON.stringify(items.slice(0, 30)));
+        } catch (e) {}
+      }
+      if (typeof window.refreshDayPlan === 'function') window.refreshDayPlan();
+
+      const delay = target.getTime() - now.getTime();
+      if (delay > 0 && delay <= 24 * 60 * 60 * 1000) {
+        setTimeout(() => {
+          ReportManager?.showToast(`⏰ Hatırlatıcı: ${label}`);
+          this.appendMsg('bot', `⏰ Hatırlatıcı zamanı: ${label} (${clock})`);
+          if (typeof window.refreshDayPlan === 'function') window.refreshDayPlan();
+        }, delay);
+      }
+      return `${clock} için görev listesine eklendi`;
+    },
+
+    // Mini balona sürüklenen dosya: metin tabanlıysa içerik okunur ve
+    // "özetle / XML'e çevir / düzenini düzelt" seçenekleri sunulur.
+    bindFileDrop(el) {
+      if (!el || el.dataset.dropBound === '1') return;
+      el.dataset.dropBound = '1';
+      let depth = 0;
+
+      el.addEventListener('dragenter', (e) => {
+        e.preventDefault();
+        depth++;
+        el.classList.add('drop-active');
+        this.mirrorInfo('Dosyayı bırak: özetle, XML\'e çevir veya düzenini düzelt.');
+      });
+      el.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
+      });
+      el.addEventListener('dragleave', () => {
+        depth = Math.max(0, depth - 1);
+        if (depth === 0) el.classList.remove('drop-active');
+      });
+      el.addEventListener('drop', async (e) => {
+        e.preventDefault();
+        depth = 0;
+        el.classList.remove('drop-active');
+        const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+        if (!file) return;
+        try {
+          await this.handleDroppedFile(file);
+        } catch (err) {
+          this.mirrorInfo(`Dosya işlenemedi: ${err.message || err}`);
+          ReportManager?.showToast(`Dosya işlenemedi: ${err.message || err}`, 'error');
+        }
+      });
+    },
+
+    async handleDroppedFile(file) {
+      const name = file.name || 'dosya';
+      const ext = (name.split('.').pop() || '').toLowerCase();
+      const textExts = ['txt', 'md', 'xml', 'json', 'yaml', 'yml', 'ini', 'conf', 'log', 'js', 'css', 'html', 'htm', 'py', 'sh', 'csv', 'ts', 'rs'];
+      if (!textExts.includes(ext)) {
+        this.mirrorInfo(`${name}: yalnız metin dosyaları (${textExts.join(', ')}) özetlenebilir.`);
+        ReportManager?.showToast('Bu dosya türü metin olarak okunamıyor.', 'error');
+        return;
+      }
+      if (file.size > 2 * 1024 * 1024) {
+        this.mirrorInfo(`${name}: dosya 2 MB'dan büyük, özet için çok büyük.`);
+        return;
+      }
+
+      const text = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ''));
+        reader.onerror = () => reject(reader.error || new Error('Dosya okunamadı'));
+        reader.readAsText(file);
+      });
+
+      const clipped = text.length > 14000 ? `${text.slice(0, 14000)}\n\n[... kısaltıldı ...]` : text;
+      this.showFileActions(name, clipped, file.size);
+      this.mirrorInfo(`📄 ${name} hazır · ${Math.max(1, Math.round(file.size / 1024))} KB`);
+    },
+
+    showFileActions(name, content, size) {
+      if (!this.miniFeed) return;
+      const card = document.createElement('div');
+      card.className = 'ai-mini-file-card';
+      const head = document.createElement('span');
+      head.className = 'ai-mini-file-name';
+      head.textContent = `📄 ${name} · ${Math.max(1, Math.round(size / 1024))} KB`;
+      card.appendChild(head);
+
+      const makePrompt = (instruction) => `Aşağıdaki dosyanın adı "${name}". ${instruction}\n\n\`\`\`\n${content}\n\`\`\``;
+      const actions = [
+        ['Özetle', 'İçeriğini Türkçe, kısa ve madde madde özetle.'],
+        ["XML'e çevir", 'İçeriğin yapısını koruyarak geçerli ve okunaklı bir XML belgesine dönüştür. Yalnız XML çıktısı ver.'],
+        ['Düzenini düzelt', 'Biçimlendirmesini/boşluklarını düzelt, hatalı yapıları düzenle ve düzeltilmiş tam metni ver.']
+      ];
+      const row = document.createElement('div');
+      row.className = 'ai-mini-file-actions';
+      actions.forEach(([label, instruction]) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'ai-mini-file-btn';
+        btn.textContent = label;
+        btn.addEventListener('click', () => {
+          card.remove();
+          this.handleQuery(makePrompt(instruction), {
+            skipPlan: true,
+            displayText: `📄 ${name} → ${label}`
+          });
+        });
+        row.appendChild(btn);
+      });
+      card.appendChild(row);
+      this.miniFeed.appendChild(card);
+      this.miniFeed.scrollTop = this.miniFeed.scrollHeight;
     },
 
     promptSecurityConfirm(cmd, desc, token) {
@@ -8745,15 +9175,41 @@
       if (winToggle) winToggle.checked = AIAgent.watchScreen;
     };
 
+    // Ekranı İzle açıkken ekranın çevresinde akan dalgalı mavi çizgi.
+    // Tek tuş "Bak ve anlat" ise yalnız kısa süre yanıp söner.
+    let aiWaveTimer = 0;
+    window.setAiWatchWave = (on) => {
+      const wave = document.getElementById('ai-watch-wave');
+      if (!wave) return;
+      if (on) {
+        if (aiWaveTimer) { clearTimeout(aiWaveTimer); aiWaveTimer = 0; }
+        wave.hidden = false;
+      } else if (!AIAgent.watchScreen) {
+        wave.hidden = true;
+      }
+    };
+    window.flashAiWatchWave = (ms = 2600) => {
+      const wave = document.getElementById('ai-watch-wave');
+      if (!wave) return;
+      if (aiWaveTimer) clearTimeout(aiWaveTimer);
+      wave.hidden = false;
+      aiWaveTimer = setTimeout(() => {
+        aiWaveTimer = 0;
+        if (!AIAgent.watchScreen) wave.hidden = true;
+      }, ms);
+    };
+
     // Mini balondaki "İzle" düğmesi, tam penceredeki anahtarla aynı
     // ankora_ai_watch tercihini paylaşır; ikisi hep senkron çalışır.
     window.syncAiMiniWatch = () => {
       const btn = document.getElementById('ai-mini-screen-toggle');
-      if (!btn) return;
-      btn.classList.toggle('active', AIAgent.watchScreen);
-      btn.setAttribute('aria-pressed', AIAgent.watchScreen ? 'true' : 'false');
+      if (btn) {
+        btn.classList.toggle('active', AIAgent.watchScreen);
+        btn.setAttribute('aria-pressed', AIAgent.watchScreen ? 'true' : 'false');
+      }
       const status = document.getElementById('ai-mini-status');
       if (status) status.textContent = AIAgent.watchScreen ? 'Hazır · Ekranda İzliyor' : 'Hazır';
+      window.setAiWatchWave(AIAgent.watchScreen);
     };
 
     if (aiMiniBtn && aiMiniFlyout) {
@@ -8775,6 +9231,19 @@
         e.stopPropagation();
         window.toggleAiMiniChat();
       });
+
+      // Sürükle-bırak: dosyayı mini balona bırak → özetle / XML / düzenle.
+      AIAgent.bindFileDrop(aiMiniFlyout);
+
+      // Görev çubuğundaki göz düğmesi: tek tuş "Bak ve anlat".
+      const aiLookBtn = document.getElementById('quick-ai-look-btn');
+      if (aiLookBtn) {
+        aiLookBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          window.toggleAiMiniChat(true);
+          AIAgent.lookAndTell();
+        });
+      }
 
       document.addEventListener('click', (e) => {
         if (!aiMiniFlyout.classList.contains('open')) return;
@@ -8958,7 +9427,10 @@
       const isOpen = typeof forceState === 'boolean' ? forceState : !calFlyout.classList.contains('open');
       calFlyout.classList.toggle('open', isOpen);
       if (isOpen && qsFlyout) qsFlyout.classList.remove('open');
-      if (isOpen) renderCalendar();
+      if (isOpen) {
+        renderCalendar();
+        renderTodayPlan();
+      }
     };
 
     let calYear = new Date().getFullYear();
@@ -9006,6 +9478,77 @@
         d.textContent = String(day);
         grid.appendChild(d);
       }
+    };
+
+    // "Bugün Ne Var": TODO widget'ındaki açık görevler + varsa saatleri.
+    // Takvim açıldığında ve görevler değiştiğinde tazelenir.
+    const renderTodayPlan = () => {
+      const list = document.getElementById('cal-today-list');
+      const count = document.getElementById('cal-today-count');
+      if (!list) return;
+
+      let items = [];
+      try {
+        items = JSON.parse(SafeStorage.getItem('ankora_todo_items') || '[]') || [];
+      } catch (e) { items = []; }
+
+      const now = new Date();
+      const sameDay = (d) => d && !isNaN(d.getTime())
+        && d.getFullYear() === now.getFullYear()
+        && d.getMonth() === now.getMonth()
+        && d.getDate() === now.getDate();
+
+      const open = items.filter(it => !it.done).map(it => {
+        const text = String(it.t || '');
+        const at = it.at ? new Date(it.at) : null;
+        let clock = '';
+        if (at && !isNaN(at.getTime())) {
+          clock = `${String(at.getHours()).padStart(2, '0')}:${String(at.getMinutes()).padStart(2, '0')}`;
+        } else {
+          const m = text.match(/^(\d{1,2}:\d{2})\s*·?/);
+          if (m) clock = m[1];
+        }
+        return { text, clock, at };
+      }).filter(it => !it.at || sameDay(it.at));
+
+      open.sort((a, b) => {
+        if (a.clock && b.clock) return a.clock.localeCompare(b.clock);
+        if (a.clock) return -1;
+        if (b.clock) return 1;
+        return a.text.localeCompare(b.text, 'tr');
+      });
+
+      list.textContent = '';
+      if (!open.length) {
+        const empty = document.createElement('div');
+        empty.className = 'cal-today-empty';
+        empty.textContent = 'Bugün için açık görev yok.';
+        list.appendChild(empty);
+      } else {
+        open.slice(0, 8).forEach(it => {
+          const row = document.createElement('div');
+          row.className = 'cal-today-item';
+          if (it.clock) {
+            const clock = document.createElement('span');
+            clock.className = 'cal-today-clock';
+            clock.textContent = it.clock;
+            row.appendChild(clock);
+          }
+          const label = document.createElement('span');
+          label.textContent = it.text.replace(/^\d{1,2}:\d{2}\s*·?\s*/, '') || it.text;
+          row.appendChild(label);
+          list.appendChild(row);
+        });
+      }
+      if (count) count.textContent = open.length ? `${open.length} açık` : 'temiz';
+    };
+    window.refreshDayPlan = () => {
+      try {
+        renderTodayPlan();
+        if (typeof WidgetManager !== 'undefined' && WidgetManager.paintDayPlan) {
+          WidgetManager.paintDayPlan();
+        }
+      } catch (e) {}
     };
 
     const calPrev = document.getElementById('cal-prev-month');
@@ -11389,6 +11932,8 @@
         this.isLocked = true;
         this.updateClock();
         this.showOverlay();
+        const watchWave = document.getElementById('ai-watch-wave');
+        if (watchWave) watchWave.hidden = true;
         try {
           TauriBridge.invoke('set_desktop_layer', { above: true }).catch(() => {});
         } catch (e) {}
@@ -11418,6 +11963,7 @@
         if (ok) {
           this.isLocked = false;
           this.hideOverlay();
+          if (typeof window.syncAiMiniWatch === 'function') window.syncAiMiniWatch();
           try {
             TauriBridge.invoke('set_desktop_layer', { above: false }).catch(() => {});
           } catch (e) {}
@@ -11753,6 +12299,11 @@
         id: 'mini-cal',
         title: 'Mini Takvim',
         hint: 'Bu ayın günleri, bugün vurgulu'
+      },
+      {
+        id: 'dayplan',
+        title: 'Günün Planı',
+        hint: 'Bugünün açık görevleri ve saatleri'
       }
     ],
 
@@ -11921,6 +12472,11 @@
         return wrap;
       }
 
+      if (id === 'dayplan') {
+        this.buildDayPlan(wrap);
+        return wrap;
+      }
+
       // distro
       wrap.appendChild(this.make('div', 'dw-head', null, 'Sistem'));
       const meta = document.createElement('div');
@@ -11999,6 +12555,7 @@
 
     todoSave(items) {
       SafeStorage.setItem(this.TODO_KEY, JSON.stringify(items.slice(0, 30)));
+      if (typeof window.refreshDayPlan === 'function') window.refreshDayPlan();
     },
 
     todoAdd(input) {
@@ -12042,6 +12599,65 @@
         li.appendChild(box);
         li.appendChild(label);
         li.appendChild(del);
+        list.appendChild(li);
+      });
+    },
+
+    buildDayPlan(wrap) {
+      wrap.appendChild(this.make('div', 'dw-head', null, 'Günün Planı'));
+      const now = new Date();
+      wrap.appendChild(this.make('div', 'dw-sub', 'dw-day-date',
+        now.toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long' })));
+      const list = this.make('ul', 'dw-day-list', 'dw-day-list');
+      wrap.appendChild(list);
+      this.paintDayPlan(list);
+    },
+
+    paintDayPlan(root) {
+      const list = root || document.getElementById('dw-day-list');
+      if (!list) return;
+      const now = new Date();
+      const sameDay = (d) => d && !isNaN(d.getTime())
+        && d.getFullYear() === now.getFullYear()
+        && d.getMonth() === now.getMonth()
+        && d.getDate() === now.getDate();
+
+      const open = this.todoLoad().filter(it => !it.done).map(it => {
+        const text = String(it.t || '');
+        const at = it.at ? new Date(it.at) : null;
+        let clock = '';
+        if (at && !isNaN(at.getTime())) {
+          clock = `${String(at.getHours()).padStart(2, '0')}:${String(at.getMinutes()).padStart(2, '0')}`;
+        } else {
+          const m = text.match(/^(\d{1,2}:\d{2})\s*·?/);
+          if (m) clock = m[1];
+        }
+        return { text, clock, at };
+      }).filter(it => !it.at || sameDay(it.at));
+
+      open.sort((a, b) => {
+        if (a.clock && b.clock) return a.clock.localeCompare(b.clock);
+        if (a.clock) return -1;
+        if (b.clock) return 1;
+        return a.text.localeCompare(b.text, 'tr');
+      });
+
+      list.textContent = '';
+      if (!open.length) {
+        const empty = this.make('li', 'dw-day-empty', null, 'Bugün açık görev yok.');
+        list.appendChild(empty);
+        return;
+      }
+      open.slice(0, 6).forEach(it => {
+        const li = document.createElement('li');
+        li.className = 'dw-day-item';
+        if (it.clock) {
+          const clock = this.make('span', 'dw-day-clock', null, it.clock);
+          li.appendChild(clock);
+        }
+        const label = this.make('span', null, null,
+          it.text.replace(/^\d{1,2}:\d{2}\s*·?\s*/, '') || it.text);
+        li.appendChild(label);
         list.appendChild(li);
       });
     },

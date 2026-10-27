@@ -1691,7 +1691,31 @@ def execute_ayaz_command(cmd, args):
             if not err:
                 err = f'çıkış kodu {proc.returncode}'
             raise Exception(f'MEB sertifikası kurulamadı: {err}')
-        return 'MEB kök sertifikası sisteme ve Brave/Chrome profillerine kuruldu.'
+        return 'MEB kök sertifikası sisteme ve tarayıcı NSS deposuna kuruldu.'
+
+    elif cmd == 'remove_meb_certificate':
+        # Kaldırma da yalnız root-owned yardımcı üzerinden yapılır; arayüz
+        # dosya yolu veya komut göndermez.
+        helper = '/usr/local/bin/ayaz-pkg-helper'
+        if not os.path.exists(helper):
+            raise Exception('Güvenlik: ayaz-pkg-helper bulunamadı; MEB sertifikası kaldırılamaz')
+        try:
+            proc = subprocess.run(
+                ['sudo', helper, 'mebcert-remove'],
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                timeout=180
+            )
+        except subprocess.TimeoutExpired:
+            raise Exception('MEB sertifika kaldırma zaman aşımına uğradı (180 sn)')
+        if proc.returncode != 0:
+            err = (proc.stderr or proc.stdout or '').strip()
+            if not err:
+                err = f'çıkış kodu {proc.returncode}'
+            raise Exception(f'MEB sertifikası kaldırılamadı: {err}')
+        return 'MEB kök sertifikası sistemden ve tarayıcı depolarından kaldırıldı.'
 
     elif cmd == 'get_xdg_user_dirs':
         # Gerçek XDG kullanıcı dizinleri (~/.config/user-dirs.dirs öncelikli).
@@ -4690,6 +4714,7 @@ exit 0
                     p_res = _root_run(['dd', f'if={iso_path}', f'of={target_device}', 'bs=4M', 'status=none', 'conv=fsync'], timeout=1800)
                     rc = p_res.returncode
                     subprocess.run(['sync'])
+                if rc == 0:
                     with open(progress_file, 'w') as f:
                         f.write('100.0:done:ISO başarıyla USB belleğe yazdırıldı!')
                 else:

@@ -1436,12 +1436,48 @@ fn install_meb_certificate_blocking() -> Result<String, String> {
             let msg = if err.trim().is_empty() { out } else { err };
             return Err(format!("MEB sertifikası kurulamadı: {}", msg.trim()));
         }
-        Ok("MEB kök sertifikası sisteme ve Brave/Chrome profillerine kuruldu.".to_string())
+        Ok("MEB kök sertifikası sisteme ve tarayıcı NSS deposuna kuruldu.".to_string())
     }
 
     #[cfg(not(target_os = "linux"))]
     {
         Err("Bu platformda MEB sertifika kurulumu desteklenmez.".to_string())
+    }
+}
+
+#[tauri::command]
+async fn remove_meb_certificate() -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(remove_meb_certificate_blocking)
+        .await
+        .map_err(|e| format!("MEB sertifika kaldırma yürütülemedi: {}", e))?
+}
+
+fn remove_meb_certificate_blocking() -> Result<String, String> {
+    #[cfg(target_os = "linux")]
+    {
+        let helper = Path::new("/usr/local/bin/ayaz-pkg-helper");
+        if !helper.exists() {
+            return Err(
+                "Güvenlik İlkesi: MEB sertifikası yalnızca ayaz-pkg-helper üzerinden kaldırılabilir."
+                    .to_string(),
+            );
+        }
+        let res = match root_command("/usr/local/bin/ayaz-pkg-helper", &["mebcert-remove"]) {
+            Ok(o) => o,
+            Err(e) => return Err(format!("Paket yardımcısı çalıştırılamadı: {}", e)),
+        };
+        if !res.status.success() {
+            let err = String::from_utf8_lossy(&res.stderr);
+            let out = String::from_utf8_lossy(&res.stdout);
+            let msg = if err.trim().is_empty() { out } else { err };
+            return Err(format!("MEB sertifikası kaldırılamadı: {}", msg.trim()));
+        }
+        Ok("MEB kök sertifikası sistemden ve tarayıcı depolarından kaldırıldı.".to_string())
+    }
+
+    #[cfg(not(target_os = "linux"))]
+    {
+        Err("Bu platformda MEB sertifika kaldırma desteklenmez.".to_string())
     }
 }
 
@@ -9239,6 +9275,7 @@ fn main() {
             install_deb_package,
             install_vendor_package,
             install_meb_certificate,
+            remove_meb_certificate,
             get_xdg_user_dirs,
             get_app_icon,
             remove_deb_package,

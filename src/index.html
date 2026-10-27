@@ -3034,6 +3034,9 @@
         <button class="taskbar-pin-btn" id="quick-ai-btn" title="Ankora AI Asistanı">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:17px;height:17px;"><rect x="3" y="11" width="18" height="10" rx="2"></rect><circle cx="12" cy="5" r="2"></circle><path d="M12 7v4M8 16h.01M16 16h.01"></path></svg>
         </button>
+        <button class="taskbar-pin-btn ai-look-pin" id="quick-ai-look-btn" aria-label="Bak ve anlat" title="Bak ve anlat: ekranımda ne kaymıyor? (ekranı incele, hatayı açıkla)">
+          <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:17px;height:17px;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+        </button>
         <button class="taskbar-pin-btn" id="quick-calc-btn" title="Hesap Makinesi">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:17px;height:17px;"><rect x="4" y="2" width="16" height="20" rx="2"></rect><line x1="8" y1="6" x2="16" y2="6"></line><line x1="16" y1="14" x2="16" y2="18"></line><path d="M16 10h.01M12 10h.01M8 10h.01M12 14h.01M8 14h.01M12 18h.01M8 18h.01"></path></svg>
         </button>
@@ -3098,6 +3101,7 @@
       <button class="ai-mini-tool-btn" id="btn-ai-mini-expand" title="Tam pencereyi aç">Pencere</button>
     </div>
     <div class="ai-mini-feed" id="ai-mini-feed"></div>
+    <div class="ai-mini-drop-overlay" aria-hidden="true">Dosyayı bırak · özetle / XML'e çevir / düzenini düzelt</div>
     <div class="ai-mini-input-row">
       <input type="text" id="ai-mini-input" placeholder="Ajana sorun..." aria-label="Ankora AI mesaj">
       <button class="ai-mini-send-btn" id="btn-ai-mini-send" title="Gönder" aria-label="Gönder">
@@ -3237,6 +3241,16 @@
       <span class="cal-day-name">Cu</span>
       <span class="cal-day-name">Ct</span>
       <span class="cal-day-name">Pz</span>
+    </div>
+
+    <div class="cal-today-section">
+      <div class="cal-notif-header">
+        <span>Bugün Ne Var</span>
+        <span class="cal-today-count" id="cal-today-count"></span>
+      </div>
+      <div class="cal-today-list" id="cal-today-list">
+        <div class="cal-today-empty">Bugün için açık görev yok.</div>
+      </div>
     </div>
 
     <div class="cal-notifications-section">
@@ -3525,6 +3539,14 @@
         </div>
       </div>
     </div>
+  </div>
+
+  <!-- Ekranı İzle / Bak ve anlat: ekranın çevresinde akan dalgalı mavi çizgi -->
+  <div class="ai-watch-wave" id="ai-watch-wave" aria-hidden="true" hidden>
+    <svg class="ai-watch-wave-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
+      <rect class="wave-glow" x="0.7" y="0.7" width="98.6" height="98.6" rx="1.6" ry="1.6"></rect>
+      <rect class="wave-line" x="0.7" y="0.7" width="98.6" height="98.6" rx="1.6" ry="1.6"></rect>
+    </svg>
   </div>
 
 </body>
