@@ -5847,6 +5847,10 @@
         });
       }
 
+      // Mini balon İzle düğmesini kayıttan başlat
+      this.watchScreen = SafeStorage.getItem('ankora_ai_watch') === '1';
+      if (typeof window.syncAiMiniWatch === 'function') window.syncAiMiniWatch();
+
       if (btnExport) {
         btnExport.addEventListener('click', () => this.exportReport());
       }
@@ -8649,9 +8653,38 @@
         const miniInput = document.getElementById('ai-mini-input');
         if (miniInput) miniInput.focus();
       }
+      if (typeof window.syncAiMiniWatch === 'function') window.syncAiMiniWatch();
+      const userWindow = document.getElementById('win-ai');
+      const winToggle = userWindow ? document.getElementById('ai-screen-toggle') : null;
+      if (winToggle) winToggle.checked = AIAgent.watchScreen;
+    };
+
+    // Mini balondaki "İzle" düğmesi, tam penceredeki anahtarla aynı
+    // ankora_ai_watch tercihini paylaşır; ikisi hep senkron çalışır.
+    window.syncAiMiniWatch = () => {
+      const btn = document.getElementById('ai-mini-screen-toggle');
+      if (!btn) return;
+      btn.classList.toggle('active', AIAgent.watchScreen);
+      btn.setAttribute('aria-pressed', AIAgent.watchScreen ? 'true' : 'false');
+      const status = document.getElementById('ai-mini-status');
+      if (status) status.textContent = AIAgent.watchScreen ? 'Hazır · Ekranda İzliyor' : 'Hazır';
     };
 
     if (aiMiniBtn && aiMiniFlyout) {
+      const miniWatchBtn = document.getElementById('ai-mini-screen-toggle');
+      if (miniWatchBtn) {
+        miniWatchBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          AIAgent.watchScreen = !AIAgent.watchScreen;
+          SafeStorage.setItem('ankora_ai_watch', AIAgent.watchScreen ? '1' : '0');
+          const winToggle = document.getElementById('ai-screen-toggle');
+          if (winToggle) winToggle.checked = AIAgent.watchScreen;
+          window.syncAiMiniWatch();
+          ReportManager?.showToast(AIAgent.watchScreen
+            ? 'Ekran izleme: açık — her soruda ekran karesi ajana gider.'
+            : 'Ekran izleme: kapalı.');
+        });
+      }
       aiMiniBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         window.toggleAiMiniChat();
@@ -9620,10 +9653,20 @@
             `;
           }
 
-          if (btnApply) {
+          if (btnApply && info.download_url) {
             btnApply.style.display = 'inline-block';
             btnApply.disabled = false;
             btnApply.textContent = `v${info.latest_version.replace(/^v/i, '')} Sürümüne Güncelle`;
+          }
+
+          // GitHub release'te .deb asset yoksa güncelleme uygulanamaz;
+          // kullanıcıyı sürüm sayfasına yönlendir (ghost "Tekrar Dene".
+          if (!info.download_url && notesBox) {
+            notesBox.innerHTML += `
+              <div class="updater-notes-text" style="margin-top:10px; color: var(--text-secondary);">
+                ⚠ Bu sürüm için indirilebilir Ayaz DE (.deb) paketi bulunamadı; dünyada yalnızca tam ISO yayınlanmış. Sürüm sayfasından yeni ISO'yu indirebilir veya Taşıma penceresinden taşımak için kurulum yapabilirsin.
+              </div>`;
+            Terminal.log('[GÜNCELLEME] Bu sürümde .deb paketi yok; tam ISO çıktısı bekleniyor.', 'error');
           }
 
           Terminal.log(`[GÜNCELLEME] Yeni Ayaz DE sürümü yayınlandı: v${info.latest_version}`, 'cmd');

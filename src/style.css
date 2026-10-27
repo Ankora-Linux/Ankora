@@ -6340,6 +6340,12 @@ body.theme-light .ai-mini-popover {
   border-color: var(--border-medium);
 }
 
+.ai-mini-tool-btn.active {
+  color: var(--accent-active, #2563eb);
+  border-color: var(--accent-active, #2563eb);
+  background: color-mix(in srgb, var(--accent-active, #2563eb) 12%, transparent);
+}
+
 .ai-mini-feed {
   flex: 1;
   min-height: 200px;

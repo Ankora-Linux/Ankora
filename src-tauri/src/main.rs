@@ -4379,6 +4379,16 @@ fn protocol_4_endpoint(target_repo: &str) -> String {
     default_url
 }
 
+// Bu sistem bir Ayaz DE kurulumu mu? Güncelleme paketi yalnız burada
+// anlamlıdır: ayaz-de ikilisi + root staging yardımcısı yalnız Ankora
+// Linux ISO/kurulumu tarafından yerleştirilir. Diğer dağıtımlarda (Ubuntu,
+// Debian vb.) .deb kurulsa bile çalışmayacaktır; baştan reddederiz.
+fn is_ayaz_system() -> bool {
+    let helper = Path::new("/usr/local/bin/ayaz-update-helper");
+    let binary = Path::new("/usr/bin/ayaz-de");
+    helper.exists() && binary.exists()
+}
+
 #[tauri::command]
 async fn check_de_update(repo_override: Option<String>) -> Result<UpdateReleaseInfo, String> {
     let current_ver = env!("CARGO_PKG_VERSION");
@@ -4399,6 +4409,26 @@ async fn check_de_update(repo_override: Option<String>) -> Result<UpdateReleaseI
         }
         None => "Ankora-Linux/Ankora".to_string(),
     };
+
+    // Ayaz DE sistemi değilse ağ sorgusu yapmadan net yanıt ver: güncelleme
+    // motoru yalnız Ankora Linux'ta etkindir.
+    if !is_ayaz_system() {
+        return Ok(UpdateReleaseInfo {
+            has_update: false,
+            current_version: current_ver.to_string(),
+            latest_version: current_ver.to_string(),
+            release_name: "Ayaz DE Güncelleyici".to_string(),
+            release_notes:
+                "Bu güncelleme yalnız Ankora Linux (Ayaz DE kurulu) sistemlerde etkindir. \
+                 Diğer dağıtımlarda Ayaz DE paketi yayınlanmaz ve kurulamaz."
+                    .to_string(),
+            download_url: None,
+            published_at: String::new(),
+            package_size_bytes: 0,
+            expected_sha256: None,
+            sha256_url: None,
+        });
+    }
 
     let client = reqwest::Client::builder()
         .user_agent(format!("ayaz-updater/{}", current_ver))
@@ -4480,6 +4510,15 @@ async fn download_and_apply_de_update(
     if !download_url.starts_with("https://github.com/Ankora-Linux/") {
         return Err(
             "Güvenlik İlkesi İhlali: İndirme bağlantısı resmi Ankora-Linux deposuna ait değil."
+                .to_string(),
+        );
+    }
+
+    // İkinci kilit: Ayaz DE paketi yalnız Ayaz DE kurulu sistemde uygulanır.
+    if !is_ayaz_system() {
+        return Err(
+            "Bu güncelleme yalnız Ankora Linux (Ayaz DE kurulu) sistemlerde uygulanabilir. \
+             ayaz-de ikilisi veya güvenlik yardımcısı bu sistemde bulunamadı."
                 .to_string(),
         );
     }
