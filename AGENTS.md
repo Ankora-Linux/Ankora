@@ -39,6 +39,26 @@ Bu depo, Ankora Linux projesinin resmî ana deposudur. Burada Ayaz Desktop Envir
 - ISO üretimi ve iç güncelleme akışı için mevcut betikler ve iş akışları korunmalı, desteklenmelidir.
 - Değişiklikler dağıtım akışını etkileyecekse, ilgili betik veya workflow dosyası da güncellenmelidir.
 
+## Geliştirici notları (oturum hafızası)
+
+Bu bölüm kararların ve çalışma geçmişinin kaydıdır. Yeni karar verildikçe
+tarihli satır olarak eklenir; silinmez.
+
+- 2026-10-26: Sürümün tek kaynağı `src-tauri/tauri.conf.json` içindeki
+  `"version"` alanıdır. `Cargo.toml`, `package.json` ve `VERSION` aynı
+  değeri taşır; `ci.yml` dördünü karşılaştırır ve uyuşmazlıkta işi durdurur.
+- 2026-10-26: Son yayın 3.6.0 (2026-10-25). Sürüm notları `CHANGELOG.md`,
+  ISO çıktısı `dist/ankora-linux-3.6.0-ayaz-amd64.iso`.
+- 2026-10-26: Tema eki tek pakettir: `src/style.css` içindeki tema
+  değişkenleri, eşleşen duvar kağıdı ve ikon seti birlikte eklenir
+  (örnek: Çınar, Meltem, Kor, Dem, Boğaz, Ayna).
+- 2026-10-26: Betik ve doğrulama komutları, ISO adımları ve yayın akışı
+  için `ankora-iso` skill'i (`~/.config/opencode/skills/ankora-iso/`)
+  kullanılır.
+- 2026-10-26: Oturumlar arası hafıza (tercihler, yol haritası, yarım işler)
+  küresel `~/.config/opencode/AGENTS.md` dosyasında tutulur. Bu dosya depo
+  içi kuralları, orası kişisel hafızayı taşır.
+
 ## Not
 
 Bu repo, Ankora Linux'un resmî merkez deposudur. Tüm proje mantığı, geliştirici ve yayın akışı burada bulunur.

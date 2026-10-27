@@ -375,6 +375,8 @@ apt-get install -y --no-install-recommends \
     parted \
     dosfstools \
     e2fsprogs \
+    exfat-fuse \
+    exfatprogs \
     rsync \
     grub-efi-amd64-bin \
     grub-pc-bin \

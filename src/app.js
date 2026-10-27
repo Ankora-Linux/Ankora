@@ -1648,7 +1648,9 @@
       pins.forEach(pin => {
         const btn = document.createElement('button');
         btn.className = 'taskbar-pin-btn taskbar-dynamic-pin';
-        btn.title = `${pin.name || pin.id}\n\nSağ tık: paneden kaldır`;
+        btn.title = `${pin.name || pin.id}\n\nSağ tık: seçenekler`;
+        btn.dataset.pinInternal = pin.id;
+        btn.dataset.pinExec = pin.exec || '';
         btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="4" width="16" height="16" rx="3"></rect><circle cx="12" cy="12" r="3"></circle></svg>`;
         btn.addEventListener('click', () => {
           const exec = pin.exec || '';
@@ -1660,8 +1662,11 @@
           }
         });
         btn.addEventListener('contextmenu', (e) => {
+          if (typeof window.showPinContextMenu === 'function') {
+            window.showPinContextMenu(e, btn);
+            return;
+          }
           e.preventDefault();
-          this.read(this.TASKBAR_KEY).some(() => {});
           this.toggleTaskbarPin({ id: pin.id, name: pin.name, exec: pin.exec });
         });
         host.insertBefore(btn, host.firstChild);
@@ -2817,9 +2822,8 @@
     },
 
     // Masaüstündeki gerçek klasör/belge simgeleri için sağ-tık menüsü.
-    // Öncesinde öğe sağ-tıkta hiçbir eylem menüsü göstermiyordu, silme de
-    // yapılamıyordu; artık Aç / Klasörde göster / Yeniden adlandır /
-    // Çöp Kutusuna Taşı eylemleri yerlidir.
+    // Dosya yöneticisi menüsündeki özellikler masaüstüne de taşındı:
+    // Kes / Kopyala / Şuraya Kopyala / Kısayol Oluştur / Özellikler.
     showItemMenu(ev, item) {
       let menu = document.getElementById('desktop-file-context-menu');
       if (!menu) {
@@ -2833,11 +2837,33 @@
           <div class="ctx-item" data-act="reveal">
             <span>Dosya Yöneticisinde Göster</span>
           </div>
+          <div class="ctx-divider"></div>
+          <div class="ctx-item" data-act="cut">
+            <span>Kes</span>
+          </div>
+          <div class="ctx-item" data-act="copy">
+            <span>Kopyala</span>
+          </div>
+          <div class="ctx-item" data-act="copy-to">
+            <span>Şuraya Kopyala...</span>
+          </div>
+          <div class="ctx-divider"></div>
+          <div class="ctx-item" data-act="shortcut">
+            <span>Kısayol Oluştur</span>
+          </div>
           <div class="ctx-item" data-act="rename">
             <span>Yeniden Adlandır</span>
           </div>
+          <div class="ctx-divider"></div>
           <div class="ctx-item ctx-danger" data-act="trash">
             <span>Çöp Kutusuna Taşı</span>
+          </div>
+          <div class="ctx-item ctx-danger" data-act="permanently-delete">
+            <span>Tamamen Sil</span>
+          </div>
+          <div class="ctx-divider"></div>
+          <div class="ctx-item" data-act="properties">
+            <span>Özellikler</span>
           </div>
         `;
         document.body.appendChild(menu);
@@ -2856,6 +2882,24 @@
               FileManager.loadDirectory(dirPath);
             }
             WindowManager.open('win-files');
+          } else if (act === 'cut' || act === 'copy') {
+            // Masaüstü panosu: dosya yöneticisinin panosuyla ortak geçer.
+            if (typeof FileManager !== 'undefined') {
+              const picks = (Array.isArray(FileManager.selectedItems) && FileManager.selectedItems.length > 1)
+                ? FileManager.selectedItems.slice()
+                : [target];
+              FileManager.clipboard = picks;
+              FileManager.clipboardOp = act === 'cut' ? 'cut' : 'copy';
+              ReportManager.showToast(act === 'cut' ? `${picks.length} öge kesildi.` : `${picks.length} öge panoya kopyalandı.`);
+            }
+          } else if (act === 'copy-to') {
+            if (typeof FileManager !== 'undefined' && FileManager.promptCopyTo) {
+              FileManager.promptCopyTo(target);
+            }
+          } else if (act === 'shortcut') {
+            if (typeof FileManager !== 'undefined' && FileManager.createShortcut) {
+              FileManager.createShortcut(target);
+            }
           } else if (act === 'rename') {
             const newName = prompt('Yeni ad:', target.name);
             if (newName && newName.trim() && newName.trim() !== target.name) {
@@ -2871,6 +2915,18 @@
                 DesktopFiles.refresh();
               })
               .catch(err => ReportManager.showToast(`Silinemedi: ${err.message || err}`, 'error'));
+          } else if (act === 'permanently-delete') {
+            if (!confirm(`'${target.name}' kalıcı olarak silinsin mi? Bu işlem geri alınamaz!`)) return;
+            TauriBridge.invoke('delete_file', { path: target.path })
+              .then(() => {
+                ReportManager.showToast('Öge kalıcı olarak silindi.');
+                DesktopFiles.refresh();
+              })
+              .catch(err => ReportManager.showToast(`Silinemedi: ${err.message || err}`, 'error'));
+          } else if (act === 'properties') {
+            if (typeof FileManager !== 'undefined' && FileManager.promptProperties) {
+              FileManager.promptProperties(target);
+            }
           }
         });
       }
@@ -3770,6 +3826,8 @@
     userHome: '',
     items: [],
     selectedItem: null,
+    // Ctrl + tık ile çoklu seçim (pano işlemleri bunu kullanır).
+    selectedItems: [],
     // Gerçek XDG kullanıcı dizinleri (yerel ad/Türkçe ad farkını kapatır).
     xdgDirs: null,
     // Kopyala/kes panosu: [{path, name, is_dir}] + op ('copy' | 'cut')
@@ -4058,24 +4116,30 @@
       }
     },
 
-    // Seçili ögeyi panoya ekler ('copy' | 'cut').
+    // Seçili ögeyi(leri) panoya ekler ('copy' | 'cut').
     clipboardAdd(op) {
-      if (!this.selectedItem) {
+      const picks = (Array.isArray(this.selectedItems) && this.selectedItems.length > 1)
+        ? this.selectedItems.slice()
+        : (this.selectedItem ? [this.selectedItem] : []);
+      if (!picks.length) {
         ReportManager?.showToast('Önce bir öge seçin.', 'error');
         return;
       }
-      this.clipboard = [this.selectedItem];
+      this.clipboard = picks;
       this.clipboardOp = op;
-      ReportManager?.showToast(op === 'cut' ? 'Öge kesiştirildi (yapıştırmayı bekliyor).' : 'Öge panoya kopyalandı.');
+      ReportManager?.showToast(op === 'cut'? `${this.clipboard.length} öge kesildi (yapıştırmayı bekliyor).`: `${this.clipboard.length} öge panoya kopyalandı.`);
       this.updateClipboardStatus();
     },
 
     updateClipboardStatus() {
       const el = document.getElementById('files-status-selected');
-      if (el && this.clipboard.length) {
-        const suffix = this.clipboardOp === 'cut' ? 'kesildi' : 'kopyalandı';
-        el.textContent = `${this.clipboard.length} öge ${suffix}`;
+      if (!el) return;
+      if (!this.clipboard.length) {
+        el.textContent = '';
+        return;
       }
+      const suffix = this.clipboardOp === 'cut' ? 'kesildi' : 'kopyalandı';
+      el.textContent = `${this.clipboard.length} öge ${suffix}`;
     },
 
     async pasteClipboard() {
@@ -4083,9 +4147,15 @@
         ReportManager?.showToast('Panoda öge yok.', 'error');
         return;
       }
+      if (this.isTrashView) {
+        ReportManager?.showToast('Çöp kutusunun içine yapıştırılamaz.', 'error');
+        return;
+      }
       const wasCut = this.clipboardOp === 'cut';
       for (const entry of this.clipboard) {
         try {
+          // Çöp kutusu görünümümce currentPath güncellenmez; o durumda ev
+          // dizini hedeflenir, pano taşıma hedefi buzdolabı olmasın.
           const res = await TauriBridge.invoke('copy_path_c', {
             sourcePath: entry.path,
             destPath: this.currentPath || this.userHome,
@@ -4097,6 +4167,7 @@
         }
       }
       if (wasCut) { this.clipboard = []; this.clipboardOp = null; }
+      this.updateClipboardStatus();
       this.refresh();
     },
 
@@ -4366,9 +4437,29 @@
 
             card.addEventListener('click', (e) => {
               e.stopPropagation();
+              if (e.ctrlKey || e.metaKey) {
+                // Ctrl ile çoklu seçim: seçili listede varsa çıkar, yoksa ekle.
+                this.selectedItems = this.selectedItems || [];
+                const exists = this.selectedItems.findIndex(i => i.path === item.path);
+                if (exists === -1) {
+                  this.selectedItems.push(item);
+                  card.classList.add('selected');
+                } else {
+                  this.selectedItems.splice(exists, 1);
+                  card.classList.remove('selected');
+                }
+                this.selectedItem = item;
+                if (statusSelected) {
+                  statusSelected.textContent = this.selectedItems.length > 1
+                    ? `${this.selectedItems.length} öge seçili`
+                    : `${item.name} (${item.is_dir ? 'Klasör' : item.size_str})`;
+                }
+                return;
+              }
               document.querySelectorAll('.files-item-card').forEach(c => c.classList.remove('selected'));
               card.classList.add('selected');
               this.selectedItem = item;
+              this.selectedItems = [item];
               if (statusSelected) {
                 statusSelected.textContent = `${item.name} (${item.is_dir ? 'Klasör' : item.size_str})`;
               }
@@ -4813,6 +4904,10 @@
             <svg class="glyph"><use href="#ico-inbox"></use></svg>
             <span>Şuraya Kopyala...</span>
           </div>
+          <div class="ctx-item" data-action="shortcut">
+            <svg class="glyph"><use href="#ico-zap"></use></svg>
+            <span>Kısayol Oluştur</span>
+          </div>
           <div class="ctx-divider"></div>
           <div class="ctx-item" data-action="rename">
             <svg class="glyph"><use href="#ico-edit"></use></svg>
@@ -4926,6 +5021,7 @@
               this.clipboardAdd('copy');
               break;
             case 'copy-to': this.promptCopyTo(item); break;
+            case 'shortcut': this.createShortcut(item); break;
             case 'rename': this.promptRename(item); break;
             case 'open-term-here': {
               const targetDir = item.is_dir ? item.path : (item.path.substring(0, item.path.lastIndexOf('/')) || '/');
@@ -4994,7 +5090,7 @@
     },
 
     // "Şuraya Kopyala": küçük dizin seçici (masaüstü/ana dizin/USB/dizin dolaş).
-    promptCopyTo(item) {
+    async promptCopyTo(item) {
       const prev = document.getElementById('modal-copy-to');
       if (prev) prev.remove();
 
@@ -5005,6 +5101,7 @@
       overlay.innerHTML = `
         <div style="background:var(--bg-panel,#16181d);border:1px solid rgba(255,255,255,0.12);border-radius:12px;min-width:440px;max-width:560px;max-height:70vh;display:flex;flex-direction:column;overflow:hidden;">
           <div style="padding:14px 16px 8px;font-weight:700;font-size:14px;">Şuraya Kopyala — ${escapeHtml(item.name)}</div>
+          <div id="copyto-quick" style="display:flex;flex-wrap:wrap;gap:6px;padding:0 16px 8px;"></div>
           <div id="copyto-crumb" style="padding:0 16px 8px;font-size:12px;color:var(--text-secondary,#9aa3b2);"></div>
           <div id="copyto-list" style="flex:1;overflow-y:auto;padding:4px 8px;"></div>
           <div style="display:flex;gap:8px;justify-content:flex-end;padding:10px 14px;border-top:1px solid rgba(255,255,255,0.08);">
@@ -5018,6 +5115,29 @@
       const listEl = overlay.querySelector('#copyto-list');
       const crumbEl = overlay.querySelector('#copyto-crumb');
       const close = () => overlay.remove();
+
+      // Hızlı hedefler: XDG klasörleri + bağlı diskler (USB ve dahili bölümler).
+      // Aksi hâlde iletişim yalnız mevcut dizinin altına bakar; masaüstü,
+      // USB ve ikinci disk hiç görünmez.
+      const quickEl = overlay.querySelector('#copyto-quick');
+      const quickTargets = [];
+      const xdg = this.xdgDirs || {};
+      [['Masaüstü', xdg.desktop], ['Belgeler', xdg.documents], ['Resimler', xdg.pictures], ['İndirilenler', xdg.download]]
+        .forEach(([label, dir]) => { if (dir) quickTargets.push([label, dir]); });
+      try {
+        const drives = await TauriBridge.invoke('get_removable_drives');
+        (drives || []).forEach(d => {
+          if (d.mountpoint) quickTargets.push([d.label || d.name || 'Disk', d.mountpoint]);
+        });
+      } catch (e) {}
+      quickTargets.forEach(([label, dir]) => {
+        const chip = document.createElement('button');
+        chip.className = 'copyto-quick-chip';
+        chip.textContent = label;
+        chip.title = dir;
+        chip.addEventListener('click', () => browse(dir));
+        quickEl.appendChild(chip);
+      });
 
       const browse = async (dir) => {
         currentDir = dir;
@@ -5144,7 +5264,7 @@
           }
           const results = await Promise.all(promises);
           results.forEach(r => ReportManager?.showToast(r || 'Güncellendi.'));
-          close_prop();
+          close();
           this.refresh();
         } catch (e) {
           ReportManager?.showToast(`Kaydedilemedi: ${e.message || e}`, 'error');
@@ -5508,8 +5628,9 @@
     endpoint: 'http://127.0.0.1:11434/api/generate',
     apiKey: '',
     includeTelemetry: true,
+    watchScreen: false,
+    miniFeed: null,
     history: [],
-
     detectProviderAndModel(key, forcedProvider = 'auto') {
       const k = (key || '').trim();
       const forced = (forcedProvider || 'auto').toLowerCase();
@@ -5662,6 +5783,7 @@
     init() {
       this.feed = document.getElementById('ai-feed');
       this.input = document.getElementById('ai-prompt-input');
+      this.miniFeed = document.getElementById('ai-mini-feed');
       const btnSend = document.getElementById('btn-ai-submit');
       const quickBtns = document.querySelectorAll('.ai-tag-btn');
 
@@ -5708,6 +5830,20 @@
         ctxToggle.addEventListener('change', () => {
           this.includeTelemetry = Boolean(ctxToggle.checked);
           SafeStorage.setItem('ankora_ai_ctx', this.includeTelemetry ? '1' : '0');
+        });
+      }
+
+      // Ekranı İzle: kullanıcı talep ederse her sorudan önce kare alınır
+      const screenToggle = document.getElementById('ai-screen-toggle');
+      if (screenToggle) {
+        this.watchScreen = SafeStorage.getItem('ankora_ai_watch') === '1';
+        screenToggle.checked = this.watchScreen;
+        screenToggle.addEventListener('change', () => {
+          this.watchScreen = Boolean(screenToggle.checked);
+          SafeStorage.setItem('ankora_ai_watch', this.watchScreen ? '1' : '0');
+          if (this.watchScreen) {
+            this.appendMsg('bot', 'Ekran izleme açıldı. Bundan sonra her soruda ekran karesi alınır ve bulut modeline gönderilir; kimseyle paylaşılırken önden ayrıca onay istenmez. Yerel Ollama metin modeli görüntüyü işleyemez.');
+          }
         });
       }
 
@@ -5784,10 +5920,13 @@
           this.history = [];
           this.feed.innerHTML = `
             <div class="ai-entry bot">
-              <span class="ai-author">Ankora AI</span>
-              <p>Sohbet geçmişi ve geçici bellek temizlendi. Ankora Linux sistem teftişi ve yönetimi için hazırım. Ne sorgulamak istersiniz?</p>
+              <span class="ai-avatar" aria-hidden="true"><img src="logo.svg" alt=""></span>
+              <div class="ai-body">
+                <p>Geçmiş temizlendi. Yeni bir sorgu yazarak devam edebilirsin.</p>
+              </div>
             </div>
           `;
+          if (this.miniFeed) this.miniFeed.innerHTML = '';
           Terminal.log('[AI] Sohbet geçmişi ve DOM önbelleği temizlendi.', 'cmd');
         });
       }
@@ -5859,6 +5998,8 @@
       };
 
       if (badgeProv) badgeProv.textContent = provMap[this.provider] || this.provider.toUpperCase();
+      const miniStatus = document.getElementById('ai-mini-status');
+      if (miniStatus) miniStatus.textContent = provMap[this.provider] || this.provider.toUpperCase();
       if (badgeMode) {
         badgeMode.innerHTML = `<svg class="btn-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:12px;height:12px;display:inline-block;vertical-align:-1px;margin-right:4px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>${escapeHtml(modeMap[this.mode] || this.mode)}`;
       }
@@ -5894,6 +6035,20 @@
       const entry = document.createElement('div');
       entry.className = `ai-entry ${role === 'user' ? 'user' : 'bot'}`;
 
+      if (role !== 'user') {
+        const avatar = document.createElement('span');
+        avatar.className = 'ai-avatar';
+        avatar.setAttribute('aria-hidden', 'true');
+        const logo = document.createElement('img');
+        logo.src = 'logo.svg';
+        logo.alt = '';
+        avatar.appendChild(logo);
+        entry.appendChild(avatar);
+      }
+
+      const body = document.createElement('div');
+      body.className = 'ai-body';
+
       const header = document.createElement('div');
       header.className = 'ai-msg-header';
 
@@ -5918,7 +6073,7 @@
         header.appendChild(copyBtn);
       }
 
-      entry.appendChild(header);
+      body.appendChild(header);
 
       // Güvenli kod bloğu ayrıştırma (yalnız textContent kullanılır, XSS riski sıfır)
       const segments = rawText.split(/```([\s\S]*?)```/g);
@@ -5929,18 +6084,86 @@
           const pre = document.createElement('pre');
           pre.className = 'ai-code-block';
           pre.textContent = seg.replace(/^[a-zA-Z0-9_-]+\n/, '').trim();
-          entry.appendChild(pre);
+          body.appendChild(pre);
         } else {
           const p = document.createElement('p');
           p.style.whiteSpace = 'pre-wrap';
           p.textContent = seg.trim();
-          entry.appendChild(p);
+          body.appendChild(p);
         }
       }
 
+      entry.appendChild(body);
+
+      this.feed.appendChild(entry);
+      this.feed.scrollTop = this.feed.scrollHeight;
+
+      // Mini sohbet yansıması: yükleniyor göstergesi yansıtılmaz
+      if (!rawText.startsWith('Ajan düşünülüyor') && entry.querySelector('.ai-typing') === null) {
+        this.mirror(role, rawText);
+      }
+      return entry;
+    },
+
+    mirror(role, text) {
+      if (!this.miniFeed) return;
+      while (this.miniFeed.children.length >= 20) {
+        this.miniFeed.removeChild(this.miniFeed.firstChild);
+      }
+      const el = document.createElement('div');
+      el.className = `ai-mini-entry ${role === 'user' ? 'm-user' : 'm-bot'}`;
+      el.textContent = String(text ?? '');
+      this.miniFeed.appendChild(el);
+      this.miniFeed.scrollTop = this.miniFeed.scrollHeight;
+    },
+
+    mirrorInfo(text) {
+      if (!this.miniFeed) return;
+      const el = document.createElement('div');
+      el.className = 'ai-mini-entry m-info';
+      el.textContent = String(text ?? '');
+      this.miniFeed.appendChild(el);
+      this.miniFeed.scrollTop = this.miniFeed.scrollHeight;
+    },
+
+    showTyping() {
+      if (!this.feed) return null;
+      const entry = document.createElement('div');
+      entry.className = 'ai-entry bot';
+      const avatar = document.createElement('span');
+      avatar.className = 'ai-avatar';
+      avatar.setAttribute('aria-hidden', 'true');
+      const logo = document.createElement('img');
+      logo.src = 'logo.svg';
+      logo.alt = '';
+      avatar.appendChild(logo);
+      const body = document.createElement('div');
+      body.className = 'ai-body';
+      const bubble = document.createElement('div');
+      bubble.className = 'ai-typing';
+      bubble.setAttribute('aria-label', 'Ajan yanıt hazırlıyor');
+      for (let i = 0; i < 3; i++) bubble.appendChild(document.createElement('i'));
+      body.appendChild(bubble);
+      entry.appendChild(avatar);
+      entry.appendChild(body);
       this.feed.appendChild(entry);
       this.feed.scrollTop = this.feed.scrollHeight;
       return entry;
+    },
+
+    appendShot(b64) {
+      if (!this.feed || !b64) return;
+      const chip = document.createElement('div');
+      chip.className = 'ai-shot-chip';
+      const img = document.createElement('img');
+      img.src = `data:image/png;base64,${b64}`;
+      img.alt = 'Ajanın gördüğü ekran karesi';
+      const label = document.createElement('span');
+      label.textContent = 'Ekran karesi ajana gönderildi';
+      chip.appendChild(img);
+      chip.appendChild(label);
+      this.feed.appendChild(chip);
+      this.feed.scrollTop = this.feed.scrollHeight;
     },
 
     async exportReport() {
@@ -6011,7 +6234,8 @@
 
     async handleQuery(text) {
       this.appendMsg('user', text);
-      const loadingEntry = this.appendMsg('bot', 'Ajan düşünülüyor ve yanıt üretiliyor...');
+      const loadingEntry = this.showTyping();
+      this.mirror('user', text);
 
       let res = null;
       let teleContext = '';
@@ -6022,6 +6246,34 @@
             teleContext = `[Sistem: ${t.os_name} | Kernel: ${t.kernel} | Init: ${t.init_system} | RAM: ${t.memory_used_mb}/${t.memory_total_mb} MB | CPU: ${t.cpu_cores} çekirdek]`;
           }
         } catch (e) {}
+      }
+
+      // Ekran izleme: kullanıcı açıktıysa son kare alınır ve yalnızca
+      // görüntü işleyebilen bulut modellerine gönderilir.
+      // Yerel Ollama yolu metin modeliyle sınırlıdır.
+      let shotB64 = null;
+      if (this.watchScreen) {
+        try {
+          const shot = await TauriBridge.invoke('take_screenshot', {
+            mode: 'fullscreen',
+            delay: 0,
+            save_to_disk: false,
+            copy_clipboard: false
+          });
+          if (shot && shot.image_b64) {
+            shotB64 = shot.image_b64;
+            this.appendShot(shot.image_b64);
+          } else {
+            throw new Error(shot ? 'görüntü verisi boş döndü' : 'yanıt boş');
+          }
+        } catch (shotErr) {
+          if (loadingEntry && loadingEntry.parentNode) loadingEntry.parentNode.removeChild(loadingEntry);
+          this.appendMsg('bot', `⚠ Ekran görüntüsü alınamadı: ${shotErr}\nEkran izleme demoda kapatıldı; sorgu görüntüsüz devam edecektir.`);
+          return;
+        }
+        if (!this.activeKey && !['openai', 'gemini', 'openrouter'].includes(this.provider)) {
+          this.appendMsg('bot', 'Not: Ekran izleme, görüntüyü işleyebilen bulut sağlayıcıya (Gemini, OpenAI, OpenRouter) API anahtarıyla bağlanınca çalışır. Yerel Ollama yolu metin modeliyle sınırlıdır.');
+        }
       }
 
       // 1. Eğer Tauri mevcutsa yerel arka uç üzerinden güvenli istek dene
@@ -6054,9 +6306,12 @@
           : (this.mode === 'doctor'
             ? 'Sen Ankora Sistem Doktorusun. Devuan Daedalus (SysVinit) üzerinde bellek, disk, ZRAM, süreç ve güvenlik sorunlarını teşhis edip çözüm sunarsın.'
             : 'Sen Ankora Linux 3.6 (Daedalus / SysVinit) sistem yöneticisi ve yapay zeka asistanısın. Kullanıcıya Türkçe, net ve teknik olarak kusursuz yanıtlar ver.');
-        const fullSysPrompt = `${sysPromptBase}\n${teleContext}\nEğer güvenli bir tanı komutu önermek istersen yanıtın sonuna <<<ACTION:komut|açıklama>>> ekle (Yalnızca: df -h /, free -h, uname -a, uptime, swapon --show, ip -br addr, lscpu, lsblk, ps aux, /usr/local/bin/ankora-doctor).`;
+        const fullSysPrompt = `${sysPromptBase}\n${teleContext}\n${shotB64 ? '[Kullanıcı güncel bir ekran karesi paylaştı; soruyu görüntüyle birlikte değerlendir.]' : ''}\nEğer güvenli bir tanı komutu önermek istersen yanıtın sonuna <<<ACTION:komut|açıklama>>> ekle (Yalnızca: df -h /, free -h, uname -a, uptime, swapon --show, ip -br addr, lscpu, lsblk, ps aux, /usr/local/bin/ankora-doctor).`;
 
         try {
+          if (prov === 'groq' && shotB64) {
+            this.mirrorInfo('Not: Groq metin modeli görüntü işleyemez; soru metin olarak gönderildi.');
+          }
           if (prov === 'gemini') {
             const aiModel = this.model || 'gemini-2.0-flash';
             const url = `https://generativelanguage.googleapis.com/v1beta/models/${aiModel}:generateContent`;
@@ -6069,7 +6324,12 @@
               },
               body: JSON.stringify({
                 contents: [{
-                  parts: [{ text: `${fullSysPrompt}\n\nKullanıcı: ${text}` }]
+                  parts: shotB64
+                    ? [
+                        { text: `${fullSysPrompt}\n\nKullanıcı: ${text}` },
+                        { inline_data: { mime_type: 'image/png', data: shotB64 } }
+                      ]
+                    : [{ text: `${fullSysPrompt}\n\nKullanıcı: ${text}` }]
                 }]
               })
             });
@@ -6104,6 +6364,12 @@
             res = this.parseActionDirective(json.choices?.[0]?.message?.content || '');
 
           } else if (prov === 'openai') {
+            const userMsg = shotB64
+              ? [
+                  { type: 'text', text },
+                  { type: 'image_url', image_url: { url: `data:image/png;base64,${shotB64}` } }
+                ]
+              : text;
             const resp = await fetch('https://api.openai.com/v1/chat/completions', {
               method: 'POST',
               headers: {
@@ -6114,7 +6380,7 @@
                 model: this.model || 'gpt-4o-mini',
                 messages: [
                   { role: 'system', content: fullSysPrompt },
-                  { role: 'user', content: text }
+                  { role: 'user', content: userMsg }
                 ],
                 temperature: 0.3
               })
@@ -6124,6 +6390,12 @@
             res = this.parseActionDirective(json.choices?.[0]?.message?.content || '');
 
           } else if (prov === 'openrouter') {
+            const userMsg = shotB64
+              ? [
+                  { type: 'text', text },
+                  { type: 'image_url', image_url: { url: `data:image/png;base64,${shotB64}` } }
+                ]
+              : text;
             const resp = await fetch('https://openrouter.ai/api/v1/chat/completions', {
               method: 'POST',
               headers: {
@@ -6134,7 +6406,7 @@
                 model: this.model || 'meta-llama/llama-3.3-70b-instruct',
                 messages: [
                   { role: 'system', content: fullSysPrompt },
-                  { role: 'user', content: text }
+                  { role: 'user', content: userMsg }
                 ]
               })
             });
@@ -8138,6 +8410,98 @@
       });
     });
 
+    // 3b. PANEL (GÖREV ÇUBUĞU) SAĞ TIK + SABİTLENMİŞ UYGULAMA MENÜSÜ
+    // Panelin boş alanına sağ tık hızlı ayarlar/panel ayarlarını açar;
+    // pince sağ tık "Aç / Panelden Kaldır (Gizle)" menüsü verir.
+    const taskbarEl = document.getElementById('taskbar');
+
+    window.showPinContextMenu = (e, pinBtn) => {
+      e.preventDefault();
+      e.stopPropagation();
+      // Sabit simge + Başlat düğmesindeki menüleri kapatan tek menü noktası.
+      document.querySelectorAll('.desktop-context-menu.open, .taskbar-tab-menu.open')
+        .forEach(m => m.classList.remove('open'));
+      const old = document.getElementById('pin-context-menu');
+      if (old) old.remove();
+
+      const menu = document.createElement('div');
+      menu.id = 'pin-context-menu';
+      menu.className = 'desktop-context-menu';
+
+      const isDynamic = pinBtn.classList.contains('taskbar-dynamic-pin');
+      const isAI = pinBtn.id === 'quick-ai-btn';
+      menu.innerHTML = `
+        <div class="ctx-item" data-act="open"><span>Aç</span></div>
+        ${isDynamic ? `<div class="ctx-item" data-act="unpin"><span>Panelden Kaldır</span></div>` : ''}
+        ${!isDynamic && !isAI ? `<div class="ctx-item" data-act="hide"><span>Panelden Gizle</span></div>` : ''}
+        <div class="ctx-item" data-act="settings"><span>Panel Ayarları</span></div>
+      `;
+      document.body.appendChild(menu);
+      const x = Math.min(e.clientX, window.innerWidth - 200);
+      const y = Math.min(e.clientY, window.innerHeight - 160);
+      menu.style.left = `${x}px`;
+      menu.style.top = `${y}px`;
+      menu.classList.add('open');
+
+      const closeMenu = (ev) => {
+        if (!menu.contains(ev.target)) {
+          menu.remove();
+          document.removeEventListener('click', closeMenu);
+        }
+      };
+      setTimeout(() => document.addEventListener('click', closeMenu), 0);
+
+      menu.addEventListener('click', (ev) => {
+        const act = ev.target.closest('.ctx-item')?.getAttribute('data-act');
+        if (!act) return;
+        menu.remove();
+        document.removeEventListener('click', closeMenu);
+        if (act === 'open') {
+          pinBtn.click();
+        } else if (act === 'unpin') {
+          const pinId = pinBtn.dataset && pinBtn.dataset.pinInternal;
+          if (typeof AppPinManager !== 'undefined' && pinId) {
+            const pins = AppPinManager.read(AppPinManager.TASKBAR_KEY);
+            const pin = pins.find(p => p.id === pinId);
+            if (pin) AppPinManager.toggleTaskbarPin(pin);
+          }
+        } else if (act === 'hide') {
+          const hidden = JSON.parse(SafeStorage.getItem('ankora_hidden_pins') || '[]');
+          if (!hidden.includes(pinBtn.id)) hidden.push(pinBtn.id);
+          SafeStorage.setItem('ankora_hidden_pins', JSON.stringify(hidden));
+          pinBtn.style.display = 'none';
+          ReportManager?.showToast('Simge panelden gizlendi. Geri getirmek için Ayarlar > Alt Panel.');
+        } else if (act === 'settings') {
+          WindowManager.open('win-settings');
+          document.querySelector('.settings-nav-item[data-pane="pane-set-panel"]')?.click();
+        }
+      });
+    };
+
+    // Gizlenmiş sabit pinler oturum açılışında uygulanır
+    try {
+      const hiddenPins = JSON.parse(SafeStorage.getItem('ankora_hidden_pins') || '[]');
+      hiddenPins.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+      });
+    } catch (e) {}
+
+    if (taskbarEl) {
+      taskbarEl.addEventListener('contextmenu', (e) => {
+        const pin = e.target.closest('.taskbar-pin-btn');
+        if (pin) {
+          window.showPinContextMenu(e, pin);
+          return;
+        }
+        const interactive = e.target.closest('button, .task-tab, .tray-cell, .tray-status-island, .tray-icon-btn, .taskbar-ws-dots');
+        if (interactive) return;
+        e.preventDefault();
+        if (typeof toggleQuickSettings === 'function') toggleQuickSettings();
+        else if (qsFlyout) qsFlyout.classList.toggle('open');
+      });
+    }
+
     // 4. Evrensel Arama (LauncherSearch)
     if (startSearch) {
       let launcherSearchTimer = 0;
@@ -8192,7 +8556,6 @@
       { id: 'quick-screenshot-btn', win: 'win-screenshot' },
       { id: 'quick-store-btn', win: 'win-store' },
       { id: 'quick-calc-btn', win: 'win-calc' },
-      { id: 'quick-ai-btn', win: 'win-ai' },
       { id: 'quick-settings-btn', win: 'win-settings' },
       // ARM: Karşılama simgesi "masaüstünü göster" yerine karşılama
       // penceresini açar; açık pencere kaybolmuş/boş ekranda gibi hissedilmesin.
@@ -8266,6 +8629,66 @@
       qsFlyout.classList.toggle('open', isOpen);
       if (isOpen && calFlyout) calFlyout.classList.remove('open');
     };
+
+    // 5b. ANKORA AI MINI SOHBET (Görev Çubuğu Üstü Hızlı Sohbet)
+    const aiMiniFlyout = document.getElementById('ai-mini-popover');
+    const aiMiniBtn = document.getElementById('quick-ai-btn');
+
+    window.toggleAiMiniChat = (forceState) => {
+      if (!aiMiniFlyout) return;
+      const isOpen = typeof forceState === 'boolean' ? forceState : !aiMiniFlyout.classList.contains('open');
+      aiMiniFlyout.classList.toggle('open', isOpen);
+      if (isOpen) {
+        if (qsFlyout) qsFlyout.classList.remove('open');
+        if (calFlyout) calFlyout.classList.remove('open');
+        if (AIAgent.miniFeed && AIAgent.miniFeed.children.length === 0) {
+          AIAgent.miniFeed.innerHTML = `
+            <div class="ai-mini-entry m-bot">Merhaba. Buradan ajanla hızlıca yazışabilirsin; tam ayarlar ve eylem kartları için "Pencere" düğmesiyle tam ekrana geç.</div>
+          `;
+        }
+        const miniInput = document.getElementById('ai-mini-input');
+        if (miniInput) miniInput.focus();
+      }
+    };
+
+    if (aiMiniBtn && aiMiniFlyout) {
+      aiMiniBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        window.toggleAiMiniChat();
+      });
+
+      document.addEventListener('click', (e) => {
+        if (!aiMiniFlyout.classList.contains('open')) return;
+        if (!aiMiniFlyout.contains(e.target) && !aiMiniBtn.contains(e.target)) {
+          window.toggleAiMiniChat(false);
+        }
+      });
+
+      const miniInput = document.getElementById('ai-mini-input');
+      const btnMiniSend = document.getElementById('btn-ai-mini-send');
+      const miniSend = () => {
+        if (!miniInput) return;
+        const text = miniInput.value.trim();
+        if (!text) return;
+        miniInput.value = '';
+        AIAgent.handleQuery(text);
+      };
+      if (btnMiniSend) btnMiniSend.addEventListener('click', miniSend);
+      if (miniInput) {
+        miniInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') miniSend();
+        });
+      }
+
+      const btnMiniExpand = document.getElementById('btn-ai-mini-expand');
+      if (btnMiniExpand) {
+        btnMiniExpand.addEventListener('click', () => {
+          window.toggleAiMiniChat(false);
+          WindowManager.open('win-ai');
+        });
+      }
+    }
+
 
     [trayStatusIsland, trayWifiBtn, trayVolBtn, trayBatteryBtn].forEach(el => {
       if (el) {
@@ -8712,6 +9135,25 @@
             }
           } else if (act === 'term') {
             WindowManager.open('win-terminal');
+          } else if (act === 'paste-desktop') {
+            const clips = (typeof FileManager !== 'undefined' && Array.isArray(FileManager.clipboard)) ? FileManager.clipboard : [];
+            if (!clips.length) {
+              ReportManager?.showToast('Panoda öge yok.', 'error');
+            } else {
+              const dest = (typeof DesktopFiles !== 'undefined' && DesktopFiles.dir) ? DesktopFiles.dir : '';
+              const wasCut = FileManager.clipboardOp === 'cut';
+              if (dest) {
+                clips.forEach(cl => {
+                  TauriBridge.invoke('copy_path_c', { sourcePath: cl.path, destPath: dest, moveOp: wasCut })
+                    .then(m => ReportManager?.showToast(m || 'Yapıştırıldı.'))
+                    .catch(err => ReportManager?.showToast(`Yapıştırılamadı: ${err.message || err}`, 'error'));
+                });
+                if (wasCut) { FileManager.clipboard = []; FileManager.clipboardOp = null; }
+                setTimeout(() => { if (typeof DesktopFiles !== 'undefined' && DesktopFiles.refresh) DesktopFiles.refresh(); }, 400);
+              } else {
+                ReportManager?.showToast('Masaüstü dizini çözülemedi.', 'error');
+              }
+            }
           } else if (act === 'align-icons') {
             if (typeof XdgDesktopEngine !== 'undefined') {
               XdgDesktopEngine.alignDesktopIcons();
@@ -9016,6 +9458,11 @@
         startCtx.style.top = `${y}px`;
         startCtx.classList.add('open');
       });
+      // Kalıcı menü boyutu oturum açılışında uygulanır
+      try {
+        const savedScale = SafeStorage.getItem('ankora_menu_size');
+        if (savedScale) document.querySelectorAll('.start-flyout').forEach(f => { f.style.zoom = savedScale; });
+      } catch (e) {}
       document.addEventListener('click', (e) => {
         if (!startCtx.contains(e.target)) startCtx.classList.remove('open');
       });
@@ -9025,6 +9472,13 @@
           startCtx.classList.remove('open');
           if (act === 'menu-editor') {
             MenuEditor.open();
+          } else if (act === 'menu-size') {
+            const level = prompt('Menü boyutu: 1 = Küçük, 2 = Olağan, 3 = Büyük', '2');
+            const scaleMap = { '1': '0.85', '2': '1', '3': '1.18' };
+            const scale = scaleMap[String(level).trim()] || '1';
+            document.querySelectorAll('.start-flyout').forEach(f => { f.style.zoom = scale; });
+            SafeStorage.setItem('ankora_menu_size', scale);
+            ReportManager.showToast(`Menü boyutu: ${scale === '1' ? 'Olağan' : (scale === '0.85' ? 'Küçük' : 'Büyük')}`);
           } else if (act === 'menu-rescan') {
             if (typeof XdgDesktopEngine !== 'undefined' && XdgDesktopEngine.rescanXdgApps) {
               XdgDesktopEngine.rescanXdgApps(false);
@@ -11087,6 +11541,13 @@
         Terminal.log(`[BİLDİRİM (sessiz)] ${message}`, 'muted');
         return;
       }
+      // Toast aynı zamanda bildirim merkezine de düşer; aksi hâlde
+      // kullanıcı merkezde hiçbir şey görmez (test geri bildirimi #5).
+      try {
+        if (typeof NotificationManager !== 'undefined' && NotificationManager.pushLocal) {
+          NotificationManager.pushLocal(message);
+        }
+      } catch (e) {}
       let toast = document.getElementById('ayaz-global-toast');
       if (!toast) {
         toast = document.createElement('div');
@@ -12628,6 +13089,8 @@
     notifications: [],
     seenIds: new Set(),
     pollInterval: null,
+    // Toast'lardan merkeze yansıyan kayıtlar; backend yoklolmasını ezmesin
+    localExtras: [],
 
     init() {
       const btnTray = document.getElementById('tray-btn-notifications');
@@ -12709,8 +13172,11 @@
 
     async poll() {
       try {
-        let list = await TauriBridge.invoke('get_system_notifications');
-        if (Array.isArray(list)) {
+          let list = await TauriBridge.invoke('get_system_notifications');
+          if (Array.isArray(list)) {
+            // Toast'lardan merkeze yazılan yerel kayıtlar çekmecenin parçasıdır;
+            // backend listesi bunları ezmesin diye sonuna eklenir.
+            list = list.concat(this.localExtras || []);
           // Kullanıcı çekmeceden kaldırdığı bildirimleri geri getirme.
           if (this.dismissedIds.size > 0) {
             list = list.filter(n => !this.dismissedIds.has(n.id));
@@ -12749,6 +13215,44 @@
 
     notifTitle(n) {
       return (n && (n.summary || n.title)) || 'Bildirim';
+    },
+
+    // Bildirim merkezi: toast'la açıklanan olayın merkeze de düşmesi.
+    // (Kullanıcı şikayeti: bildirim merkezinde hiçbir şey görünmüyordu.)
+    pushLocal(summary, body = '', appName = 'Ayaz DE') {
+      const t = String(summary || 'Bildirim');
+      let bodyPart = String(body || '');
+      // showToast tek metin dizesiyle çağrılır; "[App] Başlık: Gövde" biçimini ayrıştır.
+      if (!bodyPart) {
+        const m = t.match(/^\[([^\]]+)\]\s*([^:]+)(?::\s*)?(.*)$/);
+        if (m) {
+          appName = m[1];
+          if (m[3]) {
+            var title = m[2].trim();
+            bodyPart = m[3].trim();
+            return this.pushLocalRaw(title, bodyPart, appName);
+          }
+          return this.pushLocalRaw(m[2].trim(), '', appName);
+        }
+      }
+      return this.pushLocalRaw(t, bodyPart, appName);
+    },
+
+    pushLocalRaw(summary, body, appName) {
+      const id = `local-${Date.now()}-${(this._localSeq = (this._localSeq || 0) + 1)}`;
+      const item = {
+        id,
+        summary,
+        body,
+        app_name: appName,
+        timestamp: Math.floor(Date.now() / 1000),
+        read: false
+      };
+      this.localExtras.push(item);
+      if (this.localExtras.length > 20) this.localExtras.shift();
+      this.seenIds.add(id);
+      this.updateBadge();
+      this.renderList();
     },
 
     updateBadge() {
@@ -12830,7 +13334,7 @@
             </div>
             <button class="btn-dismiss-single-notif" style="background:none;border:none;color:var(--text-muted,#64748b);font-size:13px;cursor:pointer;padding:2px 6px;border-radius:3px;" title="Kaldır">✕</button>
           </div>
-          <div style="font-size:12.5px;font-weight:600;color:#fff;margin-top:2px;">${escapeHtml(this.notifTitle(n) === 'Bildirim' ? '' : this.notifTitle(n))}</div>
+          <div style="font-size:12.5px;font-weight:600;color:var(--text-primary,#fff);margin-top:2px;">${escapeHtml(this.notifTitle(n) === 'Bildirim' ? '' : this.notifTitle(n))}</div>
           <div style="font-size:11.5px;color:var(--text-secondary,#cbd5e1);line-height:1.4;word-break:break-word;">${escapeHtml(n.body || '')}</div>
         `;
 

@@ -550,7 +550,7 @@
     <!-- ======================================================================= -->
     <!-- 5. AI AJAN                                                              -->
     <!-- ======================================================================= -->
-    <section class="window" id="win-ai" style="top: 60px; left: 140px; width: 780px; height: 540px;" aria-labelledby="ai-header-title">
+    <section class="window" id="win-ai" style="top: 60px; left: 140px; width: 880px; height: 640px;" aria-labelledby="ai-header-title">
       <div class="window-header" data-tauri-drag-region>
         <div class="window-meta">
           <span id="ai-header-title">Ankora AI Sistem Asistanı (Otonom Ajan & Çoklu Model)</span>
@@ -579,6 +579,10 @@
               <label class="ai-ctx-label" title="Gerçek zamanlı sistem telemetrisini (RAM, CPU, Disk, Çekirdek) sorgulara otomatik ekle">
                 <input type="checkbox" id="ai-ctx-toggle" checked>
                 <span>Canlı Telemetri</span>
+              </label>
+              <label class="ai-ctx-label" title="Açıkken her sorudan önce ekran görüntüsü alınır ve bulut modele (Gemini, OpenAI, OpenRouter) görüntü olarak gönderilir">
+                <input type="checkbox" id="ai-screen-toggle">
+                <span>Ekranı İzle</span>
               </label>
             </div>
             <div class="ai-endpoint-info">
@@ -632,8 +636,10 @@
 
           <div class="ai-feed" id="ai-feed">
             <div class="ai-entry bot">
-              <span class="ai-author">Ankora AI</span>
-              <p>Devuan Linux çekirdeğine bağlı sistem asistanınız ve otonom ajanınız hazır. Kendi API anahtarınızı (OpenAI, Gemini, Groq, OpenRouter) 'API Ayarları' butonundan bağlayabilir veya yerel Ollama / çevrimdışı teşhis motoru ile çalışabilirsiniz. Sistem eylemleri öncesinde her zaman tek kullanımlık güvenlik jetonu ile onayınız alınır.</p>
+              <span class="ai-avatar" aria-hidden="true"><img src="logo.svg" alt=""></span>
+              <div class="ai-body">
+                <p>Ankora AI hazır. Sistem doktoru taraması çalıştırabilir, önbelleği temizleyebilir veya güncel ekranındaki hata hakkında soru sorabilirsin. Sistem eylemleri öncesinde her zaman tek kullanımlık güvenlik jetonu ile onayın alınır.</p>
+              </div>
             </div>
           </div>
           <div class="ai-quick-row">
@@ -646,7 +652,9 @@
           </div>
           <div class="ai-prompt-box">
             <input type="text" id="ai-prompt-input" placeholder="Ajana görev veya sistem komutu verin (Örn: Sistem doktoru taraması yap, önbelleği temizle, disk durumunu ver)...">
-            <button class="btn-pkg" id="btn-ai-submit">Gönder</button>
+            <button class="btn-pkg" id="btn-ai-submit" title="Gönder" aria-label="Gönder">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:16px;height:16px;"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+            </button>
           </div>
         </div>
       </div>
@@ -3033,6 +3041,23 @@
     </div>
   </footer>
 
+  <!-- Ankora AI Mini Sohbet (Görev Çubuğu Üstü Hızlı Panosu) -->
+  <div class="ai-mini-popover" id="ai-mini-popover" role="dialog" aria-label="Ankora AI Mini Sohbet">
+    <div class="ai-mini-header">
+      <span class="ai-avatar" aria-hidden="true"><img src="logo.svg" alt=""></span>
+      <span class="ai-mini-title">Ankora AI</span>
+      <span class="status-pill online ai-mini-status" id="ai-mini-status">Hazır</span>
+      <button class="ai-mini-tool-btn" id="btn-ai-mini-expand" title="Tam pencereyi aç">Pencere</button>
+    </div>
+    <div class="ai-mini-feed" id="ai-mini-feed"></div>
+    <div class="ai-mini-input-row">
+      <input type="text" id="ai-mini-input" placeholder="Ajana sorun..." aria-label="Ankora AI mesaj">
+      <button class="ai-mini-send-btn" id="btn-ai-mini-send" title="Gönder" aria-label="Gönder">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:14px;height:14px;"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+      </button>
+    </div>
+  </div>
+
   <!-- Genel Görünüm: Super + Ctrl + Tab / Ctrl + Alt + Tab veya Ctrl + Alt + G
        (WebKitGTK bazı ortamlarda Tab olayını sayfaya ulaştırmaz, G ikizi var) -->
   <div class="workspace-overview" id="workspace-overview" role="dialog" aria-label="Genel Görünüm" hidden>
@@ -3253,6 +3278,11 @@
       <span>Dosyalar Yöneticisi</span>
     </div>
     <div class="ctx-divider"></div>
+    <div class="ctx-item" data-action="paste-desktop">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1"></rect><path d="M8 12h8M8 16h5"></path></svg>
+      <span>Masaüstüne Yapıştır</span>
+    </div>
+    <div class="ctx-divider"></div>
     <div class="ctx-item" data-action="align-icons">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="21" y1="10" x2="3" y2="10"></line><line x1="21" y1="6" x2="3" y2="6"></line><line x1="21" y1="14" x2="3" y2="14"></line><line x1="21" y1="18" x2="3" y2="18"></line></svg>
       <span>Simgeleri Izgaraya Hizala (yeniden kareleştir)</span>
@@ -3293,6 +3323,10 @@
 
   <!-- Başlat Menüsü Sağ Tık Bağlam Menüsü -->
   <div id="start-menu-context" class="desktop-context-menu">
+    <div class="ctx-item" data-action="menu-size">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
+      <span>Menü Boyutunu Ayarla</span>
+    </div>
     <div class="ctx-item" data-action="menu-editor">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
       <span>Menüyü Düzenle</span>
