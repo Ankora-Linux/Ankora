@@ -4465,7 +4465,7 @@ async fn imap_mail_peek(
             let mut seq = wanted;
             seq.reverse();
             for n in seq {
-                if let Some(f) = fetches.iter().find(|&fr| fr.sequence == n) {
+                if let Some(f) = fetches.iter().find(|&fr| fr.message == n) {
                     let env = f.envelope();
                     let subject = env
                         .and_then(|en| en.subject.as_ref())
