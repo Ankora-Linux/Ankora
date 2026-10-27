@@ -1238,17 +1238,18 @@ html, body {
 }
 
 .dw-time {
-  font-family: var(--font-mono);
-  font-size: 40px;
+  font-family: var(--font-sans);
+  font-size: 50px;
   font-weight: 600;
-  line-height: 1;
-  letter-spacing: -1.5px;
+  line-height: 0.95;
+  letter-spacing: -2.4px;
   font-variant-numeric: tabular-nums;
 }
 
 .dw-date {
-  margin-top: 7px;
+  margin-top: 9px;
   font-size: 12.5px;
+  font-weight: 500;
   color: var(--text-secondary);
 }
 
@@ -1296,6 +1297,229 @@ html, body {
   margin-top: 4px;
   font-size: 11.5px;
   color: var(--text-muted);
+}
+
+/* Hava durumu: büyük sıcaklık, sakin üç günlük şerit. */
+.dw-weather {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dw-weather-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.dw-weather-main {
+  min-width: 0;
+}
+
+.dw-weather-temp {
+  font-family: var(--font-sans);
+  font-size: 46px;
+  font-weight: 600;
+  line-height: 0.9;
+  letter-spacing: -2.4px;
+  font-variant-numeric: tabular-nums;
+}
+
+.dw-weather-temp .unit {
+  font-size: 24px;
+  font-weight: 500;
+  letter-spacing: -0.5px;
+  vertical-align: top;
+  color: var(--text-secondary);
+}
+
+.dw-weather-place {
+  margin-top: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dw-weather-icon {
+  width: 46px;
+  height: 46px;
+  flex: none;
+  color: var(--text-secondary);
+}
+
+.dw-weather-icon svg {
+  width: 100%;
+  height: 100%;
+  stroke-width: 1.5;
+}
+
+.dw-weather-icon.wx-sun { color: #f5b83d; }
+.dw-weather-icon.wx-cloud { color: var(--text-secondary); }
+.dw-weather-icon.wx-rain { color: #5aa9e6; }
+.dw-weather-icon.wx-snow { color: #a9c9e8; }
+.dw-weather-icon.wx-storm { color: #b49cff; }
+
+.dw-weather-desc {
+  margin-top: 5px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dw-weather-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px 10px;
+  margin-top: 5px;
+  font-size: 11px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.dw-weather-days {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.dw-weather-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  font-size: 10.5px;
+  color: var(--text-muted);
+}
+
+.dw-weather-day svg {
+  width: 21px;
+  height: 21px;
+  color: var(--text-secondary);
+}
+
+.dw-weather-day .day-temp {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.dw-weather-day .day-temp small {
+  font-size: 10.5px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.dw-weather-city-btn {
+  align-self: flex-start;
+  margin-top: 8px;
+  padding: 2px 0;
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 10.5px;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: var(--border-medium);
+  text-underline-offset: 3px;
+}
+
+.dw-weather-city-btn:hover,
+.dw-weather-city-btn:focus-visible {
+  color: var(--text-primary);
+}
+
+.dw-weather-search {
+  margin-top: 8px;
+  padding-top: 9px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.dw-weather-search[hidden] {
+  display: none;
+}
+
+.dw-weather-search-row {
+  display: flex;
+  gap: 6px;
+}
+
+.dw-weather-search-row input {
+  flex: 1;
+  min-width: 0;
+  padding: 5px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border-medium);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 11.5px;
+  outline: none;
+}
+
+.dw-weather-search-row input:focus {
+  border-color: var(--border-focus);
+}
+
+.dw-weather-search-row button {
+  padding: 4px 9px;
+  border-radius: 6px;
+  border: 1px solid var(--border-medium);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.dw-weather-results {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 6px;
+  max-height: 116px;
+  overflow-y: auto;
+}
+
+.dw-weather-result {
+  padding: 5px 7px;
+  border: none;
+  border-radius: 5px;
+  background: none;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 11px;
+  text-align: left;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dw-weather-result:hover,
+.dw-weather-result:focus-visible {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+}
+
+.dw-weather-status {
+  margin-top: 6px;
+  font-size: 10.5px;
+  color: var(--text-muted);
+}
+
+.dw-weather-status.error {
+  color: #f08a8a;
 }
 
 /* Genişletilmiş widgetlar: todo, mini takvim, disk/ağ metinleri */
@@ -1608,6 +1832,187 @@ html, body {
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+}
+
+/* Android benzeri kategori klasörü: masaüstünde 2x2 önizleme. */
+.item-icon.folder-preview {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px;
+  padding: 4px;
+  box-sizing: border-box;
+}
+
+.folder-mini {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.folder-mini svg {
+  width: 16px;
+  height: 16px;
+  stroke: var(--text-secondary);
+}
+
+.folder-mini .real-app-icon {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.item-icon.folder-preview.empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.item-icon.folder-preview.empty svg {
+  width: 24px;
+  height: 24px;
+  color: var(--text-muted);
+  stroke: currentColor;
+}
+
+.desktop-folder-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.48);
+}
+
+.desktop-folder-overlay[hidden] {
+  display: none;
+}
+
+.desktop-folder {
+  width: min(464px, 100%);
+  max-height: min(68vh, 520px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-medium);
+  border-radius: 18px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+  color: var(--text-primary);
+  animation: folderIn 0.16s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes folderIn {
+  from { opacity: 0; transform: scale(0.96) translateY(8px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .desktop-folder { animation: none; }
+}
+
+.desktop-folder-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 18px 10px;
+}
+
+.desktop-folder-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 650;
+  line-height: 1.2;
+  word-break: break-word;
+}
+
+.desktop-folder-count {
+  margin: 3px 0 0;
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+
+.desktop-folder-close {
+  width: 28px;
+  height: 28px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: none;
+  color: var(--text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.desktop-folder-close:hover,
+.desktop-folder-close:focus-visible {
+  background: var(--bg-surface);
+  border-color: var(--border-subtle);
+  color: var(--text-primary);
+  outline: none;
+}
+
+.desktop-folder-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  gap: 4px;
+  padding: 6px 12px 18px;
+  overflow-y: auto;
+}
+
+.folder-app {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 4px 7px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: none;
+  color: var(--text-primary);
+  font: inherit;
+  cursor: pointer;
+}
+
+.folder-app:hover,
+.folder-app:focus-visible {
+  background: var(--bg-surface);
+  border-color: var(--border-subtle);
+  outline: none;
+}
+
+.folder-app:active {
+  transform: scale(0.96);
+}
+
+.folder-app-name {
+  max-width: 84px;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.25;
+  text-align: center;
+  color: var(--text-primary);
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.folder-empty {
+  grid-column: 1 / -1;
+  padding: 26px 12px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-muted);
 }
 
 /* ==============================================================================

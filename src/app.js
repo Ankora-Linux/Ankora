@@ -1915,6 +1915,8 @@
 
     removeApplication(appId) {
       this.installedApps = this.installedApps.filter(a => a.id !== appId);
+      this.removeAppFromAllGroups(appId);
+      this.closeGroup();
       // Kayıt bilinenler listesinden de düşer: uygulama sonradan geri
       // kurulursa tarama onu yeniden bulur ve masaüstüne ekler.
       const seen = this.seenIds().filter(id => id !== appId);
@@ -1930,9 +1932,356 @@
       const app = this.installedApps.find(a => a.id === appId);
       if (!app) return;
       app.on_desktop = app.on_desktop === false;
+      if (app.on_desktop === false) this.removeAppFromAllGroups(appId);
       SafeStorage.setItem('ankora_xdg_apps', JSON.stringify(this.installedApps));
       this.renderToDesktop();
       this.renderToStartMenu();
+    },
+
+    // --- Masaüstü kategorileri (Android benzeri klasörler) ---
+    GROUPS_KEY: 'ankora_desktop_groups',
+
+    groupsLoad() {
+      try {
+        const raw = JSON.parse(SafeStorage.getItem(this.GROUPS_KEY) || '[]');
+        if (!Array.isArray(raw)) return [];
+        return raw
+          .filter(g => g && typeof g.id === 'string' && g.id)
+          .map(g => ({
+            id: g.id,
+            name: String(g.name || 'Kategori').slice(0, 40),
+            items: Array.isArray(g.items) ? Array.from(new Set(g.items.filter(id => typeof id === 'string'))) : []
+          }));
+      } catch (e) {
+        return [];
+      }
+    },
+
+    groupsSave(groups) {
+      SafeStorage.setItem(this.GROUPS_KEY, JSON.stringify(groups));
+    },
+
+    groupById(id) {
+      return this.groupsLoad().find(g => g.id === id) || null;
+    },
+
+    groupForApp(appId) {
+      return this.groupsLoad().find(g => g.items.indexOf(appId) !== -1) || null;
+    },
+
+    groupApps(group) {
+      if (!group) return [];
+      return group.items
+        .map(id => this.installedApps.find(a => a.id === id && a.on_desktop !== false))
+        .filter(Boolean);
+    },
+
+    cleanGroupName(name) {
+      const clean = String(name || '').trim().replace(/\s+/g, ' ').slice(0, 40);
+      return clean || 'Kategori';
+    },
+
+    createGroup(name, firstAppId) {
+      const groups = this.groupsLoad();
+      const group = {
+        id: 'g-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+        name: this.cleanGroupName(name),
+        items: []
+      };
+      if (firstAppId && this.installedApps.some(a => a.id === firstAppId)) group.items.push(firstAppId);
+      groups.push(group);
+      this.groupsSave(groups);
+      return group;
+    },
+
+    renameGroup(groupId, name) {
+      const groups = this.groupsLoad();
+      const group = groups.find(g => g.id === groupId);
+      if (!group) return;
+      group.name = this.cleanGroupName(name);
+      this.groupsSave(groups);
+      this.renderToDesktop();
+      if (typeof DesktopFiles !== 'undefined' && DesktopFiles.refresh) DesktopFiles.refresh();
+    },
+
+    deleteGroup(groupId) {
+      const groups = this.groupsLoad().filter(g => g.id !== groupId);
+      this.groupsSave(groups);
+      this.closeGroup();
+      this.renderToDesktop();
+      if (typeof DesktopFiles !== 'undefined' && DesktopFiles.refresh) DesktopFiles.refresh();
+    },
+
+    moveAppToGroup(appId, groupId) {
+      if (!appId || appId.startsWith('group:')) return false;
+      const app = this.installedApps.find(a => a.id === appId);
+      const groups = this.groupsLoad();
+      const target = groups.find(g => g.id === groupId);
+      if (!app || !target) return false;
+      if (app.on_desktop === false) {
+        app.on_desktop = true;
+        SafeStorage.setItem('ankora_xdg_apps', JSON.stringify(this.installedApps));
+        this.renderToStartMenu();
+      }
+      groups.forEach(g => { g.items = g.items.filter(id => id !== appId); });
+      target.items.push(appId);
+      this.groupsSave(groups);
+      this.closeGroup();
+      this.renderToDesktop();
+      if (typeof DesktopFiles !== 'undefined' && DesktopFiles.refresh) DesktopFiles.refresh();
+      if (typeof ReportManager !== 'undefined' && ReportManager.showToast) {
+        ReportManager.showToast(`'${app.name}' → '${target.name}' kategorisine taşındı.`);
+      }
+      return true;
+    },
+
+    removeAppFromGroup(appId, groupId) {
+      const groups = this.groupsLoad();
+      const target = groups.find(g => g.id === groupId);
+      if (!target) return;
+      target.items = target.items.filter(id => id !== appId);
+      this.groupsSave(groups);
+      this.closeGroup();
+      this.renderToDesktop();
+      if (typeof DesktopFiles !== 'undefined' && DesktopFiles.refresh) DesktopFiles.refresh();
+      const app = this.installedApps.find(a => a.id === appId);
+      if (typeof ReportManager !== 'undefined' && ReportManager.showToast) {
+        ReportManager.showToast(`'${app ? app.name : 'Uygulama'}' masaüstüne döndü.`);
+      }
+    },
+
+    removeAppFromAllGroups(appId) {
+      const groups = this.groupsLoad();
+      let changed = false;
+      groups.forEach(g => {
+        const before = g.items.length;
+        g.items = g.items.filter(id => id !== appId);
+        if (g.items.length !== before) changed = true;
+      });
+      if (changed) this.groupsSave(groups);
+    },
+
+    buildGroupTile(group) {
+      const apps = this.groupApps(group);
+      const el = document.createElement('div');
+      el.className = 'desktop-item folder-item';
+      el.dataset.appId = 'group:' + group.id;
+      el.dataset.groupId = group.id;
+      el.tabIndex = 0;
+      el.setAttribute('role', 'button');
+      el.title = `${group.name} (${apps.length} uygulama)\n• Çift tıkla aç\n• Sağ tıkla düzenle`;
+
+      const icon = document.createElement('div');
+      icon.className = 'item-icon folder-preview' + (apps.length ? '' : ' empty');
+      if (!apps.length) {
+        icon.innerHTML = '<svg class="glyph" aria-hidden="true"><use href="#ico-folder"></use></svg>';
+      } else {
+        apps.slice(0, 4).forEach(app => {
+          const mini = document.createElement('span');
+          mini.className = 'folder-mini';
+          mini.innerHTML = this.getAppSvgIcon(app);
+          IconResolver.tagIcon(mini, app);
+          icon.appendChild(mini);
+        });
+      }
+
+      const name = document.createElement('span');
+      name.className = 'item-name';
+      name.textContent = group.name;
+      el.appendChild(icon);
+      el.appendChild(name);
+
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        document.querySelectorAll('.desktop-item').forEach(x => x.classList.remove('selected'));
+        el.classList.add('selected');
+      });
+      el.addEventListener('dblclick', (e) => {
+        e.stopPropagation();
+        this.openGroup(group.id);
+      });
+      el.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          this.openGroup(group.id);
+        }
+      });
+      el.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.showGroupContextMenu(e, group);
+      });
+      return el;
+    },
+
+    openGroup(groupId) {
+      const group = this.groupById(groupId);
+      const overlay = document.getElementById('desktop-folder-overlay');
+      const grid = document.getElementById('desktop-folder-grid');
+      const title = document.getElementById('desktop-folder-title');
+      const count = document.getElementById('desktop-folder-count');
+      if (!group || !overlay || !grid || !title) return;
+      const apps = this.groupApps(group);
+      this._groupReturnFocus = document.activeElement;
+      this._openGroupId = groupId;
+      title.textContent = group.name;
+      if (count) count.textContent = apps.length ? `${apps.length} uygulama` : 'Henüz uygulama yok';
+      grid.textContent = '';
+
+      if (!apps.length) {
+        const empty = document.createElement('div');
+        empty.className = 'folder-empty';
+        empty.textContent = 'Bir uygulamayı bu kategoriye taşımak için masaüstündeki simgesini klasörün üzerine sürükleyin.';
+        grid.appendChild(empty);
+      } else {
+        apps.forEach(app => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'folder-app';
+          btn.title = `${app.name}\n• Tıkla başlat\n• Sağ tıkla seçenekler`;
+          const icon = document.createElement('div');
+          icon.className = 'item-icon';
+          icon.innerHTML = this.getAppSvgIcon(app);
+          IconResolver.tagIcon(icon, app);
+          const name = document.createElement('span');
+          name.className = 'folder-app-name';
+          name.textContent = app.name;
+          btn.appendChild(icon);
+          btn.appendChild(name);
+          btn.addEventListener('click', () => this.launchApp(app));
+          btn.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.showGroupAppMenu(e, app, group);
+          });
+          grid.appendChild(btn);
+        });
+      }
+
+      overlay.hidden = false;
+      IconResolver.upgradeScope(grid);
+      const close = document.getElementById('desktop-folder-close');
+      if (close) setTimeout(() => close.focus(), 30);
+    },
+
+    closeGroup() {
+      const overlay = document.getElementById('desktop-folder-overlay');
+      if (overlay && !overlay.hidden) {
+        overlay.hidden = true;
+        const back = this._groupReturnFocus;
+        if (back && back.isConnected && typeof back.focus === 'function') back.focus();
+      }
+      this._openGroupId = null;
+    },
+
+    initGroupOverlay() {
+      if (this._groupOverlayBound) return;
+      this._groupOverlayBound = true;
+      const overlay = document.getElementById('desktop-folder-overlay');
+      const close = document.getElementById('desktop-folder-close');
+      if (overlay) {
+        overlay.addEventListener('click', (e) => {
+          if (e.target === overlay) this.closeGroup();
+        });
+      }
+      if (close) close.addEventListener('click', () => this.closeGroup());
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && this._openGroupId) {
+          e.stopPropagation();
+          this.closeGroup();
+        }
+      });
+      if (overlay) {
+        overlay.addEventListener('keydown', (e) => {
+          if (e.key !== 'Tab') return;
+          const focusable = Array.from(overlay.querySelectorAll('button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])'));
+          if (!focusable.length) return;
+          const first = focusable[0];
+          const last = focusable[focusable.length - 1];
+          if (e.shiftKey && document.activeElement === first) {
+            e.preventDefault();
+            last.focus();
+          } else if (!e.shiftKey && document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+          }
+        });
+      }
+    },
+
+    showGroupContextMenu(e, group) {
+      let menu = document.getElementById('group-context-menu');
+      if (!menu) {
+        menu = document.createElement('div');
+        menu.id = 'group-context-menu';
+        menu.className = 'desktop-context-menu';
+        document.body.appendChild(menu);
+      }
+      menu.innerHTML = `
+        <div class="ctx-item" data-action="open"><span>Aç</span></div>
+        <div class="ctx-item" data-action="rename"><span>Yeniden Adlandır</span></div>
+        <div class="ctx-divider"></div>
+        <div class="ctx-item ctx-danger" data-action="delete"><span>Kategoriyi Sil</span></div>
+      `;
+      const x = Math.min(e.clientX, window.innerWidth - 230);
+      const y = Math.min(e.clientY, window.innerHeight - 170);
+      menu.style.left = `${x}px`;
+      menu.style.top = `${y}px`;
+      menu.classList.add('open');
+      const closeMenu = () => {
+        menu.classList.remove('open');
+        document.removeEventListener('click', closeMenu);
+      };
+      setTimeout(() => document.addEventListener('click', closeMenu), 10);
+      menu.querySelectorAll('.ctx-item').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const act = btn.getAttribute('data-action');
+          closeMenu();
+          if (act === 'open') {
+            this.openGroup(group.id);
+          } else if (act === 'rename') {
+            const name = prompt('Kategori adı:', group.name);
+            if (name && name.trim()) this.renameGroup(group.id, name);
+          } else if (act === 'delete') {
+            const appCount = this.groupApps(group).length;
+            if (!confirm(`'${group.name}' kategorisi silinsin mi? ${appCount ? 'İçindeki uygulamalar masaüstüne döner.' : ''}`)) return;
+            this.deleteGroup(group.id);
+          }
+        });
+      });
+    },
+
+    showGroupAppMenu(e, app, group) {
+      let menu = document.getElementById('group-app-context-menu');
+      if (!menu) {
+        menu = document.createElement('div');
+        menu.id = 'group-app-context-menu';
+        menu.className = 'desktop-context-menu';
+        document.body.appendChild(menu);
+      }
+      menu.innerHTML = `
+        <div class="ctx-item" data-action="launch"><span>Uygulamayı Başlat</span></div>
+        <div class="ctx-divider"></div>
+        <div class="ctx-item" data-action="remove"><span>Kategoriden Çıkar</span></div>
+      `;
+      const x = Math.min(e.clientX, window.innerWidth - 230);
+      const y = Math.min(e.clientY, window.innerHeight - 150);
+      menu.style.left = `${x}px`;
+      menu.style.top = `${y}px`;
+      menu.classList.add('open');
+      const closeMenu = () => {
+        menu.classList.remove('open');
+        document.removeEventListener('click', closeMenu);
+      };
+      setTimeout(() => document.addEventListener('click', closeMenu), 10);
+      menu.querySelectorAll('.ctx-item').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const act = btn.getAttribute('data-action');
+          closeMenu();
+          if (act === 'launch') this.launchApp(app);
+          else if (act === 'remove') this.removeAppFromGroup(app.id, group.id);
+        });
+      });
     },
 
     renderToDesktop() {
@@ -1946,8 +2295,11 @@
 
       // Masaüstünde yalnızca masaüstüne eklenmiş uygulamalar durur. Başlat
       // menüsü bütün uygulamaları listeler, oradan geri eklenebilir.
-      const onDesktop = this.installedApps.filter(a => a.on_desktop !== false);
-      if (onDesktop.length === 0) {
+      const groups = this.groupsLoad();
+      const groupedIds = new Set();
+      groups.forEach(g => g.items.forEach(id => groupedIds.add(id)));
+      const onDesktop = this.installedApps.filter(a => a.on_desktop !== false && !groupedIds.has(a.id));
+      if (onDesktop.length === 0 && groups.length === 0) {
         return;
       }
 
@@ -2002,7 +2354,9 @@
 
         frag.appendChild(item);
       });
+      groups.forEach(group => frag.appendChild(this.buildGroupTile(group)));
       container.appendChild(frag);
+      this.initGroupOverlay();
       this.layoutDesktopIcons(container);
       IconResolver.upgradeScope(container);
     },
@@ -2208,7 +2562,7 @@
           el.style.top = `${origTop + dy}px`;
         };
 
-        const onUp = () => {
+        const onUp = (ev) => {
           document.removeEventListener('mousemove', onMove);
           document.removeEventListener('mouseup', onUp);
           if (!dragging) return;
@@ -2217,6 +2571,21 @@
           const swallow = (ce) => { ce.stopPropagation(); ce.preventDefault(); };
           el.addEventListener('click', swallow, { capture: true, once: true });
           setTimeout(() => el.removeEventListener('click', swallow, true), 0);
+
+          // Uygulama simgesi bir kategori klasörünün üzerine bırakıldıysa
+          // ızgaraya oturtmadan doğrudan klasöre taşınır.
+          const appId = el.dataset.appId || '';
+          if (appId && !appId.startsWith('group:') && !appId.startsWith('file:')) {
+            const folder = Array.from(container.querySelectorAll('.folder-item')).find(item => {
+              const rect = item.getBoundingClientRect();
+              return ev.clientX >= rect.left && ev.clientX <= rect.right
+                && ev.clientY >= rect.top && ev.clientY <= rect.bottom;
+            });
+            if (folder && folder.dataset.groupId) {
+              this.moveAppToGroup(appId, folder.dataset.groupId);
+              return;
+            }
+          }
 
           const { cols, rows } = this._gridSize(container);
           const nc = Math.max(0, Math.min(cols - 1, Math.round(el.offsetLeft / this.ICON_CELL_W)));
@@ -2550,6 +2919,17 @@
         document.body.appendChild(menu);
       }
 
+      const groups = this.groupsLoad();
+      const groupRows = groups.map(g => `
+        <div class="ctx-item" data-action="group-move" data-group-id="${escapeHtml(g.id)}">
+          <span>${escapeHtml(g.name)}</span>
+        </div>`).join('');
+      const groupSection = `
+        <div class="context-menu-category">Kategoriye Taşı</div>
+        ${groupRows}
+        <div class="ctx-item" data-action="group-new"><span>Yeni Kategori…</span></div>
+      `;
+
       menu.innerHTML = `
         <div class="ctx-item" data-action="launch">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
@@ -2579,6 +2959,7 @@
           }</svg>
           <span>${app.on_desktop === false ? 'Masaüstüne Ekle' : 'Masaüstünden Kaldır'}</span>
         </div>
+        ${groupSection}
         <div class="ctx-divider"></div>
         <div class="ctx-item ctx-danger" data-action="uninstall">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
@@ -2587,7 +2968,8 @@
       `;
 
       const x = Math.min(e.clientX, window.innerWidth - 250);
-      const y = Math.min(e.clientY, window.innerHeight - 200);
+      const menuHeight = 360 + groups.length * 28;
+      const y = Math.min(e.clientY, Math.max(8, window.innerHeight - menuHeight));
       menu.style.left = `${x}px`;
       menu.style.top = `${y}px`;
       menu.classList.add('open');
@@ -2620,6 +3002,14 @@
             AppPinManager.toggleTaskbarPin(app);
           } else if (act === 'desktop-toggle') {
             this.toggleDesktopIcon(app.id);
+          } else if (act === 'group-move') {
+            this.moveAppToGroup(app.id, btn.getAttribute('data-group-id'));
+          } else if (act === 'group-new') {
+            const name = prompt('Yeni kategori adı:', 'Yeni Kategori');
+            if (name && name.trim()) {
+              const group = this.createGroup(name);
+              this.moveAppToGroup(app.id, group.id);
+            }
           } else if (act === 'uninstall') {
             StoreManager.uninstallPackageById(app.id);
           }
@@ -8547,6 +8937,21 @@
           }
         });
       }
+
+      const chkLockStartup = document.getElementById('settings-lock-on-startup');
+      if (chkLockStartup) {
+        // PIN ayarlıysa açılışta kilitleme varsayılan olarak açıktır; kullanıcı
+        // yalnızca bilinçli olarak kapattığında ('0') devre dışı kalır.
+        chkLockStartup.checked = SafeStorage.getItem('ankora_lock_on_startup') !== '0';
+        chkLockStartup.addEventListener('change', () => {
+          SafeStorage.setItem('ankora_lock_on_startup', chkLockStartup.checked ? '1' : '0');
+          if (typeof ReportManager !== 'undefined' && ReportManager.showToast) {
+            ReportManager.showToast(chkLockStartup.checked
+              ? 'Açılışta kilit açık. PIN ayarlıysa oturum kilitli başlar.'
+              : 'Açılışta kilit kapatıldı.');
+          }
+        });
+      }
     }
   };
 
@@ -9794,6 +10199,14 @@
                     WindowManager.open('win-notepad');
                   });
               }
+            }
+          } else if (act === 'new-group') {
+            const groupName = prompt('Masaüstü kategorisi adı:', 'Yeni Kategori');
+            if (groupName && groupName.trim() && typeof XdgDesktopEngine !== 'undefined') {
+              const group = XdgDesktopEngine.createGroup(groupName);
+              XdgDesktopEngine.renderToDesktop();
+              if (typeof DesktopFiles !== 'undefined' && DesktopFiles.refresh) DesktopFiles.refresh();
+              ReportManager?.showToast(`'${group.name}' kategorisi oluşturuldu. Uygulamaları üzerine sürükleyin.`);
             }
           } else if (act === 'term') {
             WindowManager.open('win-terminal');
@@ -12271,6 +12684,11 @@
         hint: 'Büyük saat, altında günün tarihi'
       },
       {
+        id: 'weather',
+        title: 'Hava Durumu',
+        hint: 'Seçili şehir için anlık durum ve üç günlük tahmin'
+      },
+      {
         id: 'system',
         title: 'Bellek ve Çalışma Süresi',
         hint: 'RAM çubuğu, çekirdek sayısı, açık kalma süresi'
@@ -12308,6 +12726,9 @@
     ],
 
     TODO_KEY: 'ankora_todo_items',
+    WEATHER_CITY_KEY: 'ankora_weather_city',
+    WEATHER_CACHE_KEY: 'ankora_weather_cache',
+    WEATHER_FRESH_MS: 15 * 60 * 1000,
 
     enabled: [],
     layer: null,
@@ -12318,18 +12739,36 @@
     init() {
       this.layer = document.getElementById('desktop-widgets');
       this.enabled = this.load();
+      // Hava durumu sonradan eklendi. Widget katmanını zaten kullanan
+      // kullanıcıda bir kez görünür olur; tüm widget'ları kapatanlara dokunmaz.
+      if (this.enabled.length > 0
+          && SafeStorage.getItem('ankora_weather_widget_added') !== '1') {
+        if (!this.isEnabled('weather')) {
+          this.enabled.push('weather');
+          this.save();
+        }
+        SafeStorage.setItem('ankora_weather_widget_added', '1');
+      }
       this.renderPanel();
       this.renderLayer();
 
       // Sekme arkadayken dakika sayacı boşa uyanmasın.
       document.addEventListener('visibilitychange', () => {
-        if (document.hidden) this.stopClock();
-        else if (this.isEnabled('clock')) this.startClock();
+        if (document.hidden) {
+          this.stopClock();
+          return;
+        }
+        if (this.isEnabled('clock')) this.startClock();
+        if (this.isEnabled('weather') && document.getElementById('dw-weather-temp')) {
+          const cache = this.weatherCache();
+          if (!this._weatherAt || Date.now() - this._weatherAt >= this.WEATHER_FRESH_MS) this.loadWeather();
+          else if (cache) this.paintWeather(cache.data, cache.city, cache.at);
+        }
       });
     },
 
     load() {
-      const fallback = ['clock', 'system'];
+      const fallback = ['clock', 'weather', 'system'];
       const raw = SafeStorage.getItem(this.storageKey);
       if (!raw) return fallback;
       try {
@@ -12429,6 +12868,11 @@
         return wrap;
       }
 
+      if (id === 'weather') {
+        this.buildWeather(wrap);
+        return wrap;
+      }
+
       if (id === 'system') {
         wrap.appendChild(this.make('div', 'dw-head', null, 'Bellek'));
 
@@ -12491,6 +12935,343 @@
         });
       wrap.appendChild(meta);
       return wrap;
+    },
+
+    // --- Hava durumu: Open-Meteo, API anahtarsız. Şehir seçimi yerelde. ---
+    buildWeather(wrap) {
+      const box = this.make('div', 'dw-weather');
+      const top = this.make('div', 'dw-weather-top');
+      const main = this.make('div', 'dw-weather-main');
+
+      const temp = document.createElement('div');
+      temp.className = 'dw-weather-temp';
+      temp.innerHTML = '<span id="dw-weather-temp">--</span><span class="unit">°</span>';
+      main.appendChild(temp);
+      main.appendChild(this.make('div', 'dw-weather-place', 'dw-weather-place', 'Ankara'));
+
+      const icon = this.make('div', 'dw-weather-icon');
+      icon.id = 'dw-weather-icon';
+      icon.appendChild(this.weatherIconNode(2, true));
+
+      top.appendChild(main);
+      top.appendChild(icon);
+      box.appendChild(top);
+      box.appendChild(this.make('div', 'dw-weather-desc', 'dw-weather-desc', 'Yükleniyor…'));
+
+      const meta = this.make('div', 'dw-weather-meta');
+      meta.appendChild(this.make('span', null, 'dw-weather-high', 'En yüksek —'));
+      meta.appendChild(this.make('span', null, 'dw-weather-low', 'En düşük —'));
+      meta.appendChild(this.make('span', null, 'dw-weather-wind', 'Rüzgâr —'));
+      box.appendChild(meta);
+      box.appendChild(this.make('div', 'dw-weather-days', 'dw-weather-days'));
+
+      const cityBtn = document.createElement('button');
+      cityBtn.type = 'button';
+      cityBtn.className = 'dw-weather-city-btn';
+      cityBtn.textContent = 'Şehir değiştir';
+      box.appendChild(cityBtn);
+
+      const search = this.make('div', 'dw-weather-search');
+      search.id = 'dw-weather-search';
+      search.hidden = true;
+      const row = this.make('div', 'dw-weather-search-row');
+      const input = document.createElement('input');
+      input.type = 'search';
+      input.id = 'dw-weather-city-input';
+      input.placeholder = 'Şehir adı';
+      input.autocomplete = 'off';
+      input.setAttribute('aria-label', 'Hava durumu için şehir ara');
+      const go = document.createElement('button');
+      go.type = 'button';
+      go.textContent = 'Ara';
+      row.appendChild(input);
+      row.appendChild(go);
+      search.appendChild(row);
+      search.appendChild(this.make('div', 'dw-weather-results', 'dw-weather-results'));
+      box.appendChild(search);
+      box.appendChild(this.make('div', 'dw-weather-status', 'dw-weather-status'));
+
+      const toggle = () => {
+        search.hidden = !search.hidden;
+        if (!search.hidden) setTimeout(() => input.focus(), 0);
+      };
+      cityBtn.addEventListener('click', toggle);
+      go.addEventListener('click', () => this.searchWeatherCity());
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          e.stopPropagation();
+          this.searchWeatherCity();
+        } else if (e.key === 'Escape') {
+          e.stopPropagation();
+          search.hidden = true;
+        }
+      });
+
+      wrap.appendChild(box);
+      this.loadWeather();
+    },
+
+    weatherIconSvg(code, isDay) {
+      const c = Number(code);
+      const open = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">';
+      const close = '</svg>';
+      const sun = '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>';
+      const moon = '<path d="M20 14.5A8.5 8.5 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5z"/>';
+      const cloud = '<path d="M17 18H7a4 4 0 0 1-.5-7.97A5.5 5.5 0 0 1 17.2 9.5 4.25 4.25 0 0 1 17 18z"/>';
+      const partly = '<circle cx="8.5" cy="8" r="2.6"/><path d="M8.5 2.5v1.2M3.1 8h1.2M4.7 4.2l.9.9M12.3 4.2l-.9.9M2.8 12.5l.9-.9"/><path d="M18 19H9a3.5 3.5 0 0 1-.4-6.98A4.8 4.8 0 0 1 18 13.2 3 3 0 0 1 18 19z"/>';
+      const partlyNight = '<path d="M11.5 4.4A6.5 6.5 0 0 0 5 12.2a5 5 0 0 0 1.5 6.8"/><path d="M18 19H9a3.5 3.5 0 0 1-.4-6.98A4.8 4.8 0 0 1 18 13.2 3 3 0 0 1 18 19z"/>';
+
+      if (c === 0) return open + (isDay ? sun : moon) + close;
+      if (c === 1 || c === 2) return open + (isDay ? partly : partlyNight) + close;
+      if (c === 3) return open + cloud + close;
+      if (c === 45 || c === 48) return open + cloud + '<path d="M6 21h12M8 23h8"/>' + close;
+      if (c >= 51 && c <= 57) return open + cloud + '<path d="M8 20l-.6 1.2M12 20l-.6 1.2M16 20l-.6 1.2"/>' + close;
+      if ((c >= 61 && c <= 67) || (c >= 80 && c <= 82)) return open + cloud + '<path d="M8 20l-.8 1.6M12 20l-.8 1.6M16 20l-.8 1.6"/>' + close;
+      if ((c >= 71 && c <= 77) || c === 85 || c === 86) return open + cloud + '<path d="M8 20h.01M12 20h.01M16 20h.01M8 22h.01M12 22h.01M16 22h.01"/>' + close;
+      if (c >= 95) return open + cloud + '<path d="M12 19l-1.5 2.5h3L12 24"/>' + close;
+      return open + cloud + close;
+    },
+
+    weatherKind(code) {
+      const c = Number(code);
+      if (c === 0) return 'sun';
+      if (c === 1 || c === 2) return 'cloud';
+      if (c === 45 || c === 48) return 'cloud';
+      if ((c >= 51 && c <= 67) || (c >= 80 && c <= 82)) return 'rain';
+      if ((c >= 71 && c <= 77) || c === 85 || c === 86) return 'snow';
+      if (c >= 95) return 'storm';
+      return 'cloud';
+    },
+
+    weatherLabel(code) {
+      const c = Number(code);
+      if (c === 0) return 'Açık';
+      if (c === 1) return 'Az bulutlu';
+      if (c === 2) return 'Parçalı bulutlu';
+      if (c === 3) return 'Kapalı';
+      if (c === 45 || c === 48) return 'Sisli';
+      if (c >= 51 && c <= 57) return 'Çisenti';
+      if (c >= 61 && c <= 67) return 'Yağmurlu';
+      if (c >= 71 && c <= 77) return 'Karlı';
+      if (c >= 80 && c <= 82) return 'Sağanak yağış';
+      if (c === 85 || c === 86) return 'Kar sağanağı';
+      if (c >= 95) return 'Fırtına';
+      return 'Bulutlu';
+    },
+
+    weatherIconNode(code, isDay) {
+      const holder = document.createElement('span');
+      holder.innerHTML = this.weatherIconSvg(code, isDay);
+      return holder.firstElementChild || holder;
+    },
+
+    weatherCity() {
+      try {
+        const raw = JSON.parse(SafeStorage.getItem(this.WEATHER_CITY_KEY) || 'null');
+        if (raw && raw.name && Number.isFinite(raw.lat) && Number.isFinite(raw.lon)) return raw;
+      } catch (e) {}
+      return { name: 'Ankara', lat: 39.9334, lon: 32.8597, country: 'Türkiye' };
+    },
+
+    weatherCache() {
+      try {
+        const raw = JSON.parse(SafeStorage.getItem(this.WEATHER_CACHE_KEY) || 'null');
+        return raw && raw.data && raw.at ? raw : null;
+      } catch (e) {
+        return null;
+      }
+    },
+
+    async fetchJson(url, timeout) {
+      const ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+      const timer = setTimeout(() => { if (ctrl) ctrl.abort(); }, timeout || 9000);
+      try {
+        const res = await fetch(url, { signal: ctrl ? ctrl.signal : undefined, cache: 'no-store' });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return await res.json();
+      } finally {
+        clearTimeout(timer);
+      }
+    },
+
+    async loadWeather(force) {
+      const city = this.weatherCity();
+      const cache = this.weatherCache();
+      const now = Date.now();
+      if (!force && cache && cache.city && cache.city.name === city.name
+          && cache.city.lat === city.lat && cache.city.lon === city.lon
+          && now - cache.at < this.WEATHER_FRESH_MS) {
+        this._weatherAt = cache.at;
+        this.paintWeather(cache.data, cache.city, cache.at);
+        return;
+      }
+
+      const token = (this._weatherToken || 0) + 1;
+      this._weatherToken = token;
+      this.setWeatherStatus('Güncelleniyor…');
+      const url = 'https://api.open-meteo.com/v1/forecast'
+        + '?latitude=' + encodeURIComponent(city.lat)
+        + '&longitude=' + encodeURIComponent(city.lon)
+        + '&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m,is_day'
+        + '&daily=weather_code,temperature_2m_max,temperature_2m_min'
+        + '&timezone=auto&forecast_days=3';
+
+      try {
+        const data = await this.fetchJson(url, 9000);
+        if (token !== this._weatherToken) return;
+        if (!data || !data.current || !data.daily) throw new Error('Eksik veri');
+        this._weatherAt = Date.now();
+        SafeStorage.setItem(this.WEATHER_CACHE_KEY, JSON.stringify({ at: this._weatherAt, city, data }));
+        this.paintWeather(data, city, this._weatherAt);
+        this.setWeatherStatus('');
+      } catch (e) {
+        if (token !== this._weatherToken) return;
+        const sameCity = cache && cache.city && cache.city.name === city.name
+          && cache.city.lat === city.lat && cache.city.lon === city.lon;
+        if (sameCity) {
+          this._weatherAt = cache.at;
+          this.paintWeather(cache.data, cache.city, cache.at);
+          const t = new Date(cache.at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+          this.setWeatherStatus(`Güncellenemedi; ${t} verisi gösteriliyor.`);
+        } else {
+          this.setWeatherStatus('Hava durumu alınamadı. Bağlantıyı denetleyin.', true);
+        }
+      }
+    },
+
+    paintWeather(data, city, at) {
+      const cur = data.current || {};
+      const daily = data.daily || {};
+      const code = Number(cur.weather_code);
+      const tempEl = document.getElementById('dw-weather-temp');
+      if (tempEl) tempEl.textContent = Number.isFinite(Number(cur.temperature_2m)) ? String(Math.round(Number(cur.temperature_2m))) : '--';
+
+      const place = document.getElementById('dw-weather-place');
+      if (place) {
+        place.textContent = city.name || '—';
+        place.title = [city.name, city.admin1, city.country].filter(Boolean).join(', ');
+      }
+
+      const icon = document.getElementById('dw-weather-icon');
+      if (icon) {
+        icon.className = 'dw-weather-icon wx-' + this.weatherKind(code);
+        icon.textContent = '';
+        icon.appendChild(this.weatherIconNode(code, cur.is_day !== 0));
+      }
+
+      const desc = document.getElementById('dw-weather-desc');
+      if (desc) {
+        const feels = Number(cur.apparent_temperature);
+        desc.textContent = this.weatherLabel(code)
+          + (Number.isFinite(feels) ? ` · Hissedilen ${Math.round(feels)}°` : '');
+      }
+
+      const max = Array.isArray(daily.temperature_2m_max) ? daily.temperature_2m_max[0] : null;
+      const min = Array.isArray(daily.temperature_2m_min) ? daily.temperature_2m_min[0] : null;
+      const high = document.getElementById('dw-weather-high');
+      if (high) high.textContent = 'En yüksek ' + (Number.isFinite(Number(max)) ? Math.round(Number(max)) + '°' : '—');
+      const low = document.getElementById('dw-weather-low');
+      if (low) low.textContent = 'En düşük ' + (Number.isFinite(Number(min)) ? Math.round(Number(min)) + '°' : '—');
+      const wind = document.getElementById('dw-weather-wind');
+      if (wind) {
+        const w = Number(cur.wind_speed_10m);
+        wind.textContent = 'Rüzgâr ' + (Number.isFinite(w) ? Math.round(w) + ' km/sa' : '—');
+      }
+
+      const daysEl = document.getElementById('dw-weather-days');
+      if (daysEl && Array.isArray(daily.time)) {
+        daysEl.textContent = '';
+        daily.time.slice(0, 3).forEach((iso, idx) => {
+          const day = document.createElement('div');
+          day.className = 'dw-weather-day';
+          let label = '';
+          if (idx === 0) label = 'Bugün';
+          else if (idx === 1) label = 'Yarın';
+          else {
+            const d = new Date(iso + 'T12:00:00');
+            label = isNaN(d.getTime()) ? '' : d.toLocaleDateString('tr-TR', { weekday: 'short' });
+          }
+          day.appendChild(this.make('span', null, null, label));
+          const dCode = Array.isArray(daily.weather_code) ? daily.weather_code[idx] : code;
+          const iWrap = this.make('span', 'wx-' + this.weatherKind(dCode));
+          iWrap.appendChild(this.weatherIconNode(dCode, true));
+          day.appendChild(iWrap);
+          const maxD = Array.isArray(daily.temperature_2m_max) ? daily.temperature_2m_max[idx] : null;
+          const minD = Array.isArray(daily.temperature_2m_min) ? daily.temperature_2m_min[idx] : null;
+          const temps = document.createElement('span');
+          temps.className = 'day-temp';
+          temps.innerHTML = (Number.isFinite(Number(maxD)) ? Math.round(Number(maxD)) + '°' : '—')
+            + ' <small>' + (Number.isFinite(Number(minD)) ? Math.round(Number(minD)) + '°' : '') + '</small>';
+          day.appendChild(temps);
+          daysEl.appendChild(day);
+        });
+      }
+
+      if (at) {
+        const iconBtn = document.querySelector('.dw-weather-city-btn');
+        if (iconBtn) iconBtn.title = 'Son güncelleme: ' + new Date(at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+      }
+    },
+
+    setWeatherStatus(text, isError) {
+      const el = document.getElementById('dw-weather-status');
+      if (!el) return;
+      el.textContent = text || '';
+      el.classList.toggle('error', !!isError);
+    },
+
+    async searchWeatherCity() {
+      const input = document.getElementById('dw-weather-city-input');
+      const resultsEl = document.getElementById('dw-weather-results');
+      if (!input || !resultsEl) return;
+      const q = (input.value || '').trim();
+      if (q.length < 2) {
+        this.setWeatherStatus('En az iki harf yazın.', true);
+        return;
+      }
+      this.setWeatherStatus('Aranıyor…');
+      resultsEl.textContent = '';
+      try {
+        const url = 'https://geocoding-api.open-meteo.com/v1/search?name=' + encodeURIComponent(q)
+          + '&count=6&language=tr&format=json';
+        const data = await this.fetchJson(url, 8000);
+        const list = (data && Array.isArray(data.results)) ? data.results : [];
+        if (!list.length) {
+          this.setWeatherStatus('Şehir bulunamadı.', true);
+          return;
+        }
+        this.setWeatherStatus('');
+        list.forEach(r => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'dw-weather-result';
+          const parts = [r.name];
+          if (r.admin1 && r.admin1 !== r.name) parts.push(r.admin1);
+          if (r.country) parts.push(r.country);
+          btn.textContent = parts.join(', ');
+          btn.title = btn.textContent;
+          btn.addEventListener('click', () => {
+            const city = {
+              name: r.name,
+              lat: Number(r.latitude),
+              lon: Number(r.longitude),
+              admin1: r.admin1 || '',
+              country: r.country || ''
+            };
+            if (!Number.isFinite(city.lat) || !Number.isFinite(city.lon)) return;
+            SafeStorage.setItem(this.WEATHER_CITY_KEY, JSON.stringify(city));
+            const search = document.getElementById('dw-weather-search');
+            if (search) search.hidden = true;
+            resultsEl.textContent = '';
+            this.loadWeather(true);
+          });
+          resultsEl.appendChild(btn);
+        });
+        if (resultsEl.firstElementChild) resultsEl.firstElementChild.focus();
+      } catch (e) {
+        this.setWeatherStatus('Şehir araması başarısız oldu.', true);
+      }
     },
 
     // --- Genişletilmiş widget gövde ve yenileme akışları ---
@@ -12737,11 +13518,14 @@
         clearInterval(this._extrasTimer);
         this._extrasTimer = null;
       }
-      if (!this.isEnabled('disk') && !this.isEnabled('network')) return;
+      if (!this.isEnabled('disk') && !this.isEnabled('network') && !this.isEnabled('weather')) return;
       const tick = () => {
         if (document.hidden) return;
         this.paintDisk();
         this.paintNetwork();
+        if (this.isEnabled('weather') && document.getElementById('dw-weather-temp')) {
+          if (!this._weatherAt || Date.now() - this._weatherAt >= this.WEATHER_FRESH_MS) this.loadWeather();
+        }
       };
       if (this.isEnabled('disk') && document.getElementById('dw-disk-fill')) this.paintDisk();
       if (this.isEnabled('network') && document.getElementById('dw-net-state')) this.paintNetwork();
@@ -15365,6 +16149,23 @@
     // 3. Kayıtlı oturum geri yüklenir; çökme sayacı eşiği aşıldıysa
     // SessionManager.restore bunu kendi içinde değerlendirir.
     safeInit('SessionRestore', () => SessionManager.restore());
+
+    // Açılışta kilit: yalnız PIN gerçekten ayarlıysa. İlk açılışta PIN yoksa
+    // kullanıcıyı kilitleyip Hoş Geldiniz penceresini zorla açmayız.
+    safeInit('StartupLock', () => {
+      if (SafeStorage.getItem('ankora_lock_on_startup') === '0') return;
+      setTimeout(async () => {
+        if (typeof LockManager === 'undefined' || !LockManager.overlay) return;
+        if (LockManager.isLocked || LockManager.overlay.classList.contains('show')) return;
+        let configured = false;
+        try {
+          configured = await TauriBridge.invoke('is_lock_configured');
+        } catch (e) {
+          return;
+        }
+        if (configured) LockManager.lock();
+      }, 1200);
+    });
 
     // Ayaz DE modüllerini pencere nesnesine bağla (test, otomasyon ve dış kontrol)
     window.AyazDE = {
