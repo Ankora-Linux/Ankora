@@ -5617,175 +5617,42 @@
   // ============================================================================
   // 6. ANKORA AI (OTONOM AJAN, KULLANICI API BAĞLANTISI & GÜVENLİK ONAY SİSTEMİ)
   // ============================================================================
-  // Bağlantılar (Kuverler): ajanın soru anında okuduğu dış bağlamlar.
-  // GitHub: PAT ile REST API; Gmail: IMAP + uygulama şifresi (Rust tarafı);
-  // Görevler: masaüstü TODO widget verisi; Tarayıcı: yanıta arama çipi.
+  // Bağlantılar: ajanın soru anında okuduğu yerel bağlamlar. Dış hesap
+  // bağlantıları (GitHub/Gmail) kaldırıldı; yalnız yerel veriler.
   const LinksManager = {
     KEYS: {
-      gh: 'ankora_link_gh',
-      ghPat: 'ankora_link_gh_pat',
-      gmail: 'ankora_link_gmail',
-      gUser: 'ankora_link_gmail_user',
-      gHost: 'ankora_link_gmail_host',
-      gPass: 'ankora_link_gmail_pass',
       todo: 'ankora_link_todo',
       browser: 'ankora_link_browser'
     },
     state: {
-      gh: false, ghPat: '', gmail: false, gUser: '', gHost: 'imap.gmail.com',
-      gPass: '', todo: false, browser: false
+      todo: false, browser: false
     },
 
     init() {
       const s = this.state;
-      // Anahtarlar '1'/'0' bayrakları düz kayıt; ŞİFRELER yalnız Rust
-      // tarafındaki şifreli vault'a gider (save/get_ai_credential) ve
-      // oturum belleğinde yaşar. localStorage'da asla durmaz.
-      s.gh = SafeStorage.getItem(this.KEYS.gh) === '1';
-      s.gmail = SafeStorage.getItem(this.KEYS.gmail) === '1';
-      s.gUser = SafeStorage.getItem(this.KEYS.gUser) || '';
-      s.gHost = SafeStorage.getItem(this.KEYS.gHost) || 'imap.gmail.com';
       s.todo = SafeStorage.getItem(this.KEYS.todo) === '1';
       s.browser = SafeStorage.getItem(this.KEYS.browser) === '1';
 
-      // Geçmiş sürümlerde düz localStorage'a yazılan şifreler varsa sil.
-      ['ankora_link_gh_pat', 'ankora_link_gmail_pass'].forEach(k => SafeStorage.removeItem(k));
-
-      const bind = (id, key, isText) => {
+      const bind = (id, key) => {
         const el = document.getElementById(id);
         if (!el) return;
-        if (isText) {
-          el.value = s[key] || '';
-          el.addEventListener('change', () => {
-            s[key] = el.value.trim();
-            SafeStorage.setItem(this.KEYS[key], s[key]);
-          });
-        } else {
-          el.checked = s[key];
-          el.addEventListener('change', () => {
-            s[key] = Boolean(el.checked);
-            SafeStorage.setItem(this.KEYS[key], s[key] ? '1' : '0');
-            ReportManager?.showToast(`Bağlantı: ${el.closest('.ai-link-row')?.querySelector('span')?.textContent || key} ${s[key] ? 'açıldı' : 'kapatıldı'}`);
-          });
-        }
+        el.checked = s[key];
+        el.addEventListener('change', () => {
+          s[key] = Boolean(el.checked);
+          SafeStorage.setItem(this.KEYS[key], s[key] ? '1' : '0');
+          ReportManager?.showToast(`Bağlantı: ${el.closest('.ai-link-row')?.querySelector('span')?.textContent || key} ${s[key] ? 'açıldı' : 'kapatıldı'}`);
+        });
       };
-      bind('lk-gh-toggle', 'gh');
-      bind('lk-gh-pat', 'ghPat', true);
-      bind('lk-gmail-toggle', 'gmail');
-      bind('lk-gmail-user', 'gUser', true);
-      bind('lk-gmail-host', 'gHost', true);
-      bind('lk-gmail-pass', 'gPass', true);
       bind('lk-todo-toggle', 'todo');
       bind('lk-browser-toggle', 'browser');
+    },
 
-      // Şifreli vault'tan oturum belleğine yükle (diske düz yazılmaz).
-      const vaultProviders = {
-        'lk-gh-pat': 'link_gh_pat',
-        'lk-gmail-pass': 'link_gmail_pass'
-      };
-      Object.entries(vaultProviders).forEach(([inputId, vaultKey]) => {
-        const el = document.getElementById(inputId);
-        if (!el) return;
-        TauriBridge.invoke('get_ai_credential', { provider: vaultKey }).then(v => {
-          if (v) {
-            this.state[vaultKey === 'link_gh_pat' ? 'ghPat' : 'gPass'] = v;
-            el.placeholder = el.placeholder.includes('GitHub')
-              ? `${v.slice(0, 6)}••••• (kayıtlı)`
-              : '•••••••• (kayıtlı)';
-          }
-        }).catch(() => {});
-        el.addEventListener('change', () => {
-          const val = el.value.trim();
-          this.state[vaultKey === 'link_gh_pat' ? 'ghPat' : 'gPass'] = val;
-          el.value = '';
-          const setVal = TauriBridge.invoke('save_ai_credential', {
-            provider: vaultKey,
-            apiKey: val
-          });
-          const clearVal = TauriBridge.invoke('delete_ai_credential', { provider: vaultKey });
-          (val ? setVal : clearVal)
-            .then(() => ReportManager?.showToast('Gizli anahtar şifreli kasaya kaydedildi.'))
-            .catch(e => ReportManager?.showToast(`Kasa hatası: ${e.message || e}`, 'error'));
-          el.placeholder = val
-            ? (vaultKey === 'link_gh_pat' ? `${val.slice(0, 6)}••••• (kayıtlı)` : '•••••••• (kayıtlı)')
-            : (vaultKey === 'link_gh_pat' ? 'GitHub PAT (ghp_...)' : 'Uygulama şifresi (16 haneli)');
-        });
+    // Eski sürümde Google/GitHub hesapları için ayrılan şifreli kasa
+    // girdileri artık kullanılmıyor; kasadan temizlenir.
+    cleanupSecrets() {
+      ['link_gh_pat', 'link_gmail_pass'].forEach(p => {
+        TauriBridge.invoke('delete_ai_credential', { provider: p }).catch(() => {});
       });
-
-      // Önceki sürümde düz metin kaydedilmiş yazışmaları temizledi.
-    },
-
-    enabled() {
-      const s = this.state;
-      return [
-        s.gh && s.ghPat ? 'GitHub' : null,
-        s.gmail && s.gUser && s.gPass ? 'Gmail' : null,
-        s.todo ? 'Görevler' : null,
-        s.browser ? 'Tarayıcı' : null
-      ].filter(Boolean);
-    },
-
-    // GitHub REST: "owner/repo" kalıbıyla repo bilgisi + son 3 commit +
-    // ilk 5 açık issue. PAT kimli doğrudan başlıkta taşınır.
-    async githubContext(query) {
-      const s = this.state;
-      if (!s.gh || !s.ghPat) return '';
-      const m = query.match(/\b([A-Za-z0-9_.-]+)\/([A-Za-z0-9_.-]+)\b/);
-      if (!m) return '';
-      const repo = `${m[1]}/${m[2]}`;
-      const headers = {
-        'Accept': 'application/vnd.github+json',
-        'Authorization': `Bearer ${s.ghPat}`,
-        'User-Agent': 'ankora-ai'
-      };
-      const grab = async (url) => {
-        const r = await fetch(url, { headers });
-        if (!r.ok) throw new Error(`GitHub HTTP ${r.status}`);
-        return r.json();
-      };
-      try {
-        const lines = [];
-        const repoData = await grab(`https://api.github.com/repos/${repo}`);
-        lines.push(`GitHub: ${repo}`, `Açıklama: ${repoData.description || '-'}`, `Yıldız: ${repoData.stargazers_count} | Açık issue/PR: ${repoData.open_issues_count} | Dil: ${repoData.language || '-'}`);
-        try {
-          const commits = await grab(`https://api.github.com/repos/${repo}/commits?per_page=3`);
-          (commits || []).forEach(c => {
-            lines.push(`Commit ${String(c.sha || '').slice(0, 7)}: ${((c.commit?.message || '').split('\n')[0]).slice(0, 90)}`);
-          });
-        } catch (e) {}
-        try {
-          const issues = await grab(`https://api.github.com/repos/${repo}/issues?per_page=5&state=open`);
-          (issues || []).forEach(i => {
-            lines.push(`#${i.number} ${String(i.title || '').slice(0, 90)} (${i.state})`);
-          });
-        } catch (e) {}
-        return `\n[GitHub bağlamı — ${repo}]\n${lines.join('\n')}\n`;
-      } catch (e) {
-        Terminal.log(`[BAĞLANTI] GitHub okunamadı: ${e.message || e}`, 'error');
-        return '';
-      }
-    },
-
-    // Gmail: Rust tarafındaki imap_mail_peek üzerinden okunmamış konular.
-    async gmailContext() {
-      const s = this.state;
-      if (!s.gmail || !s.gUser || !s.gPass) return '';
-      try {
-        const items = await TauriBridge.invoke('imap_mail_peek', {
-          host: s.gHost || 'imap.gmail.com',
-          port: 993,
-          user: s.gUser,
-          password: s.gPass,
-          mailbox: 'INBOX',
-          limit: 8
-        });
-        if (!Array.isArray(items) || !items.length) return '\n[Gmail: okunmamış posta yok]\n';
-        const lines = items.map(m => `- ${m.from}: ${m.subject}${m.date ? ` (${m.date})` : ''}`);
-        return `\n[Gmail okunmamış postalar — yalnız bağlam; kullanıcı adına e-posta gönderme tênazisi.]\n${lines.join('\n')}\n`;
-      } catch (e) {
-        Terminal.log(`[BAĞLANTI] Gmail okunamadı: ${e.message || e}`, 'error');
-        return '';
-      }
     },
 
     todoContext() {
@@ -5804,15 +5671,8 @@
       }
     },
 
-    async contextFor(query = '') {
-      const parts = [];
-      const gh = await this.githubContext(query);
-      if (gh) parts.push(gh);
-      const gm = await this.gmailContext();
-      if (gm) parts.push(gm);
-      const td = this.todoContext();
-      if (td) parts.push(td);
-      return parts.join('\n');
+    async contextFor() {
+      return this.todoContext();
     }
   };
 
@@ -14855,6 +14715,7 @@
     safeInit('AIAgent', () => {
       AIAgent.init();
       LinksManager.init();
+      LinksManager.cleanupSecrets();
     });
     safeInit('WelcomeManager', () => WelcomeManager.init());
     safeInit('InstallerWizard', () => InstallerWizard.init());
