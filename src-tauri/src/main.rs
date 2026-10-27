@@ -797,6 +797,16 @@ fn has_ai_credential(provider: String) -> Result<bool, String> {
 }
 
 #[tauri::command]
+fn get_ai_credential(provider: String) -> Result<Option<String>, String> {
+    let clean_prov = provider.trim().to_lowercase();
+    let map = load_credentials();
+    Ok(map
+        .get(&clean_prov)
+        .map(|k| k.to_string())
+        .filter(|k| !k.is_empty()))
+}
+
+#[tauri::command]
 fn delete_ai_credential(provider: String) -> Result<(), String> {
     let clean_prov = provider.trim().to_lowercase();
     let mut map = load_credentials();
@@ -9369,6 +9379,7 @@ fn main() {
             execute_agent_confirmed_action,
             save_ai_credential,
             has_ai_credential,
+            get_ai_credential,
             delete_ai_credential,
             is_lock_configured,
             set_lock_credentials,

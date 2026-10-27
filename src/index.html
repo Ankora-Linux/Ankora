@@ -570,20 +570,6 @@
                 <svg class="btn-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:12px;height:12px;display:inline-block;vertical-align:-1px;margin-right:4px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
                 Sistem Teftiş Ajanı
               </span>
-              <select id="ai-mode-select" class="select-mono-sm" title="Ajan Çalışma Modu">
-                <option value="sysadmin">Mod: Sistem Teftiş</option>
-                <option value="doctor">Mod: Sistem Doktoru</option>
-                <option value="developer">Mod: Geliştirici</option>
-                <option value="general">Mod: Genel Asistan</option>
-              </select>
-              <label class="ai-ctx-label" title="Gerçek zamanlı sistem telemetrisini (RAM, CPU, Disk, Çekirdek) sorgulara otomatik ekle">
-                <input type="checkbox" id="ai-ctx-toggle" checked>
-                <span>Canlı Telemetri</span>
-              </label>
-              <label class="ai-ctx-label" title="Açıkken her sorudan önce ekran görüntüsü alınır ve bulut modele (Gemini, OpenAI, OpenRouter) görüntü olarak gönderilir">
-                <input type="checkbox" id="ai-screen-toggle">
-                <span>Ekranı İzle</span>
-              </label>
             </div>
             <div class="ai-endpoint-info">
               <span class="status-pill online" id="ai-status-indicator">Bağlı / Hazır</span>
@@ -595,86 +581,120 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width: 13px; height: 13px;"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                 <span>Temizle</span>
               </button>
-              <button class="ai-config-toggle-btn" id="btn-toggle-ai-config" title="API Anahtarı ve Sağlayıcı Yapılandırması">
+              <button class="ai-config-toggle-btn ai-settings-btn" id="btn-toggle-ai-config" title="Sağlayıcı, Bağlantılar (GitHub/Gmail), Ajan Modu ve Gizlilik">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width: 14px; height: 14px;"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-                <span>API Ayarları</span>
+                <span>Ayarlar</span>
               </button>
             </div>
           </div>
 
-          <!-- Tek API Anahtarı ile Hızlı Bağlantı Paneli (Single-Key Connector) -->
+          <!-- Tek Açılışlı Ayarlar Paneli: Bağlantı / Kuverler / Mod / Gizlilik -->
           <div class="ai-config-drawer ai-single-key-drawer" id="ai-config-drawer">
             <div class="single-key-container">
-              <div class="single-key-header">
-                <span class="single-key-title"><svg class="glyph" aria-hidden="true"><use href="#ico-zap"></use></svg> Yapay Zeka API Bağlantısı</span>
-                <span class="single-key-desc">Tek bir API anahtarı yapıştırın veya yerel/bulut sağlayıcı seçin.</span>
-              </div>
-              <div class="single-key-input-row">
-                <select id="ai-provider-select" class="select-mono-sm" title="Sağlayıcı Seçimi">
-                  <option value="auto">Otomatik Algıla</option>
-                  <option value="ollama">Ollama (Yerel / Çevrimdışı)</option>
-                  <option value="gemini">Google Gemini (2.0 Flash)</option>
-                  <option value="groq">Groq Cloud (Llama 3.3 70B)</option>
-                  <option value="openai">OpenAI (GPT-4o mini)</option>
-                  <option value="openrouter">OpenRouter (Claude / Llama)</option>
-                </select>
-                <div class="key-input-capsule">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="key-field-icon"><path d="M21 2l-2 2m-2-2l2 2m0 0l-5 5-2-2 5-5m-9 9l-4 4a2.828 2.828 0 0 0 4 4l4-4m-4-4l2 2"></path><circle cx="7.5" cy="16.5" r="1.5"></circle></svg>
-                  <input type="password" id="ai-cfg-key" class="input-mono-sm input-key-direct" placeholder="API Anahtarınızı yapıştırın (AIzaSy..., sk-..., gsk_...)" autocomplete="off">
-                  <button type="button" class="btn-toggle-key-view" id="btn-toggle-key-view" title="Göster / Gizle">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:14px;height:14px;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                  </button>
-                </div>
-                <button class="btn-pkg-sm btn-connect-direct" id="btn-save-ai-cfg">Bağla &amp; Başlat</button>
-                <button class="btn-pkg-sm btn-disconnect-direct" id="btn-disconnect-ai-key" style="display:none;">Bağlantıyı Kes</button>
-              </div>
-              <div class="single-key-footer-info">
-                <span class="provider-auto-pill" id="ai-provider-auto-label">Desteklenen: Google Gemini, Groq Cloud, OpenAI, OpenRouter veya Çevrimdışı (Ollama / Kural Tabanlı Teşhis)</span>
-              </div>
 
-              <!-- Bağlantılar (Kuverler): GitHub / Gmail / Görev / Tarayıcı -->
-              <div class="ai-links-box">
-                <details id="ai-links-details">
-                  <summary>Bağlantılar <span class="ai-links-hint">GitHub · Gmail · Görevler · Tarayıcı</span></summary>
-                  <div class="ai-links-grid">
-                    <div class="ai-link-row">
-                      <label class="ai-link-toggle">
-                        <input type="checkbox" id="lk-gh-toggle">
-                        <span>GitHub</span>
-                      </label>
-                      <input type="password" id="lk-gh-pat" class="input-mono-sm" placeholder="GitHub PAT (ghp_...)" autocomplete="off">
-                    </div>
-                    <div class="ai-link-row">
-                      <label class="ai-link-toggle">
-                        <input type="checkbox" id="lk-gmail-toggle">
-                        <span>Gmail (IMAP)</span>
-                      </label>
-                      <input type="password" id="lk-gmail-pass" class="input-mono-sm" placeholder="Uygulama şifresi (16 haneli)" autocomplete="off">
-                    </div>
-                    <div class="ai-link-subrow">
-                      <input type="text" id="lk-gmail-user" class="input-mono-sm" placeholder="ad@gmail.com">
-                      <input type="text" id="lk-gmail-host" class="input-mono-sm" placeholder="imap.gmail.com" value="imap.gmail.com">
-                    </div>
-                    <div class="ai-link-row">
-                      <label class="ai-link-toggle">
-                        <input type="checkbox" id="lk-todo-toggle">
-                        <span>Görev listesi</span>
-                      </label>
-                    </div>
-                    <div class="ai-link-row">
-                      <label class="ai-link-toggle">
-                        <input type="checkbox" id="lk-browser-toggle">
-                        <span>Tarayıcı istekleri</span>
-                      </label>
-                    </div>
-                    <div class="ai-links-footer">
-                      <span>Şifreler SafeStorage'da şifreli saklanır; sorulara otomatik bağlam olarak katılır.</span>
-                    </div>
+              <details class="ai-settings-section" id="ai-sec-connection" open>
+                <summary>Yapay Zeka Bağlantısı <span class="ai-links-hint">sağlayıcı + tek API anahtarı</span></summary>
+                <div class="single-key-input-row">
+                  <select id="ai-provider-select" class="select-mono-sm" title="Sağlayıcı Seçimi">
+                    <option value="auto">Otomatik Algıla</option>
+                    <option value="ollama">Ollama (Yerel / Çevrimdışı)</option>
+                    <option value="gemini">Google Gemini (2.0 Flash)</option>
+                    <option value="groq">Groq Cloud (Llama 3.3 70B)</option>
+                    <option value="openai">OpenAI (GPT-4o mini)</option>
+                    <option value="openrouter">OpenRouter (Claude / Llama)</option>
+                  </select>
+                  <div class="key-input-capsule">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="key-field-icon"><path d="M21 2l-2 2m-2-2l2 2m0 0l-5 5-2-2 5-5m-9 9l-4 4a2.828 2.828 0 0 0 4 4l4-4m-4-4l2 2"></path><circle cx="7.5" cy="16.5" r="1.5"></circle></svg>
+                    <input type="password" id="ai-cfg-key" class="input-mono-sm input-key-direct" placeholder="API Anahtarınızı yapıştırın (AIzaSy..., sk-..., gsk_...)" autocomplete="off">
+                    <button type="button" class="btn-toggle-key-view" id="btn-toggle-key-view" title="Göster / Gizle">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:14px;height:14px;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    </button>
                   </div>
-                </details>
-              </div>
+                  <button class="btn-pkg-sm btn-connect-direct" id="btn-save-ai-cfg">Bağla &amp; Başlat</button>
+                  <button class="btn-pkg-sm btn-disconnect-direct" id="btn-disconnect-ai-key" style="display:none;">Bağlantıyı Kes</button>
+                </div>
+                <div class="single-key-footer-info">
+                  <span class="provider-auto-pill" id="ai-provider-auto-label">Desteklenen: Google Gemini, Groq Cloud, OpenAI, OpenRouter veya Çevrimdışı (Ollama / Kural Tabanlı Teşhis)</span>
+                </div>
+              </details>
+
+              <details class="ai-settings-section ai-links-box">
+                <summary>Bağlantılar (Kuverler) <span class="ai-links-hint">GitHub · Gmail · Görevler · Tarayıcı</span></summary>
+                <div class="ai-links-grid">
+                  <div class="ai-link-row">
+                    <label class="ai-link-toggle">
+                      <input type="checkbox" id="lk-gh-toggle">
+                      <span>GitHub</span>
+                    </label>
+                    <input type="password" id="lk-gh-pat" class="input-mono-sm" placeholder="GitHub PAT (ghp_...)" autocomplete="off">
+                  </div>
+                  <div class="ai-link-row">
+                    <label class="ai-link-toggle">
+                      <input type="checkbox" id="lk-gmail-toggle">
+                      <span>Gmail (IMAP)</span>
+                    </label>
+                    <input type="password" id="lk-gmail-pass" class="input-mono-sm" placeholder="Uygulama şifresi (16 haneli)" autocomplete="off">
+                  </div>
+                  <div class="ai-link-subrow">
+                    <input type="text" id="lk-gmail-user" class="input-mono-sm" placeholder="ad@gmail.com">
+                    <input type="text" id="lk-gmail-host" class="input-mono-sm" placeholder="imap.gmail.com" value="imap.gmail.com">
+                  </div>
+                  <div class="ai-link-row">
+                    <label class="ai-link-toggle">
+                      <input type="checkbox" id="lk-todo-toggle">
+                      <span>Görev listesi</span>
+                    </label>
+                  </div>
+                  <div class="ai-link-row">
+                    <label class="ai-link-toggle">
+                      <input type="checkbox" id="lk-browser-toggle">
+                      <span>Tarayıcı istekleri</span>
+                    </label>
+                  </div>
+                  <div class="ai-links-footer">
+                    <span>Şifreler şifreli kasa (ayaz vault) içinde tutulur, diske düz metin yazılmaz; sorulara otomatik bağlam olarak katılır.</span>
+                  </div>
+                </div>
+              </details>
+
+              <details class="ai-settings-section ai-links-box">
+                <summary>Ajan Modu <span class="ai-links-hint">nasıl cevaplasın</span></summary>
+                <div class="ai-links-grid">
+                  <div class="ai-link-row">
+                    <select id="ai-mode-select" class="select-mono-sm" title="Ajan Çalışma Modu">
+                      <option value="sysadmin">Mod: Sistem Teftiş</option>
+                      <option value="doctor">Mod: Sistem Doktoru</option>
+                      <option value="developer">Mod: Geliştirici</option>
+                      <option value="general">Mod: Genel Asistan</option>
+                    </select>
+                  </div>
+                </div>
+              </details>
+
+              <details class="ai-settings-section ai-links-box">
+                <summary>Gizlilik ve İzleme <span class="ai-links-hint">Ekranı İzle · Telemetri</span></summary>
+                <div class="ai-links-grid">
+                  <div class="ai-link-row">
+                    <label class="ai-link-toggle" title="Gerçek zamanlı sistem telemetrisini (RAM, CPU, Disk, Çekirdek) sorgulara otomatik ekle">
+                      <input type="checkbox" id="ai-ctx-toggle" checked>
+                      <span>Canlı Telemetri</span>
+                    </label>
+                  </div>
+                  <div class="ai-link-row">
+                    <label class="ai-link-toggle" title="Açıkken her sorudan önce ekran görüntüsü alınır ve bulut modele (Gemini, OpenAI, OpenRouter) görüntü olarak gönderilir">
+                      <input type="checkbox" id="ai-screen-toggle">
+                      <span>Ekranı İzle</span>
+                    </label>
+                  </div>
+                  <div class="ai-links-footer">
+                    <span>Ekranı İzle açıkken her soruyla birlikte güncel ekran karesi bulut modeline gider; mini balondaki "İzle" düğmesiyle aynı ayar.</span>
+                  </div>
+                </div>
+              </details>
+
             </div>
           </div>
+
 
           <div class="ai-feed" id="ai-feed">
             <div class="ai-entry bot">

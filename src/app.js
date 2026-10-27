@@ -5638,14 +5638,18 @@
 
     init() {
       const s = this.state;
+      // Anahtarlar '1'/'0' bayrakları düz kayıt; ŞİFRELER yalnız Rust
+      // tarafındaki şifreli vault'a gider (save/get_ai_credential) ve
+      // oturum belleğinde yaşar. localStorage'da asla durmaz.
       s.gh = SafeStorage.getItem(this.KEYS.gh) === '1';
-      s.ghPat = SafeStorage.getItem(this.KEYS.ghPat) || '';
       s.gmail = SafeStorage.getItem(this.KEYS.gmail) === '1';
       s.gUser = SafeStorage.getItem(this.KEYS.gUser) || '';
       s.gHost = SafeStorage.getItem(this.KEYS.gHost) || 'imap.gmail.com';
-      s.gPass = SafeStorage.getItem(this.KEYS.gPass) || '';
       s.todo = SafeStorage.getItem(this.KEYS.todo) === '1';
       s.browser = SafeStorage.getItem(this.KEYS.browser) === '1';
+
+      // Geçmiş sürümlerde düz localStorage'a yazılan şifreler varsa sil.
+      ['ankora_link_gh_pat', 'ankora_link_gmail_pass'].forEach(k => SafeStorage.removeItem(k));
 
       const bind = (id, key, isText) => {
         const el = document.getElementById(id);
@@ -5673,6 +5677,42 @@
       bind('lk-gmail-pass', 'gPass', true);
       bind('lk-todo-toggle', 'todo');
       bind('lk-browser-toggle', 'browser');
+
+      // Şifreli vault'tan oturum belleğine yükle (diske düz yazılmaz).
+      const vaultProviders = {
+        'lk-gh-pat': 'link_gh_pat',
+        'lk-gmail-pass': 'link_gmail_pass'
+      };
+      Object.entries(vaultProviders).forEach(([inputId, vaultKey]) => {
+        const el = document.getElementById(inputId);
+        if (!el) return;
+        TauriBridge.invoke('get_ai_credential', { provider: vaultKey }).then(v => {
+          if (v) {
+            this.state[vaultKey === 'link_gh_pat' ? 'ghPat' : 'gPass'] = v;
+            el.placeholder = el.placeholder.includes('GitHub')
+              ? `${v.slice(0, 6)}••••• (kayıtlı)`
+              : '•••••••• (kayıtlı)';
+          }
+        }).catch(() => {});
+        el.addEventListener('change', () => {
+          const val = el.value.trim();
+          this.state[vaultKey === 'link_gh_pat' ? 'ghPat' : 'gPass'] = val;
+          el.value = '';
+          const setVal = TauriBridge.invoke('save_ai_credential', {
+            provider: vaultKey,
+            apiKey: val
+          });
+          const clearVal = TauriBridge.invoke('delete_ai_credential', { provider: vaultKey });
+          (val ? setVal : clearVal)
+            .then(() => ReportManager?.showToast('Gizli anahtar şifreli kasaya kaydedildi.'))
+            .catch(e => ReportManager?.showToast(`Kasa hatası: ${e.message || e}`, 'error'));
+          el.placeholder = val
+            ? (vaultKey === 'link_gh_pat' ? `${val.slice(0, 6)}••••• (kayıtlı)` : '•••••••• (kayıtlı)')
+            : (vaultKey === 'link_gh_pat' ? 'GitHub PAT (ghp_...)' : 'Uygulama şifresi (16 haneli)');
+        });
+      });
+
+      // Önceki sürümde düz metin kaydedilmiş yazışmaları temizledi.
     },
 
     enabled() {
