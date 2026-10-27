@@ -5617,6 +5617,165 @@
   // ============================================================================
   // 6. ANKORA AI (OTONOM AJAN, KULLANICI API BAĞLANTISI & GÜVENLİK ONAY SİSTEMİ)
   // ============================================================================
+  // Bağlantılar (Kuverler): ajanın soru anında okuduğu dış bağlamlar.
+  // GitHub: PAT ile REST API; Gmail: IMAP + uygulama şifresi (Rust tarafı);
+  // Görevler: masaüstü TODO widget verisi; Tarayıcı: yanıta arama çipi.
+  const LinksManager = {
+    KEYS: {
+      gh: 'ankora_link_gh',
+      ghPat: 'ankora_link_gh_pat',
+      gmail: 'ankora_link_gmail',
+      gUser: 'ankora_link_gmail_user',
+      gHost: 'ankora_link_gmail_host',
+      gPass: 'ankora_link_gmail_pass',
+      todo: 'ankora_link_todo',
+      browser: 'ankora_link_browser'
+    },
+    state: {
+      gh: false, ghPat: '', gmail: false, gUser: '', gHost: 'imap.gmail.com',
+      gPass: '', todo: false, browser: false
+    },
+
+    init() {
+      const s = this.state;
+      s.gh = SafeStorage.getItem(this.KEYS.gh) === '1';
+      s.ghPat = SafeStorage.getItem(this.KEYS.ghPat) || '';
+      s.gmail = SafeStorage.getItem(this.KEYS.gmail) === '1';
+      s.gUser = SafeStorage.getItem(this.KEYS.gUser) || '';
+      s.gHost = SafeStorage.getItem(this.KEYS.gHost) || 'imap.gmail.com';
+      s.gPass = SafeStorage.getItem(this.KEYS.gPass) || '';
+      s.todo = SafeStorage.getItem(this.KEYS.todo) === '1';
+      s.browser = SafeStorage.getItem(this.KEYS.browser) === '1';
+
+      const bind = (id, key, isText) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (isText) {
+          el.value = s[key] || '';
+          el.addEventListener('change', () => {
+            s[key] = el.value.trim();
+            SafeStorage.setItem(this.KEYS[key], s[key]);
+          });
+        } else {
+          el.checked = s[key];
+          el.addEventListener('change', () => {
+            s[key] = Boolean(el.checked);
+            SafeStorage.setItem(this.KEYS[key], s[key] ? '1' : '0');
+            ReportManager?.showToast(`Bağlantı: ${el.closest('.ai-link-row')?.querySelector('span')?.textContent || key} ${s[key] ? 'açıldı' : 'kapatıldı'}`);
+          });
+        }
+      };
+      bind('lk-gh-toggle', 'gh');
+      bind('lk-gh-pat', 'ghPat', true);
+      bind('lk-gmail-toggle', 'gmail');
+      bind('lk-gmail-user', 'gUser', true);
+      bind('lk-gmail-host', 'gHost', true);
+      bind('lk-gmail-pass', 'gPass', true);
+      bind('lk-todo-toggle', 'todo');
+      bind('lk-browser-toggle', 'browser');
+    },
+
+    enabled() {
+      const s = this.state;
+      return [
+        s.gh && s.ghPat ? 'GitHub' : null,
+        s.gmail && s.gUser && s.gPass ? 'Gmail' : null,
+        s.todo ? 'Görevler' : null,
+        s.browser ? 'Tarayıcı' : null
+      ].filter(Boolean);
+    },
+
+    // GitHub REST: "owner/repo" kalıbıyla repo bilgisi + son 3 commit +
+    // ilk 5 açık issue. PAT kimli doğrudan başlıkta taşınır.
+    async githubContext(query) {
+      const s = this.state;
+      if (!s.gh || !s.ghPat) return '';
+      const m = query.match(/\b([A-Za-z0-9_.-]+)\/([A-Za-z0-9_.-]+)\b/);
+      if (!m) return '';
+      const repo = `${m[1]}/${m[2]}`;
+      const headers = {
+        'Accept': 'application/vnd.github+json',
+        'Authorization': `Bearer ${s.ghPat}`,
+        'User-Agent': 'ankora-ai'
+      };
+      const grab = async (url) => {
+        const r = await fetch(url, { headers });
+        if (!r.ok) throw new Error(`GitHub HTTP ${r.status}`);
+        return r.json();
+      };
+      try {
+        const lines = [];
+        const repoData = await grab(`https://api.github.com/repos/${repo}`);
+        lines.push(`GitHub: ${repo}`, `Açıklama: ${repoData.description || '-'}`, `Yıldız: ${repoData.stargazers_count} | Açık issue/PR: ${repoData.open_issues_count} | Dil: ${repoData.language || '-'}`);
+        try {
+          const commits = await grab(`https://api.github.com/repos/${repo}/commits?per_page=3`);
+          (commits || []).forEach(c => {
+            lines.push(`Commit ${String(c.sha || '').slice(0, 7)}: ${((c.commit?.message || '').split('\n')[0]).slice(0, 90)}`);
+          });
+        } catch (e) {}
+        try {
+          const issues = await grab(`https://api.github.com/repos/${repo}/issues?per_page=5&state=open`);
+          (issues || []).forEach(i => {
+            lines.push(`#${i.number} ${String(i.title || '').slice(0, 90)} (${i.state})`);
+          });
+        } catch (e) {}
+        return `\n[GitHub bağlamı — ${repo}]\n${lines.join('\n')}\n`;
+      } catch (e) {
+        Terminal.log(`[BAĞLANTI] GitHub okunamadı: ${e.message || e}`, 'error');
+        return '';
+      }
+    },
+
+    // Gmail: Rust tarafındaki imap_mail_peek üzerinden okunmamış konular.
+    async gmailContext() {
+      const s = this.state;
+      if (!s.gmail || !s.gUser || !s.gPass) return '';
+      try {
+        const items = await TauriBridge.invoke('imap_mail_peek', {
+          host: s.gHost || 'imap.gmail.com',
+          port: 993,
+          user: s.gUser,
+          password: s.gPass,
+          mailbox: 'INBOX',
+          limit: 8
+        });
+        if (!Array.isArray(items) || !items.length) return '\n[Gmail: okunmamış posta yok]\n';
+        const lines = items.map(m => `- ${m.from}: ${m.subject}${m.date ? ` (${m.date})` : ''}`);
+        return `\n[Gmail okunmamış postalar — yalnız bağlam; kullanıcı adına e-posta gönderme tênazisi.]\n${lines.join('\n')}\n`;
+      } catch (e) {
+        Terminal.log(`[BAĞLANTI] Gmail okunamadı: ${e.message || e}`, 'error');
+        return '';
+      }
+    },
+
+    todoContext() {
+      if (!this.state.todo) return '';
+      try {
+        const items = JSON.parse(SafeStorage.getItem('ankora_todo_items') || '[]') || [];
+        if (!items.length) return '';
+        const lines = items
+          .filter(i => !i.done)
+          .slice(0, 12)
+          .map(i => `- ${i.t}`);
+        if (!lines.length) return '\n[Görevler: tüm görevler tamam]\n';
+        return `\n[Kullanıcının açık görevleri]\n${lines.join('\n')}\n`;
+      } catch (e) {
+        return '';
+      }
+    },
+
+    async contextFor(query = '') {
+      const parts = [];
+      const gh = await this.githubContext(query);
+      if (gh) parts.push(gh);
+      const gm = await this.gmailContext();
+      if (gm) parts.push(gm);
+      const td = this.todoContext();
+      if (td) parts.push(td);
+      return parts.join('\n');
+    }
+  };
+
   const AIAgent = {
     feed: null,
     input: null,
@@ -6280,11 +6439,17 @@
         }
       }
 
+      // Kuverler (Bağlantılar): GitHub/Gmail/Görev bağı etkinse bağlam toplanır.
+      let linkContext = '';
+      if (LinksManager) {
+        try { linkContext = await LinksManager.contextFor(text); } catch (e) {}
+      }
+
       // 1. Eğer Tauri mevcutsa yerel arka uç üzerinden güvenli istek dene
       if (TauriBridge.isAvailable) {
         try {
           res = await TauriBridge.invoke('query_local_ai', {
-            prompt: text,
+            prompt: `${linkContext}\n\n${text}`.trim(),
             provider: this.provider,
             endpoint: this.endpoint,
             apiKey: this.activeKey || '',
@@ -6310,7 +6475,7 @@
           : (this.mode === 'doctor'
             ? 'Sen Ankora Sistem Doktorusun. Devuan Daedalus (SysVinit) üzerinde bellek, disk, ZRAM, süreç ve güvenlik sorunlarını teşhis edip çözüm sunarsın.'
             : 'Sen Ankora Linux 3.6 (Daedalus / SysVinit) sistem yöneticisi ve yapay zeka asistanısın. Kullanıcıya Türkçe, net ve teknik olarak kusursuz yanıtlar ver.');
-        const fullSysPrompt = `${sysPromptBase}\n${teleContext}\n${shotB64 ? '[Kullanıcı güncel bir ekran karesi paylaştı; soruyu görüntüyle birlikte değerlendir.]' : ''}\nEğer güvenli bir tanı komutu önermek istersen yanıtın sonuna <<<ACTION:komut|açıklama>>> ekle (Yalnızca: df -h /, free -h, uname -a, uptime, swapon --show, ip -br addr, lscpu, lsblk, ps aux, /usr/local/bin/ankora-doctor).`;
+        const fullSysPrompt = `${sysPromptBase}\n${teleContext}\n${shotB64 ? '[Kullanıcı güncel bir ekran karesi paylaştı; soruyu görüntüyle birlikte değerlendir.]' : ''}\n${linkContext}\nEğer güvenli bir tanı komutu önermek istersen yanıtın sonuna <<<ACTION:komut|açıklama>>> ekle (Yalnızca: df -h /, free -h, uname -a, uptime, swapon --show, ip -br addr, lscpu, lsblk, ps aux, /usr/local/bin/ankora-doctor).`;
 
         try {
           if (prov === 'groq' && shotB64) {
@@ -6445,7 +6610,28 @@
         if (res.has_action && res.action_command) {
           this.renderActionCard(res.action_command, res.action_desc, res.action_token);
         }
+        // Tarayıcı kuveri: yanıt hemen altına "web'de ara" çipi.
+        if (LinksManager.state.browser) this.appendBrowserChip(text);
       }
+    },
+
+    appendBrowserChip(query) {
+      if (!this.feed || !query) return;
+      const chip = document.createElement('button');
+      chip.className = 'ai-browser-chip';
+      chip.type = 'button';
+      chip.textContent = 'Tarayıcıda Ara';
+      chip.addEventListener('click', () => {
+        try {
+          WindowManager.open('win-browser');
+          BrowserManager.navigate(`https://duckduckgo.com/?q=${encodeURIComponent(query.slice(0, 300))}`);
+          ReportManager?.showToast('Sorgu tarayıcıda açılıyor...');
+        } catch (e) {
+          ReportManager?.showToast(`Tarayıcı açılamadı: ${e.message || e}`, 'error');
+        }
+      });
+      this.feed.appendChild(chip);
+      this.feed.scrollTop = this.feed.scrollHeight;
     },
 
     renderActionCard(command, desc, token) {
@@ -14626,7 +14812,10 @@
       TouchHelpers.markTouchCapable();
       TouchHelpers.initLongPress();
     });
-    safeInit('AIAgent', () => AIAgent.init());
+    safeInit('AIAgent', () => {
+      AIAgent.init();
+      LinksManager.init();
+    });
     safeInit('WelcomeManager', () => WelcomeManager.init());
     safeInit('InstallerWizard', () => InstallerWizard.init());
     safeInit('SettingsManager', () => SettingsManager.init());

@@ -631,6 +631,48 @@
               <div class="single-key-footer-info">
                 <span class="provider-auto-pill" id="ai-provider-auto-label">Desteklenen: Google Gemini, Groq Cloud, OpenAI, OpenRouter veya Çevrimdışı (Ollama / Kural Tabanlı Teşhis)</span>
               </div>
+
+              <!-- Bağlantılar (Kuverler): GitHub / Gmail / Görev / Tarayıcı -->
+              <div class="ai-links-box">
+                <details id="ai-links-details">
+                  <summary>Bağlantılar <span class="ai-links-hint">GitHub · Gmail · Görevler · Tarayıcı</span></summary>
+                  <div class="ai-links-grid">
+                    <div class="ai-link-row">
+                      <label class="ai-link-toggle">
+                        <input type="checkbox" id="lk-gh-toggle">
+                        <span>GitHub</span>
+                      </label>
+                      <input type="password" id="lk-gh-pat" class="input-mono-sm" placeholder="GitHub PAT (ghp_...)" autocomplete="off">
+                    </div>
+                    <div class="ai-link-row">
+                      <label class="ai-link-toggle">
+                        <input type="checkbox" id="lk-gmail-toggle">
+                        <span>Gmail (IMAP)</span>
+                      </label>
+                      <input type="password" id="lk-gmail-pass" class="input-mono-sm" placeholder="Uygulama şifresi (16 haneli)" autocomplete="off">
+                    </div>
+                    <div class="ai-link-subrow">
+                      <input type="text" id="lk-gmail-user" class="input-mono-sm" placeholder="ad@gmail.com">
+                      <input type="text" id="lk-gmail-host" class="input-mono-sm" placeholder="imap.gmail.com" value="imap.gmail.com">
+                    </div>
+                    <div class="ai-link-row">
+                      <label class="ai-link-toggle">
+                        <input type="checkbox" id="lk-todo-toggle">
+                        <span>Görev listesi</span>
+                      </label>
+                    </div>
+                    <div class="ai-link-row">
+                      <label class="ai-link-toggle">
+                        <input type="checkbox" id="lk-browser-toggle">
+                        <span>Tarayıcı istekleri</span>
+                      </label>
+                    </div>
+                    <div class="ai-links-footer">
+                      <span>Şifreler SafeStorage'da şifreli saklanır; sorulara otomatik bağlam olarak katılır.</span>
+                    </div>
+                  </div>
+                </details>
+              </div>
             </div>
           </div>
 
