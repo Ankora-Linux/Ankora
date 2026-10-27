@@ -4418,9 +4418,8 @@ async fn imap_mail_peek(
             let tls = native_tls::TlsConnector::builder()
                 .build()
                 .map_err(|e| format!("TLS istemcisi kurulamadı: {}", e))?;
-            let mut connection =
-                imap::connect((host.as_str(), port), host.as_str(), &tls)
-                    .map_err(|e| format!("IMAP sunucusuna bağlanılamadı: {}", e))?;
+            let mut connection = imap::connect((host.as_str(), port), host.as_str(), &tls)
+                .map_err(|e| format!("IMAP sunucusuna bağlanılamadı: {}", e))?;
 
             let mut session = connection
                 .login(&user, &password)
@@ -4432,13 +4431,14 @@ async fn imap_mail_peek(
                 return Err(format!("Klasör seçilemedi ({}): {}", mailbox_name, e));
             }
 
-            let unseen = match session.search("UNSEEN") {
+            let unseen_raw = match session.search("UNSEEN") {
                 Ok(set) => set,
                 Err(e) => {
                     let _ = session.logout();
                     return Err(format!("Okunmamış posta araması başarısız: {}", e));
                 }
             };
+            let unseen: Vec<u32> = unseen_raw.iter().copied().collect();
 
             if unseen.is_empty() {
                 let _ = session.logout();
@@ -4465,28 +4465,28 @@ async fn imap_mail_peek(
             let mut seq = wanted;
             seq.reverse();
             for n in seq {
-                if let Some(f) = fetches.iter().find(|f| f.sequence == n) {
+                if let Some(f) = fetches.iter().find(|&fr| fr.sequence == n) {
                     let env = f.envelope();
                     let subject = env
-                        .and_then(|en| en.subject.clone())
-                        .map(|s| String::from_utf8_lossy(&s).into_owned())
+                        .and_then(|en| en.subject.as_ref())
+                        .map(|s| String::from_utf8_lossy(s).into_owned())
                         .unwrap_or_else(|| "(konu yok)".to_string());
                     let from = env
-                        .and_then(|en| en.from.clone())
-                        .and_then(|v| v.first().cloned())
+                        .and_then(|en| en.from.as_ref())
+                        .and_then(|v| v.first())
                         .map(|a| {
                             let name = a
                                 .name
-                                .clone()
-                                .map(|s| String::from_utf8_lossy(&s).into_owned());
+                                .as_ref()
+                                .map(|b| String::from_utf8_lossy(b).into_owned());
                             let mbox = a
                                 .mailbox
-                                .clone()
-                                .map(|s| String::from_utf8_lossy(&s).into_owned());
+                                .as_ref()
+                                .map(|b| String::from_utf8_lossy(b).into_owned());
                             let hst = a
                                 .host
-                                .clone()
-                                .map(|s| String::from_utf8_lossy(&s).into_owned());
+                                .as_ref()
+                                .map(|b| String::from_utf8_lossy(b).into_owned());
                             match (name, mbox, hst) {
                                 (Some(n), _, _) => n,
                                 (_, Some(m), Some(h)) => format!("{}@{}", m, h),
@@ -4496,8 +4496,8 @@ async fn imap_mail_peek(
                         })
                         .unwrap_or_else(|| "?".to_string());
                     let date = env
-                        .and_then(|en| en.date.clone())
-                        .map(|s| String::from_utf8_lossy(&s).into_owned())
+                        .and_then(|en| en.date.as_ref())
+                        .map(|d| String::from_utf8_lossy(d).into_owned())
                         .unwrap_or_default();
                     items.push(MailPeekItem {
                         subject,
