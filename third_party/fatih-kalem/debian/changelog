@@ -1,0 +1,31 @@
+fatih-kalem (2.1.1) stable; urgency=medium
+
+  * El moduna geçerken temizlenen çizimler Geri Al ile tüm sayfalarıyla geri gelir.
+
+ -- Yahya Eren Sevim (YhySvm) <157166081+YahyaSvm@users.noreply.github.com>  Tue, 06 Oct 2026 15:00:00 +0300
+
+fatih-kalem (2.1.0) stable; urgency=medium
+
+  * Araçlar menüsü: kesikli/noktalı/oklu kalem, şekil tanıma, seçme, metin,
+    lazer, kaybolan kalem, dolgu, cetvel, gönye, iletki, pergel, spot ışığı,
+    büyüteç, sayaç, kura, ekran görüntüsü.
+  * Çok sayfalı tahta; PNG, PDF ve .fkalem ders dosyası; QR ile paylaşım.
+  * Yeni şablonlar: dört çizgili defter, müzik portesi, koordinat düzlemi,
+    sayı doğrusu, izometrik kâğıt.
+  * Görünüm ve Gelişmiş ayarları; İngilizce arayüz; /etc/fatih-kalem ortak ayarları.
+  * Otomatik kayıt, güncelleme bildirimi, hata raporu.
+
+ -- Yahya Eren Sevim (YhySvm) <157166081+YahyaSvm@users.noreply.github.com>  Tue, 06 Oct 2026 12:00:00 +0300
+
+fatih-kalem (2.0.0) stable; urgency=medium
+
+  * Fatih Kalem 2.0: Pardus / Linux için yeniden yazılan GTK3 sürümü.
+  * Orijinal menü görselleri, renkleri, kalınlıkları ve dokunma bölgeleri
+    birebir korundu.
+  * Ana menü açıldığında en altta "By YhySvm" imzası.
+  * Pardus ETAP, GNOME (Wayland/XWayland) ve XFCE desteği; bileşikleştirici
+    olmayan masaüstlerinde ekran görüntüsü + X11 SHAPE yedek kipi.
+  * Arka plan sayfaları (beyaz, çizgili, kareli, milimetrik, noktalı, yeşil
+    ve siyah tahta) ilk açılışta ekran çözünürlüğünde üretilir.
+
+ -- Yahya Eren Sevim (YhySvm) <157166081+YahyaSvm@users.noreply.github.com>  Mon, 05 Oct 2026 12:00:00 +0300

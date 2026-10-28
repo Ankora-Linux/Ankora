@@ -41,6 +41,8 @@
     <symbol id="ico-bulb" viewBox="0 0 24 24"><path d="M9 18h6M10 22h4"/><path d="M12 2a6 6 0 0 0-3.6 10.8c.7.5 1 1.2 1.1 1.9l.1.6h4.8l.1-.7c.1-.7.4-1.4 1.1-1.9A6 6 0 0 0 12 2z"/></symbol>
     <symbol id="ico-shield" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></symbol>
     <symbol id="ico-bot" viewBox="0 0 24 24"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 4v4"/><circle cx="12" cy="3" r="1.5"/><path d="M9 14h.01M15 14h.01"/><path d="M2 13v3M22 13v3"/></symbol>
+    <symbol id="ico-pen" viewBox="0 0 24 24"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/></symbol>
+    <symbol id="ico-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></symbol>
   </svg>
 
   <!-- Minimalist Monokrom Duvar Kağıdı Katmanı -->
@@ -111,6 +113,75 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path><line x1="12" y1="2" x2="12" y2="12"></line></svg>
           Kapat
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DYNAMIC ISLAND (AKILLI CAM KAPSÜL) -->
+  <div id="dynamic-island-container" class="dynamic-island-container">
+    <div id="dynamic-island" class="dynamic-island state-idle" tabIndex="0" role="region" aria-label="Ankora Dinamik Ada">
+      <!-- 1. Normal (Idle) Durum -->
+      <div class="di-view di-view-idle">
+        <span class="di-pulse-dot" id="di-pulse-dot"></span>
+        <span class="di-label" id="di-idle-label">Ankora Core</span>
+        <span class="di-sub-info" id="di-idle-sub">Aktif</span>
+      </div>
+
+      <!-- 2. Bildirim / Uyarı (Toast) Durumu -->
+      <div class="di-view di-view-toast" id="di-view-toast">
+        <span class="di-toast-icon" id="di-toast-icon">ℹ</span>
+        <span class="di-toast-text" id="di-toast-text">Sistem hazır</span>
+      </div>
+
+      <!-- 3. İndirme ve İşlem (Progress) Durumu -->
+      <div class="di-view di-view-progress" id="di-view-progress">
+        <svg class="glyph di-prog-icon" aria-hidden="true"><use href="#ico-download"></use></svg>
+        <div class="di-prog-bar-wrap">
+          <span class="di-prog-label" id="di-prog-label">İndiriliyor...</span>
+          <div class="di-prog-meter"><div class="di-prog-fill" id="di-prog-fill"></div></div>
+        </div>
+        <span class="di-prog-percent" id="di-prog-percent">0%</span>
+      </div>
+
+      <!-- 4. AI İşlem / Analiz Durumu -->
+      <div class="di-view di-view-ai" id="di-view-ai">
+        <span class="di-ai-glow"></span>
+        <span class="di-ai-text" id="di-ai-text">AI Dinliyor</span>
+        <div class="di-ai-waves"><span></span><span></span><span></span></div>
+      </div>
+
+      <!-- 5. Genişletilmiş Kontrol Kartı (Tıklanınca Açılır) -->
+      <div class="di-expanded-card" id="di-expanded-card">
+        <div class="di-card-header">
+          <div class="di-card-title">
+            <span class="di-card-logo">❄</span>
+            <span>Ankora Kontrol Kapsülü</span>
+          </div>
+          <button class="di-card-close" id="di-card-close" title="Kapat">✕</button>
+        </div>
+        <div class="di-card-grid">
+          <button class="di-card-btn" id="di-btn-fatih-kalem" title="Fatih Kalem (Akıllı Tahta & Ekran Çizimini Başlat)">
+            <span class="di-btn-icon">✏️</span>
+            <span class="di-btn-label">Fatih Kalem</span>
+          </button>
+          <button class="di-card-btn" id="di-btn-ram-eco" title="Belleği Temizle & Eco Mod">
+            <span class="di-btn-icon">⚡</span>
+            <span class="di-btn-label">RAM Temizle</span>
+          </button>
+          <button class="di-card-btn" id="di-btn-weather" title="Hava Durumu Widget'ı">
+            <span class="di-btn-icon">🌤</span>
+            <span class="di-btn-label" id="di-btn-weather-text">Hava</span>
+          </button>
+          <button class="di-card-btn" id="di-btn-ai-assist" title="Ankora AI Sistem Asistanı">
+            <span class="di-btn-icon">✨</span>
+            <span class="di-btn-label">AI Asistan</span>
+          </button>
+        </div>
+        <div class="di-card-footer">
+          <span class="di-footer-cpu" id="di-footer-cpu">CPU: %--</span>
+          <span class="di-footer-ram" id="di-footer-ram">RAM: -- MB</span>
+          <button class="di-footer-lock" id="di-btn-lock" title="Ekranı Kilitle">🔒 Kilitle</button>
+        </div>
       </div>
     </div>
   </div>
@@ -1822,6 +1893,19 @@
                   </div>
                   <label class="toggle-switch" style="margin:0;flex:none;">
                     <input type="checkbox" id="settings-lock-on-startup" role="switch" aria-label="Açılışta kilitle">
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+              </div>
+
+              <div class="settings-card" style="margin-top: 14px;">
+                <div class="settings-card-header" style="display:flex;justify-content:space-between;align-items:center;gap:18px;">
+                  <div>
+                    <h4>Dinamik Ada (Dynamic Island)</h4>
+                    <p>Ekranın üstünde sistem durumunu, indirmeleri ve bildirimleri gösteren akıcı cam kapsül.</p>
+                  </div>
+                  <label class="toggle-switch" style="margin:0;flex:none;">
+                    <input type="checkbox" id="settings-dynamic-island" role="switch" aria-label="Dinamik Ada">
                     <span class="toggle-slider"></span>
                   </label>
                 </div>

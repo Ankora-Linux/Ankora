@@ -1,6 +1,8 @@
 # Ankora Linux — Sürüm Notları
 
 ## 3.7.0 (2026-10-28)
+- Dinamik Ada (Ayaz Dynamic Island): Ekranın üst-ortasında akıcı cam kapsül; bildirimler, indirme ilerlemesi, AI işlem nabzı ve canlı CPU/RAM göstergesiyle sistemi yormayan dinamik durum alanı; Ayarlar'dan açılıp kapatılabilir
+- Fatih Kalem 2 Entegrasyonu: Etkileşimli akıllı tahta ve ekran çizim/not alma kalemi sisteme entegre edildi; Dinamik Ada kontrol kartından, Yazılım Mağazasından ve Başlat menüsünden tek tıkla başlatılabilir
 - Ankora Mağaza (Yazılım Merkezi): Modern cam tasarım sistemi ile baştan aşağı yenilendi; paket kaynak rozetleri (Flathub, APT, Sistem), vitrin hero alanı, akıcı hover geçişleri ve yüksek kontrastlı kurulum butonları eklendi
 - Masaüstü Kategori Klasörleri: Android/iOS benzeri 2x2 mini önizleme karoları, modern overlay pencere görünümü, uygulamayı klasör üzerine sürükleyerek gruplama, sağ tık seçenekleri ve tek tıkla masaüstüne çıkarma (eject) desteği
 - Canlı Hava Durumu Widget'ı: Open-Meteo entegrasyonu (API anahtarsız), 3 günlük tahmin şeridi, anlık şehir arama, yerel önbellek, anlık yenileme düğmesi ve 15 dakikalık periyodik otomatik güncelleme

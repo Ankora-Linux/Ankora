@@ -354,6 +354,8 @@ apt-get install -y --no-install-recommends \
     libayatana-appindicator3-1 \
     python3 \
     python3-gi \
+    python3-gi-cairo \
+    python3-cairo \
     gir1.2-webkit2-4.0 \
     gir1.2-gtk-3.0 \
     alsa-utils \
@@ -5676,6 +5678,11 @@ if [ -d "$ROOT_DIR/third_party/fairywren/FairyWren_Ayaz" ]; then
     echo "[OK] İkon teması: FairyWren_Ayaz"
 else
     echo "[UYARI] third_party/fairywren yok; yedek ikon teması Papirus kalır" >&2
+fi
+if [ -d "$ROOT_DIR/third_party/fatih-kalem" ]; then
+    echo "[BİLGİ] Fatih Kalem akıllı tahta uygulaması chroot içine kuruluyor..."
+    make -C "$ROOT_DIR/third_party/fatih-kalem" install DESTDIR="$CHROOT_DIR" PREFIX=/usr || true
+    echo "[OK] Fatih Kalem /usr/share/fatih-kalem ve /usr/bin/fatih-kalem altına kuruldu"
 fi
 mkdir -p "$CHROOT_DIR/lib/udev/rules.d"
 cp "$ROOT_DIR/scripts/99-faz-touch.rules" "$CHROOT_DIR/lib/udev/rules.d/99-faz-touch.rules" || true

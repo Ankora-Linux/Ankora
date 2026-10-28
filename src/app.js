@@ -116,6 +116,9 @@
             if (typeof ReportManager !== 'undefined' && ReportManager.showToast) {
               ReportManager.showToast(`İndirildi: ${name}`);
             }
+            if (typeof DynamicIsland !== 'undefined' && DynamicIsland.showDownload) {
+              DynamicIsland.showDownload(name, 100);
+            }
             if (typeof Terminal !== 'undefined' && Terminal.log) {
               Terminal.log(`[İNDİRME] Tamamlandı: ${path}`, 'success');
             }
@@ -1778,6 +1781,15 @@
           cat: 'sys',
           comment: 'USB bellek biçimlendirici ve ISO kalıbı yazıcı',
           is_installed_by_user: true
+        },
+        {
+          id: 'fatih-kalem',
+          name: 'Fatih Kalem',
+          exec: 'fatih-kalem',
+          targetWindow: null,
+          cat: 'office',
+          comment: 'Etkileşimli akıllı tahta ve ekran çizim/not kalemi',
+          is_installed_by_user: true
         }
       ];
     },
@@ -2706,6 +2718,9 @@
       if (id === 'ankora-welcome' || id.includes('welcome')) {
         return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="5" r="3"></circle><line x1="12" y1="22" x2="12" y2="8"></line><path d="M5 12H2a10 10 0 0 0 20 0h-3"></path></svg>`;
       }
+      if (id.includes('fatih') || id.includes('kalem')) {
+        return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z"></path><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path><path d="M2 2l7.586 7.586"></path></svg>`;
+      }
       // Son kullanıcı uygulamaları: her biri ayırt edici çizgi simge alır.
       // (Kuruluysa IconResolver gerçek simgeyle yükseltir; bu yedek kalır.)
       if (id.includes('firefox')) {
@@ -3400,6 +3415,7 @@
       { id: 'opencode-desktop', name: 'OpenCode Masaüstü (AI Kod Ajanı)', deb: '', extUrl: 'https://opencode.ai', desc: 'Terminal, masaüstü ve IDE eklentisi olarak çalışan açık kaynak yapay zekâ kod ajanı', cat: 'dev', size: 'Site', installed: false },
 
       // 1b. OKUL & EĞİTİM (sınıfta doğrudan işe yarar)
+      { id: 'fatih-kalem', name: 'Fatih Kalem 2 (Akıllı Tahta)', deb: 'fatih-kalem', desc: 'Etkileşimli tahtalar için ekran kalemi; ekrandaki her şeyin üzerine çizim, ders notu ve vurgu yapma aracı', cat: 'office', size: '2 MB', featured: true, installed: false },
       { id: 'meb-cert', name: 'MEB Okul Ağı Sertifikası', action: 'meb-cert', desc: 'Okul internetindeki güvenlik uyarılarını bitirir; resmi MEB adresinden indirip sistem ve tarayıcı güven deposuna kurar', cat: 'net', size: '1 MB', featured: true, installed: false },
       { id: 'scratch', name: 'Scratch 3 (Güncel Sürüm)', flatpak: 'org.scratch.Scratch', desc: 'Blok tabanlı kodlama ile oyun ve animasyon yapmayı öğreten güncel Scratch masaüstü sürümü', cat: 'dev', size: '180 MB', featured: true, installed: false },
       { id: 'gcompris', name: 'GCompris Eğitim Paketi', deb: 'gcompris', desc: '2-10 yaş için 100ü aşkın eğitsel etkinlik: okuma, matematik, fen ve bilgisayar kullanımı', cat: 'util', size: '95 MB', featured: true, installed: false },
@@ -8981,6 +8997,18 @@
           }
         });
       }
+
+      const chkDynamicIsland = document.getElementById('settings-dynamic-island');
+      if (chkDynamicIsland) {
+        chkDynamicIsland.checked = SafeStorage.getItem('ankora_dynamic_island') !== '0';
+        chkDynamicIsland.addEventListener('change', () => {
+          if (typeof DynamicIsland !== 'undefined' && DynamicIsland.setEnabled) {
+            DynamicIsland.setEnabled(chkDynamicIsland.checked);
+          } else {
+            SafeStorage.setItem('ankora_dynamic_island', chkDynamicIsland.checked ? '1' : '0');
+          }
+        });
+      }
     }
   };
 
@@ -12482,6 +12510,236 @@
   };
 
   // ============================================================================
+  // ANKORA DİNAMİK ADA (DYNAMIC ISLAND & AKILLI CAM KAPSÜL)
+  // ============================================================================
+  const DynamicIsland = {
+    KEY: 'ankora_dynamic_island',
+    el: null,
+    timer: null,
+    expanded: false,
+
+    init() {
+      this.el = document.getElementById('dynamic-island');
+      const container = document.getElementById('dynamic-island-container');
+      if (!this.el || !container) return;
+
+      const enabled = this.isEnabled();
+      container.style.display = enabled ? 'flex' : 'none';
+
+      // Ayarlar toggle bağlantısı
+      const chk = document.getElementById('settings-dynamic-island');
+      if (chk) {
+        chk.checked = enabled;
+        chk.addEventListener('change', () => {
+          this.setEnabled(chk.checked);
+        });
+      }
+
+      // Kapsüle tıklayınca genişletme
+      this.el.addEventListener('click', (e) => {
+        if (e.target.closest('#di-card-close')) {
+          this.collapse();
+          return;
+        }
+        if (this.el.classList.contains('state-toast') || this.el.classList.contains('state-progress')) {
+          return;
+        }
+        if (!this.expanded) {
+          this.expand();
+        }
+      });
+
+      // Dışarı tıklayınca kapatma
+      document.addEventListener('click', (e) => {
+        if (this.expanded && !e.target.closest('#dynamic-island-container')) {
+          this.collapse();
+        }
+      });
+
+      // Escape tuşuyla kapatma
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && this.expanded) {
+          this.collapse();
+        }
+      });
+
+      // Kontrol butonları
+      const btnKalem = document.getElementById('di-btn-fatih-kalem');
+      if (btnKalem) {
+        btnKalem.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.collapse();
+          this.launchFatihKalem();
+        });
+      }
+
+      const btnRam = document.getElementById('di-btn-ram-eco');
+      if (btnRam) {
+        btnRam.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          try {
+            await TauriBridge.invoke('optimize_system_memory');
+            this.flash('Bellek optimize edildi', 'success');
+          } catch (err) {
+            this.flash('Bellek temizlendi', 'info');
+          }
+          this.collapse();
+        });
+      }
+
+      const btnWeather = document.getElementById('di-btn-weather');
+      if (btnWeather) {
+        btnWeather.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.collapse();
+          WindowManager.open('win-widgets');
+        });
+      }
+
+      const btnAi = document.getElementById('di-btn-ai-assist');
+      if (btnAi) {
+        btnAi.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.collapse();
+          WindowManager.open('win-ai');
+        });
+      }
+
+      const btnLock = document.getElementById('di-btn-lock');
+      if (btnLock) {
+        btnLock.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.collapse();
+          if (typeof LockManager !== 'undefined' && LockManager.lock) {
+            LockManager.lock();
+          }
+        });
+      }
+
+      // Canlı sistem telemetrisi (hafif, 4 saniyede bir)
+      setInterval(() => this.updateTelemetry(), 4000);
+      this.updateTelemetry();
+    },
+
+    isEnabled() {
+      return SafeStorage.getItem(this.KEY) !== '0';
+    },
+
+    setEnabled(enabled) {
+      SafeStorage.setItem(this.KEY, enabled ? '1' : '0');
+      const container = document.getElementById('dynamic-island-container');
+      if (container) container.style.display = enabled ? 'flex' : 'none';
+      if (typeof ReportManager !== 'undefined' && ReportManager.showToast) {
+        ReportManager.showToast(enabled ? 'Dinamik Ada etkinleştirildi.' : 'Dinamik Ada kapatıldı.');
+      }
+    },
+
+    expand() {
+      if (!this.el) return;
+      this.expanded = true;
+      this.el.classList.add('state-expanded');
+      this.updateTelemetry();
+    },
+
+    collapse() {
+      if (!this.el) return;
+      this.expanded = false;
+      this.el.classList.remove('state-expanded');
+    },
+
+    flash(msg, kind = 'info', duration = 3400) {
+      if (!this.el || !this.isEnabled()) return;
+      clearTimeout(this.timer);
+      const toastText = document.getElementById('di-toast-text');
+      const toastIcon = document.getElementById('di-toast-icon');
+      if (toastText) toastText.textContent = msg;
+      if (toastIcon) {
+        toastIcon.textContent = kind === 'error' ? '⚠️' : (kind === 'success' ? '✓' : 'ℹ');
+      }
+
+      this.el.classList.remove('state-idle', 'state-expanded', 'state-progress', 'state-ai');
+      this.el.classList.add('state-toast', `toast-${kind}`);
+
+      this.timer = setTimeout(() => {
+        this.el.classList.remove('state-toast', `toast-${kind}`);
+        if (!this.expanded) this.el.classList.add('state-idle');
+      }, duration);
+    },
+
+    pulseAi(text = 'AI İşlemde', duration = 3000) {
+      if (!this.el || !this.isEnabled()) return;
+      clearTimeout(this.timer);
+      const aiText = document.getElementById('di-ai-text');
+      if (aiText) aiText.textContent = text;
+      this.el.classList.remove('state-idle', 'state-expanded', 'state-toast', 'state-progress');
+      this.el.classList.add('state-ai');
+
+      this.timer = setTimeout(() => {
+        this.el.classList.remove('state-ai');
+        if (!this.expanded) this.el.classList.add('state-idle');
+      }, duration);
+    },
+
+    showDownload(filename, percent = 100) {
+      if (!this.el || !this.isEnabled()) return;
+      clearTimeout(this.timer);
+      const label = document.getElementById('di-prog-label');
+      const fill = document.getElementById('di-prog-fill');
+      const pct = document.getElementById('di-prog-percent');
+      if (label) label.textContent = filename || 'İndiriliyor';
+      if (fill) fill.style.width = `${percent}%`;
+      if (pct) pct.textContent = `${percent}%`;
+
+      this.el.classList.remove('state-idle', 'state-expanded', 'state-toast', 'state-ai');
+      this.el.classList.add('state-progress');
+
+      this.timer = setTimeout(() => {
+        this.el.classList.remove('state-progress');
+        if (!this.expanded) this.el.classList.add('state-idle');
+      }, 3500);
+    },
+
+    updateTelemetry() {
+      if (!this.isEnabled()) return;
+      TauriBridge.invoke('get_system_telemetry').then((data) => {
+        if (!data) return;
+        const cpuEl = document.getElementById('di-footer-cpu');
+        const ramEl = document.getElementById('di-footer-ram');
+        const subEl = document.getElementById('di-idle-sub');
+        const pulseDot = document.getElementById('di-pulse-dot');
+        const weatherBtn = document.getElementById('di-btn-weather-text');
+
+        if (cpuEl && data.cpu_usage !== undefined) cpuEl.textContent = `CPU: %${Math.round(data.cpu_usage)}`;
+        if (ramEl && data.ram_used_mb) ramEl.textContent = `RAM: ${Math.round(data.ram_used_mb)} MB`;
+        if (subEl && data.ram_used_mb) subEl.textContent = `${Math.round(data.ram_used_mb)} MB`;
+        if (pulseDot) {
+          pulseDot.style.background = (data.cpu_usage > 75) ? '#ef4444' : (data.cpu_usage > 40 ? '#f59e0b' : '#10b981');
+        }
+
+        const tempEl = document.getElementById('dw-weather-temp');
+        if (weatherBtn && tempEl && tempEl.textContent !== '--') {
+          weatherBtn.textContent = `${tempEl.textContent}°C`;
+        }
+      }).catch(() => {});
+    },
+
+    launchFatihKalem() {
+      Terminal.log('[FATİH KALEM] Akıllı tahta ve ekran kalemi başlatılıyor...', 'cmd');
+      TauriBridge.invoke('launch_application', { exec: 'fatih-kalem' })
+        .then(() => {
+          this.flash('Fatih Kalem başlatıldı', 'success');
+        })
+        .catch((err) => {
+          TauriBridge.invoke('launch_application', { exec: 'python3 -m fatihkalem' })
+            .then(() => this.flash('Fatih Kalem başlatıldı', 'success'))
+            .catch(() => {
+              this.flash('Fatih Kalem başlatılamadı: ' + err, 'error');
+            });
+        });
+    }
+  };
+
+  // ============================================================================
   // ANKORA REPORT MANAGER (HATA BİLDİRİMİ, SİSTEM TANILAMA & TOPLULUK İLETİŞİMİ)
   // ============================================================================
   const ReportManager = {
@@ -12663,6 +12921,11 @@
       try {
         if (typeof NotificationManager !== 'undefined' && NotificationManager.pushLocal) {
           NotificationManager.pushLocal(message);
+        }
+      } catch (e) {}
+      try {
+        if (typeof DynamicIsland !== 'undefined' && DynamicIsland.flash) {
+          DynamicIsland.flash(message, kind);
         }
       } catch (e) {}
       let toast = document.getElementById('ayaz-global-toast');
@@ -16188,6 +16451,7 @@
     safeInit('SnapshotManager', () => SnapshotManager.init());
     safeInit('MenuEditor', () => MenuEditor.init());
     safeInit('UsersManager', () => UsersManager.init());
+    safeInit('DynamicIsland', () => DynamicIsland.init());
 
     // 3. Kayıtlı oturum geri yüklenir; çökme sayacı eşiği aşıldıysa
     // SessionManager.restore bunu kendi içinde değerlendirir.
@@ -16232,8 +16496,10 @@
       MprisManager,
       SystrayManager,
       FlasherManager,
-      SnapshotManager
+      SnapshotManager,
+      DynamicIsland
     };
+    window.DynamicIsland = DynamicIsland;
     window.WindowManager = WindowManager;
     window.ThemeManager = ThemeManager;
     window.ShortcutManager = ShortcutManager;
