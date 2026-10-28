@@ -44,6 +44,7 @@ Bu depo, Ankora Linux projesinin resmî ana deposudur. Burada Ayaz Desktop Envir
 Bu bölüm kararların ve çalışma geçmişinin kaydıdır. Yeni karar verildikçe
 tarihli satır olarak eklenir; silinmez.
 
+- 2026-10-28: Dinamik Ada (Dynamic Island) ve Fatih Kalem 2 akıllı tahta çizim aracı entegre edildi. Dinamik ada; animasyonlu cam teması, durumsal durumlar (idle, bildirim, indirme, AI dalgası), hızlı araçlar kartı ve Ayarlar'dan açma/kapama seçeneğiyle donatıldı. Fatih Kalem 2 ISO kurulum hattına ve Mağazaya eklendi (`051e7f5`).
 - 2026-10-28: Ayaz DE Mağaza modern cam tasarım sistemi ile yenilendi; masaüstü kategori klasörlerine tek tıkla çıkarma ve hava durumuna anlık yenileme desteği geldi; CHANGELOG.md 3.7.0 için güncellendi.
 - 2026-10-26: Sürümün tek kaynağı `src-tauri/tauri.conf.json` içindeki
   `"version"` alanıdır. `Cargo.toml`, `package.json` ve `VERSION` aynı
