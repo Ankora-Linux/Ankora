@@ -167,7 +167,13 @@
             <svg class="glyph di-card-title-icon" aria-hidden="true"><use href="#ico-package"></use></svg>
             <span>Hızlı Denetim Kapsülü</span>
           </div>
-          <button class="di-card-close" id="di-card-close" title="Kapat (Esc)">✕</button>
+          <div class="di-card-actions">
+            <button class="di-card-tool-btn" id="di-btn-disable" title="Dinamik Kapsülü Gizle / Kapat">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+              <span>Kapsülü Gizle</span>
+            </button>
+            <button class="di-card-close" id="di-card-close" title="Kapat (Esc)">✕</button>
+          </div>
         </div>
 
         <div class="di-card-grid">
@@ -3418,6 +3424,16 @@
           <span class="qs-tile-sub" id="qs-saver-sub">Kapalı</span>
         </div>
       </button>
+
+      <button class="qs-tile-btn active" id="qs-island-toggle" title="Dinamik Ada / Üst Durum Kapsülü">
+        <div class="qs-tile-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="6" rx="3"></rect><circle cx="8" cy="6" r="1" fill="currentColor"></circle><line x1="12" y1="6" x2="16" y2="6"></line></svg>
+        </div>
+        <div class="qs-tile-text">
+          <span class="qs-tile-title">Dinamik Ada</span>
+          <span class="qs-tile-sub" id="qs-island-sub">Açık</span>
+        </div>
+      </button>
     </div>
 
     <!-- 2. Ses ve Parlaklık Kaydırıcıları -->
@@ -3609,6 +3625,10 @@
     <div class="ctx-item" data-action="toggle-icons">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
       <span>Masaüstü Simgelerini Gizle / Göster</span>
+    </div>
+    <div class="ctx-item" data-action="toggle-dynamic-island">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="6" rx="3"></rect><circle cx="8" cy="6" r="1" fill="currentColor"></circle><line x1="12" y1="6" x2="16" y2="6"></line></svg>
+      <span>Dinamik Ada / Kapsülü Aç / Kapat</span>
     </div>
     <div class="ctx-divider"></div>
     <div class="ctx-item" data-action="wallpaper">

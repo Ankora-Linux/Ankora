@@ -1699,16 +1699,8 @@
           targetWindow: 'win-installer',
           cat: 'sys',
           comment: 'Ankora Linux 3.6 Sabit Diske Kurulum Sihirbazı',
-          is_installed_by_user: true
-        },
-        {
-          id: 'ankora-welcome',
-          name: 'Ankora Karşılayıcı',
-          exec: 'internal:win-welcome',
-          targetWindow: 'win-welcome',
-          cat: 'util',
-          comment: 'Sisteme Genel Bakış ve Hoş Geldiniz Rehberi',
-          is_installed_by_user: true
+          is_installed_by_user: true,
+          on_desktop: true
         },
         {
           id: 'ayaz-files',
@@ -1717,25 +1709,8 @@
           targetWindow: 'win-files',
           cat: 'util',
           comment: 'Dosya Yöneticisi ve Dizin Gezgini',
-          is_installed_by_user: true
-        },
-        {
-          id: 'ayaz-term',
-          name: 'Ayaz Uçbirim',
-          exec: 'internal:win-terminal',
-          targetWindow: 'win-terminal',
-          cat: 'sys',
-          comment: 'Güçlü Linux Uçbirimi ve Komut Satırı',
-          is_installed_by_user: true
-        },
-        {
-          id: 'ankora-store',
-          name: 'Yazılım Mağazası',
-          exec: 'internal:win-store',
-          targetWindow: 'win-store',
-          cat: 'sys',
-          comment: 'Paket Yöneticisi ve Uygulama Mağazası',
-          is_installed_by_user: true
+          is_installed_by_user: true,
+          on_desktop: true
         },
         {
           id: 'brave-browser',
@@ -1744,7 +1719,38 @@
           targetWindow: null,
           cat: 'net',
           comment: 'Hızlı, Gizlilik Odaklı Güvenli Web Tarayıcısı',
-          is_installed_by_user: true
+          is_installed_by_user: true,
+          on_desktop: true
+        },
+        {
+          id: 'ankora-store',
+          name: 'Yazılım Mağazası',
+          exec: 'internal:win-store',
+          targetWindow: 'win-store',
+          cat: 'sys',
+          comment: 'Paket Yöneticisi ve Uygulama Mağazası',
+          is_installed_by_user: true,
+          on_desktop: true
+        },
+        {
+          id: 'ankora-welcome',
+          name: 'Ankora Karşılayıcı',
+          exec: 'internal:win-welcome',
+          targetWindow: 'win-welcome',
+          cat: 'util',
+          comment: 'Sisteme Genel Bakış ve Hoş Geldiniz Rehberi',
+          is_installed_by_user: true,
+          on_desktop: false
+        },
+        {
+          id: 'ayaz-term',
+          name: 'Ayaz Uçbirim',
+          exec: 'internal:win-terminal',
+          targetWindow: 'win-terminal',
+          cat: 'sys',
+          comment: 'Güçlü Linux Uçbirimi ve Komut Satırı',
+          is_installed_by_user: true,
+          on_desktop: false
         },
         {
           id: 'ankora-screenshot',
@@ -1753,7 +1759,8 @@
           targetWindow: 'win-screenshot',
           cat: 'util',
           comment: 'Tam ekran, pencere veya serbest alan yakalama aracı',
-          is_installed_by_user: true
+          is_installed_by_user: true,
+          on_desktop: false
         },
         {
           id: 'ankora-office',
@@ -1762,7 +1769,8 @@
           targetWindow: 'win-office',
           cat: 'office',
           comment: 'Belge Düzenleyici ve Not Defteri',
-          is_installed_by_user: true
+          is_installed_by_user: true,
+          on_desktop: false
         },
         {
           id: 'ayaz-widgets',
@@ -1771,7 +1779,8 @@
           targetWindow: 'win-widgets',
           cat: 'util',
           comment: 'Saat ve sistem bilgisi bileşenlerini masaüstüne yerleştirir',
-          is_installed_by_user: true
+          is_installed_by_user: true,
+          on_desktop: false
         },
         {
           id: 'ankora-flasher',
@@ -1780,7 +1789,8 @@
           targetWindow: 'win-flasher',
           cat: 'sys',
           comment: 'USB bellek biçimlendirici ve ISO kalıbı yazıcı',
-          is_installed_by_user: true
+          is_installed_by_user: true,
+          on_desktop: false
         },
         {
           id: 'fatih-kalem',
@@ -1789,7 +1799,8 @@
           targetWindow: null,
           cat: 'office',
           comment: 'Etkileşimli akıllı tahta ve ekran çizim/not kalemi',
-          is_installed_by_user: true
+          is_installed_by_user: true,
+          on_desktop: false
         }
       ];
     },
@@ -1818,6 +1829,20 @@
           if (freshWidgetApp) this.installedApps.push(freshWidgetApp);
         }
         SafeStorage.setItem('ankora_builtin_widgets_added', 'true');
+      }
+
+      // Masaüstü simge ve klasör kalabalığını temizleme:
+      // Yalnızca 4 temel simge (Sistemi Kur, Dosyalar, Brave, Mağaza) ve Çöp Kutusu masaüstünde kalır.
+      // Diğer tüm uygulamalar başlat menüsünde ve dock'ta yer alır.
+      if (SafeStorage.getItem('ankora_desktop_cleaned_v2') !== 'true') {
+        const keepOnDesk = new Set(['ankora-installer', 'ayaz-files', 'brave-browser', 'ankora-store']);
+        this.installedApps.forEach(a => {
+          if (!keepOnDesk.has(a.id) && a.exec && !a.exec.startsWith('file:')) {
+            a.on_desktop = false;
+          }
+        });
+        SafeStorage.setItem('ankora_xdg_apps', JSON.stringify(this.installedApps));
+        SafeStorage.setItem('ankora_desktop_cleaned_v2', 'true');
       }
 
       this.renderToDesktop();
@@ -1883,8 +1908,9 @@
               return;
             }
             if (!known.has(app.id)) {
-              // Sonradan kurulmuş bir uygulama (ör. `apt install ...`).
-              this.installedApps.push({ ...app, is_installed_by_user: true, on_desktop: true });
+              // Sonradan kurulmuş bir uygulama (ör. apt install ...).
+              // Başlat menüsünde listelenir, kullanıcının masaüstünü doldurmaması için on_desktop: false
+              this.installedApps.push({ ...app, is_installed_by_user: true, on_desktop: false });
               seen.add(app.id);
               fresh.push(app);
               changed = true;
@@ -3593,6 +3619,108 @@
       { id: 'maxima', name: 'Maxima Sembolik Matematik', deb: 'maxima', desc: 'Türev, integral ve denklem çözümü motoru', cat: 'office', size: '220 MB', installed: false },
       { id: 'gnuplot', name: 'Gnuplot Fonksiyon Çizim', deb: 'gnuplot', desc: 'Bilimsel veri ve fonksiyon grafikleri çizim aracı', cat: 'dev', size: '12 MB', installed: false },
       { id: 'sqlitebrowser', name: 'DB Browser for SQLite', deb: 'sqlitebrowser', desc: 'SQLite veritabanlarını tablo görünümünde inceleme ve düzenleme', cat: 'dev', size: '10 MB', installed: false },
+
+      // 10. YENİ EKLENEN PROFESYONEL VE EĞİTİM UYGULAMALARI (100)
+      { id: 'flatpak-geogebra', name: 'GeoGebra Matematik & Geometri', flatpak: 'org.geogebra.GeoGebra', desc: 'Dinamik matematik, grafik, cebir ve geometri öğrenim yazılımı', cat: 'office', size: '110 MB', installed: false },
+      { id: 'kalzium', name: 'Kalzium Periyodik Tablo', deb: 'kalzium', desc: 'Kapsamlı kimyasal elementler tablosu ve molekül hesaplayıcı', cat: 'office', size: '12 MB', installed: false },
+      { id: 'marble', name: 'Marble Dünya Atlası', deb: 'marble', desc: '3B sanal dünya küresi, harita ve coğrafi keşif aracı', cat: 'office', size: '35 MB', installed: false },
+      { id: 'kstars', name: 'KStars Masaüstü Planetaryum', deb: 'kstars', desc: 'Gece gökyüzü simülasyonu ve gelişmiş teleskop kontrol yazılımı', cat: 'office', size: '65 MB', installed: false },
+      { id: 'step', name: 'Step Fizik Simülatörü', deb: 'step', desc: 'Kuvvetler, yerçekimi ve dalgalar için etkileşimli fizik laboratuvarı', cat: 'office', size: '8 MB', installed: false },
+      { id: 'kmplot', name: 'KmPlot Fonksiyon Çizici', deb: 'kmplot', desc: 'Matematiksel fonksiyonlar, türev ve integral grafik çizim aracı', cat: 'office', size: '4 MB', installed: false },
+      { id: 'kbruch', name: 'KBruch Kesir Alıştırmaları', deb: 'kbruch', desc: 'Kesirli sayılarla hesaplama ve aritmetik pratik yazılımı', cat: 'office', size: '4 MB', installed: false },
+      { id: 'kturtle', name: 'KTurtle Eğitici Programlama', deb: 'kturtle', desc: 'Çocuklar ve yeni başlayanlar için Logo tabanlı kodlama ortamı', cat: 'office', size: '3 MB', installed: false },
+      { id: 'kig', name: 'Kig Geometri Tasarımcısı', deb: 'kig', desc: 'Geometrik şekiller ve matematiksel ispatlar için etkileşimli çizim', cat: 'office', size: '6 MB', installed: false },
+      { id: 'avogadro', name: 'Avogadro Moleküler Editör', deb: 'avogadro', desc: 'Kimya, biyokimya ve malzeme bilimi için 3B molekül modelleyici', cat: 'office', size: '18 MB', installed: false },
+      { id: 'chemtool', name: 'Chemtool Kimyasal Çizici', deb: 'chemtool', desc: '2B organik kimya molekül yapıları ve reaksiyon çizim kiti', cat: 'office', size: '3 MB', installed: false },
+      { id: 'scilab', name: 'Scilab Bilimsel Hesaplama', deb: 'scilab', desc: 'Mühendislik ve fen bilimleri için sayısal algoritma ve simülasyon', cat: 'office', size: '95 MB', installed: false },
+      { id: 'celestia', name: 'Celestia 3B Uzay Gezgini', deb: 'celestia', desc: 'Güneş sistemi ve derin uzayı gerçek zamanlı keşfetme simülasyonu', cat: 'office', size: '45 MB', installed: false },
+      { id: 'cantor', name: 'Cantor Matematik Arayüzü', deb: 'cantor', desc: 'Maxima, Octave, R ve Python için çalışma sayfası arayüzü', cat: 'office', size: '12 MB', installed: false },
+      { id: 'rocs', name: 'Rocs Çizge Laboratuvarı', deb: 'rocs', desc: 'Graf teorisi, düğüm algoritmaları ve veri yapıları görselleştiricisi', cat: 'office', size: '5 MB', installed: false },
+      { id: 'git-gui', name: 'Git GUI Grafik Yöneticisi', deb: 'git-gui', desc: 'Git işleme (commit) ve dal yönetimi için görsel arayüz', cat: 'dev', size: '3 MB', installed: false },
+      { id: 'codeblocks', name: 'Code::Blocks C/C++ IDE', deb: 'codeblocks', desc: 'Genişletilebilir eklenti mimarisine sahip C/C++ geliştirme ortamı', cat: 'dev', size: '28 MB', installed: false },
+      { id: 'kcachegrind', name: 'KCachegrind Profil Analizi', deb: 'kcachegrind', desc: 'Valgrind çağrı grafiği görselleştirme ve performans optimizasyonu', cat: 'dev', size: '6 MB', installed: false },
+      { id: 'glade', name: 'Glade GTK Arayüz Tasarımcısı', deb: 'glade', desc: 'Linux masaüstü GUI uygulamaları için sürükle-bırak form tasarımcısı', cat: 'dev', size: '12 MB', installed: false },
+      { id: 'poedit', name: 'Poedit Çeviri Editörü', deb: 'poedit', desc: 'Gettext (.po/.mo) yerelleştirme ve dil çeviri yönetim aracı', cat: 'dev', size: '18 MB', installed: false },
+      { id: 'hexedit', name: 'Hexedit İkili Dosya Editörü', deb: 'hexedit', desc: 'Hızlı terminal tabanlı onaltılık (hexadecimal) dosya görüntüleyici', cat: 'dev', size: '1 MB', installed: false },
+      { id: 'dhex', name: 'DHex Karşılaştırmalı Hex Editör', deb: 'dhex', desc: 'İkili dosya farklarını yan yana inceleme ve düzenleme aracı', cat: 'dev', size: '1 MB', installed: false },
+      { id: 'radare2', name: 'Radare2 Tersine Mühendislik', deb: 'radare2', desc: 'Gelişmiş ikili kod inceleme, disassembly ve hata ayıklama çatısı', cat: 'dev', size: '25 MB', installed: false },
+      { id: 'cloc', name: 'CLOC Kod Satır Sayacı', deb: 'cloc', desc: 'Onlarca dilde kaynak kod, yorum ve boş satırları sayma aracı', cat: 'dev', size: '1 MB', installed: false },
+      { id: 'shellcheck', name: 'ShellCheck Betik Analizcisi', deb: 'shellcheck', desc: 'Bash ve sh betikleri için statik hata ve güvenlik denetleyicisi', cat: 'dev', size: '15 MB', installed: false },
+      { id: 'cmake', name: 'CMake Derleme Yöneticisi', deb: 'cmake', desc: 'C/C++ projeleri için endüstri standardı çapraz derleme sistemi', cat: 'dev', size: '32 MB', installed: false },
+      { id: 'ninja-build', name: 'Ninja Derleme Motoru', deb: 'ninja-build', desc: 'Hıza odaklanmış küçük ve ultra hızlı kaynak kod derleme sistemi', cat: 'dev', size: '2 MB', installed: false },
+      { id: 'flatpak-dbeaver', name: 'DBeaver Evrensel DB Yöneticisi', flatpak: 'org.jkiss.DBeaverCE', desc: 'MySQL, PostgreSQL, SQLite ve Oracle destekli gelişmiş SQL editörü', cat: 'dev', size: '130 MB', installed: false },
+      { id: 'flatpak-postman', name: 'Postman API Geliştirme', flatpak: 'com.getpostman.Postman', desc: 'REST, GraphQL ve WebSocket API tasarım ve test platformu', cat: 'dev', size: '160 MB', installed: false },
+      { id: 'flatpak-godot', name: 'Godot Oyun Motoru', flatpak: 'org.godotengine.Godot', desc: 'Hafif, güçlü ve açık kaynaklı 2B/3B profesyonel oyun geliştirme motoru', cat: 'dev', size: '85 MB', installed: false },
+      { id: 'abiword', name: 'AbiWord Kelime İşlemci', deb: 'abiword', desc: 'Sistem kaynaklarını yormayan hafif ve verimli metin belgesi editörü', cat: 'office', size: '14 MB', installed: false },
+      { id: 'gnumeric', name: 'Gnumeric Hesap Tablosu', deb: 'gnumeric', desc: 'Yüksek matematiksel hassasiyete sahip hızlı elektronik tablo aracı', cat: 'office', size: '16 MB', installed: false },
+      { id: 'pdfarranger', name: 'PDF Arranger Sayfa Düzenleyici', deb: 'pdfarranger', desc: 'PDF sayfalarını birleştirme, bölme, döndürme ve yeniden sıralama aracı', cat: 'office', size: '4 MB', installed: false },
+      { id: 'qpdf', name: 'QPDF Yapısal PDF Dönüştürücü', deb: 'qpdf', desc: 'PDF dosyalarını doğrulama, şifreleme ve optimize etme komut satırı aracı', cat: 'office', size: '2 MB', installed: false },
+      { id: 'lyx', name: 'LyX Görsel Belge İşlemci', deb: 'lyx', desc: 'LaTeX gücünü WYSIWYM görsel kolaylığıyla birleştiren belge motoru', cat: 'office', size: '48 MB', installed: false },
+      { id: 'texmaker', name: 'Texmaker LaTeX Editörü', deb: 'texmaker', desc: 'Entegre PDF görüntüleyicili modern ve eksiksiz LaTeX IDE', cat: 'office', size: '24 MB', installed: false },
+      { id: 'gummi', name: 'Gummi Hafif LaTeX Editörü', deb: 'gummi', desc: 'Anlık iki panelli canlı PDF önizlemeli hızlı LaTeX yazarı', cat: 'office', size: '6 MB', installed: false },
+      { id: 'cherrytree', name: 'CherryTree Hiyerarşik Notlar', deb: 'cherrytree', desc: 'Zengin metin, sözdizimi vurgulu kod ve şifreli veri tabanlı not defteri', cat: 'office', size: '18 MB', installed: false },
+      { id: 'rednotebook', name: 'RedNotebook Günlük & Ajanda', deb: 'rednotebook', desc: 'Takvim navigasyonlu, etiketli ve arama destekli kişisel günlük', cat: 'office', size: '8 MB', installed: false },
+      { id: 'zim', name: 'Zim Masaüstü Wiki', deb: 'zim', desc: 'Notlar, yapılacaklar ve belgeler için yerel bağlantılı masaüstü wiki', cat: 'office', size: '6 MB', installed: false },
+      { id: 'basket', name: 'BasKet Not Pedleri', deb: 'basket', desc: 'Fikirler, resimler, bağlantılar ve görevler için sepet düzenleyici', cat: 'office', size: '12 MB', installed: false },
+      { id: 'speedcrunch', name: 'SpeedCrunch Bilimsel Hesap', deb: 'speedcrunch', desc: '50 basamak hassasiyetli, otomatik tamamlamalı modern hesap makinesi', cat: 'office', size: '5 MB', installed: false },
+      { id: 'qalculate-gtk', name: 'Qalculate! Çok Yönlü Hesaplayıcı', deb: 'qalculate-gtk', desc: 'Birim dönüşümleri, para birimleri ve denklem çözme motoru', cat: 'office', size: '8 MB', installed: false },
+      { id: 'flatpak-joplin', name: 'Joplin Şifreli Not Defteri', flatpak: 'net.cozic.joplin_desktop', desc: 'Uçtan uca şifreli, bulut eşitlemeli Markdown not alma uygulaması', cat: 'office', size: '140 MB', installed: false },
+      { id: 'flatpak-zotero', name: 'Zotero Akademik Kaynakça', flatpak: 'org.zotero.Zotero', desc: 'Araştırma makaleleri, alıntılar ve akademik kaynak kütüphanesi', cat: 'office', size: '120 MB', installed: false },
+      { id: 'mixxx', name: 'Mixxx Profesyonel DJ Mikseri', deb: 'mixxx', desc: 'Çift güverte, beat senkronizasyonu ve MIDI denetleyici destekli DJ stüdyosu', cat: 'media', size: '65 MB', installed: false },
+      { id: 'lmms', name: 'LMMS Müzik Üretim Stüdyosu', deb: 'lmms', desc: 'Sentezleyiciler, ritimler ve efektlerle eksiksiz dijital ses iş istasyonu', cat: 'media', size: '45 MB', installed: false },
+      { id: 'musescore3', name: 'MuseScore 3 Nota Yazım', deb: 'musescore3', desc: 'Müzik notasyonu oluşturma, dinleme ve yüksek kaliteli nota basımı', cat: 'media', size: '75 MB', installed: false },
+      { id: 'soundconverter', name: 'SoundConverter Ses Dönüştürücü', deb: 'soundconverter', desc: 'WAV, FLAC, MP3, OGG ve AAC formatları arasında hızlı toplu dönüştürme', cat: 'media', size: '3 MB', installed: false },
+      { id: 'asunder', name: 'Asunder Ses CD Aktarıcı', deb: 'asunder', desc: 'Müzik CD parçalarını FLAC, MP3 veya Ogg formatında diske kaydetme', cat: 'media', size: '2 MB', installed: false },
+      { id: 'brasero', name: 'Brasero Disk Yazıcı', deb: 'brasero', desc: 'Veri, ses ve video CD/DVD diskleri oluşturma ve ISO kalıbı yazma', cat: 'media', size: '12 MB', installed: false },
+      { id: 'guvcview', name: 'Guvcview Kamera Yakalayıcı', deb: 'guvcview', desc: 'UVC uyumlu web kameraları için gelişmiş görüntü ve ses kayıt yazılımı', cat: 'media', size: '4 MB', installed: false },
+      { id: 'cheese', name: 'Cheese Fotoğraf Kabini', deb: 'cheese', desc: 'Web kamerası ile eğlenceli filtrelerle fotoğraf ve video çekme', cat: 'media', size: '14 MB', installed: false },
+      { id: 'simplescreenrecorder', name: 'SimpleScreenRecorder Ekran Kaydedici', deb: 'simplescreenrecorder', desc: 'Oyun ve masaüstü aktiviteleri için düşük işlemci kullanımlı ekran kaydedici', cat: 'media', size: '8 MB', installed: false },
+      { id: 'mp3wrap', name: 'MP3Wrap MP3 Birleştirici', deb: 'mp3wrap', desc: 'Birden fazla MP3 dosyasını yeniden kodlamadan tek bir dosyada toplama', cat: 'media', size: '1 MB', installed: false },
+      { id: 'id3v2', name: 'ID3v2 Etiket Düzenleyici', deb: 'id3v2', desc: 'Ses dosyalarının sanatçı, albüm ve parça bilgilerini düzenleme aracı', cat: 'media', size: '1 MB', installed: false },
+      { id: 'pavucontrol', name: 'PulseAudio / PipeWire Ses Denetimi', deb: 'pavucontrol', desc: 'Uygulama bazlı ses giriş ve çıkış aygıtları mikser arayüzü', cat: 'media', size: '4 MB', installed: false },
+      { id: 'pasystray', name: 'Pasystray Ses Tepsisi', deb: 'pasystray', desc: 'Sistem tepsisinden ses seviyesi ve aygıt yönlendirme kontrolü', cat: 'media', size: '2 MB', installed: false },
+      { id: 'deadbeef', name: 'DeaDBeeF Hızlı Müzik Çalar', deb: 'deadbeef', desc: 'Düşük bellek tüketimli, albüm kapak destekli profesyonel müzik çalar', cat: 'media', size: '14 MB', installed: false },
+      { id: 'flatpak-vlc', name: 'VLC Media Player Sandboxed', flatpak: 'org.videolan.VLC', desc: 'Flathub izole ortamında çalışan tüm formatları destekleyen medya oynatıcı', cat: 'media', size: '95 MB', installed: false },
+      { id: 'pinta', name: 'Pinta Çizim Editörü', deb: 'pinta', desc: 'Paint.NET benzeri katmanlı, efektli ve basit kullanımlı çizim yazılımı', cat: 'graphics', size: '12 MB', installed: false },
+      { id: 'synfigstudio', name: 'Synfig 2B Animasyon', deb: 'synfigstudio', desc: 'Film kalitesinde 2B vektörel animasyon ve karakter kuklası oluşturma', cat: 'graphics', size: '42 MB', installed: false },
+      { id: 'openscad', name: 'OpenSCAD Katı 3B CAD', deb: 'openscad', desc: 'Kod yazarak 3 boyutlu CAD modelleri ve 3D yazıcı tasarımları üretme', cat: 'graphics', size: '25 MB', installed: false },
+      { id: 'librecad', name: 'LibreCAD 2B Mühendislik Çizimi', deb: 'librecad', desc: 'Mimari ve mekanik projeler için hassas 2B teknik CAD çizim aracı', cat: 'graphics', size: '32 MB', installed: false },
+      { id: 'sweethome3d', name: 'Sweet Home 3D Ev Tasarımı', deb: 'sweethome3d', desc: 'Ev planı çizimi, mobilya yerleşimi ve 3 boyutlu iç mekan gezintisi', cat: 'graphics', size: '55 MB', installed: false },
+      { id: 'shotwell', name: 'Shotwell Fotoğraf Koleksiyonu', deb: 'shotwell', desc: 'Dijital fotoğrafları içe aktarma, kırpma, kırmızı göz düzeltme ve albümleme', cat: 'graphics', size: '16 MB', installed: false },
+      { id: 'gthumb', name: 'gThumb Hızlı Resim Düzenleyici', deb: 'gthumb', desc: 'Toplu dosya adlandırma, format dönüştürme ve görsel tarayıcı', cat: 'graphics', size: '18 MB', installed: false },
+      { id: 'optipng', name: 'OptiPNG Kayıpsız PNG Sıkıştırıcı', deb: 'optipng', desc: 'PNG görsellerini kalite kaybı olmadan boyutunu küçültme aracı', cat: 'graphics', size: '1 MB', installed: false },
+      { id: 'jpegoptim', name: 'Jpegoptim JPEG Optimize Edici', deb: 'jpegoptim', desc: 'JPEG fotoğraflarını kayıplı veya kayıpsız sıkıştırarak yer kazanma', cat: 'graphics', size: '1 MB', installed: false },
+      { id: 'exiftool', name: 'ExifTool Metadata Yöneticisi', deb: 'libimage-exiftool-perl', desc: 'Fotoğraf ve dosyalardaki EXIF, GPS ve kamera bilgilerini okuma/yazma', cat: 'graphics', size: '8 MB', installed: false },
+      { id: 'deluge', name: 'Deluge BitTorrent İstemcisi', deb: 'deluge', desc: 'Web arayüzü ve masaüstü istemcisi destekli hafif torrent yöneticisi', cat: 'net', size: '18 MB', installed: false },
+      { id: 'pidgin', name: 'Pidgin Çoklu Sohbet İstemcisi', deb: 'pidgin', desc: 'XMPP, IRC ve anlık mesajlaşma protokollerini tek pencerede birleştirme', cat: 'net', size: '16 MB', installed: false },
+      { id: 'traceroute', name: 'Traceroute Ağ Yolu İzleyici', deb: 'traceroute', desc: 'Paketlerin internet üzerindeki yönlendirici duraklarını ve gecikmelerini ölçme', cat: 'net', size: '1 MB', installed: false },
+      { id: 'fping', name: 'fPing Çoklu Sunucu Yoklayıcı', deb: 'fping', desc: 'Aynı anda yüzlerce ağ cihazına hızlı ICMP eko istekleri gönderme', cat: 'net', size: '1 MB', installed: false },
+      { id: 'hping3', name: 'Hping3 Ağ Güvenlik Test Aracı', deb: 'hping3', desc: 'Özel TCP/UDP/ICMP paketleri hazırlama ve güvenlik duvarı denetleme', cat: 'net', size: '2 MB', installed: false },
+      { id: 'etherape', name: 'EtherApe Grafiksel Ağ Monitörü', deb: 'etherape', desc: 'Ağ trafiğini renkli protokol düğümleriyle grafiksel olarak izleme', cat: 'net', size: '3 MB', installed: false },
+      { id: 'vnstat', name: 'vnStat Ağ Trafik Günlüğü', deb: 'vnstat', desc: 'Günlük, aylık ve anlık ağ tüketimini arka planda kaydeden sayaç', cat: 'net', size: '2 MB', installed: false },
+      { id: 'speedtest-cli', name: 'Speedtest CLI Hız Testi', deb: 'speedtest-cli', desc: 'Komut satırından Ookla altyapısıyla indirme ve yükleme hızı testi', cat: 'net', size: '1 MB', installed: false },
+      { id: 'socat', name: 'Socat İki Yönlü Ağ Aktarıcı', deb: 'socat', desc: 'Soketler, borular ve seri aygıtlar arasında veri aktarımı ve port yönlendirme', cat: 'net', size: '2 MB', installed: false },
+      { id: 'macchanger', name: 'Macchanger MAC Değiştirici', deb: 'macchanger', desc: 'Ağ bağdaştırıcılarının donanım MAC adresini anonimleştirme aracı', cat: 'net', size: '1 MB', installed: false },
+      { id: 'openvpn', name: 'OpenVPN Güvenli Ağ İstemcisi', deb: 'openvpn', desc: 'Kurumsal ve kişisel VPN sunucularına şifreli sanal tünel bağlantısı', cat: 'net', size: '4 MB', installed: false },
+      { id: 'wireguard', name: 'WireGuard Hızlı VPN İstemcisi', deb: 'wireguard-tools', desc: 'Modern kriptografiyle çalışan ultra hızlı ve hafif VPN protokolü', cat: 'net', size: '2 MB', installed: false },
+      { id: 'flatpak-element', name: 'Element Matrix Messenger', flatpak: 'im.riot.Riot', desc: 'Merkeziyetsiz, uçtan uca şifreli sesli ve yazılı iletişim istemcisi', cat: 'net', size: '130 MB', installed: false },
+      { id: 'flatpak-rustdesk', name: 'RustDesk Uzak Masaüstü', flatpak: 'com.rustdesk.RustDesk', desc: 'Kendi sunucunuzu kurabileceğiniz güvenli ve hızlı uzak kontrol aracı', cat: 'net', size: '45 MB', installed: false },
+      { id: 'flatpak-slack', name: 'Slack İşbirliği & Mesajlaşma', flatpak: 'com.slack.Slack', desc: 'Takımlar, kanallar ve iş yerleri için iletişim ve dosya paylaşım aracı', cat: 'net', size: '150 MB', installed: false },
+      { id: 'hardinfo', name: 'HardInfo Donanım Analizi', deb: 'hardinfo', desc: 'İşlemci, bellek, anakart bilgileri ve karşılaştırma (benchmark) aracı', cat: 'sys', size: '4 MB', installed: false },
+      { id: 'clamtk', name: 'ClamTk Antivirüs Arayüzü', deb: 'clamtk', desc: 'ClamAV motoru için kolay kullanımlı masaüstü virüs tarama arayüzü', cat: 'sys', size: '8 MB', installed: false },
+      { id: 'clamav', name: 'ClamAV Güvenlik Motoru', deb: 'clamav', desc: 'Dosya, posta ve indirme güvenliği için açık kaynaklı virüs tarayıcı', cat: 'sys', size: '45 MB', installed: false },
+      { id: 'chkrootkit', name: 'Chkrootkit Rootkit Denetleyicisi', deb: 'chkrootkit', desc: 'Sistem çekirdeği ve süreçlerde gizli rootkit izlerini tespit etme aracı', cat: 'sys', size: '2 MB', installed: false },
+      { id: 'rkhunter', name: 'Rootkit Hunter Bütünlük Denetimi', deb: 'rkhunter', desc: 'Sistem dosyaları hash doğrulaması ve şüpheli ikilileri tarama kiti', cat: 'sys', size: '5 MB', installed: false },
+      { id: 'powertop', name: 'PowerTOP Enerji Teşhis Aracı', deb: 'powertop', desc: 'Dizüstü bilgisayarlarda güç tüketimini ve uykudan uyandıran süreçleri izleme', cat: 'sys', size: '2 MB', installed: false },
+      { id: 'tlp', name: 'TLP Gelişmiş Güç Yöneticisi', deb: 'tlp', desc: 'Linux çekirdeği için otomatik pil ömrü uzatma ve enerji tasarrufu paketi', cat: 'sys', size: '2 MB', installed: false },
+      { id: 'cpufrequtils', name: 'CPUFreq İşlemci Hız Profili', deb: 'cpufrequtils', desc: 'İşlemci frekans ölçeklendirmesini ve performans/powersave modunu ayarlama', cat: 'sys', size: '1 MB', installed: false },
+      { id: 'lsscsi', name: 'lsscsi Depolama Aygıtları Dökümü', deb: 'lsscsi', desc: 'SATA, NVMe ve SCSI disklerin detaylı donanım mimarisi listesi', cat: 'sys', size: '1 MB', installed: false },
+      { id: 'dmidecode', name: 'Dmidecode BIOS & SMBIOS Okuyucu', deb: 'dmidecode', desc: 'Anakart modeli, BIOS sürümü ve RAM yuvalarının donanım dökümü', cat: 'sys', size: '1 MB', installed: false },
+      { id: 'ethtool', name: 'Ethtool Ethernet Sürücü Denetimi', deb: 'ethtool', desc: 'Ağ kartı hızını (100M/1G/10G), dubleks modunu ve donanım boşaltmalarını kontrol etme', cat: 'sys', size: '1 MB', installed: false },
+      { id: 'wipe', name: 'Wipe Güvenli Veri İmha Aracı', deb: 'wipe', desc: 'Gizli dosyaları ve disk sektörlerini DoD standardında geri getirilemez silme', cat: 'sys', size: '1 MB', installed: false },
+      { id: 'srm', name: 'Secure Delete Güvenli Silici', deb: 'secure-delete', desc: 'Bellek, takas alanı ve dosyalardaki verileri kurtarılamaz biçimde temizleme', cat: 'sys', size: '1 MB', installed: false },
+      { id: 'dosfstools', name: 'Dosfstools FAT32 Onarım Araçları', deb: 'dosfstools', desc: 'FAT16 ve FAT32 USB belleklerini biçimlendirme ve fsck ile onarma kiti', cat: 'sys', size: '2 MB', installed: false },
+      { id: 'ntfs-3g', name: 'NTFS-3G Dosya Sistemi Desteği', deb: 'ntfs-3g', desc: 'Windows disk bölümlerini tam okuma ve yazma desteğiyle bağlama sürücüsü', cat: 'sys', size: '3 MB', installed: false },
     ],
     tableBody: null,
     // Açılışta kafa karıştırmayan kısa liste; tamamı "Tümü" sekmesinde.
@@ -6863,6 +6991,68 @@
       };
     },
 
+    generateFallbackDiagnostic(prompt) {
+      const q = String(prompt || '').toLowerCase().trim();
+      let reply = '';
+      let has_action = false;
+      let action_command = null;
+      let action_desc = null;
+
+      if (q.includes('plan') || q.includes('günün planı') || q.includes('işler') || q.includes('yapılacak')) {
+        reply = `📋 **Ankora Linux Günlük Çalışma Planı:**\n\n` +
+          `• ⚡ **Sistem Bakımı:** Paket depolarını güncelle ve güvenlik yamalarını kontrol et (\`apt-get update\`).\n` +
+          `• 🧹 **Bellek ve ZRAM Durumu:** Canlı bellek tüketimini ve takas alanını gözden geçir (\`free -h\`).\n` +
+          `• 🛡️ **Depolama Sağlığı:** Kök dizin (\`/\`) ve ev dizini (\`/home\`) boş alanını denetle (\`df -h\`).\n` +
+          `• 🚀 **Üretkenlik:** Ankora Mağaza'dan araçlarını hazırla, Ayaz DE çalışma alanlarını organize et.\n\n` +
+          `*Not: Görev listene yeni bir iş eklemek için "görev ekle: [iş adı]" yazabilirsin.*`;
+      } else if (q.includes('durum') || q.includes('sistem') || q.includes('bellek') || q.includes('ram') || q.includes('cpu')) {
+        reply = `⚡ **Canlı Sistem Durumu & Telemetri:**\n\n` +
+          `• **İşletim Sistemi:** Ankora Linux 3.7 (Devuan Daedalus amd64)\n` +
+          `• **Masaüstü Ortamı:** Ayaz DE (Minimalist Tauri & WebKitGTK)\n` +
+          `• **İnit & Hizmet Sistemi:** SysVinit (Düşük kaynak tüketimli)\n` +
+          `• **Çekirdek:** Linux LTS x86_64\n` +
+          `• **Güvenlik & İzolasyon:** Unprivileged sandbox, yerel anahtar kasası\n\n` +
+          `Disk ve bellek doluluk oranlarını canlı sorgulamak için aşağıdaki komutu onaylayabilirsiniz.`;
+        has_action = true;
+        action_command = 'df -h / && free -m';
+        action_desc = 'Disk ve bellek kullanımını sorgula';
+      } else if (q.includes('öner') || q.includes('uygulama') || q.includes('mağaza') || q.includes('program')) {
+        reply = `✨ **Ankora Mağaza'dan Seçkin Öneriler:**\n\n` +
+          `• 🌐 **İnternet:** Brave Browser, Chromium, Telegram Desktop, Thunderbird\n` +
+          `• 💻 **Geliştirme:** VS Code, Geany, Code::Blocks, DBeaver, Meld, Git GUI\n` +
+          `• 🎨 **Tasarım & Medya:** Krita, Inkscape, Blender, GIMP, VLC, OBS Studio\n` +
+          `• 📚 **Eğitim:** Fatih Kalem 2, GeoGebra, GCompris, Kalzium, Stellarium\n` +
+          `• 🛠️ **Sistem:** GParted, Timeshift, BleachBit, Htop, Btop, Fastfetch\n\n` +
+          `Uygulamaları tek tıkla kurmak için Yazılım Mağazası'nı açabilirsiniz.`;
+      } else if (q.includes('uçbirim') || q.includes('terminal') || q.includes('komut') || q.includes('bash')) {
+        reply = `💻 **Hızlı Uçbirim Komut Rehberi:**\n\n` +
+          `• Sistem güncelleme: \`sudo apt update && sudo apt upgrade -y\`\n` +
+          `• Bellek durumu: \`free -h\`\n` +
+          `• Disk alanı: \`df -h /\`\n` +
+          `• Süreç izleme: \`btop\` veya \`htop\`\n` +
+          `• Sistem doktoru teşhisi: \`/usr/local/bin/ankora-doctor\``;
+        has_action = true;
+        action_command = 'free -h';
+        action_desc = 'Bellek durumunu terminalde göster';
+      } else {
+        reply = `Ankora AI Yerel Asistanı hazır.\n\n` +
+          `Sorgunuz: "${prompt}"\n\n` +
+          `• Sistem durumunu sorgulamak için: "Sistem durumu"\n` +
+          `• Günün planı ve görevler için: "Günün planı"\n` +
+          `• Uygulama tavsiyeleri için: "Uygulama öner"\n` +
+          `• Terminal komutları için: "Uçbirim komutları"\n\n` +
+          `*Gelişmiş bulut modellerine (Gemini, Groq, OpenAI, Claude) bağlanmak için üstteki 'API Ayarları' butonunu kullanabilirsiniz.*`;
+      }
+
+      return {
+        reply,
+        has_action,
+        action_command,
+        action_desc,
+        action_token: has_action ? 'fallback-token' : null
+      };
+    },
+
     async handleQuery(text, options = {}) {
       const clean = String(text || '').trim();
       if (!clean) return;
@@ -6951,11 +7141,9 @@
             agentMode: this.mode
           });
         } catch (invokeErr) {
-          // Tauri arka uçta hata alındıysa ve kullanıcı anahtarı varsa aşağıda doğrudan API'yi dene
+          // Tauri arka uçta hata alındıysa veya anahtar yoksa fallback teşhis motoruna devret
           if (!this.activeKey) {
-            if (loadingEntry && loadingEntry.parentNode) loadingEntry.parentNode.removeChild(loadingEntry);
-            this.appendMsg('bot', `⚠ Ajan Bağlantı Hatası:\n${invokeErr}`);
-            return;
+            res = this.generateFallbackDiagnostic(text);
           }
         }
       }
@@ -7093,6 +7281,10 @@
           agent_mode: this.mode,
           api_key: this.activeKey || ''
         });
+      }
+
+      if (!res && !this.activeKey) {
+        res = this.generateFallbackDiagnostic(text);
       }
 
       if (loadingEntry && loadingEntry.parentNode) {
@@ -10274,6 +10466,10 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
           <span>Masaüstü Simgelerini Gizle / Göster</span>
         </div>
+        <div class="ctx-item" data-action="toggle-dynamic-island">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="6" rx="3"></rect><circle cx="8" cy="6" r="1" fill="currentColor"></circle><line x1="12" y1="6" x2="16" y2="6"></line></svg>
+          <span>Dinamik Ada / Kapsülü Aç / Kapat</span>
+        </div>
         <div class="ctx-item" data-action="settings">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
           <span>Sistem Ayarları</span>
@@ -10438,6 +10634,10 @@
               icons.style.display = isHidden ? '' : 'none';
               if (isHidden && typeof XdgDesktopEngine !== 'undefined') XdgDesktopEngine.layoutDesktopIcons(icons);
               Terminal.log(`[MASAÜSTÜ] Simgeler: ${isHidden ? 'Görünür' : 'Gizlendi'}`, 'cmd');
+            }
+          } else if (act === 'toggle-dynamic-island') {
+            if (typeof DynamicIsland !== 'undefined') {
+              DynamicIsland.toggleEnabled();
             }
           }
         });
@@ -12693,6 +12893,30 @@
       });
 
       // Kontrol butonları
+      const btnDisable = document.getElementById('di-btn-disable');
+      if (btnDisable) {
+        btnDisable.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.collapse();
+          this.setEnabled(false);
+        });
+      }
+
+      // Kapsül üzerine sağ tık bağlam menüsü
+      this.el.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.showContextMenu(e);
+      });
+
+      // Hızlı ayarlar (Quick Settings) Dinamik Ada anahtarı
+      const qsIslandBtn = document.getElementById('qs-island-toggle');
+      if (qsIslandBtn) {
+        qsIslandBtn.addEventListener('click', () => {
+          this.toggleEnabled();
+        });
+      }
+
       const btnKalem = document.getElementById('di-btn-fatih-kalem');
       if (btnKalem) {
         btnKalem.addEventListener('click', (e) => {
@@ -12754,13 +12978,66 @@
       return SafeStorage.getItem(this.KEY) !== '0';
     },
 
+    toggleEnabled() {
+      this.setEnabled(!this.isEnabled());
+    },
+
     setEnabled(enabled) {
       SafeStorage.setItem(this.KEY, enabled ? '1' : '0');
       const container = document.getElementById('dynamic-island-container');
       if (container) container.style.display = enabled ? 'flex' : 'none';
+      if (!enabled && this.expanded) this.collapse();
+
+      const chk = document.getElementById('settings-dynamic-island');
+      if (chk) chk.checked = enabled;
+
+      const qsTile = document.getElementById('qs-island-toggle');
+      const qsSub = document.getElementById('qs-island-sub');
+      if (qsTile) qsTile.classList.toggle('active', enabled);
+      if (qsSub) qsSub.textContent = enabled ? 'Açık' : 'Kapalı';
+
       if (typeof ReportManager !== 'undefined' && ReportManager.showToast) {
-        ReportManager.showToast(enabled ? 'Dinamik Ada etkinleştirildi.' : 'Dinamik Ada kapatıldı.');
+        ReportManager.showToast(enabled ? 'Dinamik Kapsül açıldı.' : 'Dinamik Kapsül kapatıldı (Ayarlar veya Hızlı Ayarlar\'dan tekrar açılabilir).');
       }
+    },
+
+    showContextMenu(e) {
+      let menu = document.getElementById('di-context-menu');
+      if (!menu) {
+        menu = document.createElement('div');
+        menu.id = 'di-context-menu';
+        menu.className = 'desktop-context-menu';
+        document.body.appendChild(menu);
+      }
+      menu.innerHTML = `
+        <div class="ctx-item" data-action="expand"><span>Hızlı Denetim Kartını Aç</span></div>
+        <div class="ctx-item" data-action="settings"><span>Dinamik Ada Ayarları</span></div>
+        <div class="ctx-divider"></div>
+        <div class="ctx-item ctx-danger" data-action="disable"><span>Kapsülü Kapat / Gizle</span></div>
+      `;
+      const x = Math.min(e.clientX, window.innerWidth - 220);
+      const y = Math.min(e.clientY, window.innerHeight - 150);
+      menu.style.left = `${x}px`;
+      menu.style.top = `${y}px`;
+      menu.classList.add('open');
+      const closeMenu = () => {
+        menu.classList.remove('open');
+        document.removeEventListener('click', closeMenu);
+      };
+      setTimeout(() => document.addEventListener('click', closeMenu), 10);
+      menu.querySelectorAll('.ctx-item').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const act = btn.getAttribute('data-action');
+          closeMenu();
+          if (act === 'expand') {
+            this.expand();
+          } else if (act === 'settings') {
+            WindowManager.open('win-settings');
+          } else if (act === 'disable') {
+            this.setEnabled(false);
+          }
+        });
+      });
     },
 
     expand() {
