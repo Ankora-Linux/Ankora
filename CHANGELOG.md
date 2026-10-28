@@ -1,16 +1,16 @@
 # Ankora Linux — Sürüm Notları
 
-## 3.7.0 (2026-10-26)
-- Tembel render pencere açılış hatası düzeltildi: 30 sn sonra sökülen pencereler sorunsuz yeniden açılıyor
-- 16 IPC komutu Canlı ISO kabuğuna ve Rust çekirdeğine eşitlendi (Dosya Yöneticisi kopyalama, izinler, sembolik bağlar, kullanıcı yönetimi)
-- Nordik Açık (theme-light) ve koyu temalarda görev çubuğu/başlat menüsü cam kontrastı ve renk geçişleri düzeltildi
-- Sistem kapatma/yeniden başlatma düğmeleri onaylı diyaloğa bağlandı; ani kapanma engellendi
-- USB yazdırıcı (Flasher) ve biçimlendiricideki çökme ve güvenlik açıkları giderildi; sistem diskleri korumaya alındı
-- Kurtarma noktaları (snapshot) izinleri 0700/0600 olarak sıkılaştırıldı; hassas dosya ifşası önlendi
-- MEB okul ağı kök sertifikası kurulumu tarayıcı NSS veritabanlarıyla tam uyumlu hale getirildi
-- ETA dokunmatik sürücüsünde dizüstü touchpad çakışması önlendi ve kalibrasyon koruması eklendi
-- Ankora Doctor aracı terminalden ve AI ajanından tam yetkiyle onarım yapacak şekilde güncellendi
-- Ayaz Güncelleyici indirme ve doğrulama boru hattı GitHub Releases ile tam uyumlu hale getirildi
+## 3.7.0 (2026-10-28)
+- Ankora Mağaza (Yazılım Merkezi): Modern cam tasarım sistemi ile baştan aşağı yenilendi; paket kaynak rozetleri (Flathub, APT, Sistem), vitrin hero alanı, akıcı hover geçişleri ve yüksek kontrastlı kurulum butonları eklendi
+- Masaüstü Kategori Klasörleri: Android/iOS benzeri 2x2 mini önizleme karoları, modern overlay pencere görünümü, uygulamayı klasör üzerine sürükleyerek gruplama, sağ tık seçenekleri ve tek tıkla masaüstüne çıkarma (eject) desteği
+- Canlı Hava Durumu Widget'ı: Open-Meteo entegrasyonu (API anahtarsız), 3 günlük tahmin şeridi, anlık şehir arama, yerel önbellek, anlık yenileme düğmesi ve 15 dakikalık periyodik otomatik güncelleme
+- Açılışta Kilit Güvenliği: Ayarlar üzerinden açılıp kapatılabilen, PIN ayarlandığında sistem açılışında otomatik devreye giren kilit ekranı koruması
+- AI Sistem Asistanı & Görev Çubuğu Mini Sohbeti: Gemini düzeninde avatar+gövde satırları, görev çubuğu üzerinde cam mini AI sohbet balonu, ekrandan anlık görüntü alarak analiz eden "Bak ve Anlat" vizyon gözü, balona dosya bırakma (özetleme/kod analizi) ve Günün Planı widget'ı
+- MEB Okul Sertifikası Tam Temizleme: `mebcert-remove` betiği ve arayüz IPC entegrasyonu ile kök sertifikanın sistem ve tarayıcı NSS depolarından eksiksiz kaldırılması
+- Tembel Render Düzeltmesi: Kapatılan pencereler 30 sn sonra DOM'dan çıkarıldığında yeniden açılamama sorunu giderildi
+- 16 IPC Komutu Eşitlemesi: Canlı ISO kabuğu ve Rust çekirdeğine eksik komutlar (dosya izinleri, sembolik bağlar, kullanıcı yönetimi, depolama sorguları) eklendi
+- Güvenlik ve Kimlik Kasası: AI sağlayıcı anahtarları ve hassas veriler Rust tarafındaki şifreli kasaya taşındı; snapshot yedek izinleri 0700/0600 olarak sıkılaştırıldı
+- Dağıtım ve Güncelleyici: GitHub Release iş akışına `ayaz-de-latest-amd64.deb` paketi dahil edildi; Ayaz DE tespiti kilidi ile güncelleme doğrulaması güvenli hale getirildi
 ## 3.6.0 (2026-10-25)
 - Düşük RAM (< 4 GB) sistemlerde Eco RAM Modu ilk açılışta varsayılan açık (kullanıcı tercihi yoksa)
 - Tembel render: kapatılan pencere 30 sn sonra DOM'dan çıkarılır, iframe kaynakları boşaltılır; yeniden açılışta geri takılır

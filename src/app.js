@@ -2146,8 +2146,18 @@
           const name = document.createElement('span');
           name.className = 'folder-app-name';
           name.textContent = app.name;
+          const ejectBtn = document.createElement('span');
+          ejectBtn.className = 'folder-app-eject';
+          ejectBtn.title = 'Masaüstüne Çıkar';
+          ejectBtn.textContent = '✕';
+          ejectBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.removeAppFromGroup(app.id, group.id);
+          });
           btn.appendChild(icon);
           btn.appendChild(name);
+          btn.appendChild(ejectBtn);
           btn.addEventListener('click', () => this.launchApp(app));
           btn.addEventListener('contextmenu', (e) => {
             e.preventDefault();
@@ -2262,7 +2272,7 @@
       menu.innerHTML = `
         <div class="ctx-item" data-action="launch"><span>Uygulamayı Başlat</span></div>
         <div class="ctx-divider"></div>
-        <div class="ctx-item" data-action="remove"><span>Kategoriden Çıkar</span></div>
+        <div class="ctx-item" data-action="remove"><span>Masaüstüne Taşı (Kategoriden Çıkar)</span></div>
       `;
       const x = Math.min(e.clientX, window.innerWidth - 230);
       const y = Math.min(e.clientY, window.innerHeight - 150);
@@ -3605,14 +3615,9 @@
         btn.addEventListener('click', () => {
           sourceBtns.forEach(b => {
             b.classList.remove('active');
-            b.style.background = 'rgba(255,255,255,0.04)';
-            b.style.borderColor = 'rgba(255,255,255,0.1)';
-            b.style.color = '#cbd5e1';
+            b.removeAttribute('style');
           });
           btn.classList.add('active');
-          btn.style.background = 'rgba(56,189,248,0.15)';
-          btn.style.borderColor = 'rgba(56,189,248,0.3)';
-          btn.style.color = '#38bdf8';
           this.currentSource = btn.getAttribute('data-source');
           this.render(searchInput ? searchInput.value : '');
         });
@@ -3706,8 +3711,8 @@
       IconResolver.upgradeScope(this.tableBody);
     },
 
-    // Mağaza ana ekranı: arama boş ve filtre kapalıyken önce "Editörün
-    // Seçimi" büyük kartlarla açılır; altında tüm uygulamalar listelenir.
+    // Mağaza ana ekranı: arama boş ve filtre kapalıyken önce "Öne Çıkan"
+    // büyük kartlarla açılır; altında tüm uygulamalar listelenir.
     // Arama veya kategori seçilince eski düz liste döner.
     buildStoreHome(frag, filtered) {
       const featured = this.packages.filter(p => p.featured).slice(0, 8);
@@ -3715,17 +3720,29 @@
       home.className = 'store-home';
       home.innerHTML = `
         <div class="store-home-hero">
-          <div class="store-home-hero-text">
-            <h2>Yazılım Durağı</h2>
-            <p>Debian deposu ve Flathub'dan seçilmiş uygulamalar; aramayı kullan ya da kategoriyle süz.</p>
+          <div class="store-home-hero-glow"></div>
+          <div class="store-home-hero-content">
+            <div class="store-home-hero-badge">
+              <svg class="glyph" aria-hidden="true" style="width:13px;height:13px;"><use href="#ico-zap"></use></svg>
+              <span>Resmî Ankora Havuzu</span>
+            </div>
+            <h2>Ankora Yazılım Merkezi</h2>
+            <p>Hızlı, güvenli ve doğrulanmış paketler. Devuan depoları, Flathub ve resmî sistem araçları tek çatı altında.</p>
           </div>
-          <span class="store-home-count">${this.packages.length} uygulama</span>
+          <div class="store-home-hero-meta">
+            <span class="store-home-count">${this.packages.length} paket hazır</span>
+          </div>
         </div>
       `;
 
       const featuredSection = document.createElement('div');
       featuredSection.className = 'store-home-section';
-      featuredSection.innerHTML = `<div class="store-section-title"><span>Editörün Seçimi</span><p>Eller ile seçilmiş, günlük işlere gelir</p></div>`;
+      featuredSection.innerHTML = `
+        <div class="store-section-title">
+          <span>Öne Çıkan Uygulamalar</span>
+          <p>Günlük işler, medya ve üretkenlik için önerilenler</p>
+        </div>
+      `;
       const fGrid = document.createElement('div');
       fGrid.className = 'store-grid store-grid-featured';
       featured.forEach(p => fGrid.appendChild(this.buildStoreCard(p, true)));
@@ -3734,7 +3751,12 @@
 
       const restSection = document.createElement('div');
       restSection.className = 'store-home-section';
-      restSection.innerHTML = `<div class="store-section-title"><span>Tüm Uygulamalar</span><p>Depodaki kalan seçkiler</p></div>`;
+      restSection.innerHTML = `
+        <div class="store-section-title">
+          <span>Tüm Uygulamalar</span>
+          <p>Kategori ve kaynak filtrelerini kullanarak inceleyin</p>
+        </div>
+      `;
       const rGrid = document.createElement('div');
       rGrid.className = 'store-grid';
       filtered.filter(p => !featured.some(f => f.id === p.id)).forEach(p => rGrid.appendChild(this.buildStoreCard(p)));
@@ -3749,16 +3771,23 @@
       card.className = big ? 'store-card store-card-featured' : 'store-card';
       const isFlatpak = Boolean(pkg.flatpak);
       const pkgSub = pkg.flatpak || pkg.deb || (pkg.action === 'meb-cert' ? 'mebcert' : '');
+      const sourceLabel = isFlatpak ? 'Flathub' : (pkg.action === 'meb-cert' ? 'Sistem' : (pkg.vendor ? 'Resmî' : 'APT'));
+      const sourceClass = isFlatpak ? 'badge-flatpak' : (pkg.action === 'meb-cert' ? 'badge-cert' : 'badge-apt');
 
       card.innerHTML = `
         <div class="store-card-head">
-          <span class="store-card-icon">${XdgDesktopEngine.getAppSvgIcon({ id: pkg.id, exec: pkgSub, cat: pkg.cat })}</span>
-          <span class="store-card-titles">
-            <span class="store-card-name">${escapeHtml(pkg.name)}</span>
-            ${big ? `<div class="store-card-meta">${escapeHtml(pkg.size || '')}</div>` : ''}
-          </span>
+          <div class="store-card-icon-wrap">
+            <span class="store-card-icon">${XdgDesktopEngine.getAppSvgIcon({ id: pkg.id, exec: pkgSub, cat: pkg.cat })}</span>
+          </div>
+          <div class="store-card-titles">
+            <div class="store-card-name" title="${escapeHtml(pkg.name)}">${escapeHtml(pkg.name)}</div>
+            <div class="store-card-meta-line">
+              <span class="store-card-source ${sourceClass}">${sourceLabel}</span>
+              ${pkg.size ? `<span class="store-card-size">${escapeHtml(pkg.size)}</span>` : ''}
+            </div>
+          </div>
         </div>
-        <p class="store-card-desc">${escapeHtml(pkg.desc)}</p>
+        <p class="store-card-desc" title="${escapeHtml(pkg.desc)}">${escapeHtml(pkg.desc)}</p>
         <div class="pkg-progress-bar" id="prog-${pkg.id}"></div>
         <div class="store-card-actions">
           ${pkg.extUrl ? `
@@ -12965,11 +12994,25 @@
       box.appendChild(meta);
       box.appendChild(this.make('div', 'dw-weather-days', 'dw-weather-days'));
 
+      const weatherActions = this.make('div', 'dw-weather-actions');
       const cityBtn = document.createElement('button');
       cityBtn.type = 'button';
       cityBtn.className = 'dw-weather-city-btn';
       cityBtn.textContent = 'Şehir değiştir';
-      box.appendChild(cityBtn);
+      const refreshBtn = document.createElement('button');
+      refreshBtn.type = 'button';
+      refreshBtn.className = 'dw-weather-refresh-btn';
+      refreshBtn.title = 'Hava durumunu hemen yenile';
+      refreshBtn.textContent = '↻';
+      refreshBtn.addEventListener('click', () => {
+        refreshBtn.classList.add('rotating');
+        this.loadWeather(true).finally(() => {
+          setTimeout(() => refreshBtn.classList.remove('rotating'), 600);
+        });
+      });
+      weatherActions.appendChild(cityBtn);
+      weatherActions.appendChild(refreshBtn);
+      box.appendChild(weatherActions);
 
       const search = this.make('div', 'dw-weather-search');
       search.id = 'dw-weather-search';

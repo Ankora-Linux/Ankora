@@ -478,10 +478,10 @@
     <!-- ======================================================================= -->
     <!-- 3. ANKORA MAĞAZA                                                        -->
     <!-- ======================================================================= -->
-    <section class="window" id="win-store" style="top: 70px; left: 90px; width: 840px; height: 500px;" aria-labelledby="store-header-title">
+    <section class="window" id="win-store" style="top: 60px; left: 80px; width: 920px; height: 580px;" aria-labelledby="store-header-title">
       <div class="window-header" data-tauri-drag-region>
         <div class="window-meta">
-          <span id="store-header-title">Yazılım Mağazası</span>
+          <span id="store-header-title">Ankora Yazılım Merkezi</span>
         </div>
         <div class="window-controls">
           <button class="ctrl-btn min" title="Küçült">−</button>
@@ -492,7 +492,10 @@
       <div class="window-view">
         <div class="store-container">
           <div class="store-toolbar">
-            <input type="text" id="store-search" class="store-search" placeholder="Uygulama ara... (ör. tarayıcı, müzik, ders)">
+            <div class="store-search-box">
+              <svg class="glyph store-search-icon" aria-hidden="true"><use href="#ico-search"></use></svg>
+              <input type="text" id="store-search" class="store-search" placeholder="Uygulama veya paket ara... (ör. tarayıcı, kod, vlc)">
+            </div>
             <div class="store-nav">
               <button class="store-filter-btn active" data-cat="featured">Keşfet</button>
               <button class="store-filter-btn" data-cat="all">Tümü</button>
