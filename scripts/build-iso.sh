@@ -1144,9 +1144,33 @@ import secrets
 IPC_TOKEN = secrets.token_hex(32)
 # Ardışık başarısız token denemelerini sayar; aşımında kapı tamamen kapanır
 IPC_STATE = {'bad': 0}
+_STATE_LOCK = threading.Lock()
 
 # XDG tarama önbelleği: dizin özetleri (mtime) değişmediyse yeniden taranmaz
 _XDG_CACHE = None
+_CACHE_LOCK = threading.Lock()
+
+# Kilit ekranı girişim sınırlayıcı (C3) ve oturum kilit yetki takipçisi (H1)
+_LOCK_ATTEMPTS = {'count': 0, 'last_failed': 0.0}
+_LOCK_MUTEX = threading.Lock()
+_UNLOCK_AUTH_UNTIL = 0.0
+_AUTH_LOCK = threading.Lock()
+
+# Proxy istek hız sınırlayıcı (C4)
+_PROXY_REQUEST_TIMES = []
+_PROXY_LOCK = threading.Lock()
+
+def is_safe_user_path(p, write=False):
+    if not p or '\0' in p:
+        raise Exception('Geçersiz dosya yolu')
+    p_abs = os.path.abspath(p)
+    forbidden = ['/etc', '/boot', '/root', '/proc', '/sys', '/dev', '/usr', '/bin', '/sbin', '/lib', '/lib64']
+    for f in forbidden:
+        if p_abs == f or p_abs.startswith(f + '/'):
+            raise Exception(f'Güvenlik İlkesi İhlali: Sistem dizinine ({f}) işlem yapılamaz')
+    if write and (p_abs == '/var' or (p_abs.startswith('/var/') and not p_abs.startswith('/var/tmp/'))):
+        raise Exception('Güvenlik İlkesi İhlali: /var dizinine doğrudan işlem yapılamaz')
+    return p_abs
 
 # Radyo (Wi-Fi/Bluetooth) ve ağ durumu: nmcli varsa o, yoksa rfkill.
 def _run_capture(cmd_args):
@@ -1435,13 +1459,15 @@ _ALLOWED_AGENT_ACTIONS = {
     "sync",
 }
 _PENDING_AGENT_ACTION = {'token': None, 'cmd': None, 'ts': 0.0}
+_AGENT_LOCK = threading.Lock()
 
 def _generate_agent_action_token(cmd_str):
     import hashlib
     token = hashlib.sha256(os.urandom(32) + cmd_str.encode('utf-8')).hexdigest()
-    _PENDING_AGENT_ACTION['token'] = token
-    _PENDING_AGENT_ACTION['cmd'] = cmd_str
-    _PENDING_AGENT_ACTION['ts'] = time.time()
+    with _AGENT_LOCK:
+        _PENDING_AGENT_ACTION['token'] = token
+        _PENDING_AGENT_ACTION['cmd'] = cmd_str
+        _PENDING_AGENT_ACTION['ts'] = time.time()
     return token
 
 def execute_ayaz_command(cmd, args):
@@ -1551,18 +1577,43 @@ def execute_ayaz_command(cmd, args):
             'docker', 'podman', 'runuser', 'sg', 'newgrp',
             'at', 'batch', 'crontab', 'systemd-run'
         }
-        first_word = exec_cmd.split()[0]
+        try:
+            tokens = shlex.split(exec_cmd)
+        except Exception:
+            tokens = exec_cmd.split()
+        if not tokens:
+            raise Exception('Geçersiz uygulama komutu')
+
+        first_word = tokens[0]
         base_name = os.path.basename(first_word)
         if base_name in FORBIDDEN_BINS:
-            raise Exception(f'Güvenlik: {base_name} doğrudan başlatılamaz')
+            raise Exception(f'Güvenlik İlkesi İhlali: {base_name} doğrudan başlatılamaz')
+
+        # H2: Argümanlarda geçen ikili adları da denetle
+        for arg in tokens[1:]:
+            if '://' in arg:
+                continue
+            arg_base = os.path.basename(arg)
+            if arg_base in FORBIDDEN_BINS:
+                raise Exception(f'Güvenlik İlkesi İhlali: {arg_base} komut parametresi olarak kullanılamaz')
+
+        if '/' in first_word:
+            allowed_prefixes = ('/usr/bin/', '/bin/', '/usr/local/bin/', '/usr/games/', '/opt/')
+            if not any(first_word.startswith(pfx) for pfx in allowed_prefixes):
+                raise Exception('Güvenlik Hatası: Uygulama yolu izin verilen sistem dizinlerinde değil')
+            if os.path.exists(first_word):
+                real_bin = os.path.realpath(first_word)
+                if os.path.basename(real_bin) in FORBIDDEN_BINS:
+                    raise Exception('Güvenlik İlkesi İhlali: Program kısayolu izin verilmeyen bir sistem aracına işaret ediyor')
+
         env = os.environ.copy()
         if 'DISPLAY' not in env:
             env['DISPLAY'] = ':0'
         cli_apps = {'htop', 'btop', 'ncdu', 'fastfetch', 'neofetch', 'inxi', 'iotop', 'iftop'}
-        if first_word in cli_apps:
-            subprocess.Popen(['xterm', '-title', first_word, '-e'] + exec_cmd.split(), cwd=home_dir, env=env, start_new_session=True)
+        if base_name in cli_apps or first_word in cli_apps:
+            subprocess.Popen(['xterm', '-title', base_name, '-e'] + tokens, cwd=home_dir, env=env, start_new_session=True)
         else:
-            subprocess.Popen(exec_cmd.split(), cwd=home_dir, env=env, start_new_session=True)
+            subprocess.Popen(tokens, cwd=home_dir, env=env, start_new_session=True)
         return f'Uygulama başlatıldı: {exec_cmd}'
 
     elif cmd == 'install_deb_package':
@@ -2717,6 +2768,9 @@ exit 0
         if not file_path or '\0' in file_path:
             raise Exception('Geçersiz dosya yolu')
         file_path = os.path.abspath(file_path)
+        # M1: Sembolik bağ üzerine yazma engeli
+        if os.path.islink(file_path):
+            raise Exception('Güvenlik Hatası: Sembolik bağlar üzerine doğrudan dosya yazılamaz')
         restricted = ['/bin', '/sbin', '/usr', '/etc', '/boot', '/dev', '/proc', '/sys',
                       '/lib', '/lib64', '/var', '/opt', '/srv', '/root']
         for r in restricted:
@@ -2821,8 +2875,9 @@ exit 0
                 sig.append((ad, st.st_mtime_ns))
             except OSError:
                 sig.append((ad, 0))
-        if _XDG_CACHE is not None and _XDG_CACHE[0] == sig:
-            return _XDG_CACHE[1]
+        with _CACHE_LOCK:
+            if _XDG_CACHE is not None and _XDG_CACHE[0] == sig:
+                return _XDG_CACHE[1]
         apps = []
         seen_ids = set()
         for ad in app_dirs:
@@ -2883,7 +2938,8 @@ exit 0
                             })
                         except Exception:
                             continue
-        _XDG_CACHE = (sig, apps)
+        with _CACHE_LOCK:
+            _XDG_CACHE = (sig, apps)
         return apps
 
     elif cmd == 'read_document_file':
@@ -3030,10 +3086,22 @@ exit 0
 
     elif cmd == 'verify_lock_credentials':
         pin = (args.get('pin') or '').strip()
+        # C3: Rate limiting ve üstel bekleme (Brute-force engelleme)
+        with _LOCK_MUTEX:
+            if _LOCK_ATTEMPTS['count'] >= 3:
+                penalty = min(300.0, 2.0 ** max(0, _LOCK_ATTEMPTS['count'] - 2))
+                elapsed = time.time() - _LOCK_ATTEMPTS['last_failed']
+                if elapsed < penalty:
+                    rem = int(penalty - elapsed) + 1
+                    raise Exception(f'Çok fazla hatalı deneme! Lütfen {rem} saniye bekleyin.')
+
         var_h = '/var/lib/ankora/lock.hash'
         usr_h = os.path.expanduser('~/.config/ankora/lock.hash')
         h_file = var_h if os.path.exists(var_h) else usr_h
         if not os.path.exists(h_file):
+            with _AUTH_LOCK:
+                global _UNLOCK_AUTH_UNTIL
+                _UNLOCK_AUTH_UNTIL = time.time() + 30.0
             return True
         import hashlib
         with open(h_file, 'rb') as f:
@@ -3045,17 +3113,37 @@ exit 0
         h = hashlib.sha256(salt + pin.encode()).digest()
         for i in range(50000):
             h = hashlib.sha256(h + salt + i.to_bytes(4, 'little')).digest()
-        return h == expected
+        is_valid = hmac.compare_digest(h, expected)
+        with _LOCK_MUTEX:
+            if is_valid:
+                _LOCK_ATTEMPTS['count'] = 0
+                _LOCK_ATTEMPTS['last_failed'] = 0.0
+                with _AUTH_LOCK:
+                    _UNLOCK_AUTH_UNTIL = time.time() + 30.0
+            else:
+                _LOCK_ATTEMPTS['count'] += 1
+                _LOCK_ATTEMPTS['last_failed'] = time.time()
+        return is_valid
 
     elif cmd == 'lock_x11_session':
+        with _AUTH_LOCK:
+            _UNLOCK_AUTH_UNTIL = 0.0
         if os.path.exists('/usr/bin/xtrlock'):
             subprocess.Popen(['/usr/bin/xtrlock', '-b'])
             return 'X11 oturumu kilitlendi'
         return 'Kiosk kilit ekranı devrede'
 
     elif cmd == 'unlock_x11_session':
-        # xtrlock süreçte değilse kilit zaten açık demektir; pkill'in 1
-        # kodu da bu durumda başarı sayılır.
+        # H1: Kilit yapılandırılmışsa, kilit açma ancak geçerli PIN doğrulamasından sonraki 30 sn içinde yapılabilir
+        var_h = '/var/lib/ankora/lock.hash'
+        usr_h = os.path.expanduser('~/.config/ankora/lock.hash')
+        h_file = var_h if os.path.exists(var_h) else usr_h
+        if os.path.exists(h_file):
+            with _AUTH_LOCK:
+                now = time.time()
+                if now > _UNLOCK_AUTH_UNTIL:
+                    raise Exception('Güvenlik İlkesi İhlali: Kilit açma izni yok veya süresi doldu. Lütfen önce PIN doğrulayın.')
+                _UNLOCK_AUTH_UNTIL = 0.0
         try:
             subprocess.run(['pkill', '-x', 'xtrlock'],
                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -3263,6 +3351,18 @@ exit 0
         return 'Sürücü bağlantısı kesildi'
 
     elif cmd == 'get_clipboard_text':
+        # H4: Oturum kilitliyken pano içeriği verilmez
+        var_h = '/var/lib/ankora/lock.hash'
+        usr_h = os.path.expanduser('~/.config/ankora/lock.hash')
+        if os.path.exists(var_h) or os.path.exists(usr_h):
+            with _AUTH_LOCK:
+                if time.time() > _UNLOCK_AUTH_UNTIL:
+                    try:
+                        p = subprocess.run(['pgrep', '-x', 'xtrlock'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                        if p.returncode == 0:
+                            return ''
+                    except Exception:
+                        pass
         if shutil.which('xclip'):
             try:
                 p = subprocess.run(['xclip', '-selection', 'clipboard', '-o'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=2)
@@ -3272,6 +3372,18 @@ exit 0
         return ''
 
     elif cmd == 'set_clipboard_text':
+        # H4: Oturum kilitliyken pano değiştirilemez
+        var_h = '/var/lib/ankora/lock.hash'
+        usr_h = os.path.expanduser('~/.config/ankora/lock.hash')
+        if os.path.exists(var_h) or os.path.exists(usr_h):
+            with _AUTH_LOCK:
+                if time.time() > _UNLOCK_AUTH_UNTIL:
+                    try:
+                        p = subprocess.run(['pgrep', '-x', 'xtrlock'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                        if p.returncode == 0:
+                            return True
+                    except Exception:
+                        pass
         text = str(args.get('text', ''))
         if shutil.which('xclip'):
             try:
@@ -3442,6 +3554,10 @@ exit 0
         dest = str(args.get('destPath', args.get('dest_path', ''))).strip()
         if not os.path.exists(src):
             raise Exception('Kaynak dosya veya klasör bulunamadı')
+        if not dest:
+            raise Exception('Hedef yol belirtilmedi')
+        is_safe_user_path(src, write=True)
+        is_safe_user_path(dest, write=True)
         shutil.move(src, dest)
         return f"Öge taşındı: {dest}"
 
@@ -4310,12 +4426,13 @@ exit 0
         token = (args.get('token') or '').strip()
         if command not in _ALLOWED_AGENT_ACTIONS:
             raise Exception('Güvenlik İlkesi İhlali: Bu eylem onaylanmış güvenlik politikası listesinde yer almıyor.')
-        stored_tok = _PENDING_AGENT_ACTION.get('token')
-        stored_cmd = _PENDING_AGENT_ACTION.get('cmd')
-        stored_ts = _PENDING_AGENT_ACTION.get('ts') or 0.0
-        _PENDING_AGENT_ACTION['token'] = None
-        _PENDING_AGENT_ACTION['cmd'] = None
-        _PENDING_AGENT_ACTION['ts'] = 0.0
+        with _AGENT_LOCK:
+            stored_tok = _PENDING_AGENT_ACTION.get('token')
+            stored_cmd = _PENDING_AGENT_ACTION.get('cmd')
+            stored_ts = _PENDING_AGENT_ACTION.get('ts') or 0.0
+            _PENDING_AGENT_ACTION['token'] = None
+            _PENDING_AGENT_ACTION['cmd'] = None
+            _PENDING_AGENT_ACTION['ts'] = 0.0
         if not stored_tok or token != stored_tok or command != stored_cmd or (time.time() - stored_ts) > 60.0:
             raise Exception('Yetkilendirme Hatası: Eylem onay tokenı geçersiz, eşleşmiyor veya 60 saniyelik süresi dolmuş.')
         return execute_ayaz_command('run_terminal_command', {'command': command})
@@ -4951,6 +5068,8 @@ exit 0
             dest = os.path.join(dest, os.path.basename(src))
         if src == dest or dest.startswith(src + os.sep):
             raise Exception('Hedef kaynak ile aynı veya kaynağın alt dizini olamaz.')
+        is_safe_user_path(src, write=move_op)
+        is_safe_user_path(dest, write=True)
         if os.path.exists(dest):
             parent = os.path.dirname(dest) or '.'
             stem, ext = os.path.splitext(os.path.basename(dest))
@@ -4976,6 +5095,19 @@ exit 0
             raise Exception('Kısayol hedefi bulunamadı.')
         if not link or os.path.exists(link):
             raise Exception('Geçersiz hedef veya aynı adlı bir kısayol zaten var.')
+        # C5: Hedef ve kaynak sınırlandırması
+        is_safe_user_path(src, write=False)
+        real_src = os.path.realpath(src)
+        is_safe_user_path(real_src, write=False)
+
+        is_safe_user_path(link, write=True)
+        link_dir = os.path.dirname(os.path.abspath(link)) or home_dir
+        if not os.path.exists(link_dir):
+            raise Exception('Kısayol klasörü mevcut değil.')
+        real_link_dir = os.path.realpath(link_dir)
+        allowed_dirs = [home_dir, '/tmp', '/media', '/mnt', '/run/user']
+        if not any(real_link_dir == d or real_link_dir.startswith(d + os.sep) for d in allowed_dirs):
+            raise Exception('Güvenlik İlkesi İhlali: Kısayol yalnızca kullanıcı ev veya taşınabilir ortam dizinlerinde oluşturulabilir.')
         os.symlink(src, link)
         return 'Kısayol oluşturuldu.'
 
@@ -5209,6 +5341,28 @@ class AyazIpcHandler(BaseHTTPRequestHandler):
             params = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
         except Exception:
             params = {}
+
+        # GÜVENLİK (C4): Proxy köken ve token denetimi
+        req_origin = self.headers.get('Origin') or self.headers.get('Referer', '')
+        if not req_origin.startswith(ALLOWED_ORIGIN) and not req_origin.startswith('http://127.0.0.1') and not req_origin.startswith('http://localhost'):
+            self._proxy_error(403, 'Yetkisiz erişim: Geçersiz veya eksik Origin/Referer.')
+            return
+
+        # Token denetimi
+        req_token = self.headers.get('X-Ayaz-Token') or (params.get('token') or [''])[0]
+        if not req_token or not hmac.compare_digest(req_token, IPC_TOKEN):
+            self._proxy_error(403, 'Yetkisiz erişim: Geçersiz veya eksik proxy token.')
+            return
+
+        # Hız sınırlayıcı (10 saniyede azami 60 istek)
+        with _PROXY_LOCK:
+            now = time.time()
+            _PROXY_REQUEST_TIMES[:] = [t for t in _PROXY_REQUEST_TIMES if now - t < 10.0]
+            if len(_PROXY_REQUEST_TIMES) >= 60:
+                self._proxy_error(429, 'İstek hız sınırı aşıldı. Lütfen bekleyin.')
+                return
+            _PROXY_REQUEST_TIMES.append(now)
+
         url = (params.get('url') or [''])[0].strip()
         if not re.match(r'^https?://', url):
             self._proxy_error(400, 'Yalnızca http/https adresleri görüntülenebilir.')
@@ -5351,16 +5505,19 @@ class AyazIpcHandler(BaseHTTPRequestHandler):
         # engeller. Zaman sabitli karşılaştırma, karşılaştırmayı ölçülebilir kılmaz.
         req_token = self.headers.get('X-Ayaz-Token', '')
         if not hmac.compare_digest(req_token, IPC_TOKEN):
-            IPC_STATE['bad'] += 1
+            with _STATE_LOCK:
+                IPC_STATE['bad'] += 1
+                is_blocked = IPC_STATE['bad'] >= 50
             resp = json.dumps({'error': 'Yetkisiz erişim: Geçersiz IPC token'}).encode('utf-8')
             # Token 256 bit olduğu için deneme kırılamaz; yine de uzun süreli
             # denemede yanıt kodu değişir ve kapı kalıcı olarak kapanır.
-            self.send_response(503 if IPC_STATE['bad'] >= 50 else 403)
+            self.send_response(503 if is_blocked else 403)
             self.send_header('Content-Type', 'application/json')
             self.end_headers()
             self.wfile.write(resp)
             return
-        IPC_STATE['bad'] = 0
+        with _STATE_LOCK:
+            IPC_STATE['bad'] = 0
 
         content_length = int(self.headers.get('Content-Length', 0))
         # Sınırsız gövde, tek istekle bellek tüketilebilir
@@ -5481,10 +5638,12 @@ class AyazDesktop(Gtk.Window):
         # açamaz; geçersiz denemeler kapıyı kalıcı olarak kapatır.
         req_token = data.get('token', '')
         if not isinstance(req_token, str) or not hmac.compare_digest(req_token, IPC_TOKEN):
-            IPC_STATE['bad'] += 1
+            with _STATE_LOCK:
+                IPC_STATE['bad'] += 1
             print("[IPC] gecersiz token: messageHandler istegi reddedildi", flush=True)
             return
-        IPC_STATE['bad'] = 0
+        with _STATE_LOCK:
+            IPC_STATE['bad'] = 0
 
         def run_worker():
             try:

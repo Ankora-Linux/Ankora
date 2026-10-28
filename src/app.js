@@ -8322,19 +8322,22 @@
     },
 
     setWallpaper(wpFile, persist = true) {
-      this.currentWallpaper = wpFile;
+      if (!wpFile || typeof wpFile !== 'string') return;
+      // M3: CSS injection engeli - tırnak, ters eğik çizgi ve parantez karakterlerini temizle
+      const cleanWp = wpFile.replace(/["'\\()]/g, '').trim();
+      this.currentWallpaper = cleanWp;
       const elWp = document.getElementById('desktop-wallpaper');
-      if (elWp && wpFile) {
-        elWp.style.backgroundImage = `url('${wpFile}')`;
+      if (elWp && cleanWp) {
+        elWp.style.backgroundImage = `url("${encodeURI(cleanWp)}")`;
       }
 
       document.querySelectorAll('.wp-thumb-card, .wp-card').forEach(card => {
-        card.classList.toggle('active', card.getAttribute('data-wp') === wpFile);
+        card.classList.toggle('active', card.getAttribute('data-wp') === cleanWp);
       });
 
       if (persist) {
-        SafeStorage.setItem('ankora_wallpaper', wpFile);
-        Terminal.log(`[DUVAR KAĞIDI] Arka plan güncellendi: ${wpFile}`, 'cmd');
+        SafeStorage.setItem('ankora_wallpaper', cleanWp);
+        Terminal.log(`[DUVAR KAĞIDI] Arka plan güncellendi: ${cleanWp}`, 'cmd');
       }
     },
 
@@ -9444,12 +9447,12 @@
 
       box.innerHTML = this.hits.map((it, i) => `
         <div class="search-result-row" role="option" data-i="${i}" tabindex="-1">
-          <span class="result-glyph">${it.title.trim().charAt(0).toLocaleUpperCase('tr')}</span>
+          <span class="result-glyph">${escapeHtml(it.title.trim().charAt(0).toLocaleUpperCase('tr'))}</span>
           <span class="result-text">
-            <span class="result-title">${it.title.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</span>
-            <span class="result-desc">${(it.desc || '').replace(/&/g, '&amp;').replace(/</g, '&lt;')}</span>
+            <span class="result-title">${escapeHtml(it.title)}</span>
+            <span class="result-desc">${escapeHtml(it.desc || '')}</span>
           </span>
-          <span class="result-kind">${it.kind}</span>
+          <span class="result-kind">${escapeHtml(it.kind || '')}</span>
         </div>`).join('');
     },
 
@@ -11840,7 +11843,9 @@
     // Adres çubuğunda gerçek URL durur; yerel test sunucusu varsa proxy üzerinden, Tauri'de doğrudan yüklenir.
     toProxy(url) {
       if (typeof window !== 'undefined' && window.location.origin.includes('49152')) {
-        return `/proxy?url=${encodeURIComponent(url)}`;
+        const token = window.__AYAZ_IPC_TOKEN__ || '';
+        const tokenParam = token ? `&token=${encodeURIComponent(token)}` : '';
+        return `/proxy?url=${encodeURIComponent(url)}${tokenParam}`;
       }
       return url;
     },

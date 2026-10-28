@@ -797,16 +797,6 @@ fn has_ai_credential(provider: String) -> Result<bool, String> {
 }
 
 #[tauri::command]
-fn get_ai_credential(provider: String) -> Result<Option<String>, String> {
-    let clean_prov = provider.trim().to_lowercase();
-    let map = load_credentials();
-    Ok(map
-        .get(&clean_prov)
-        .map(|k| k.to_string())
-        .filter(|k| !k.is_empty()))
-}
-
-#[tauri::command]
 fn delete_ai_credential(provider: String) -> Result<(), String> {
     let clean_prov = provider.trim().to_lowercase();
     let mut map = load_credentials();
@@ -839,6 +829,7 @@ fn get_lock_hash_path() -> PathBuf {
 }
 
 static LOCK_ATTEMPTS: Mutex<(u32, Option<Instant>)> = Mutex::new((0, None));
+static SESSION_UNLOCK_PERMITTED_UNTIL: Mutex<Option<Instant>> = Mutex::new(None);
 
 fn compute_salted_pin_hash(salt: &[u8], pin: &str) -> [u8; 32] {
     let mut state = salt.to_vec();
@@ -991,6 +982,9 @@ fn verify_lock_credentials(pin: String) -> Result<bool, String> {
         if is_valid {
             lock.0 = 0;
             lock.1 = None;
+            if let Ok(mut auth) = SESSION_UNLOCK_PERMITTED_UNTIL.lock() {
+                *auth = Some(Instant::now() + Duration::from_secs(30));
+            }
         } else {
             lock.0 += 1;
             lock.1 = Some(Instant::now());
@@ -1002,6 +996,9 @@ fn verify_lock_credentials(pin: String) -> Result<bool, String> {
 
 #[tauri::command]
 fn lock_x11_session() -> Result<String, String> {
+    if let Ok(mut auth) = SESSION_UNLOCK_PERMITTED_UNTIL.lock() {
+        *auth = None;
+    }
     #[cfg(target_os = "linux")]
     {
         let xtrlock_path = Path::new("/usr/bin/xtrlock");
@@ -1025,8 +1022,30 @@ fn lock_x11_session() -> Result<String, String> {
 
 /// Kilit açıldığında xtrlock sonlandırılır: süreç canlı kalırsa imleç kilit
 /// simgesinde kalır ve masaüstünde hiçbir yere tıklanamaz.
+/// H1: Yetkisiz çağrı engeli: Kilit yapılandırılmışsa, kilit açma ancak geçerli
+/// PIN doğrulamasından sonraki 30 saniye içinde yapılabilir (tek kullanımlık yetki).
 #[tauri::command]
 fn unlock_x11_session() -> Result<String, String> {
+    if get_lock_hash_path().exists() {
+        let is_auth = SESSION_UNLOCK_PERMITTED_UNTIL
+            .lock()
+            .ok()
+            .and_then(|mut guard| {
+                if let Some(valid_until) = *guard {
+                    if Instant::now() <= valid_until {
+                        *guard = None; // Tek kullanımlık token: kilit açıldıktan sonra sıfırlanır
+                        return Some(true);
+                    }
+                }
+                None
+            })
+            .unwrap_or(false);
+
+        if !is_auth {
+            return Err("Güvenlik İlkesi İhlali: Kilit açma yetkisi yok veya süresi doldu. Lütfen önce PIN doğrulayın.".to_string());
+        }
+    }
+
     #[cfg(target_os = "linux")]
     {
         let status = Command::new("pkill").args(["-x", "xtrlock"]).status();
@@ -1700,6 +1719,21 @@ fn pkexec_available() -> bool {
     })
 }
 
+fn polkit_agent_running() -> bool {
+    // Polkit grafik kimlik doğrulama ajanı denetimi (H3):
+    // Ajan yoksa pkexec terminal bekleyerek kiosk sürecini askıda bırakmasın.
+    let out = Command::new("pgrep")
+        .arg("-f")
+        .arg("polkit.*agent|lxpolkit|mate-polkit")
+        .output();
+    if let Ok(o) = out {
+        if o.status.success() {
+            return true;
+        }
+    }
+    false
+}
+
 // sudo tek seferlik denetlenir: sudo kurulu değilse ya da parolasız erişim
 // kapalıysa her komutta ikinci (boş) denemeye düşülmez.
 fn sudo_available() -> bool {
@@ -1746,8 +1780,12 @@ fn root_command(prog: &str, args: &[&str]) -> std::io::Result<std::process::Outp
             || err_str.contains("yetki")
             || direct.status.code() == Some(1)
             || direct.status.code() == Some(126));
-    if permission_denied && pkexec_available() {
-        let elevated = Command::new("pkexec").arg(prog).args(args).output();
+    if permission_denied && pkexec_available() && polkit_agent_running() {
+        let elevated = Command::new("pkexec")
+            .arg(prog)
+            .args(args)
+            .stdin(Stdio::null())
+            .output();
         if let Ok(pk) = &elevated {
             if pk.status.success() {
                 return elevated;
@@ -4955,6 +4993,12 @@ async fn write_text_file(path: String, content: String) -> Result<String, String
             let _ = fs::create_dir_all(parent);
         }
     }
+    // M1: Sembolik bağ üzerine yazma (symlink follow) atağını engelle
+    if let Ok(meta) = fs::symlink_metadata(p) {
+        if meta.file_type().is_symlink() {
+            return Err("Güvenlik Hatası: Sembolik bağlar üzerine doğrudan dosya yazılamaz.".to_string());
+        }
+    }
     fs::write(p, content.as_bytes()).map_err(|e| e.to_string())?;
     Ok(format!("Dosya kaydedildi: {}", clean))
 }
@@ -6350,6 +6394,25 @@ fn unmount_drive(device: String) -> Result<String, String> {
 fn get_clipboard_text() -> Result<String, String> {
     #[cfg(target_os = "linux")]
     {
+        // H4: Oturum kilitliyken veya kilit ekranı devredeyken pano içeriği sızdırılamaz
+        if get_lock_hash_path().exists() {
+            let is_auth = SESSION_UNLOCK_PERMITTED_UNTIL
+                .lock()
+                .ok()
+                .and_then(|guard| *guard)
+                .map(|t| Instant::now() <= t)
+                .unwrap_or(false);
+            if !is_auth {
+                let xtrlock_running = Command::new("pgrep")
+                    .args(["-x", "xtrlock"])
+                    .output()
+                    .map(|o| o.status.success())
+                    .unwrap_or(false);
+                if xtrlock_running {
+                    return Ok("".to_string());
+                }
+            }
+        }
         if let Ok(out) = Command::new("xclip")
             .args(["-selection", "clipboard", "-o"])
             .output()
@@ -6366,6 +6429,25 @@ fn get_clipboard_text() -> Result<String, String> {
 fn set_clipboard_text(text: String) -> Result<(), String> {
     #[cfg(target_os = "linux")]
     {
+        // H4: Oturum kilitliyken pano değiştirilemez
+        if get_lock_hash_path().exists() {
+            let is_auth = SESSION_UNLOCK_PERMITTED_UNTIL
+                .lock()
+                .ok()
+                .and_then(|guard| *guard)
+                .map(|t| Instant::now() <= t)
+                .unwrap_or(false);
+            if !is_auth {
+                let xtrlock_running = Command::new("pgrep")
+                    .args(["-x", "xtrlock"])
+                    .output()
+                    .map(|o| o.status.success())
+                    .unwrap_or(false);
+                if xtrlock_running {
+                    return Ok(());
+                }
+            }
+        }
         use std::io::Write;
         if let Ok(mut child) = Command::new("xclip")
             .args(["-selection", "clipboard", "-i"])
@@ -6996,10 +7078,21 @@ fn path_sanitize_input(p: &str) -> Result<PathBuf, String> {
 
 fn path_accessible_for_ops(p: &Path) -> Result<(), String> {
     let clean = p.to_string_lossy().to_string();
-    for forbidden in ["/root", "/proc", "/sys", "/dev"] {
+    if clean.contains('\0') {
+        return Err("Geçersiz dosya yolu.".into());
+    }
+    for forbidden in [
+        "/etc", "/boot", "/root", "/proc", "/sys", "/dev", "/usr", "/bin", "/sbin", "/lib", "/lib64",
+    ] {
         if clean == forbidden || clean.starts_with(&format!("{}/", forbidden)) {
-            return Err("Güvenlik İlkesi İhlali: Bu yola işlem yapılamaz.".into());
+            return Err(format!(
+                "Güvenlik İlkesi İhlali: Sistem dizinine ({}) doğrudan işlem yapılamaz.",
+                forbidden
+            ));
         }
+    }
+    if clean == "/var" || (clean.starts_with("/var/") && !clean.starts_with("/var/tmp/")) {
+        return Err("Güvenlik İlkesi İhlali: /var dizinine doğrudan işlem yapılamaz.".into());
     }
     Ok(())
 }
@@ -7146,6 +7239,7 @@ async fn copy_path_c(
         return Err("Hedef kaynak ile aynı veya kaynağın alt dizini olamaz.".into());
     }
     path_accessible_for_ops(&src)?;
+    path_accessible_for_ops(&dest)?;
     if dest.exists() {
         dest = unique_dest(dest)?;
     }
@@ -7427,6 +7521,35 @@ fn create_symlink(sourcePath: String, linkPath: String) -> Result<String, String
     if link.exists() {
         return Err("Aynı adlı bir kısayol zaten var.".into());
     }
+
+    // C5: Güvenlik denetimleri - kaynak ve hedef sınırlandırması
+    path_accessible_for_ops(&src)?;
+    if let Ok(canon_src) = fs::canonicalize(&src) {
+        path_accessible_for_ops(&canon_src)?;
+    }
+
+    path_accessible_for_ops(&link)?;
+    let link_parent = link.parent().unwrap_or_else(|| Path::new("."));
+    if !link_parent.exists() {
+        return Err("Kısayolun oluşturulacağı klasör mevcut değil.".into());
+    }
+    if let Ok(canon_parent) = fs::canonicalize(link_parent) {
+        let home = dirs::home_dir().unwrap_or_else(|| PathBuf::from("/home/ankora"));
+        let allowed_prefixes = [
+            home.as_path(),
+            Path::new("/tmp"),
+            Path::new("/media"),
+            Path::new("/mnt"),
+            Path::new("/run/user"),
+        ];
+        let is_allowed = allowed_prefixes
+            .iter()
+            .any(|prefix| canon_parent.starts_with(prefix));
+        if !is_allowed {
+            return Err("Güvenlik İlkesi İhlali: Kısayol yalnızca kullanıcı ev veya taşınabilir ortam dizinlerinde oluşturulabilir.".into());
+        }
+    }
+
     #[cfg(unix)]
     {
         std::os::unix::fs::symlink(&src, &link)
@@ -7441,20 +7564,29 @@ fn create_symlink(sourcePath: String, linkPath: String) -> Result<String, String
 
 #[tauri::command]
 async fn move_path(sourcePath: String, destPath: String) -> Result<String, String> {
-    let src = Path::new(&sourcePath);
+    let src = path_sanitize_input(&sourcePath)?;
     if !src.exists() {
         return Err("Kaynak dosya veya klasör bulunamadı.".to_string());
     }
-    let mut dest = PathBuf::from(&destPath);
+    let mut dest = path_sanitize_input(&destPath)?;
     if dest.is_dir() {
         if let Some(file_name) = src.file_name() {
             dest = dest.join(file_name);
         }
     }
+    // H5: Yetkisiz hedef/kaynak denetimi
+    path_accessible_for_ops(&src)?;
+    path_accessible_for_ops(&dest)?;
+    if src == dest || dest.starts_with(&src) {
+        return Err("Hedef kaynak ile aynı veya kaynağın alt dizini olamaz.".into());
+    }
     #[cfg(target_os = "linux")]
     {
         let out = Command::new("mv")
-            .args([sourcePath.clone(), dest.to_string_lossy().to_string()])
+            .args([
+                src.to_string_lossy().to_string(),
+                dest.to_string_lossy().to_string(),
+            ])
             .output();
         match out {
             Ok(o) if o.status.success() => {
@@ -9286,7 +9418,6 @@ fn main() {
             execute_agent_confirmed_action,
             save_ai_credential,
             has_ai_credential,
-            get_ai_credential,
             delete_ai_credential,
             is_lock_configured,
             set_lock_credentials,
