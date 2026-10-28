@@ -134,6 +134,8 @@
         <span class="di-stat-item" id="di-idle-cpu" title="İşlemci">CPU %--</span>
         <span class="di-idle-sep">·</span>
         <span class="di-stat-item" id="di-idle-ram" title="Bellek">RAM --</span>
+        <span class="di-idle-sep">·</span>
+        <span class="di-stat-item di-weather-indicator" id="di-idle-weather" title="Hava Durumu">--°C</span>
       </div>
 
       <!-- 2. Bildirim / Uyarı (Toast) Durumu -->
@@ -651,6 +653,59 @@
               <div class="store-grid" id="store-grid"></div>
             </div>
           </main>
+
+          <!-- Uygulama Detay Katmanı (App Detail Modal / Sheet) -->
+          <div class="store-detail-overlay" id="store-detail-overlay" hidden>
+            <div class="store-detail-card" id="store-detail-card">
+              <div class="store-detail-toolbar">
+                <button type="button" class="store-detail-back-btn" id="store-detail-back-btn" title="Paket Listesine Dön">
+                  <svg class="glyph" aria-hidden="true"><use href="#ico-home"></use></svg>
+                  <span>Geri Dön</span>
+                </button>
+                <div class="store-detail-top-badges">
+                  <span class="store-detail-source" id="store-detail-source">FLATHUB</span>
+                  <span class="store-detail-compat-badge">✓ Ankora Doğrulandı</span>
+                </div>
+              </div>
+              <div class="store-detail-hero">
+                <div class="store-detail-icon-frame" id="store-detail-icon"></div>
+                <div class="store-detail-meta">
+                  <h2 class="store-detail-name" id="store-detail-name">Uygulama Adı</h2>
+                  <p class="store-detail-lead" id="store-detail-lead">Kısa açıklama</p>
+                  <div class="store-detail-chips">
+                    <span class="store-detail-chip" id="store-detail-cat">Kategori</span>
+                    <span class="store-detail-chip" id="store-detail-size">Boyut</span>
+                    <span class="store-detail-chip">SysVinit Uyumlu</span>
+                  </div>
+                </div>
+                <div class="store-detail-action" id="store-detail-action-wrap">
+                  <button class="btn-pkg store-detail-btn" id="store-detail-action-btn">Kur</button>
+                </div>
+              </div>
+              <div class="store-detail-body">
+                <h4 class="store-detail-heading">Uygulama Özeti & Açıklaması</h4>
+                <p class="store-detail-desc" id="store-detail-desc">Açıklama</p>
+                <div class="store-detail-specs-grid">
+                  <div class="store-spec-card">
+                    <span class="spec-label">Paketleme</span>
+                    <span class="spec-val" id="store-spec-pkg">--</span>
+                  </div>
+                  <div class="store-spec-card">
+                    <span class="spec-label">Depo Kaynağı</span>
+                    <span class="spec-val" id="store-spec-source">--</span>
+                  </div>
+                  <div class="store-spec-card">
+                    <span class="spec-label">Güvenlik İzolasyonu</span>
+                    <span class="spec-val" id="store-spec-sandbox">Yerel / Güvenli Depo</span>
+                  </div>
+                  <div class="store-spec-card">
+                    <span class="spec-label">Hedef Mimari</span>
+                    <span class="spec-val">x86_64 (amd64)</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -3276,6 +3331,12 @@
         <span>İzle</span>
       </button>
       <button class="ai-mini-tool-btn" id="btn-ai-mini-expand" title="Tam pencereyi aç">Pencere</button>
+    </div>
+    <div class="ai-mini-quick-actions" id="ai-mini-quick-actions">
+      <button class="ai-mini-chip" data-prompt="Günün planını ve yapılacak işleri özetle">📋 Günün Planı</button>
+      <button class="ai-mini-chip" data-prompt="Sistem durumunu ve bellek kullanımını kontrol et">⚡ Sistem Durumu</button>
+      <button class="ai-mini-chip" data-prompt="Ankora Mağaza'dan araç önerisi yap">✨ Uygulama Öner</button>
+      <button class="ai-mini-chip" data-prompt="Hızlı terminal komut desteği ver">💻 Uçbirim</button>
     </div>
     <div class="ai-mini-feed" id="ai-mini-feed"></div>
     <div class="ai-mini-drop-overlay" aria-hidden="true">Dosyayı bırak · özetle / XML'e çevir / düzenini düzelt</div>

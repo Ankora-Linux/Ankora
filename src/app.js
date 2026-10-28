@@ -3648,6 +3648,12 @@
         });
       }
 
+      const btnBack = document.getElementById('store-detail-back-btn');
+      if (btnBack) btnBack.addEventListener('click', () => this.closeDetail());
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') this.closeDetail();
+      });
+
       this.render();
 
       // APT kurulu paketleri sorgula
@@ -3884,7 +3890,80 @@
         });
       }
 
+      card.addEventListener('click', (e) => {
+        if (e.target.closest('.btn-pkg') || e.target.closest('.pkg-progress-bar')) return;
+        this.openDetail(pkg);
+      });
+
       return card;
+    },
+
+    openDetail(pkg) {
+      const overlay = document.getElementById('store-detail-overlay');
+      if (!overlay) return;
+      const iconWrap = document.getElementById('store-detail-icon');
+      const nameEl = document.getElementById('store-detail-name');
+      const leadEl = document.getElementById('store-detail-lead');
+      const descEl = document.getElementById('store-detail-desc');
+      const sourceEl = document.getElementById('store-detail-source');
+      const catEl = document.getElementById('store-detail-cat');
+      const sizeEl = document.getElementById('store-detail-size');
+      const pkgSpec = document.getElementById('store-spec-pkg');
+      const sourceSpec = document.getElementById('store-spec-source');
+      const actionWrap = document.getElementById('store-detail-action-wrap');
+
+      const isFlatpak = Boolean(pkg.flatpak);
+      const pkgSub = pkg.flatpak || pkg.deb || (pkg.action === 'meb-cert' ? 'mebcert' : '');
+      const sourceLabel = isFlatpak ? 'Flathub Sandboxed' : (pkg.action === 'meb-cert' ? 'Sistem Aracı' : (pkg.vendor ? 'Resmî Depo' : 'Devuan APT'));
+
+      if (iconWrap) {
+        iconWrap.innerHTML = `<span class="store-detail-app-icon">${XdgDesktopEngine.getAppSvgIcon({ id: pkg.id, exec: pkgSub, cat: pkg.cat })}</span>`;
+        const iconBox = iconWrap.querySelector('.store-detail-app-icon');
+        if (iconBox) IconResolver.tagIcon(iconBox, { id: pkg.id, exec: pkgSub, deb: pkg.deb, flatpak: pkg.flatpak });
+      }
+      if (nameEl) nameEl.textContent = pkg.name;
+      if (leadEl) leadEl.textContent = pkg.desc;
+      if (descEl) descEl.textContent = `${pkg.name}, Ankora Linux Daedalus ortamı için optimize edilmiş güvenilir bir yazılımdır. ${pkg.desc}. Ayaz Masaüstü Ortamı (Ayaz DE) ile pürüzsüz entegrasyon sunar.`;
+      if (sourceEl) sourceEl.textContent = isFlatpak ? 'FLATHUB' : (pkg.action === 'meb-cert' ? 'SİSTEM' : 'APT DEPOSU');
+      if (catEl) catEl.textContent = (pkg.cat || 'UYGULAMA').toUpperCase();
+      if (sizeEl) sizeEl.textContent = pkg.size || 'Hafif';
+      if (pkgSpec) pkgSpec.textContent = pkgSub || pkg.id;
+      if (sourceSpec) sourceSpec.textContent = sourceLabel;
+
+      if (actionWrap) {
+        actionWrap.innerHTML = `
+          ${pkg.extUrl ? `
+            <button class="btn-pkg btn-pkg-site" id="dtl-site-${pkg.id}">Resmî Web Sitesi</button>
+          ` : pkg.installed ? `
+            ${pkg.action === 'meb-cert' ? '' : `<button class="btn-pkg btn-pkg-open" id="dtl-open-${pkg.id}">Uygulamayı Aç</button>`}
+            <button class="btn-pkg installed" id="dtl-btn-${pkg.id}">Kaldır</button>
+          ` : `
+            <button class="btn-pkg" id="dtl-btn-${pkg.id}">Hemen Yükle</button>
+          `}
+        `;
+        const btnSite = actionWrap.querySelector('.btn-pkg-site');
+        if (btnSite) {
+          btnSite.addEventListener('click', () => TauriBridge.invoke('open_url', { url: pkg.extUrl }).catch(() => {}));
+        }
+        const btnOpen = actionWrap.querySelector('.btn-pkg-open');
+        if (btnOpen) {
+          btnOpen.addEventListener('click', () => this.launchPackage(pkg));
+        }
+        const btnPkg = actionWrap.querySelector('.btn-pkg:not(.btn-pkg-open):not(.btn-pkg-site)');
+        if (btnPkg) {
+          btnPkg.addEventListener('click', async () => {
+            await this.togglePackage(pkg);
+            this.openDetail(pkg);
+          });
+        }
+      }
+
+      overlay.hidden = false;
+    },
+
+    closeDetail() {
+      const overlay = document.getElementById('store-detail-overlay');
+      if (overlay) overlay.hidden = true;
     },
 
     async launchPackage(pkg) {
@@ -9775,6 +9854,13 @@
           WindowManager.open('win-ai');
         });
       }
+
+      document.querySelectorAll('.ai-mini-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+          const prompt = chip.getAttribute('data-prompt');
+          if (prompt) AIAgent.handleQuery(prompt);
+        });
+      });
     }
 
 
@@ -12761,7 +12847,11 @@
         if (cardCpu) cardCpu.textContent = cpuText;
         if (cardRam) cardRam.textContent = ramText;
 
+        const idleWeather = document.getElementById('di-idle-weather');
         const tempEl = document.getElementById('dw-weather-temp');
+        if (idleWeather && tempEl && tempEl.textContent && tempEl.textContent !== '--') {
+          idleWeather.textContent = `${tempEl.textContent}°C`;
+        }
         if (weatherBtn && tempEl && tempEl.textContent !== '--') {
           weatherBtn.textContent = `${tempEl.textContent}°C`;
         }
