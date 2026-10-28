@@ -3415,14 +3415,14 @@
       { id: 'opencode-desktop', name: 'OpenCode Masaüstü (AI Kod Ajanı)', deb: '', extUrl: 'https://opencode.ai', desc: 'Terminal, masaüstü ve IDE eklentisi olarak çalışan açık kaynak yapay zekâ kod ajanı', cat: 'dev', size: 'Site', installed: false },
 
       // 1b. OKUL & EĞİTİM (sınıfta doğrudan işe yarar)
-      { id: 'fatih-kalem', name: 'Fatih Kalem 2 (Akıllı Tahta)', deb: 'fatih-kalem', desc: 'Etkileşimli tahtalar için ekran kalemi; ekrandaki her şeyin üzerine çizim, ders notu ve vurgu yapma aracı', cat: 'office', size: '2 MB', featured: true, installed: false },
-      { id: 'meb-cert', name: 'MEB Okul Ağı Sertifikası', action: 'meb-cert', desc: 'Okul internetindeki güvenlik uyarılarını bitirir; resmi MEB adresinden indirip sistem ve tarayıcı güven deposuna kurar', cat: 'net', size: '1 MB', featured: true, installed: false },
-      { id: 'scratch', name: 'Scratch 3 (Güncel Sürüm)', flatpak: 'org.scratch.Scratch', desc: 'Blok tabanlı kodlama ile oyun ve animasyon yapmayı öğreten güncel Scratch masaüstü sürümü', cat: 'dev', size: '180 MB', featured: true, installed: false },
-      { id: 'gcompris', name: 'GCompris Eğitim Paketi', deb: 'gcompris', desc: '2-10 yaş için 100ü aşkın eğitsel etkinlik: okuma, matematik, fen ve bilgisayar kullanımı', cat: 'util', size: '95 MB', featured: true, installed: false },
-      { id: 'tuxmath', name: 'TuxMath Matematik Oyunu', deb: 'tuxmath', desc: 'Dört işlemi arcade oyunuyla öğreten eğlenceli matematik alıştırması', cat: 'util', size: '18 MB', installed: false },
-      { id: 'stellarium', name: 'Stellarium planetaryumu', deb: 'stellarium', desc: 'Fen ve astronomi dersleri için gerçek zamanlı gökyüzü ve gezegen simülasyonu', cat: 'graphics', size: '110 MB', installed: false },
-      { id: 'geogebra', name: 'GeoGebra Matematik', flatpak: 'org.geogebra.GeoGebra', desc: 'Geometri, cebir ve grafik çizimleri için ders standardı etkileşimli matematik aracı', cat: 'office', size: '120 MB', installed: false },
-      { id: 'tuxtype', name: 'TuxTyping Klavye Öğretmeni', deb: 'tuxtype', desc: 'On parmak hızlı yazmayı oyunla öğreten klavye alıştırma programı', cat: 'util', size: '22 MB', installed: false },
+      { id: 'fatih-kalem', name: 'Fatih Kalem 2 (Akıllı Tahta)', deb: 'fatih-kalem', desc: 'Etkileşimli tahtalar için ekran kalemi; ekrandaki her şeyin üzerine çizim, ders notu ve vurgu yapma aracı', cat: 'office', school: true, size: '2 MB', featured: true, installed: false },
+      { id: 'meb-cert', name: 'MEB Okul Ağı Sertifikası', action: 'meb-cert', desc: 'Okul internetindeki güvenlik uyarılarını bitirir; resmi MEB adresinden indirip sistem ve tarayıcı güven deposuna kurar', cat: 'net', school: true, size: '1 MB', featured: true, installed: false },
+      { id: 'scratch', name: 'Scratch 3 (Güncel Sürüm)', flatpak: 'org.scratch.Scratch', desc: 'Blok tabanlı kodlama ile oyun ve animasyon yapmayı öğreten güncel Scratch masaüstü sürümü', cat: 'dev', school: true, size: '180 MB', featured: true, installed: false },
+      { id: 'gcompris', name: 'GCompris Eğitim Paketi', deb: 'gcompris', desc: '2-10 yaş için 100ü aşkın eğitsel etkinlik: okuma, matematik, fen ve bilgisayar kullanımı', cat: 'util', school: true, size: '95 MB', featured: true, installed: false },
+      { id: 'tuxmath', name: 'TuxMath Matematik Oyunu', deb: 'tuxmath', desc: 'Dört işlemi arcade oyunuyla öğreten eğlenceli matematik alıştırması', cat: 'util', school: true, size: '18 MB', installed: false },
+      { id: 'stellarium', name: 'Stellarium planetaryumu', deb: 'stellarium', desc: 'Fen ve astronomi dersleri için gerçek zamanlı gökyüzü ve gezegen simülasyonu', cat: 'graphics', school: true, size: '110 MB', installed: false },
+      { id: 'geogebra', name: 'GeoGebra Matematik', flatpak: 'org.geogebra.GeoGebra', desc: 'Geometri, cebir ve grafik çizimleri için ders standardı etkileşimli matematik aracı', cat: 'office', school: true, size: '120 MB', installed: false },
+      { id: 'tuxtype', name: 'TuxTyping Klavye Öğretmeni', deb: 'tuxtype', desc: 'On parmak hızlı yazmayı oyunla öğreten klavye alıştırma programı', cat: 'util', school: true, size: '22 MB', installed: false },
 
 
       // 2. ORTAM & MEDYA (MEDIA)
@@ -3695,7 +3695,7 @@
       this.tableBody.innerHTML = '';
 
       const frag = document.createDocumentFragment();
-      const q = query.toLowerCase();
+      const q = query.toLowerCase().trim();
       const seen = new Set();
       const filtered = this.packages.filter(p => {
         const matchSource = this.currentSource === 'all'
@@ -3703,8 +3703,10 @@
           || (this.currentSource === 'apt' && Boolean(!p.flatpak));
         const matchCat = this.currentCat === 'all'
           || (this.currentCat === 'featured' && Boolean(p.featured))
+          || (this.currentCat === 'school' && Boolean(p.school || p.id === 'fatih-kalem'))
           || p.cat === this.currentCat;
-        const matchQ = p.name.toLowerCase().includes(q)
+        const matchQ = !q
+          || p.name.toLowerCase().includes(q)
           || (p.deb && p.deb.toLowerCase().includes(q))
           || (p.flatpak && p.flatpak.toLowerCase().includes(q))
           || p.desc.toLowerCase().includes(q);
@@ -3714,49 +3716,95 @@
         return true;
       });
 
-      // Ana ekran: arama boşsa ve hiçbir filtre seçilmemişse store-home
-      // (Editörün Seçimi + tüm uygulamalar) düzeni kullanılır.
-      if (!query && this.currentCat === 'all' && this.currentSource === 'all') {
+      // Başlık ve paket sayısı güncelle
+      const titleEl = document.getElementById('store-view-title');
+      const countEl = document.getElementById('store-view-count');
+      const catNames = {
+        'featured': 'Öne Çıkanlar',
+        'all': 'Tüm Paketler',
+        'school': 'Okul & Eğitim',
+        'dev': 'Geliştirici Araçları',
+        'media': 'Medya & Ses',
+        'graphics': 'Grafik & Tasarım',
+        'net': 'İnternet & Ağ',
+        'office': 'Ofis & Yazı',
+        'sys': 'Sistem & Araçlar'
+      };
+      if (titleEl) {
+        titleEl.textContent = q ? `Arama: "${query}"` : (catNames[this.currentCat] || 'Uygulamalar');
+      }
+      if (countEl) {
+        countEl.textContent = `${filtered.length} paket`;
+      }
+
+      // Ana ekran: arama boşsa ve "featured" veya "all" seçiliyse vitrin düzeni
+      if (!q && (this.currentCat === 'featured' || (this.currentCat === 'all' && this.currentSource === 'all'))) {
         this.buildStoreHome(frag, filtered);
       } else {
-        filtered.forEach(pkg => {
-          frag.appendChild(this.buildStoreCard(pkg));
-        });
+        if (filtered.length === 0) {
+          const empty = document.createElement('div');
+          empty.className = 'store-empty-notice';
+          empty.innerHTML = `
+            <svg class="glyph store-empty-icon" aria-hidden="true"><use href="#ico-search"></use></svg>
+            <p>Eşleşen paket bulunamadı.</p>
+          `;
+          frag.appendChild(empty);
+        } else {
+          filtered.forEach(pkg => {
+            frag.appendChild(this.buildStoreCard(pkg));
+          });
+        }
       }
       this.tableBody.appendChild(frag);
       IconResolver.upgradeScope(this.tableBody);
     },
 
-    // Mağaza ana ekranı: arama boş ve filtre kapalıyken önce "Öne Çıkan"
-    // büyük kartlarla açılır; altında tüm uygulamalar listelenir.
-    // Arama veya kategori seçilince eski düz liste döner.
+    // Mağaza vitrini: zarif spotlight ve öne çıkanlar bölümü (AI-slop / parıltı blobu YOK)
     buildStoreHome(frag, filtered) {
-      const featured = this.packages.filter(p => p.featured).slice(0, 8);
+      const spotlightPkg = this.packages.find(p => p.id === 'fatih-kalem') || filtered[0];
+      const featured = filtered.filter(p => p.featured && (!spotlightPkg || p.id !== spotlightPkg.id)).slice(0, 8);
       const home = document.createElement('div');
       home.className = 'store-home';
-      home.innerHTML = `
-        <div class="store-home-hero">
-          <div class="store-home-hero-glow"></div>
-          <div class="store-home-hero-content">
-            <div class="store-home-hero-badge">
-              <svg class="glyph" aria-hidden="true" style="width:13px;height:13px;"><use href="#ico-zap"></use></svg>
-              <span>Resmî Ankora Havuzu</span>
+
+      if (spotlightPkg) {
+        const spotDeb = spotlightPkg.flatpak || spotlightPkg.deb || '';
+        const spotHero = document.createElement('div');
+        spotHero.className = 'store-spotlight-card';
+        spotHero.innerHTML = `
+          <div class="store-spotlight-content">
+            <div class="store-spotlight-badge">
+              <svg class="glyph" aria-hidden="true"><use href="#ico-zap"></use></svg>
+              <span>Haftanın Seçimi</span>
             </div>
-            <h2>Ankora Yazılım Merkezi</h2>
-            <p>Hızlı, güvenli ve doğrulanmış paketler. Devuan depoları, Flathub ve resmî sistem araçları tek çatı altında.</p>
+            <h2 class="store-spotlight-title">${escapeHtml(spotlightPkg.name)}</h2>
+            <p class="store-spotlight-desc">${escapeHtml(spotlightPkg.desc)}</p>
+            <div class="store-spotlight-actions">
+              ${spotlightPkg.installed ? `
+                <button class="btn-pkg btn-pkg-open" id="spot-open-${spotlightPkg.id}">Aç</button>
+                <button class="btn-pkg installed" id="spot-pkg-${spotlightPkg.id}">Kaldır</button>
+              ` : `
+                <button class="btn-pkg" id="spot-pkg-${spotlightPkg.id}">Hemen Yükle</button>
+              `}
+              <span class="store-spotlight-meta">${spotlightPkg.flatpak ? 'Flathub Sandboxed' : 'Resmî Ankora Havuzu'} · ${spotlightPkg.size || 'Hafif'}</span>
+            </div>
           </div>
-          <div class="store-home-hero-meta">
-            <span class="store-home-count">${this.packages.length} paket hazır</span>
+          <div class="store-spotlight-icon-wrap">
+            <span class="store-spotlight-big-icon">${XdgDesktopEngine.getAppSvgIcon({ id: spotlightPkg.id, exec: spotDeb, cat: spotlightPkg.cat })}</span>
           </div>
-        </div>
-      `;
+        `;
+        const spotBtn = spotHero.querySelector('.btn-pkg:not(.btn-pkg-open)');
+        if (spotBtn) spotBtn.addEventListener('click', () => this.togglePackage(spotlightPkg, spotHero));
+        const spotOpen = spotHero.querySelector('.btn-pkg-open');
+        if (spotOpen) spotOpen.addEventListener('click', () => this.launchPackage(spotlightPkg));
+        home.appendChild(spotHero);
+      }
 
       const featuredSection = document.createElement('div');
       featuredSection.className = 'store-home-section';
       featuredSection.innerHTML = `
         <div class="store-section-title">
           <span>Öne Çıkan Uygulamalar</span>
-          <p>Günlük işler, medya ve üretkenlik için önerilenler</p>
+          <span class="store-section-sub">Günlük işler, eğitim ve üretkenlik için seçilenler</span>
         </div>
       `;
       const fGrid = document.createElement('div');
@@ -3764,20 +3812,6 @@
       featured.forEach(p => fGrid.appendChild(this.buildStoreCard(p, true)));
       featuredSection.appendChild(fGrid);
       home.appendChild(featuredSection);
-
-      const restSection = document.createElement('div');
-      restSection.className = 'store-home-section';
-      restSection.innerHTML = `
-        <div class="store-section-title">
-          <span>Tüm Uygulamalar</span>
-          <p>Kategori ve kaynak filtrelerini kullanarak inceleyin</p>
-        </div>
-      `;
-      const rGrid = document.createElement('div');
-      rGrid.className = 'store-grid';
-      filtered.filter(p => !featured.some(f => f.id === p.id)).forEach(p => rGrid.appendChild(this.buildStoreCard(p)));
-      restSection.appendChild(rGrid);
-      home.appendChild(restSection);
 
       frag.appendChild(home);
     },
@@ -3791,29 +3825,33 @@
       const sourceClass = isFlatpak ? 'badge-flatpak' : (pkg.action === 'meb-cert' ? 'badge-cert' : 'badge-apt');
 
       card.innerHTML = `
-        <div class="store-card-head">
-          <div class="store-card-icon-wrap">
-            <span class="store-card-icon">${XdgDesktopEngine.getAppSvgIcon({ id: pkg.id, exec: pkgSub, cat: pkg.cat })}</span>
-          </div>
-          <div class="store-card-titles">
-            <div class="store-card-name" title="${escapeHtml(pkg.name)}">${escapeHtml(pkg.name)}</div>
-            <div class="store-card-meta-line">
-              <span class="store-card-source ${sourceClass}">${sourceLabel}</span>
-              ${pkg.size ? `<span class="store-card-size">${escapeHtml(pkg.size)}</span>` : ''}
+        <div class="store-card-body">
+          <div class="store-card-head">
+            <div class="store-card-icon-wrap">
+              <span class="store-card-icon">${XdgDesktopEngine.getAppSvgIcon({ id: pkg.id, exec: pkgSub, cat: pkg.cat })}</span>
+            </div>
+            <div class="store-card-titles">
+              <div class="store-card-name" title="${escapeHtml(pkg.name)}">${escapeHtml(pkg.name)}</div>
+              <div class="store-card-meta-line">
+                <span class="store-card-source ${sourceClass}">${sourceLabel}</span>
+                ${pkg.size ? `<span class="store-card-size">${escapeHtml(pkg.size)}</span>` : ''}
+              </div>
             </div>
           </div>
+          <p class="store-card-desc" title="${escapeHtml(pkg.desc)}">${escapeHtml(pkg.desc)}</p>
         </div>
-        <p class="store-card-desc" title="${escapeHtml(pkg.desc)}">${escapeHtml(pkg.desc)}</p>
-        <div class="pkg-progress-bar" id="prog-${pkg.id}"></div>
-        <div class="store-card-actions">
-          ${pkg.extUrl ? `
-            <button class="btn-pkg btn-pkg-site" id="btn-site-${pkg.id}">Resmî Site</button>
-          ` : pkg.installed ? `
-            ${pkg.action === 'meb-cert' ? '' : `<button class="btn-pkg btn-pkg-open" id="btn-open-${pkg.id}">Aç</button>`}
-            <button class="btn-pkg installed" id="btn-pkg-${pkg.id}">Kaldır</button>
-          ` : `
-            <button class="btn-pkg" id="btn-pkg-${pkg.id}">Kur</button>
-          `}
+        <div class="store-card-footer">
+          <div class="pkg-progress-bar" id="prog-${pkg.id}"></div>
+          <div class="store-card-actions">
+            ${pkg.extUrl ? `
+              <button class="btn-pkg btn-pkg-site" id="btn-site-${pkg.id}">Resmî Site</button>
+            ` : pkg.installed ? `
+              ${pkg.action === 'meb-cert' ? '' : `<button class="btn-pkg btn-pkg-open" id="btn-open-${pkg.id}">Aç</button>`}
+              <button class="btn-pkg installed" id="btn-pkg-${pkg.id}">Kaldır</button>
+            ` : `
+              <button class="btn-pkg" id="btn-pkg-${pkg.id}">Kur</button>
+            `}
+          </div>
         </div>
       `;
 
@@ -12535,16 +12573,21 @@
         });
       }
 
-      // Kapsüle tıklayınca genişletme
+      // Kapsüle tıklayınca aç/kapat (toggle)
       this.el.addEventListener('click', (e) => {
         if (e.target.closest('#di-card-close')) {
           this.collapse();
           return;
         }
+        if (e.target.closest('.di-card-btn') || e.target.closest('.di-footer-lock-btn')) {
+          return;
+        }
         if (this.el.classList.contains('state-toast') || this.el.classList.contains('state-progress')) {
           return;
         }
-        if (!this.expanded) {
+        if (this.expanded) {
+          this.collapse();
+        } else {
           this.expand();
         }
       });
@@ -12647,14 +12690,15 @@
       this.el.classList.remove('state-expanded');
     },
 
-    flash(msg, kind = 'info', duration = 3400) {
+    flash(msg, kind = 'info', duration = 3200) {
       if (!this.el || !this.isEnabled()) return;
       clearTimeout(this.timer);
       const toastText = document.getElementById('di-toast-text');
-      const toastIcon = document.getElementById('di-toast-icon');
+      const toastSvg = document.getElementById('di-toast-svg');
       if (toastText) toastText.textContent = msg;
-      if (toastIcon) {
-        toastIcon.textContent = kind === 'error' ? '⚠️' : (kind === 'success' ? '✓' : 'ℹ');
+      if (toastSvg) {
+        const iconId = kind === 'error' ? '#ico-alert' : (kind === 'success' ? '#ico-check' : '#ico-info');
+        toastSvg.innerHTML = `<use href="${iconId}"></use>`;
       }
 
       this.el.classList.remove('state-idle', 'state-expanded', 'state-progress', 'state-ai');
@@ -12703,18 +12747,19 @@
       if (!this.isEnabled()) return;
       TauriBridge.invoke('get_system_telemetry').then((data) => {
         if (!data) return;
-        const cpuEl = document.getElementById('di-footer-cpu');
-        const ramEl = document.getElementById('di-footer-ram');
-        const subEl = document.getElementById('di-idle-sub');
-        const pulseDot = document.getElementById('di-pulse-dot');
+        const idleCpu = document.getElementById('di-idle-cpu');
+        const idleRam = document.getElementById('di-idle-ram');
+        const cardCpu = document.getElementById('di-footer-cpu');
+        const cardRam = document.getElementById('di-footer-ram');
         const weatherBtn = document.getElementById('di-btn-weather-text');
 
-        if (cpuEl && data.cpu_usage !== undefined) cpuEl.textContent = `CPU: %${Math.round(data.cpu_usage)}`;
-        if (ramEl && data.ram_used_mb) ramEl.textContent = `RAM: ${Math.round(data.ram_used_mb)} MB`;
-        if (subEl && data.ram_used_mb) subEl.textContent = `${Math.round(data.ram_used_mb)} MB`;
-        if (pulseDot) {
-          pulseDot.style.background = (data.cpu_usage > 75) ? '#ef4444' : (data.cpu_usage > 40 ? '#f59e0b' : '#10b981');
-        }
+        const cpuText = data.cpu_usage !== undefined ? `CPU %${Math.round(data.cpu_usage)}` : 'CPU %--';
+        const ramText = data.ram_used_mb ? (data.ram_used_mb >= 1024 ? `RAM ${(data.ram_used_mb / 1024).toFixed(1)} GB` : `RAM ${Math.round(data.ram_used_mb)} MB`) : 'RAM --';
+
+        if (idleCpu) idleCpu.textContent = cpuText;
+        if (idleRam) idleRam.textContent = ramText;
+        if (cardCpu) cardCpu.textContent = cpuText;
+        if (cardRam) cardRam.textContent = ramText;
 
         const tempEl = document.getElementById('dw-weather-temp');
         if (weatherBtn && tempEl && tempEl.textContent !== '--') {
@@ -12916,18 +12961,19 @@
         Terminal.log(`[BİLDİRİM (sessiz)] ${message}`, 'muted');
         return;
       }
-      // Toast aynı zamanda bildirim merkezine de düşer; aksi hâlde
-      // kullanıcı merkezde hiçbir şey görmez (test geri bildirimi #5).
+      // Toast aynı zamanda bildirim merkezine de düşer
       try {
         if (typeof NotificationManager !== 'undefined' && NotificationManager.pushLocal) {
           NotificationManager.pushLocal(message);
         }
       } catch (e) {}
-      try {
-        if (typeof DynamicIsland !== 'undefined' && DynamicIsland.flash) {
-          DynamicIsland.flash(message, kind);
-        }
-      } catch (e) {}
+
+      // Eğer Dinamik Ada etkinse bildirimi ada içinde göster; çift bildirim/slop oluşmasın
+      if (typeof DynamicIsland !== 'undefined' && DynamicIsland.isEnabled && DynamicIsland.isEnabled()) {
+        DynamicIsland.flash(message, kind);
+        return;
+      }
+
       let toast = document.getElementById('ayaz-global-toast');
       if (!toast) {
         toast = document.createElement('div');
