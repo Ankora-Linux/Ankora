@@ -2038,6 +2038,11 @@ fn run_terminal_command_blocking(command: String) -> Result<String, String> {
                     }
                     combined.push_str(&stderr);
                 }
+                // SEC-12: DoS ve bellek tüketimini önlemek için çıktı boyutu sınırlandırılır
+                if combined.len() > 1_000_000 {
+                    combined.truncate(1_000_000);
+                    combined.push_str("\n... [Güvenlik Sınırı: Çıktı boyutu 1 MB sınırını aştığı için kırpıldı.]");
+                }
                 Ok(combined)
             }
             Err(e) => Err(format!("Komut yürütülemedi: {}", e)),

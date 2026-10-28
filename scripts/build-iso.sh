@@ -1549,6 +1549,8 @@ def execute_ayaz_command(cmd, args):
                 env=env
             )
             out = proc.stdout or ''
+            if len(out) > 1_000_000:
+                out = out[:1_000_000] + '\n... [Güvenlik Sınırı: Çıktı boyutu 1 MB sınırını aştığı için kırpıldı.]'
             if not out and proc.returncode != 0:
                 out = f'[Komut {proc.returncode} koduyla sonlandı]'
             return out

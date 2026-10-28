@@ -156,8 +156,13 @@ meb_install_cert() {
         echo "[HATA] İndirilen dosya geçerli bir X.509 sertifikası değil." >&2
         return 6
     fi
+    # SEC-05: Kök sertifika doğrulama — hem konu/yayıncı hem de Basic Constraints CA:TRUE denetimi
     if ! printf '%s\n%s\n' "$subject" "$issuer" | grep -qi "meb\|mill.*e[ğg]itim\|egitim"; then
         echo "[HATA] Sertifika MEB kök sertifikasına benzemiyor (özne: $subject). Kurulum durduruldu." >&2
+        return 6
+    fi
+    if ! openssl x509 -in "$cert_file" -noout -text 2>/dev/null | grep -A1 -i "Basic Constraints" | grep -qi "CA:TRUE"; then
+        echo "[HATA] Sertifika bir Sertifika Yetkilisi (CA:TRUE) olarak yapılandırılmamış. Güvenli kök olarak eklenemez." >&2
         return 6
     fi
 
