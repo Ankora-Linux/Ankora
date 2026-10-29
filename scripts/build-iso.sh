@@ -207,6 +207,22 @@ cat << 'FORCEIPV4' > /etc/apt/apt.conf.d/02-build-forceipv4
 Acquire::ForceIPv4 "true";
 FORCEIPV4
 
+# Ayna senkronu sırasında apt-get update sert hata verip derlemeyi
+# düşürüyordu (Packages.xz boyut uyuşmazlığı: "Mirror sync in progress?").
+# deb.devuan.org bir yönlendiricidir; her deneme başka bir aynaya düşebilir.
+apt_update_retry() {
+    local _i
+    for _i in 1 2 3 4 5; do
+        if apt-get update -qq; then
+            return 0
+        fi
+        echo "[UYARI] apt-get update başarısız (deneme ${_i}/5), 10 sn sonra yeniden..." >&2
+        sleep 10
+    done
+    echo "[HATA] apt-get update beş denemede tamamlanamadı." >&2
+    return 1
+}
+
 # Depo kaynakları
 cat << 'SOURCES' > /etc/apt/sources.list
 deb http://deb.devuan.org/merged daedalus main contrib non-free non-free-firmware
@@ -217,7 +233,7 @@ SOURCES
 # trusted=yes imza denetimini tamamen kapatıyordu. Anahtarlık yukarıda
 # zaten chroot'a kopyalandığından Release dosyaları GPG ile doğrulanır;
 # doğrulanamazsa `set -e` kurulumu burada durdurur.
-apt-get update -qq
+apt_update_retry
 apt-get install -y --no-install-recommends devuan-keyring || true
 
 # -----------------------------------------------------------------------
@@ -251,7 +267,7 @@ apt-get install -y --no-install-recommends \
 # Ara temizlik (çekirdek ve firmware dosyaları çok yer kaplar)
 apt-get clean
 rm -rf /var/lib/apt/lists/*
-apt-get update -qq
+apt_update_retry
 
 echo "[ALAN RAPORU] Çekirdek kurulumundan sonra:"
 df -h / || true
@@ -340,7 +356,7 @@ apt-get install -y --no-install-recommends firmware-b43-installer 2>/dev/null ||
 # Ara temizlik
 apt-get clean
 rm -rf /var/lib/apt/lists/*
-apt-get update -qq
+apt_update_retry
 
 echo "[ALAN RAPORU] Xorg ve GPU sürücüleri kurulumundan sonra:"
 df -h / || true
@@ -445,7 +461,7 @@ done
 echo "deb [arch=amd64 signed-by=$BRAVE_KEY] $BRAVE_URL/ stable main" > /etc/apt/sources.list.d/brave-browser-release.list
 BRAVE_OK=0
 for i in 1 2 3; do
-    if apt-get update -qq && apt-get install -y --no-install-recommends brave-browser; then
+    if apt_update_retry && apt-get install -y --no-install-recommends brave-browser; then
         BRAVE_OK=1; break
     fi
     sleep 10
