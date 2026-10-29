@@ -99,10 +99,34 @@ if command -v xinput >/dev/null 2>&1; then
 fi
 
 # Ayaz DE Masaüstü Ortamını çalıştır
+# Sessiz siyah ekran yasağı: masaüstü düşerse günlük görünür bir pencerede
+# sunulur ve kabuk açılır.
+AYAZ_LOG=/tmp/ayaz.log
+if ! : > "$AYAZ_LOG" 2>/dev/null; then
+    AYAZ_LOG=/dev/null
+fi
+
+AYAZ_BIN=
 if [ -x /usr/bin/ayaz ]; then
-    exec /usr/bin/ayaz
+    AYAZ_BIN=/usr/bin/ayaz
 elif [ -x /usr/local/bin/ayaz ]; then
-    exec /usr/local/bin/ayaz
+    AYAZ_BIN=/usr/local/bin/ayaz
+fi
+
+if [ -z "$AYAZ_BIN" ]; then
+    printf '[Ayaz] Masaüstü ikilisi bulunamadı (/usr/bin/ayaz, /usr/local/bin/ayaz).\n' >>"$AYAZ_LOG"
+    AYAZ_RC=127
 else
-    exec xterm -e "echo Ayaz ikili dosyasi bulunamadi!; sh"
+    "$AYAZ_BIN" >>"$AYAZ_LOG" 2>&1
+    AYAZ_RC=$?
+fi
+
+if [ "$AYAZ_RC" -ne 0 ]; then
+    : > /tmp/ankora-desktop-failed 2>/dev/null || true
+    printf '[Ayaz] Masaüstü başlatılamadı (çıkış kodu %s). Günlük: %s\n' "$AYAZ_RC" "$AYAZ_LOG" >&2
+    if command -v xterm >/dev/null 2>&1; then
+        exec xterm -T "Ayaz — Başlatma Hatası" -fa Monospace -fs 11 -geometry 120x36 \
+            -e sh -c 'tail -n 60 "$1" 2>/dev/null; printf "\n--- Kabuk açık. Yeniden denemek için: exit, sonra startx ---\n"; exec sh' sh "$AYAZ_LOG"
+    fi
+    exec sh
 fi

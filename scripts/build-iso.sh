@@ -905,7 +905,8 @@ fi
 
 # Ses sunucusunu kullanıcı oturumunda başlat
 if command -v pulseaudio >/dev/null 2>&1; then
-    pulseaudio --start --exit-idle-time=-1 2>/dev/null || true
+    # Arka planda: ses sunucusu takılırsa oturum başlatma onu beklemez.
+    pulseaudio --start --exit-idle-time=-1 >/dev/null 2>&1 &
 fi
 
 # Bildirim sunucusunu arka planda başlat
@@ -932,13 +933,42 @@ elif command -v stalonetray >/dev/null 2>&1; then
     stalonetray --geometry 1x1-10+10 --grow-gravity NE --icon-gravity NE --kludges force_icons_size --transparent --tint-color "#0f172a" &
 fi
 
-if [ -x /usr/bin/ayaz ]; then
-    exec /usr/bin/ayaz
-elif [ -x /usr/local/bin/ayaz ]; then
-    exec /usr/local/bin/ayaz
-else
-    exec xterm 2>/dev/null || exec sh
+# Ayaz DE Masaüstü Ortamını çalıştır
+# Sessiz siyah ekran yasağı: masaüstü düşerse günlük görünür bir pencerede
+# sunulur ve kabuk açılır. Önceden süreç ölünce ekran yalnızca xsetroot
+# renginde kalıyor, kullanıcı hiçbir hata göremiyordu.
+AYAZ_LOG=/tmp/ayaz.log
+if ! : > "$AYAZ_LOG" 2>/dev/null; then
+    AYAZ_LOG=/dev/null
 fi
+
+AYAZ_BIN=
+if [ -x /usr/bin/ayaz ]; then
+    AYAZ_BIN=/usr/bin/ayaz
+elif [ -x /usr/local/bin/ayaz ]; then
+    AYAZ_BIN=/usr/local/bin/ayaz
+fi
+
+if [ -z "$AYAZ_BIN" ]; then
+    printf '[Ayaz] Masaüstü ikilisi bulunamadı (/usr/bin/ayaz, /usr/local/bin/ayaz).\n' >>"$AYAZ_LOG"
+    AYAZ_RC=127
+else
+    "$AYAZ_BIN" >>"$AYAZ_LOG" 2>&1
+    AYAZ_RC=$?
+fi
+
+if [ "$AYAZ_RC" -ne 0 ]; then
+    # Otomatik yeniden deneme döngüsünü kır: bir sonraki tty1 girişinde
+    # startx kendiliğinden tekrar başlamaz, kullanıcı bilinçli karar verir.
+    : > /tmp/ankora-desktop-failed 2>/dev/null || true
+    printf '[Ayaz] Masaüstü başlatılamadı (çıkış kodu %s). Günlük: %s\n' "$AYAZ_RC" "$AYAZ_LOG" >&2
+    if command -v xterm >/dev/null 2>&1; then
+        exec xterm -T "Ayaz — Başlatma Hatası" -fa Monospace -fs 11 -geometry 120x36 \
+            -e sh -c 'tail -n 60 "$1" 2>/dev/null; printf "\n--- Kabuk açık. Yeniden denemek için: exit, sonra startx ---\n"; exec sh' sh "$AYAZ_LOG"
+    fi
+    exec sh
+fi
+
 XINIT
 chmod +x /home/ankora/.xinitrc
 cp /home/ankora/.xinitrc /etc/skel/.xinitrc
@@ -959,9 +989,16 @@ if [ -f /etc/inittab ]; then
 fi
 
 # TTY1 Girişinde startx Başlatma
+# -keeptty kullanılmaz: VT değiştirmeyi engelliyordu, siyah ekranda kalan
+# kullanıcı Ctrl+Alt+F2 ile konsola geçemiyordu.
 cat << 'PROFILE' >> /home/ankora/.profile
 if [ -z "$DISPLAY" ] && [ "$(tty 2>/dev/null)" = "/dev/tty1" ]; then
-    exec startx -- -keeptty > ~/.xsession-errors 2>&1
+    if [ -e /tmp/ankora-desktop-failed ]; then
+        echo "Masaüstü önceki denemede başlatılamadı. Günlük: /tmp/ayaz.log"
+        echo "Yeniden denemek için: rm /tmp/ankora-desktop-failed && startx"
+    else
+        exec startx > ~/.xsession-errors 2>&1
+    fi
 fi
 PROFILE
 chown -R ankora:ankora /home/ankora
