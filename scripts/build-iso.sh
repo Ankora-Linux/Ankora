@@ -6330,17 +6330,20 @@ if ! "${XORRISO_CMD[@]}" 2>&1 | tee "$WORK_DIR/xorriso-build.log" >/dev/null; th
     exit 1
 fi
 
-# Híbrıt doğrulama: BIOS (isohdpfx MBR) ve UEFI (GPT bas-dat) bayrağı ISO içinde var mı?
+# Hibrit doğrulama: BIOS (isohdpfx MBR) ve UEFI (GPT bas-dat) bayrağı ISO içinde var mı?
 if [ -f "$ROOT_DIR/dist/$ISO_NAME" ]; then
-    SYSTEM_REPORT=$(xorriso -indev "$ROOT_DIR/dist/$ISO_NAME" -report_system_area as_mkisofs 2>/dev/null || true)
-    if ! printf '%s\n' "$SYSTEM_REPORT" | grep -q 'isohybrid-mbr'; then
-        echo "[HATA] Üretilen ISO'da isohybrid MBR saptanmadı; USB'den BIOS boot çalışmaz."
-        echo "--- report_system_area çıktısı (teşhis için) ---"
-        printf '%s\n' "$SYSTEM_REPORT" | head -20
+    # MBR: isohdpfx.bin'in ilk 432 baytı (bootloader kodu) ISO'nun ilk 432
+    # baytına birebir gelmelidir. xorriso raporu MBR'yi '-G --interval...'
+    # satırıyla temsil eder; jeton aramaya kaldırmak yerine bayt karşılaştırması.
+    if ! cmp -s <(head -c 432 "$ISOHDPFX") <(head -c 432 "$ROOT_DIR/dist/$ISO_NAME"); then
+        echo "[HATA] Üretilen ISO'nun MBR'si isohdpfx bootloader kodunu içermiyor; USB'den BIOS boot çalışmaz."
         exit 1
     fi
-    if [ -f "$IMAGE_DIR/boot/grub/efi.img" ] && ! printf '%s\n' "$SYSTEM_REPORT" | grep -Eq 'isohybrid-gpt|gpt_basdat'; then
-        echo "[HATA] Üretilen ISO'da UEFI hibrıt bölümü (gpt-basdat) saptanmadı; USB'den UEFI boot riskli."
+    # UEFI: GPT bas-dat bölümü raporda '-isohybrid-gpt-basdat' olarak görünür.
+    SYSTEM_REPORT=$(xorriso -indev "$ROOT_DIR/dist/$ISO_NAME" -report_system_area as_mkisofs 2>&1 || true)
+    if [ -f "$IMAGE_DIR/boot/grub/efi.img" ] && ! printf '%s\n' "$SYSTEM_REPORT" | grep -q 'isohybrid-gpt-basdat'; then
+        echo "[HATA] Üretilen ISO'da UEFI hibrit bölümü (gpt-basdat) saptanmadı; USB'den UEFI boot riskli."
+        echo "--- report_system_area çıktısı (teşhis için) ---"
         printf '%s\n' "$SYSTEM_REPORT" | head -20
         exit 1
     fi
