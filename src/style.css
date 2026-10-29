@@ -419,6 +419,40 @@ body.theme-ayna {
   --accent-active: #06b6d4;
 }
 
+/* 29 Ekim Cumhuriyet Bayramı özel teması: bayrak kırmızısı zemin, ay-yıldız
+   beyazı metin. Mevcut monokrom cam sisteminin palet varyantı: yeni yerleşim
+   ya da parlama yok; kimlik yalnız renk ve duvar kağıdı motifi taşır. */
+body.theme-cumhuriyet {
+  --bg-deep: #170b0d;
+  --bg-base: #1d0e10;
+  --bg-panel: #241214;
+  --bg-surface: #2b1719;
+  --bg-surface-hover: #341e20;
+  --bg-surface-active: #3d2527;
+
+  --border-subtle: rgba(245, 235, 231, 0.08);
+  --border-medium: rgba(245, 235, 231, 0.15);
+  --border-focus: rgba(226, 55, 68, 0.55);
+  --border-active-window: #e23744;
+  --border-highlight: #f5ebe7;
+
+  --text-primary: #f5ebe7;
+  --text-secondary: #cda7a6;
+  --text-muted: #b59392;
+  --text-inverse: #170b0d;
+
+  --accent-white: #f5ebe7;
+  --accent-gray: #cda7a6;
+  --accent-active: #e23744;
+  --accent-hover: rgba(226, 55, 68, 0.14);
+
+  --surface-flyout: #1d0e10;
+  --taskbar-bg: rgba(23, 11, 13, 0.92);
+  --desktop-bg: #170b0d;
+  --glass-taskbar: rgba(36, 18, 21, 0.68);
+  --glass-flyout: rgba(36, 18, 21, 0.74);
+}
+
 /* Tema değişkenlerine bağlanan sabit yüzeyler — koyu temalarda varsayılan
    değer, theme-* sınıfıyla override edilir. */
 .start-flyout {
@@ -6081,6 +6115,18 @@ body.theme-light .desktop-context-menu {
 .theme-preview-box.ayna .preview-mini-card {
   background: #171b22;
   border-left: 2px solid #06b6d4;
+}
+
+.theme-preview-box.cumhuriyet {
+  background: #1d0e10;
+}
+.theme-preview-box.cumhuriyet .preview-mini-bar {
+  background: #170b0d;
+  border-bottom: 1px solid rgba(226, 55, 68, 0.45);
+}
+.theme-preview-box.cumhuriyet .preview-mini-card {
+  background: #2b1719;
+  border-left: 2px solid #e23744;
 }
 
 .preview-mini-bar {

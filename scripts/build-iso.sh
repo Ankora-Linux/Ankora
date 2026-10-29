@@ -6056,7 +6056,7 @@ echo "[6/8] EFI ve BIOS hibrit önyükleyicileri hazırlanıyor..."
 # (Fedora canlı ISO'larıyla aynı mimari). Ortak menü: boot/grub/grub.cfg.
 # Erken yapılandırma: ISO'yu dosya ile bulur, ortak menüye dallanır.
 cat << 'EOF' > "$IMAGE_DIR/boot/grub/early-bios.cfg"
-if search --file --set=root /boot/grub/grub.cfg; then true; fi
+if search --no-floppy --file --set=root /boot/grub/grub.cfg; then true; fi
 if [ ! -e /boot/grub/grub.cfg ]; then set root=(cd); fi
 set prefix=($root)/boot/grub
 configfile /boot/grub/grub.cfg
@@ -6243,6 +6243,10 @@ if [ -f "$IMAGE_DIR/EFI/boot/bootx64.efi" ]; then
             echo "[HATA] bootx64.efi efi.img içine kopyalanamadı!" >&2
             exit 1
         }
+    else
+        echo "[HATA] mtools (mmd/mcopy) kullanılamıyor: efi.img boş kalır, UEFI USB boot ölü doğar." >&2
+        echo "       Kurulum: sudo apt-get install mtools ; derleme durduruldu." >&2
+        exit 1
     fi
 fi
 
@@ -6288,7 +6292,12 @@ echo "[OK] Manifest yazıldı: ayaz-manifest.txt ($(wc -l < "$IMAGE_DIR/ayaz-man
 
 # 11. Xorriso ile Hibrit ISO İmajının Derlenmesi
 echo "[7/8] Xorriso ile bootable hibrit ISO oluşturuluyor..."
-ISOHDPFX=$(find /usr/lib/ISOLINUX /usr/lib/syslinux -name "isohdpfx.bin" 2>/dev/null | head -n 1 || true)
+ISOHDPFX=$(find /usr/lib/syslinux/mbr /usr/lib/syslinux /usr/lib/ISOLINUX -name "isohdpfx.bin" 2>/dev/null | head -n 1 || true)
+if [ -z "$ISOHDPFX" ]; then
+    echo "[HATA] isohdpfx.bin bulunamadı (syslinux-common paketi kurulu değil)."
+    echo "       MBR'siz ISO USB diskinden BIOS olarak başlatılamaz; ISO üretimi durduruldu."
+    exit 1
+fi
 
 XORRISO_CMD=(
     xorriso -as mkisofs
@@ -6296,14 +6305,11 @@ XORRISO_CMD=(
     -full-iso9660-filenames
     -r -J -l
     -volid "ANKORA_3_3"
+    -isohybrid-mbr "$ISOHDPFX"
     -eltorito-boot boot/grub/i386-pc-eltorito.img
     -eltorito-catalog boot/grub/boot.cat
     -no-emul-boot -boot-load-size 4 -boot-info-table
 )
-
-if [ -n "$ISOHDPFX" ] && [ -f "$ISOHDPFX" ]; then
-    XORRISO_CMD+=(-isohybrid-mbr "$ISOHDPFX")
-fi
 
 if [ -f "$IMAGE_DIR/boot/grub/efi.img" ]; then
     XORRISO_CMD+=(
@@ -6316,13 +6322,30 @@ fi
 
 XORRISO_CMD+=(-output "$ROOT_DIR/dist/$ISO_NAME" "$IMAGE_DIR")
 
-"${XORRISO_CMD[@]}" 2>/dev/null || {
-    echo "[UYARI] Hibrit xorriso komutu tamamlanamadı, standart mod ile deneniyor..."
-    xorriso -as mkisofs -r -V "ANKORA_3_3" \
-        -b boot/grub/i386-pc-eltorito.img -c boot/grub/boot.cat \
-        -no-emul-boot -boot-load-size 4 -boot-info-table \
-        -o "$ROOT_DIR/dist/$ISO_NAME" "$IMAGE_DIR"
-}
+# XORRISO_YARDIMCI_LOG: ssh oturumlarında stderr kaybolmasın; ayrı dosyada saklansın
+if ! "${XORRISO_CMD[@]}" 2>&1 | tee "$WORK_DIR/xorriso-build.log" >/dev/null; then
+    echo "[HATA] Hibrit xorriso derlemesi başarısız oldu. Log: $WORK_DIR/xorriso-build.log"
+    echo "       Sessiz 'standart mod' fallback kaldırıldı: hibritleşmemiş ISO USB diskinden"
+    echo "       BIOS olarak başlatılamaz; dağıtıma uygun olmadığından derleme durduruldu."
+    exit 1
+fi
+
+# Híbrıt doğrulama: BIOS (isohdpfx MBR) ve UEFI (GPT bas-dat) bayrağı ISO içinde var mı?
+if [ -f "$ROOT_DIR/dist/$ISO_NAME" ]; then
+    SYSTEM_REPORT=$(xorriso -indev "$ROOT_DIR/dist/$ISO_NAME" -report_system_area as_mkisofs 2>/dev/null || true)
+    if ! printf '%s\n' "$SYSTEM_REPORT" | grep -q 'isohybrid-mbr'; then
+        echo "[HATA] Üretilen ISO'da isohybrid MBR saptanmadı; USB'den BIOS boot çalışmaz."
+        echo "--- report_system_area çıktısı (teşhis için) ---"
+        printf '%s\n' "$SYSTEM_REPORT" | head -20
+        exit 1
+    fi
+    if [ -f "$IMAGE_DIR/boot/grub/efi.img" ] && ! printf '%s\n' "$SYSTEM_REPORT" | grep -Eq 'isohybrid-gpt|gpt_basdat'; then
+        echo "[HATA] Üretilen ISO'da UEFI hibrıt bölümü (gpt-basdat) saptanmadı; USB'den UEFI boot riskli."
+        printf '%s\n' "$SYSTEM_REPORT" | head -20
+        exit 1
+    fi
+    echo "[OK] Hibrit doğrulama: isohybrid MBR ve UEFI gpt-basdat bayrakları mevcut."
+fi
 
 # 11. Bitiş ve Doğrulama
 echo "[8/8] ISO Doğrulaması ve SHA256..."

@@ -8135,7 +8135,8 @@
       'theme-kor':       { wallpaper: 'wallpaper-kor.svg',           iconset: 'sunset',   accent: '#e08a3c' },
       'theme-dem':       { wallpaper: 'wallpaper-dem.svg',           iconset: 'monokrom', accent: '#d64545' },
       'theme-bogaz':     { wallpaper: 'wallpaper-bogaz.svg',         iconset: 'ink',      accent: '#c9a24b' },
-      'theme-ayna':      { wallpaper: 'wallpaper-ayna.svg',          iconset: 'monokrom', accent: '#06b6d4' }
+      'theme-ayna':      { wallpaper: 'wallpaper-ayna.svg',          iconset: 'monokrom', accent: '#06b6d4' },
+      'theme-cumhuriyet':{ wallpaper: 'wallpaper-cumhuriyet.svg',    iconset: 'monokrom', accent: '#e23744' }
     },
 
     isFullSystemTheme() {

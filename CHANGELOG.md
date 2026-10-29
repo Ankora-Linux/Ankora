@@ -1,5 +1,11 @@
 # Ankora Linux — Sürüm Notları
 
+## 4.0.0 (2026-10-29)
+- Cumhuriyet Teması (29 Ekim özel): Bayrak kırmızısı zeminli, ay-yıldız beyazı metinli koyu tema; eşleşen vektörel duvar kağıdı ve tema seçici kartı ile birlikte gelir. Monokrom cam tasarım sisteminin palet varyantıdır.
+- Güvenlik Sertleştirmeleri: 14 tarama bulgusu kapatıldı — kilit ekranı girişim sınırlayıcı ve tek kullanımlık kilit açma yetkisi (30 sn), pano sızıntısının kilitliyken engellenmesi, sembolik bağ üzerine yazma ataklarının durdurulması, polkit ajan denetimli pkexec geçidi, IPC'de Origin + 256-bit token + zaman-sabitli karşılaştırma + 50 denemede kalıcı blok, komut yürütmede katmanlı beyaz liste, çıktı boyutu DoS sınırları, MEB sertifikasına CA:TRUE Basic Constraints doğrulaması, CSP sıkılaştırması (object-src 'none').
+- Bağımlılık Güvenliği: reqwest 0.12'ye yükseltildi; h2 (RUSTSEC-2026-0258, unbounded empty DATA frames DoS) kapatıldı. cargo-audit taramasında açık sayısı 0.
+- USB Başlatma Güvencesi: Hibrit ISO derlemesinin sessiz CD-only fallback'i kaldırıldı; isohdpfx MBR eksikse veya hibrit xorriso adımı başarısızsa derleme açık hatayla durur. Derleme sonunda xorriso report_system_area ile isohybrid MBR + UEFI gpt-basdat bayrakları otomatik doğrulanır. UEFI efi.img mtools yokluğunda boş üretilemez (fatal). README'ye USB'ye yazdırma talimatı eklendi.
+- boot.cfg spor adımları: early-bios.cfg aramasına --no-floppy eklendi; sürüm dizgeleri CARGO_PKG_VERSION'dan türetildi (4.0.0'dan itibaren otomatik).
 ## 3.7.0 (2026-10-28)
 - Dinamik Ada (Ayaz Dynamic Island): Ekranın üst-ortasında akıcı cam kapsül; bildirimler, indirme ilerlemesi, AI işlem nabzı ve canlı CPU/RAM göstergesiyle sistemi yormayan dinamik durum alanı; Ayarlar'dan açılıp kapatılabilir
 - Fatih Kalem 2 Entegrasyonu: Etkileşimli akıllı tahta ve ekran çizim/not alma kalemi sisteme entegre edildi; Dinamik Ada kontrol kartından, Yazılım Mağazasından ve Başlat menüsünden tek tıkla başlatılabilir

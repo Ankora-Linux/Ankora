@@ -5,7 +5,7 @@
   <p><b>Resmî ana depo · Ayaz Desktop Environment (Ayaz DE)</b></p>
 
   <p>
-    <img src="https://img.shields.io/badge/S%C3%9CR%C3%9CM-3.7.0-ffffff?style=for-the-badge&labelColor=111111" alt="Sürüm">
+    <img src="https://img.shields.io/badge/S%C3%9CR%C3%9CM-4.0.0-ffffff?style=for-the-badge&labelColor=111111" alt="Sürüm">
     <img src="https://img.shields.io/badge/HEDEF-ANKORA_LINUX-2563eb?style=for-the-badge&labelColor=111111" alt="Dağıtım">
   </p>
   <p>
@@ -108,24 +108,39 @@ cargo tauri dev
 sudo bash scripts/build-iso.sh
 ```
 
-ISO, `dist/ankora-linux-3.6-ayaz-amd64.iso` dizininde oluşur. Ayaz DE bu
-ISO ile dağıtılır; ayrı `.deb` paketi üretilmez ve yayınlanmaz. ISO
-içindeki paket (`scripts/package-deb.sh`) yalnızca canlı sisteme DE
-bileşenlerini enjekte etmek için derleyici tarafından kullanılır.
+ISO, `dist/ankora-linux-4.0.0-ayaz-amd64.iso` dizininde oluşur. Ayaz DE bu
+ISO ile dağıtılır; ayrıca `scripts/package-deb.sh` çıktısı
+`ayaz-de-latest-amd64.deb` olarak GitHub Releases sayfasına da yüklenir
+(kurulu sistemlerdeki Ayaz Güncelleyici bu paketle içeriden yükseltme yapar).
+
+### USB'ye yazdırma (önyükleme için)
+
+ISO hibritleştirilmiştir: aynı dosya hem BIOS hem UEFI firmware'den
+USB diskten başlatılabilir. Yazdırma önce BIOS uyumunun bozulmaması için
+şaşı yapılmalıdır:
+
+```bash
+# Disk harfini doğru öğren: lsblk ; ardından (sdb EŞLEŞTİRMESİ KENDİNE GÖRE)
+sudo dd if=dist/ankora-linux-4.0.0-ayaz-amd64.iso of=/dev/sdX bs=4M oflag=direct status=progress
+sync
+```
+
+`dd` yerine Balena Etcher / feather de kullanılabilir; ISO'yu dosya
+olarak kopyalama (extract) değil, imaj yazdırma yöntemi şarttır.
 
 ## Sürüm dağıtımı
 
 Depoda yeni bir etiket push edildiğinde:
 
 ```bash
-git tag v3.7.0
-git push origin v3.7.0
+git tag v4.0.0
+git push origin v4.0.0
 ```
 
 `build-iso.yml` iş akışı ISO'yu derler ve GitHub Releases sayfasına
-yükler. Sürümler yalnızca canlı ISO içerir; `.deb` paketi yayınlanmaz.
-Güncellemeler kurulu Ankora sistemlerinde masaüstündeki Ayaz Güncelleyici
-ile kurulur (iç güncelleme kanalı ayrı çalışır).
+yükler. Release içerikleri: canlı ISO, sha256 özeti ve
+`ayaz-de-latest-amd64.deb` (iç güncelleme kanalı). Güncellemeler kurulu
+Ankora sistemlerinde masaüstündeki Ayaz Güncelleyici ile kurulur.
 
 ## Lisans
 
