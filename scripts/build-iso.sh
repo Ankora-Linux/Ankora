@@ -361,6 +361,8 @@ apt-get install -y --no-install-recommends \
     python3-cairo \
     gir1.2-webkit2-4.0 \
     gir1.2-gtk-3.0 \
+    bubblewrap \
+    xdg-dbus-proxy \
     alsa-utils \
     pulseaudio \
     pulseaudio-utils \
@@ -553,6 +555,10 @@ cat << 'SUDO' > /etc/sudoers.d/ankora
 ankora ALL=(ALL:ALL) NOPASSWD: ALL
 SUDO
 chmod 0440 /etc/sudoers.d/ankora
+
+# WebKitGTK sandbox ve tarayıcı süreçleri için yetkisiz kullanıcı ad alanları (userns)
+mkdir -p /etc/sysctl.d
+echo "kernel.unprivileged_userns_clone = 1" > /etc/sysctl.d/99-userns.conf
 
 # Ankora korumalı sistem durum ve kilit dizini (/var/lib/ankora)
 mkdir -p /var/lib/ankora
@@ -813,9 +819,25 @@ xset -dpms 2>/dev/null || true
 xset s off 2>/dev/null || true
 xset s noblank 2>/dev/null || true
 
-# WebKitGTK ve X11 ortam ayarları (sanal makine ve düşük donanım uyumluluğu)
+# WebKitGTK ve X11 ortam ayarları (fiziksel donanım ve sanal makine uyumluluğu)
 export GDK_BACKEND=x11
 export WEBKIT_DISABLE_DMABUF_RENDERER=1
+export WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS=1
+
+# Sanal makine (VirtualBox, QEMU, KVM, VMware) tespiti:
+# Sanal GPU'larda (VMSVGA/QXL) DRI çökmelerini önlemek için yazılımsal render (llvmpipe) devreye alınır;
+# Fiziksel donanımlarda (Intel/AMD/Nvidia) tam GPU hızlandırması korunur.
+IS_VM=0
+for dmi in /sys/class/dmi/id/product_name /sys/class/dmi/id/sys_vendor /sys/class/dmi/id/board_vendor; do
+    if [ -r "$dmi" ]; then
+        case "$(cat "$dmi" 2>/dev/null)" in
+            *[Vv]irtual[Bb]ox*|*[Vv][Mm]ware*|*KVM*|*QEMU*|*[Bb]ochs*|*innotek*) IS_VM=1; break ;;
+        esac
+    fi
+done
+if [ "$IS_VM" = "1" ]; then
+    export LIBGL_ALWAYS_SOFTWARE=1
+fi
 # Kullanıcının Ayarlar'dan verdiği DPMS zaman aşımı yeniden başlatmada korunur
 [ -f "$HOME/.config/ankora/dpms_secs" ] && xset +dpms dpms "$(cat "$HOME/.config/ankora/dpms_secs")" "$(cat "$HOME/.config/ankora/dpms_secs")" "$(cat "$HOME/.config/ankora/dpms_secs")" 2>/dev/null || true
 
@@ -1114,8 +1136,25 @@ import urllib.parse, urllib.request
 # DİKKAT: WebKit ve GTK kütüphaneleri import edilmeden ÖNCE ortam değişkenleri ayarlanmalıdır!
 os.environ["GDK_BACKEND"] = "x11"
 os.environ["WEBKIT_DISABLE_DMABUF_RENDERER"] = "1"
-# WebKitGTK 2.42+ / 2.50+ sürümlerinde compositing zorunludur; compositing kapatıldığında
-# (WEBKIT_DISABLE_COMPOSITING_MODE) pencere şeffaf/çizimsiz kalarak ekran siyaha düşer.
+os.environ["WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS"] = "1"
+
+# Sanal makine (VirtualBox, QEMU, KVM, VMware) tespiti:
+# Sanal GPU'larda DRI çökmelerini önlemek için yazılımsal render (llvmpipe) devreye alınır;
+# Fiziksel donanımlarda tam GPU hızlandırması korunur.
+IS_VM = False
+for dmi in ('/sys/class/dmi/id/product_name', '/sys/class/dmi/id/sys_vendor', '/sys/class/dmi/id/board_vendor'):
+    if os.path.exists(dmi):
+        try:
+            with open(dmi, 'r', errors='ignore') as f:
+                val = f.read().lower()
+                if any(k in val for k in ('virtualbox', 'vmware', 'kvm', 'qemu', 'bochs', 'innotek')):
+                    IS_VM = True
+                    break
+        except Exception:
+            pass
+
+if IS_VM:
+    os.environ["LIBGL_ALWAYS_SOFTWARE"] = "1"
 
 # Canlı oturumda kullanıcı PATH'i /sbin ve /usr/sbin içermez; sistem ve
 # kurulum araçları (parted, mkfs.vfat, blkid, chroot...) bu dizinlerdedir.
@@ -2616,7 +2655,7 @@ exit 0
             _root("umount -l /target/boot/efi 2>/dev/null || true", check=False)
             _root("umount -l /target 2>/dev/null || true", check=False)
 
-        return "Ankora Linux 3.5 başarıyla kuruldu! Sistemi yeniden başlatabilirsiniz."
+        return "Ankora Linux 4.0 başarıyla kuruldu! Sistemi yeniden başlatabilirsiniz."
 
     elif cmd == 'get_system_telemetry':
         mem_total = 4096
@@ -5553,16 +5592,25 @@ class AyazDesktop(Gtk.Window):
     def __init__(self):
         super().__init__(title="Ayaz — Ankora Linux")
         try:
-            self.set_wmclass("ayaz", "Ayaz")
+            self.set_wmclass("ayaz", "ayaz")
         except Exception:
             pass
         self.connect("destroy", self.on_destroy)
+        
+        screen = Gdk.Screen.get_default()
+        if screen:
+            self.set_default_size(screen.get_width(), screen.get_height())
+        self.maximize()
         self.fullscreen()
         
         settings = WebKit2.Settings()
         settings.set_enable_javascript(True)
-        settings.set_enable_webgl(True)
-        settings.set_enable_accelerated_2d_canvas(True)
+        if IS_VM:
+            settings.set_enable_webgl(False)
+            settings.set_enable_accelerated_2d_canvas(False)
+        else:
+            settings.set_enable_webgl(True)
+            settings.set_enable_accelerated_2d_canvas(True)
         settings.set_enable_smooth_scrolling(False)
         settings.set_enable_developer_extras(False)
         settings.set_allow_file_access_from_file_urls(True)

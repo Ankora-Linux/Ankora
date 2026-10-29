@@ -9398,7 +9398,24 @@ fn main() {
     // Hedef ~350 MB boş RAM: dmabuf renderer süreç katmanını kapat;
     // ayrı NetworkProcess önbellek birikimini önle.
     // DİKKAT: WebKitGTK 2.42+ sürümlerinde WEBKIT_DISABLE_COMPOSITING_MODE siyah ekrana yol açtığı için kaldırıldı.
+    std::env::set_var("GDK_BACKEND", "x11");
     std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
+    std::env::set_var("WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS", "1");
+
+    // Sanal makine (VirtualBox, QEMU, KVM, VMware) tespiti
+    let is_vm = ["/sys/class/dmi/id/product_name", "/sys/class/dmi/id/sys_vendor", "/sys/class/dmi/id/board_vendor"]
+        .iter()
+        .any(|p| {
+            std::fs::read_to_string(p)
+                .map(|s| {
+                    let l = s.to_lowercase();
+                    l.contains("virtualbox") || l.contains("vmware") || l.contains("kvm") || l.contains("qemu") || l.contains("bochs") || l.contains("innotek")
+                })
+                .unwrap_or(false)
+        });
+    if is_vm {
+        std::env::set_var("LIBGL_ALWAYS_SOFTWARE", "1");
+    }
     let sys_path = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin";
     match std::env::var("PATH") {
         Ok(cur) if cur.contains("/usr/sbin") => {}

@@ -15,9 +15,25 @@ if command -v xset >/dev/null 2>&1; then
     xset s noblank || true
 fi
 
-# WebKitGTK ve X11 ortam ayarları (sanal makine ve düşük donanım uyumluluğu)
+# WebKitGTK ve X11 ortam ayarları (fiziksel donanım ve sanal makine uyumluluğu)
 export GDK_BACKEND=x11
 export WEBKIT_DISABLE_DMABUF_RENDERER=1
+export WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS=1
+
+# Sanal makine (VirtualBox, QEMU, KVM, VMware) tespiti:
+# Sanal GPU'larda DRI çökmelerini önlemek için yazılımsal render (llvmpipe) devreye alınır;
+# Fiziksel donanımlarda tam GPU hızlandırması korunur.
+IS_VM=0
+for dmi in /sys/class/dmi/id/product_name /sys/class/dmi/id/sys_vendor /sys/class/dmi/id/board_vendor; do
+    if [ -r "$dmi" ]; then
+        case "$(cat "$dmi" 2>/dev/null)" in
+            *[Vv]irtual[Bb]ox*|*[Vv][Mm]ware*|*KVM*|*QEMU*|*[Bb]ochs*|*innotek*) IS_VM=1; break ;;
+        esac
+    fi
+done
+if [ "$IS_VM" = "1" ]; then
+    export LIBGL_ALWAYS_SOFTWARE=1
+fi
 
 # Dokunmatik giriş (Faz tahta/IR çerçeve + dokunmatik ped): pedlerde
 # dokun-kaydır, tahta aygıtları her zaman açık. Kalibrasyon Ayarlar'dan.
