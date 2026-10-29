@@ -44,6 +44,19 @@ Bu depo, Ankora Linux projesinin resmî ana deposudur. Burada Ayaz Desktop Envir
 Bu bölüm kararların ve çalışma geçmişinin kaydıdır. Yeni karar verildikçe
 tarihli satır olarak eklenir; silinmez.
 
+- 2026-10-29 ( finalized): v4.0.0 yayınlandı. İlk ISO derlemesi
+  (`40884939190`) doğrulama suzgecinde dustu: xorriso 1.5.4 'as_mkisofs'
+  raporu '-isohybrid-gpt-basdat' satırını basmıyor. Dogrulama bayt
+  duzeyine taşındı (MBR1=0x80 @446, MBR2=0xef @466, GPT imza @512) —
+  pozitif/negatif mini ISO ile hem doğrulandı. Sabit volid ANKORA_3_3 →
+  $AYAZ_VERSION'dan türetilen VOLID (ANKORA_4_0_0), grub.cfg 'search
+  --label' yer tutucu üzerinden aynı kaynaktan (commit `3ec1b19`).
+  İkinci derleme (`40887780635`) 12m54s'de yeşil; release v4.0.0
+  yayınlandı (draft:false): ankora-linux-4.0.0-ayaz-amd64.iso (877 MB) +
+  .sha256 + ayaz-de-latest-amd64.deb (3.2 MB). releases/latest artık
+  4.0.0 → güncelleyici sürümü görür. Yayınlanan ISO'nun sistem alanı
+  HTTP Range isteğiyle yeniden doğrulandı (MBR1 0x80, MBR2 0xef,
+  'EFI PART' imza). CI main yeşil.
 - 2026-10-28: Dinamik Ada her yerden açma/kapatma (Quick Settings flyout, masaüstü sağ tık menüsü, kapsül sağ tık menüsü, kapsül içi 'Gizle' butonu ve Ayarlar) kontrollerine kavuşturuldu. Masaüstündeki simge ve klasör kalabalığı temizlendi; varsayılan olarak yalnızca 4 temel simge (Sistemi Kur, Dosyalar, Brave, Mağaza) ve Çöp Kutusu bırakıldı, diğerleri Başlat menüsüne alındı. Mağazaya 100 yeni doğrulanmış Linux uygulaması (eğitim, bilim, geliştirme, medya, ofis, sistem) eklenerek paket sayısı 278'e ulaştı. Ankora AI yerel teşhis motoru (fallback diagnostic engine) ile güçlendirildi. Derleme yapılmadı.
 - 2026-10-28: Modern lüks koyu cam masaüstü ekosistemi entegrasyonu tamamlandı (`9577d47`). Mağazaya tam detay görünüm katmanı (Store App Detail View; teyit rozeti, mimari/sandbox güvenlik izolasyonu dökümü, dinamik yükle/kaldır/çalıştır aksiyonları) eklendi. Dinamik Durum Kapsülü telemetri (CPU/RAM) yanına hava durumu canlı entegre edildi. Yapay zekâ asistanına tek tıkla eyleme geçirilebilir hızlı yönlendiriciler (Günün Planı, Sistem Durumu, Uygulama Öner, Uçbirim) eklendi. Masaüstü araçları ve kategori klasörleri birleşik lüks cam (`backdrop-filter: blur`) tasarım diliyle rafine edildi.
 - 2026-10-28: Dinamik Durum Kapsülü ve Yazılım Mağazası antislop ilkeleriyle rafine edildi (`1d72578`). Kapsüldeki AI-slop göstergeleri (emojiler, neon noktalar, yapay dalgalar, hover sıçraması) kaldırıldı; üst kenara tam oturan monokrom cam mimarisine geçildi; çift bildirim ve tıklama toggle bugları giderildi. Mağaza arayüzü sol kenar çubuğu (kategoriler ve depo kaynağı) ile editoryal spotlight vitrini düzenine kavuşturuldu.
