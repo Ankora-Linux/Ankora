@@ -24,6 +24,9 @@ if [ -z "$AYAZ_VERSION" ] && [ -f "$ROOT_DIR/VERSION" ]; then
 fi
 [ -z "$AYAZ_VERSION" ] && AYAZ_VERSION="3.7.0"
 ISO_NAME="ankora-linux-${AYAZ_VERSION}-ayaz-amd64.iso"
+# ISO9660 etiketi sürümü yansıtır; grub.cfg'deki search --label ile birebir
+# aynı etikettir — ikisi tek değişkenden üretilir, elle düzeltmeyin.
+VOLID="ANKORA_$(printf '%s' "$AYAZ_VERSION" | sed 's/\./_/g')"
 echo
 echo "======================================================================"
 echo "   ANKORA LINUX $AYAZ_VERSION (AYAZ DE) CANLI ISO DERLEME SİSTEMİ      "
@@ -6121,7 +6124,7 @@ if loadfont ($root)/boot/grub/fonts/unicode.pf2; then have_font="1"; elif loadfo
 # ISO kökü etiketle bulunur; etiket okunamazsa (bazı USB yazıcılar /
 # büyük-küçük harf farkı) dosya varlığıyla yedeğe düşülür. Yedek yoksa
 # /live/vmlinuz bulunamaz ve "you need to load the kernel first" verir.
-if search --no-floppy --set=root --label ANKORA_3_3; then true; fi
+if search --no-floppy --set=root --label __ANKORA_VOLID__; then true; fi
 if [ ! -e "/live/vmlinuz" ]; then
     if search --no-floppy --set=root --file /live/vmlinuz; then true; fi
 fi
@@ -6184,6 +6187,17 @@ EOF
 # Menü başlıkları sürümden türetilir: heredoc tırnaklı ('EOF') olduğundan
 # menü metni derleme anında gerçek sürümle değiştirilir.
 sed -i -E "s/Ankora Linux [0-9]+\.[0-9]+/Ankora Linux ${AYAZ_VERSION}/g" "$IMAGE_DIR/boot/grub/grub.cfg"
+# Etiket yer tutucusu da gerçek VOLID ile değiştirilir (grub.cfg'deki
+# search --label ile xorriso -volid aynı $VOLID'den üretilir; ISO kökü
+# etikete göre bulunur, iki tarafın uyuşmazlığı boot'u kırar).
+if grep -q '__ANKORA_VOLID__' "$IMAGE_DIR/boot/grub/grub.cfg" && ! sed -i "s/__ANKORA_VOLID__/${VOLID}/g" "$IMAGE_DIR/boot/grub/grub.cfg"; then
+    echo "[HATA] grub.cfg etiket yer tutucusu değiştirilemedi." >&2
+    exit 1
+fi
+if grep -q '__ANKORA_VOLID__' "$IMAGE_DIR/boot/grub/grub.cfg"; then
+    echo "[HATA] grub.cfg'de etiket yer tutucusu kalmış; VOLID genişletme atlanmış görünüyor." >&2
+    exit 1
+fi
 # Derleme kapısı: bozuk GRUB sözdizimi ISO'ya giremez.
 if command -v grub-script-check &>/dev/null; then
     if ! grub-script-check "$IMAGE_DIR/boot/grub/grub.cfg"; then
@@ -6304,7 +6318,7 @@ XORRISO_CMD=(
     -iso-level 3
     -full-iso9660-filenames
     -r -J -l
-    -volid "ANKORA_3_3"
+    -volid "${VOLID}"
     -isohybrid-mbr "$ISOHDPFX"
     -eltorito-boot boot/grub/i386-pc-eltorito.img
     -eltorito-catalog boot/grub/boot.cat
@@ -6339,15 +6353,25 @@ if [ -f "$ROOT_DIR/dist/$ISO_NAME" ]; then
         echo "[HATA] Üretilen ISO'nun MBR'si isohdpfx bootloader kodunu içermiyor; USB'den BIOS boot çalışmaz."
         exit 1
     fi
-    # UEFI: GPT bas-dat bölümü raporda '-isohybrid-gpt-basdat' olarak görünür.
-    SYSTEM_REPORT=$(xorriso -indev "$ROOT_DIR/dist/$ISO_NAME" -report_system_area as_mkisofs 2>&1 || true)
-    if [ -f "$IMAGE_DIR/boot/grub/efi.img" ] && ! printf '%s\n' "$SYSTEM_REPORT" | grep -q 'isohybrid-gpt-basdat'; then
-        echo "[HATA] Üretilen ISO'da UEFI hibrit bölümü (gpt-basdat) saptanmadı; USB'den UEFI boot riskli."
-        echo "--- report_system_area çıktısı (teşhis için) ---"
-        printf '%s\n' "$SYSTEM_REPORT" | head -20
-        exit 1
+    # UEFI: jeton aramasına güvenme — as_mkisofs raporu sürüme göre farklı
+    # basıyor (xorriso 1.5.4 '-isohybrid-gpt-basdat' satırını üretmiyor).
+    # Bunun yerine ISO'nun sistem alanını bayt düzeyinde doğrula:
+    #   1) MBR 1. bölüm girişi önyüklenebilir (offset 446, durum baytı 0x80)
+    #   2) MBR 2. bölüm girişinin tür baytı 0xef (offset 466)
+    #   3) LBA 1'de (byte 512) GPT imzası "EFI PART"
+    # İkisi birlikte: USB disk girdisinde EFI bölümü ve GPT gerçekten var.
+    if [ -f "$IMAGE_DIR/boot/grub/efi.img" ]; then
+        MBR1_BOOT=$(dd if="$ROOT_DIR/dist/$ISO_NAME" bs=1 skip=446 count=1 2>/dev/null | od -An -tx1 | tr -d ' \n')
+        MBR_EFI_TYPE=$(dd if="$ROOT_DIR/dist/$ISO_NAME" bs=1 skip=466 count=1 2>/dev/null | od -An -tx1 | tr -d ' \n')
+        GPT_SIG=$(dd if="$ROOT_DIR/dist/$ISO_NAME" bs=1 skip=512 count=8 2>/dev/null)
+        if [ "$MBR1_BOOT" != "80" ] || [ "$MBR_EFI_TYPE" != "ef" ] || [ "$GPT_SIG" != "EFI PART" ]; then
+            echo "[HATA] Üretilen ISO'da UEFI hibrit yapısı saptanmadı (MBR1=0x${MBR1_BOOT:-??}, MBR2=0x${MBR_EFI_TYPE:-??}, GPT=${GPT_SIG:-yok}); USB'den UEFI boot riskli."
+            echo "--- report_system_area çıktısı (teşhis için) ---"
+            xorriso -indev "$ROOT_DIR/dist/$ISO_NAME" -report_system_area plain 2>&1 | head -30 || true
+            exit 1
+        fi
+        echo "[OK] Hibrit doğrulama: isohybrid MBR ve UEFI bölüm yapısı (MBR2=0xef + GPT imzası) mevcut."
     fi
-    echo "[OK] Hibrit doğrulama: isohybrid MBR ve UEFI gpt-basdat bayrakları mevcut."
 fi
 
 # 11. Bitiş ve Doğrulama
