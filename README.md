@@ -198,6 +198,26 @@ belleği seçin. Canlı sistemi başlatmak diskteki verilere dokunmaz;
 kurulum istediğinizde masaüstündeki "Sistemi Kur" simgesi Ayaz Kurulum
 Sihirbazı'nı açar ve adım adım yol gösterir.
 
+## Sanal makinede çalıştırma
+
+Canlı ISO, VirtualBox ve QEMU altında açılır. VirtualBox için önerilen
+ayarlar:
+
+| Ayar | Değer |
+|---|---|
+| Grafik denetleyicisi | VBoxSVGA (VMSVGA sorun çıkarırsa) |
+| Video belleği | 64 MB veya üzeri |
+| 3D hızlandırma | Kapalı |
+| Bellek | 2048 MB veya üzeri |
+| Önyükleme sırası | DVD/ISO ilk sırada; disket yok |
+
+VMSVGA + 16 MB video belleği birleşiminde sanal GPU sürücüsü
+kilitlenebiliyor. Belirtisi, Plymouth'tan sonra düz siyah ekran ve
+Ctrl+Alt+F2'nin yanıt vermemesidir. Bu durumda makineyi kapatıp video
+belleğini yükseltin ya da GRUB menüsünden **Güvenli Mod (Failsafe)**
+(`nomodeset`) ile açın. 4.0.1'den itibaren masaüstü başlatılamazsa hata,
+`/tmp/ayaz.log` günlüğüyle birlikte bir terminal penceresinde gösterilir.
+
 ## Sürüm dağıtımı ve güncellenme akışı
 
 ```text

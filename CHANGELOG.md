@@ -1,5 +1,11 @@
 # Ankora Linux — Sürüm Notları
 
+## 4.0.1 (2026-10-29)
+- Siyah Ekran Güvencesi: Canlı oturumda masaüstü (`ayaz`) başlatılamazsa ekran artık sessiz siyah kalmıyor. Hata günlüğü `/tmp/ayaz.log` dosyasına yazılıp xterm penceresinde son 60 satır gösteriliyor ve kabuk açılıyor. Otomatik `startx` yeniden deneme döngüsü `/tmp/ankora-desktop-failed` işaretiyle kırılıyor; kullanıcı `rm /tmp/ankora-desktop-failed && startx` ile bilinçli olarak yeniden deniyor.
+- VT Kaçışı: tty1 otomatik girişinde `startx -- -keeptty` yerine `startx` kullanılıyor. Önceki davranışta siyah ekranda kalan kullanıcı Ctrl+Alt+F2 ile metin konsoluna geçemiyordu.
+- Ses Sunucusu: `pulseaudio --start` arka planda başlatılıyor; ses sunucusu takılsa bile oturum başlatmayı bloklamıyor.
+- Sanal Makine Notu: VirtualBox'ta VMSVGA + 16 MB VRAM birleşiminde sanal GPU kilitlenmesi (guest %0 CPU, ACPI yanıtsız) gözlendi. Önerilen ayar VBoxSVGA veya VMSVGA + VRAM ≥ 64 MB, 3D kapalı. Kurtarma için GRUB "Güvenli Mod (Failsafe)" (`nomodeset`) girdisi kullanılabilir.
+
 ## 4.0.0 (2026-10-29)
 - Sanal Makine ve Fiziksel Donanım Ekran Çizim Düzeltmesi (Siyah Ekran Çözümü): WebKitGTK 2.40/2.50+ sürümlerinde sanal makine ve düşük donanım ortamlarında boş/siyah ekrana neden olan tüm engeller giderildi: Sanal makine (VirtualBox, QEMU, KVM, VMware) DMI tespiti ile otomatik `LIBGL_ALWAYS_SOFTWARE=1` ve yazılımsal rasterizer (llvmpipe) devreye alındı, fiziksel GPU'larda (Intel, AMD, Nvidia) tam donanım hızlandırması korundu; WebKitWebProcess sandbox çökmesini engelleyen `WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS=1` ve `kernel.unprivileged_userns_clone=1` eklendi; bubblewrap ve xdg-dbus-proxy chroot paketlerine dahil edildi; pencere boyutu tam ekran ekran geometrisi ile Openbox öncesi garantiye alındı; yerel dosya ve WebKit CSP'sine `file:` şeması entegre edildi. Kurulum aracı 4.0 damgasıyla güncellendi.
 - Cumhuriyet Teması (29 Ekim özel): Bayrak kırmızısı zeminli, ay-yıldız beyazı metinli koyu tema; eşleşen vektörel duvar kağıdı ve tema seçici kartı ile birlikte gelir. Monokrom cam tasarım sisteminin palet varyantıdır.

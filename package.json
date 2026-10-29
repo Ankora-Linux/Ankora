@@ -1,6 +1,6 @@
 {
   "name": "ankora-linux",
-  "version": "4.0.0",
+  "version": "4.0.1",
   "description": "Ankora Linux official main repo for Ayaz DE (Tauri + Rust) desktop environment",
   "private": true,
   "scripts": {
