@@ -812,6 +812,10 @@ xsetroot -solid "#0b0c10" 2>/dev/null || true
 xset -dpms 2>/dev/null || true
 xset s off 2>/dev/null || true
 xset s noblank 2>/dev/null || true
+
+# WebKitGTK ve X11 ortam ayarları (sanal makine ve düşük donanım uyumluluğu)
+export GDK_BACKEND=x11
+export WEBKIT_DISABLE_DMABUF_RENDERER=1
 # Kullanıcının Ayarlar'dan verdiği DPMS zaman aşımı yeniden başlatmada korunur
 [ -f "$HOME/.config/ankora/dpms_secs" ] && xset +dpms dpms "$(cat "$HOME/.config/ankora/dpms_secs")" "$(cat "$HOME/.config/ankora/dpms_secs")" "$(cat "$HOME/.config/ankora/dpms_secs")" 2>/dev/null || true
 
@@ -1107,7 +1111,11 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import urllib.parse, urllib.request
 
 # GPU Donanım Hızlandırma ve WebKit Ortam Değişkenleri
+# DİKKAT: WebKit ve GTK kütüphaneleri import edilmeden ÖNCE ortam değişkenleri ayarlanmalıdır!
 os.environ["GDK_BACKEND"] = "x11"
+os.environ["WEBKIT_DISABLE_DMABUF_RENDERER"] = "1"
+# WebKitGTK 2.42+ / 2.50+ sürümlerinde compositing zorunludur; compositing kapatıldığında
+# (WEBKIT_DISABLE_COMPOSITING_MODE) pencere şeffaf/çizimsiz kalarak ekran siyaha düşer.
 
 # Canlı oturumda kullanıcı PATH'i /sbin ve /usr/sbin içermez; sistem ve
 # kurulum araçları (parted, mkfs.vfat, blkid, chroot...) bu dizinlerdedir.
@@ -1122,19 +1130,6 @@ try:
 except ValueError:
     gi.require_version('WebKit2', '4.1')
 from gi.repository import Gtk, WebKit2, Gdk, GLib
-
-# ----------------------------------------------------------------------------
-# RAM TASARRUFU (hedef ~350 MB boş RAM):
-# - WEBKIT_DISABLE_COMPOSITING_MODE: GPU kompozitör/AcceleratedDrawing
-#   süreç katmanını kapatır (~40-80 MB RSS tasarrufu, donanımsız ekranlarda
-#   görsel fark yok).
-# - WEBKIT_DISABLE_DMABUF_RENDERER: dmabuf render kurgusunun ayrı önbellek
-#   birikimini engeller.
-# - DOCUMENT_VIEWER cache modeli + settings'te kapalı page-cache/DBAudio
-#   ile birlikte WebKit tek süreçte düşük ansız çalışır.
-# ----------------------------------------------------------------------------
-os.environ.setdefault('WEBKIT_DISABLE_COMPOSITING_MODE', '1')
-os.environ.setdefault('WEBKIT_DISABLE_DMABUF_RENDERER', '1')
 
 PORT = 49152
 # Origin başlığı yansıtılmaz: sabitlenen tek origin, aynı makinedeki her
@@ -5557,14 +5552,17 @@ def start_ipc_server():
 class AyazDesktop(Gtk.Window):
     def __init__(self):
         super().__init__(title="Ayaz — Ankora Linux")
+        try:
+            self.set_wmclass("ayaz", "Ayaz")
+        except Exception:
+            pass
         self.connect("destroy", self.on_destroy)
-        self.maximize()
         self.fullscreen()
         
         settings = WebKit2.Settings()
         settings.set_enable_javascript(True)
-        settings.set_enable_webgl(False)
-        settings.set_enable_accelerated_2d_canvas(False)
+        settings.set_enable_webgl(True)
+        settings.set_enable_accelerated_2d_canvas(True)
         settings.set_enable_smooth_scrolling(False)
         settings.set_enable_developer_extras(False)
         settings.set_allow_file_access_from_file_urls(True)
@@ -5578,6 +5576,12 @@ class AyazDesktop(Gtk.Window):
         settings.set_enable_webaudio(False)
         
         self.webview = WebKit2.WebView.new_with_settings(settings)
+        try:
+            rgba = Gdk.RGBA()
+            rgba.parse("#0c0d12")
+            self.webview.set_background_color(rgba)
+        except Exception:
+            pass
         try:
             ctx = self.webview.get_context()
             ctx.set_cache_model(WebKit2.CacheModel.DOCUMENT_VIEWER)
@@ -5613,6 +5617,15 @@ class AyazDesktop(Gtk.Window):
             # Enjeksiyon sessizce düşerse tüm IPC istekleri token reddi yer;
             # hata loga yazılır ki kırık köprü görünür kalsın.
             print(f"[IPC] token script enjekte edilemedi: {e}", flush=True)
+
+        def on_load_failed(wv, load_event, failing_uri, error):
+            print(f"[AYAZ-WEBVIEW-HATA] Yükleme hatası: {failing_uri} -> {error.message}", flush=True)
+            if str(failing_uri).startswith("file://"):
+                print("[AYAZ-WEBVIEW] Yerel HTTP sunucusuna (http://127.0.0.1:{PORT}/index.html) fallback yapılıyor...", flush=True)
+                GLib.idle_add(lambda: wv.load_uri(f"http://127.0.0.1:{PORT}/index.html"))
+            return True
+
+        self.webview.connect('load-failed', on_load_failed)
 
         # Doğrudan yerel dosya üzerinden açma - Sıfır ağ bağımlılığı, anında ve hatasız başlatma
         path = os.path.abspath("/usr/share/ayaz/index.html")

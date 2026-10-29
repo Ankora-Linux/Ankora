@@ -1,6 +1,7 @@
 # Ankora Linux — Sürüm Notları
 
 ## 4.0.0 (2026-10-29)
+- Sanal Makine ve Ekran Çizim Düzeltmesi (Siyah Ekran Çözümü): WebKitGTK 2.50+ ile çakışarak boş/siyah ekrana neden olan WEBKIT_DISABLE_COMPOSITING_MODE kaldırıldı; sanal makineler için WEBKIT_DISABLE_DMABUF_RENDERER ve GDK_BACKEND=x11 ortam değişkenleri kütüphane yüklenişinden önceye taşındı; yerel dosya ve WebKit CSP'sine file: şeması dahil edildi; yükleme hatasında yerel HTTP sunucusuna otomatik fallback eklendi.
 - Cumhuriyet Teması (29 Ekim özel): Bayrak kırmızısı zeminli, ay-yıldız beyazı metinli koyu tema; eşleşen vektörel duvar kağıdı ve tema seçici kartı ile birlikte gelir. Monokrom cam tasarım sisteminin palet varyantıdır.
 - Güvenlik Sertleştirmeleri: 14 tarama bulgusu kapatıldı — kilit ekranı girişim sınırlayıcı ve tek kullanımlık kilit açma yetkisi (30 sn), pano sızıntısının kilitliyken engellenmesi, sembolik bağ üzerine yazma ataklarının durdurulması, polkit ajan denetimli pkexec geçidi, IPC'de Origin + 256-bit token + zaman-sabitli karşılaştırma + 50 denemede kalıcı blok, komut yürütmede katmanlı beyaz liste, çıktı boyutu DoS sınırları, MEB sertifikasına CA:TRUE Basic Constraints doğrulaması, CSP sıkılaştırması (object-src 'none').
 - Bağımlılık Güvenliği: reqwest 0.12'ye yükseltildi; h2 (RUSTSEC-2026-0258, unbounded empty DATA frames DoS) kapatıldı. cargo-audit taramasında açık sayısı 0.

@@ -8,6 +8,10 @@ xset -dpms
 xset s off
 xset s noblank
 
+# WebKitGTK ve X11 ortam ayarları (sanal makine ve düşük donanım uyumluluğu)
+export GDK_BACKEND=x11
+export WEBKIT_DISABLE_DMABUF_RENDERER=1
+
 # Ankora Openbox Yapılandırmasını Hazırla ve Başlat
 mkdir -p "$HOME/.config/openbox"
 if [ -f /usr/share/ayaz/openbox-rc.xml ]; then

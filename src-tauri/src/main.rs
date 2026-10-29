@@ -9395,9 +9395,9 @@ fn delete_system_snapshot(snapshot_id: String) -> Result<String, String> {
 }
 
 fn main() {
-    // Hedef ~350 MB boş RAM: WebKit GPU kompozitörü ve dmabuf renderer
-    // süreç katmanlarını kapat; ayrı NetworkProcess önbellek birikimini önle.
-    std::env::set_var("WEBKIT_DISABLE_COMPOSITING_MODE", "1");
+    // Hedef ~350 MB boş RAM: dmabuf renderer süreç katmanını kapat;
+    // ayrı NetworkProcess önbellek birikimini önle.
+    // DİKKAT: WebKitGTK 2.42+ sürümlerinde WEBKIT_DISABLE_COMPOSITING_MODE siyah ekrana yol açtığı için kaldırıldı.
     std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
     let sys_path = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin";
     match std::env::var("PATH") {
