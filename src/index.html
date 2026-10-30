@@ -1430,11 +1430,98 @@
                     <strong>Cumhuriyet</strong>
                     <span>29 Ekim özel: bayrak kırmızısı zemin, ay-yıldız beyazı</span>
                   </div>
+                  <div class="theme-card-choice" data-theme="theme-matbaa">
+                    <div class="theme-preview-box matbaa">
+                      <div class="preview-mini-bar"></div>
+                      <div class="preview-mini-card"></div>
+                    </div>
+                    <strong>Matbaa</strong>
+                    <span>Kâğıt krem, oksit kırmızı vurgu; editorial seri</span>
+                  </div>
+                  <div class="theme-card-choice" data-theme="theme-bakir">
+                    <div class="theme-preview-box bakir">
+                      <div class="preview-mini-bar"></div>
+                      <div class="preview-mini-card"></div>
+                    </div>
+                    <strong>Bakır</strong>
+                    <span>Grafit zemin, bakır vurgu; IBM Plex Mono hava</span>
+                  </div>
+                  <div class="theme-card-choice" data-theme="theme-bostan">
+                    <div class="theme-preview-box bostan">
+                      <div class="preview-mini-bar"></div>
+                      <div class="preview-mini-card"></div>
+                    </div>
+                    <strong>Bostan</strong>
+                    <span>Adaçayı yeşili açık tema, sıcak kâğıt yüzey</span>
+                  </div>
+                  <div class="theme-card-choice" data-theme="theme-hat">
+                    <div class="theme-preview-box hat">
+                      <div class="preview-mini-bar"></div>
+                      <div class="preview-mini-card"></div>
+                    </div>
+                    <strong>Hat</strong>
+                    <span>Gece petrolü, pirinç vurgu; serif soylu</span>
+                  </div>
+                  <div class="theme-card-choice" data-theme="theme-konsol">
+                    <div class="theme-preview-box konsol">
+                      <div class="preview-mini-bar"></div>
+                      <div class="preview-mini-card"></div>
+                    </div>
+                    <strong>Konsol</strong>
+                    <span>Buz beyaz terminal YEŞİLİ; katı çizgi düzen</span>
+                  </div>
+                  <div class="theme-card-choice" data-theme="theme-kesit">
+                    <div class="theme-preview-box kesit">
+                      <div class="preview-mini-bar"></div>
+                      <div class="preview-mini-card"></div>
+                    </div>
+                    <strong>Kesit</strong>
+                    <span>Işık gri + mürekkep, bizon sarısı vurgu</span>
+                  </div>
+                  <div class="theme-card-choice" data-theme="theme-fener">
+                    <div class="theme-preview-box fener">
+                      <div class="preview-mini-bar"></div>
+                      <div class="preview-mini-card"></div>
+                    </div>
+                    <strong>Fener</strong>
+                    <span>Köz siyahı, kor turuncusu; sıcak kum tipografi</span>
+                  </div>
+                  <div class="theme-card-choice" data-theme="theme-civata">
+                    <div class="theme-preview-box civata">
+                      <div class="preview-mini-bar"></div>
+                      <div class="preview-mini-card"></div>
+                    </div>
+                    <strong>Cıvata</strong>
+                    <span>Beyaz + is, limon yeşili vurgu; dev rakamlar</span>
+                  </div>
+                  <div class="theme-card-choice" data-theme="theme-mina">
+                    <div class="theme-preview-box mina">
+                      <div class="preview-mini-bar"></div>
+                      <div class="preview-mini-card"></div>
+                    </div>
+                    <strong>Mina</strong>
+                    <span>Çam yeşili koyu, nane tipografi, mercan vurgu</span>
+                  </div>
+                  <div class="theme-card-choice" data-theme="theme-meridyen">
+                    <div class="theme-preview-box meridyen">
+                      <div class="preview-mini-bar"></div>
+                      <div class="preview-mini-card"></div>
+                    </div>
+                    <strong>Meridyen</strong>
+                    <span>Kerpiç krem, kobalt mavi tam blok vurgu</span>
+                  </div>
                 </div>
                 <label class="card-group-hint" style="display:flex;align-items:center;gap:8px;margin-top:10px;cursor:pointer;">
                   <input type="checkbox" id="chk-fullsystem-theme" checked style="accent-color: var(--accent-active, #2563eb);">
                   <span>Tema değişince duvar kağıdı ve ikon seti de birlikte değişsin (tüm sistem teması — GTK, pencere, simge ve masaüstü arka planı aynı pakete geçer)</span>
                 </label>
+                <div class="settings-card" style="margin-top:12px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;">
+                  <div>
+                    <h4 style="margin:0 0 3px;font-size:13px;">Galeri + kendi tema paketin</h4>
+                    <p style="margin:0;font-size:12px;color:var(--text-muted);">10 kompozisyon teması tek listeden uygula; kendi CSS değişken bloğunu yaz, panoyla taşı.</p>
+                  </div>
+                  <button class="btn-pkg btn-pkg-primary" id="btn-open-studio" style="padding:7px 16px;font-size:12px;cursor:pointer;white-space:nowrap;">Stüdyoyu Aç</button>
+                </div>
               </div>
 
               <!-- Vurgu Rengi -->
@@ -2240,6 +2327,66 @@
         </div>
       </div>
     </section>
+    <!-- ======================================================================= -->
+    <!-- TEMA STÜDYOSU (STUDIO: TEMA GALERISI + KENDI TEMANI YAZ)                -->
+    <!-- ======================================================================= -->
+    <section class="window" id="win-studio" style="top: 70px; left: 190px; width: 860px; height: 560px;" aria-labelledby="studio-header-title">
+      <div class="window-header" data-tauri-drag-region>
+        <div class="window-meta">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:16px;height:16px;color:#c9a24e;margin-right:6px;"><circle cx="12" cy="12" r="9"></circle><path d="M12 3a9 9 0 0 1 0 18"></path><path d="M12 7v10"></path></svg>
+          <span class="window-title" id="studio-header-title">Tema Stüdyosu</span>
+        </div>
+        <div class="window-controls">
+          <button class="ctrl-btn min" aria-label="Simge Durumuna Küçült">—</button>
+          <button class="ctrl-btn max" aria-label="Ekranı Kapla">▢</button>
+          <button class="ctrl-btn close" aria-label="Pencereyi Kapat">✕</button>
+        </div>
+      </div>
+      <div class="window-body" style="display:flex;flex-direction:column;padding:14px 16px;overflow:hidden;gap:12px;">
+        <p style="margin:0;font-size:12px;color:var(--text-muted);line-height:1.5;">Tüm masaüstünü tek yerden değiştir: galeriden hazır bir kompozisyon uygula ya da kendi CSS değişken bloğunu yaz, panoyla taşı.</p>
+
+        <div class="studio-columns" style="display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:14px;flex:1;min-height:0;">
+
+          <!-- Sol: galeri -->
+          <div class="studio-gallery" style="display:flex;flex-direction:column;min-height:0;gap:8px;">
+            <span style="font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-muted);">Galeri · 10 Kompozisyon</span>
+            <div id="studio-theme-list" class="studio-theme-list" style="flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:6px;padding-right:4px;">
+              <div style="color:var(--text-muted);font-size:12px;padding:8px 0;">Galeri yükleniyor…</div>
+            </div>
+            <p style="margin:0;font-size:11px;color:var(--text-muted);">Uygulanan tema, Ayarlar → Görünüm'deki seçim ve GTK masaüstüyle birlikte değişir.</p>
+          </div>
+
+          <!-- Sağ: kendi temanı yaz -->
+          <div class="studio-custom" style="display:flex;flex-direction:column;min-height:0;gap:8px;">
+            <span style="font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-muted);">Kendi Tema Paketin</span>
+
+            <div style="display:flex;gap:8px;align-items:center;">
+              <input type="text" id="studio-name" placeholder="Tema adı örn. Matbaa" style="flex:1;background:var(--bg-surface);border:1px solid var(--border-medium);border-radius:6px;padding:8px 10px;color:var(--text-primary);font-size:12px;">
+            </div>
+
+            <textarea id="studio-css" spellcheck="false" style="flex:1;min-height:0;resize:none;background:var(--bg-surface);border:1px solid var(--border-medium);border-radius:6px;padding:10px;font-family:'JetBrains Mono','Fira Code',monospace;font-size:11px;line-height:1.5;color:var(--text-primary);white-space:pre;" placeholder="body.theme-custom {&#10;  --bg-base: #16171b;&#10;  --text-primary: #ece7db;&#10;  /* …tamamı Stüdyo şablonunda */&#10;}"></textarea>
+
+            <div style="display:flex;gap:8px;align-items:center;">
+              <input type="text" id="studio-wallpaper" placeholder="Duvar kağıdı yolu (boş kalabilir)" style="flex:1;background:var(--bg-surface);border:1px solid var(--border-medium);border-radius:6px;padding:8px 10px;color:var(--text-primary);font-size:12px;">
+              <input type="text" id="studio-radius" placeholder="6px" title="Köşe yumuşaklığı" style="width:74px;background:var(--bg-surface);border:1px solid var(--border-medium);border-radius:6px;padding:8px 10px;color:var(--text-primary);font-size:12px;">
+            </div>
+
+            <div class="studio-actions" style="display:flex;flex-wrap:wrap;gap:8px;">
+              <button class="btn-pkg btn-pkg-primary studio-btn" id="btn-studio-apply" style="padding:7px 14px;font-size:12px;cursor:pointer;">Uygula</button>
+              <button class="btn-pkg studio-btn" id="btn-studio-template" style="padding:7px 14px;font-size:12px;cursor:pointer;">Şablonu Yükle</button>
+              <button class="btn-pkg studio-btn" id="btn-studio-save" style="padding:7px 14px;font-size:12px;cursor:pointer;">Oturuma Kaydet</button>
+              <button class="btn-pkg studio-btn" id="btn-studio-export" style="padding:7px 14px;font-size:12px;cursor:pointer;">Panoya Al</button>
+              <button class="btn-pkg studio-btn" id="btn-studio-paste" style="padding:7px 14px;font-size:12px;cursor:pointer;">Panodan Uygula</button>
+              <button class="btn-pkg studio-btn" id="btn-studio-import" style="padding:7px 14px;font-size:12px;cursor:pointer;">Dosyadan Yükle</button>
+              <button class="btn-pkg studio-btn studio-btn-danger" id="btn-studio-clear" style="padding:7px 14px;font-size:12px;cursor:pointer;">Özel Temayı Kaldır</button>
+            </div>
+
+            <p id="studio-status" style="margin:0;font-size:11.5px;color:var(--text-muted);min-height:16px;">Galeriden seçim yapabilirsin; sağdaki alana yazdığın değişken bloğu "Uygula" ile geçerli temanın üstüne biner.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- ======================================================================= -->
     <!-- 8. AYAZ GÜNCELLEYİCİ (AYAZ DE UPDATE MANAGER)                           -->
     <!-- ======================================================================= -->

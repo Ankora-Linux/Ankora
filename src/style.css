@@ -531,6 +531,383 @@ body.theme-meltem .window-header {
   background: #f4f8fa;
   border-bottom-color: rgba(24, 45, 55, 0.09);
 }
+/* --- Studio ekleyi: 10 kompozisyon teması (Masaüstü yönlerinden) ---
+   Paletler gerçek seçmelerin kapril çekیمی; yalnızca değişken bloğu. */
+
+body.theme-matbaa {
+  --bg-deep: #e8e0cc;
+  --bg-base: #f2ecdf;
+  --bg-panel: #f7f3e8;
+  --bg-surface: #f4eee1;
+  --bg-surface-hover: #ece4d0;
+  --bg-surface-active: #e0d8c2;
+
+  --border-subtle: rgba(35, 32, 26, 0.09);
+  --border-medium: rgba(35, 32, 26, 0.18);
+  --border-focus: rgba(180, 70, 42, 0.45);
+  --border-active-window: #b4462a;
+  --border-highlight: #23201a;
+
+  --text-primary: #23201a;
+  --text-secondary: #5c5546;
+  --text-muted: #6b6552;
+  --text-inverse: #ffffff;
+
+  --accent-white: #23201a;
+  --accent-gray: #84796a;
+  --accent-active: #b4462a;
+
+  --surface-flyout: #fbf8f1;
+  --taskbar-bg: rgba(242, 236, 223, 0.94);
+  --desktop-bg: #e9e1cd;
+  --glass-taskbar: rgba(247, 243, 232, 0.78);
+  --glass-flyout: rgba(251, 248, 241, 0.9);
+}
+
+body.theme-bakir {
+  --bg-deep: #101114;
+  --bg-base: #141519;
+  --bg-panel: #1b1d22;
+  --bg-surface: #1f2127;
+  --bg-surface-hover: #26292f;
+  --bg-surface-active: #2e323a;
+
+  --border-subtle: rgba(233, 228, 218, 0.08);
+  --border-medium: rgba(233, 228, 218, 0.17);
+  --border-focus: rgba(209, 121, 79, 0.45);
+  --border-active-window: #d1794f;
+  --border-highlight: #e9e4da;
+
+  --text-primary: #e9e4da;
+  --text-secondary: #a49e92;
+  --text-muted: #8e897d;
+  --text-inverse: #141519;
+
+  --accent-white: #e9e4da;
+  --accent-gray: #79756a;
+  --accent-active: #d1794f;
+
+  --surface-flyout: #202227;
+  --taskbar-bg: rgba(20, 21, 25, 0.92);
+  --desktop-bg: #0d0e10;
+  --glass-taskbar: rgba(23, 25, 29, 0.7);
+  --glass-flyout: rgba(23, 25, 29, 0.78);
+}
+
+body.theme-bostan {
+  --bg-deep: #dfe6d4;
+  --bg-base: #e9edda;
+  --bg-panel: #f2f2e7;
+  --bg-surface: #eff1e1;
+  --bg-surface-hover: #e3e8d0;
+  --bg-surface-active: #d6dec4;
+
+  --border-subtle: rgba(38, 50, 31, 0.09);
+  --border-medium: rgba(38, 50, 31, 0.17);
+  --border-focus: rgba(61, 107, 69, 0.45);
+  --border-active-window: #3d6b45;
+  --border-highlight: #26321f;
+
+  --text-primary: #26321f;
+  --text-secondary: #4c5a45;
+  --text-muted: #5d6b55;
+  --text-inverse: #ffffff;
+
+  --accent-white: #26321f;
+  --accent-gray: #6f7a63;
+  --accent-active: #3d6b45;
+
+  --surface-flyout: #faf8ef;
+  --taskbar-bg: rgba(250, 248, 239, 0.94);
+  --desktop-bg: #e4ead8;
+  --glass-taskbar: rgba(250, 248, 239, 0.8);
+  --glass-flyout: rgba(250, 248, 239, 0.9);
+}
+
+body.theme-hat {
+  --bg-deep: #0b1822;
+  --bg-base: #10202b;
+  --bg-panel: #152632;
+  --bg-surface: #182a37;
+  --bg-surface-hover: #1e3240;
+  --bg-surface-active: #243a48;
+
+  --border-subtle: rgba(231, 226, 212, 0.08);
+  --border-medium: rgba(231, 226, 212, 0.17);
+  --border-focus: rgba(201, 162, 78, 0.45);
+  --border-active-window: #c9a24e;
+  --border-highlight: #e7e2d4;
+
+  --text-primary: #e7e2d4;
+  --text-secondary: #aab4b0;
+  --text-muted: #849199;
+  --text-inverse: #10202b;
+
+  --accent-white: #e7e2d4;
+  --accent-gray: #6f7e86;
+  --accent-active: #c9a24e;
+
+  --surface-flyout: #152632;
+  --taskbar-bg: rgba(16, 32, 43, 0.94);
+  --desktop-bg: #0a141c;
+  --glass-taskbar: rgba(19, 36, 48, 0.72);
+  --glass-flyout: rgba(19, 36, 48, 0.8);
+}
+
+body.theme-konsol {
+  --bg-deep: #e8eae6;
+  --bg-base: #f5f6f3;
+  --bg-panel: #eef0ec;
+  --bg-surface: #fbfcfa;
+  --bg-surface-hover: #eef1ec;
+  --bg-surface-active: #e2e6e0;
+
+  --border-subtle: rgba(25, 27, 30, 0.14);
+  --border-medium: rgba(25, 27, 30, 0.28);
+  --border-focus: rgba(24, 106, 63, 0.5);
+  --border-active-window: #186a3f;
+  --border-highlight: #191b1e;
+
+  --text-primary: #191b1e;
+  --text-secondary: #3d4146;
+  --text-muted: #63686d;
+  --text-inverse: #f5f6f3;
+
+  --accent-white: #191b1e;
+  --accent-gray: #63686d;
+  --accent-active: #186a3f;
+
+  --surface-flyout: #fbfcfa;
+  --taskbar-bg: rgba(236, 238, 233, 0.96);
+  --desktop-bg: #eceee9;
+  --glass-taskbar: rgba(245, 246, 243, 0.85);
+  --glass-flyout: rgba(245, 246, 243, 0.92);
+}
+
+body.theme-kesit {
+  --bg-deep: #e5e4df;
+  --bg-base: #f1f0ec;
+  --bg-panel: #e9e8e3;
+  --bg-surface: #faf9f6;
+  --bg-surface-hover: #e9e8e2;
+  --bg-surface-active: #dfded9;
+
+  --border-subtle: rgba(22, 24, 26, 0.12);
+  --border-medium: rgba(22, 24, 26, 0.24);
+  --border-focus: rgba(176, 140, 0, 0.55);
+  --border-active-window: #b08c00;
+  --border-highlight: #16181a;
+
+  --text-primary: #16181a;
+  --text-secondary: #4c5054;
+  --text-muted: #63676c;
+  --text-inverse: #ffffff;
+
+  --accent-white: #16181a;
+  --accent-gray: #7a7d81;
+  --accent-active: #b08c00;
+
+  --surface-flyout: #faf9f5;
+  --taskbar-bg: rgba(241, 240, 236, 0.95);
+  --desktop-bg: #e9e8e2;
+  --glass-taskbar: rgba(241, 240, 236, 0.86);
+  --glass-flyout: rgba(250, 249, 245, 0.93);
+}
+
+body.theme-fener {
+  --bg-deep: #08090b;
+  --bg-base: #101113;
+  --bg-panel: #17181b;
+  --bg-surface: #1d1f23;
+  --bg-surface-hover: #23262b;
+  --bg-surface-active: #2a2d33;
+
+  --border-subtle: rgba(234, 231, 222, 0.08);
+  --border-medium: rgba(234, 231, 222, 0.17);
+  --border-focus: rgba(224, 85, 58, 0.5);
+  --border-active-window: #e0553a;
+  --border-highlight: #eae7de;
+
+  --text-primary: #eae7de;
+  --text-secondary: #9d9a92;
+  --text-muted: #8b887f;
+  --text-inverse: #101113;
+
+  --accent-white: #eae7de;
+  --accent-gray: #767268;
+  --accent-active: #e0553a;
+
+  --surface-flyout: #1b1d21;
+  --taskbar-bg: rgba(16, 17, 19, 0.94);
+  --desktop-bg: #0a0b0d;
+  --glass-taskbar: rgba(22, 24, 28, 0.72);
+  --glass-flyout: rgba(22, 24, 28, 0.8);
+}
+
+body.theme-civata {
+  --bg-deep: #eeeee6;
+  --bg-base: #fcfcf9;
+  --bg-panel: #f5f5ee;
+  --bg-surface: #fffef9;
+  --bg-surface-hover: #f3f3ea;
+  --bg-surface-active: #e9e9dd;
+
+  --border-subtle: rgba(22, 19, 9, 0.12);
+  --border-medium: rgba(22, 19, 9, 0.24);
+  --border-focus: rgba(150, 165, 15, 0.55);
+  --border-active-window: #6d7d0f;
+  --border-highlight: #161309;
+
+  --text-primary: #161309;
+  --text-secondary: #4f4a38;
+  --text-muted: #6b6653;
+  --text-inverse: #ffffff;
+
+  --accent-white: #161309;
+  --accent-gray: #87826e;
+  --accent-active: #6d7d0f;
+
+  --surface-flyout: #fffef9;
+  --taskbar-bg: rgba(252, 252, 249, 0.95);
+  --desktop-bg: #f1f1e9;
+  --glass-taskbar: rgba(252, 252, 249, 0.86);
+  --glass-flyout: rgba(255, 254, 249, 0.93);
+}
+
+body.theme-mina {
+  --bg-deep: #081713;
+  --bg-base: #0d211c;
+  --bg-panel: #12291f;
+  --bg-surface: #173327;
+  --bg-surface-hover: #1d3b2e;
+  --bg-surface-active: #234436;
+
+  --border-subtle: rgba(217, 231, 210, 0.09);
+  --border-medium: rgba(217, 231, 210, 0.18);
+  --border-focus: rgba(232, 103, 74, 0.5);
+  --border-active-window: #e8674a;
+  --border-highlight: #d9e7d2;
+
+  --text-primary: #d9e7d2;
+  --text-secondary: #9db3a2;
+  --text-muted: #81a08f;
+  --text-inverse: #0d211c;
+
+  --accent-white: #d9e7d2;
+  --accent-gray: #6d8a7a;
+  --accent-active: #e8674a;
+
+  --surface-flyout: #132b22;
+  --taskbar-bg: rgba(13, 33, 28, 0.94);
+  --desktop-bg: #08130f;
+  --glass-taskbar: rgba(18, 41, 31, 0.72);
+  --glass-flyout: rgba(18, 41, 31, 0.8);
+}
+
+body.theme-meridyen {
+  --bg-deep: #e6e3d8;
+  --bg-base: #f4f2ea;
+  --bg-panel: #eceadf;
+  --bg-surface: #fcfbf6;
+  --bg-surface-hover: #eeecdf;
+  --bg-surface-active: #e2dfd1;
+
+  --border-subtle: rgba(20, 22, 26, 0.12);
+  --border-medium: rgba(20, 22, 26, 0.22);
+  --border-focus: rgba(34, 68, 216, 0.5);
+  --border-active-window: #2244d8;
+  --border-highlight: #14161a;
+
+  --text-primary: #14161a;
+  --text-secondary: #4b4941;
+  --text-muted: #6e6b60;
+  --text-inverse: #ffffff;
+
+  --accent-white: #14161a;
+  --accent-gray: #8b887c;
+  --accent-active: #2244d8;
+
+  --surface-flyout: #fcfbf6;
+  --taskbar-bg: rgba(244, 242, 234, 0.95);
+  --desktop-bg: #e8e6da;
+  --glass-taskbar: rgba(244, 242, 234, 0.86);
+  --glass-flyout: rgba(252, 251, 246, 0.93);
+}
+
+/* Studio temaları: pencere yüzeyi ve krom */
+body.theme-matbaa .window,
+body.theme-bostan .window,
+body.theme-konsol .window,
+body.theme-kesit .window,
+body.theme-civata .window,
+body.theme-meridyen .window,
+body.theme-bakir .window,
+body.theme-hat .window,
+body.theme-fener .window,
+body.theme-mina .window {
+  border-color: var(--border-medium);
+}
+body.theme-matbaa .window {
+  background: rgba(251, 248, 241, 0.97);
+  box-shadow: 0 16px 48px rgba(35, 32, 26, 0.16);
+}
+body.theme-bostan .window {
+  background: rgba(250, 248, 239, 0.97);
+  box-shadow: 0 16px 48px rgba(38, 50, 31, 0.14);
+}
+body.theme-konsol .window {
+  background: #fbfcfa;
+  box-shadow: 0 10px 34px rgba(25, 27, 30, 0.18);
+}
+body.theme-kesit .window {
+  background: #fbfaf7;
+  box-shadow: 1px 1px 0 rgba(22, 24, 26, 0.35), 0 18px 44px rgba(22, 24, 26, 0.14);
+}
+body.theme-civata .window {
+  background: rgba(255, 254, 249, 0.98);
+  box-shadow: 0 16px 44px rgba(22, 19, 9, 0.16);
+}
+body.theme-meridyen .window {
+  background: rgba(252, 251, 246, 0.97);
+  box-shadow: 0 16px 44px rgba(20, 22, 26, 0.16);
+}
+body.theme-bakir .window {
+  background: rgba(27, 29, 34, 0.92);
+}
+body.theme-hat .window {
+  background: rgba(19, 36, 48, 0.92);
+  border-top-color: rgba(201, 162, 78, 0.4);
+}
+body.theme-fener .window {
+  background: rgba(23, 24, 27, 0.94);
+}
+body.theme-mina .window {
+  background: rgba(18, 41, 31, 0.92);
+}
+body.theme-matbaa .window-header,
+body.theme-bostan .window-header,
+body.theme-konsol .window-header,
+body.theme-kesit .window-header,
+body.theme-civata .window-header,
+body.theme-meridyen .window-header {
+  background: rgba(255, 255, 255, 0.35);
+}
+body.theme-bakir .window-header,
+body.theme-hat .window-header,
+body.theme-fener .window-header,
+body.theme-mina .window-header {
+  background: transparent;
+}
+/* Yeni açık temalarda Başlat menüsü yüzeyi */
+body.theme-matbaa .start-flyout,
+body.theme-bostan .start-flyout,
+body.theme-konsol .start-flyout,
+body.theme-kesit .start-flyout,
+body.theme-civata .start-flyout,
+body.theme-meridyen .start-flyout {
+  background: var(--surface-flyout, #ffffff);
+}
+
 /* --- Geniş tema seti sonu --- */
 
 body.theme-light .desktop-body {
@@ -6127,6 +6504,166 @@ body.theme-light .desktop-context-menu {
 .theme-preview-box.cumhuriyet .preview-mini-card {
   background: #2b1719;
   border-left: 2px solid #e23744;
+}
+
+/* Studio temaları önizlemeleri */
+.theme-preview-box.matbaa {
+  background: #f2ecdf;
+}
+.theme-preview-box.matbaa .preview-mini-bar {
+  background: #f7f3e8;
+  border-bottom: 1px solid rgba(35, 32, 26, 0.15);
+}
+.theme-preview-box.matbaa .preview-mini-card {
+  background: #fbf8f1;
+  border-left: 2px solid #b4462a;
+}
+
+.theme-preview-box.bakir {
+  background: #141519;
+}
+.theme-preview-box.bakir .preview-mini-bar {
+  background: #1b1d22;
+  border-bottom: 1px solid rgba(209, 121, 79, 0.4);
+}
+.theme-preview-box.bakir .preview-mini-card {
+  background: #1f2127;
+  border-left: 2px solid #d1794f;
+}
+
+.theme-preview-box.bostan {
+  background: #e9edda;
+}
+.theme-preview-box.bostan .preview-mini-bar {
+  background: #f2f2e7;
+  border-bottom: 1px solid rgba(38, 50, 31, 0.15);
+}
+.theme-preview-box.bostan .preview-mini-card {
+  background: #faf8ef;
+  border-left: 2px solid #3d6b45;
+}
+
+.theme-preview-box.hat {
+  background: #10202b;
+}
+.theme-preview-box.hat .preview-mini-bar {
+  background: #152632;
+  border-bottom: 1px solid rgba(201, 162, 78, 0.45);
+}
+.theme-preview-box.hat .preview-mini-card {
+  background: #182a37;
+  border-left: 2px solid #c9a24e;
+}
+
+.theme-preview-box.konsol {
+  background: #f5f6f3;
+}
+.theme-preview-box.konsol .preview-mini-bar {
+  background: #eef0ec;
+  border-bottom: 1px solid rgba(25, 27, 30, 0.2);
+}
+.theme-preview-box.konsol .preview-mini-card {
+  background: #fbfcfa;
+  border-left: 2px solid #186a3f;
+}
+
+.theme-preview-box.kesit {
+  background: #f1f0ec;
+}
+.theme-preview-box.kesit .preview-mini-bar {
+  background: #e9e8e3;
+  border-bottom: 1px solid rgba(22, 24, 26, 0.2);
+}
+.theme-preview-box.kesit .preview-mini-card {
+  background: #faf9f6;
+  border-left: 2px solid #b08c00;
+}
+
+.theme-preview-box.fener {
+  background: #101113;
+}
+.theme-preview-box.fener .preview-mini-bar {
+  background: #17181b;
+  border-bottom: 1px solid rgba(224, 85, 58, 0.45);
+}
+.theme-preview-box.fener .preview-mini-card {
+  background: #1d1f23;
+  border-left: 2px solid #e0553a;
+}
+
+.theme-preview-box.civata {
+  background: #fcfcf9;
+}
+.theme-preview-box.civata .preview-mini-bar {
+  background: #f5f5ee;
+  border-bottom: 1px solid rgba(22, 19, 9, 0.18);
+}
+.theme-preview-box.civata .preview-mini-card {
+  background: #fffef9;
+  border-left: 2px solid #c7e42b;
+}
+
+.theme-preview-box.mina {
+  background: #0d211c;
+}
+.theme-preview-box.mina .preview-mini-bar {
+  background: #12291f;
+  border-bottom: 1px solid rgba(232, 103, 74, 0.45);
+}
+.theme-preview-box.mina .preview-mini-card {
+  background: #173327;
+  border-left: 2px solid #e8674a;
+}
+
+.theme-preview-box.meridyen {
+  background: #f4f2ea;
+}
+.theme-preview-box.meridyen .preview-mini-bar {
+  background: #eceadf;
+  border-bottom: 1px solid rgba(20, 22, 26, 0.16);
+}
+.theme-preview-box.meridyen .preview-mini-card {
+  background: #fcfbf6;
+  border-left: 2px solid #2244d8;
+}
+
+/* Tema Stüdyosu */
+.studio-theme-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  cursor: pointer;
+  background: var(--bg-surface, transparent);
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+.studio-theme-item:hover {
+  border-color: var(--border-medium);
+  background: var(--bg-surface-hover);
+}
+.studio-theme-item.active {
+  border-color: var(--border-active-window);
+  background: var(--bg-surface-active);
+}
+.studio-theme-swatch {
+  width: 34px;
+  height: 24px;
+  border-radius: 5px;
+  border: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+}
+.studio-theme-item b {
+  display: block;
+  font-size: 12.5px;
+  color: var(--text-primary);
+}
+.studio-theme-item span {
+  display: block;
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 1px;
 }
 
 .preview-mini-bar {

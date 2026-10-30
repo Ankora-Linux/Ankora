@@ -8117,7 +8117,9 @@
   const ThemeManager = {
     currentTheme: 'theme-dark',
     // Açık temaları ayrı liste olarak yürüt; GTK tarafına da bunlar 'isDark=false' gider.
-    LIGHT_THEMES: ['theme-light', 'theme-arctic', 'theme-cinar', 'theme-meltem'],
+    LIGHT_THEMES: ['theme-light', 'theme-arctic', 'theme-cinar', 'theme-meltem',
+      'theme-matbaa', 'theme-bostan', 'theme-konsol', 'theme-kesit',
+      'theme-civata', 'theme-meridyen'],
     // TÜM SİSTEM TEMA PAKETLERİ: Bir tema seçildiğinde yalnızca pencere
     // renkleri değil, eşleşen duvar kağıdı + ikon seti + vurgu rengi de
     // birlikte uygulanır (kullanıcı "bütün sistemin teması değişsin" isteği).
@@ -8136,7 +8138,20 @@
       'theme-dem':       { wallpaper: 'wallpaper-dem.svg',           iconset: 'monokrom', accent: '#d64545' },
       'theme-bogaz':     { wallpaper: 'wallpaper-bogaz.svg',         iconset: 'ink',      accent: '#c9a24b' },
       'theme-ayna':      { wallpaper: 'wallpaper-ayna.svg',          iconset: 'monokrom', accent: '#06b6d4' },
-      'theme-cumhuriyet':{ wallpaper: 'wallpaper-cumhuriyet.svg',    iconset: 'monokrom', accent: '#e23744' }
+      'theme-cumhuriyet':{ wallpaper: 'wallpaper-cumhuriyet.svg',    iconset: 'monokrom', accent: '#e23744' },
+      // Studio ekleyi: masaüstü yönlerinden gelen 10 kompozisyon paketi.
+      // Duvar kağıtları, özel SVG'ler pişene kadar mevcut kurulumbil
+      // kağıtlarla eşlenir (aynı sıcaklıkta olanlarla).
+      'theme-matbaa':    { wallpaper: 'wallpaper-aurora.svg',        iconset: 'outline',  accent: '#b4462a' },
+      'theme-bakir':     { wallpaper: 'wallpaper-obsidian.svg',      iconset: 'monokrom', accent: '#d1794f' },
+      'theme-bostan':    { wallpaper: 'wallpaper-cinar.svg',         iconset: 'outline',  accent: '#3d6b45' },
+      'theme-hat':       { wallpaper: 'wallpaper-bogaz.svg',         iconset: 'ink',      accent: '#c9a24e' },
+      'theme-konsol':    { wallpaper: 'wallpaper-meltem.svg',        iconset: 'monokrom', accent: '#186a3f' },
+      'theme-kesit':     { wallpaper: 'wallpaper-abstract-lines.svg',iconset: 'monokrom', accent: '#b08c00' },
+      'theme-fener':     { wallpaper: 'wallpaper-kor.svg',           iconset: 'sunset',   accent: '#e0553a' },
+      'theme-civata':    { wallpaper: 'wallpaper-mountain.jpg',      iconset: 'monokrom', accent: '#6d7d0f' },
+      'theme-mina':      { wallpaper: 'wallpaper-topo.svg',          iconset: 'emerald',  accent: '#e8674a' },
+      'theme-meridyen':  { wallpaper: 'wallpaper-nordic.svg',        iconset: 'nordic',   accent: '#2244d8' }
     },
 
     isFullSystemTheme() {
@@ -8441,6 +8456,370 @@
       }
     }
   };
+
+  // ============================================================================
+  // TEMA STÜDYOSU (STUDIO: GALERI + KENDI TEMA PAKETI)
+  // ============================================================================
+  const Studio = {
+    STUDIO_THEME_IDS: ['theme-matbaa', 'theme-bakir', 'theme-bostan', 'theme-hat',
+      'theme-konsol', 'theme-kesit', 'theme-fener', 'theme-civata',
+      'theme-mina', 'theme-meridyen'],
+
+    // Galeri ürünü: yalnız ThemeManager.setTheme çağırır; kendisi CSS yazmaz.
+    lastRemoteWarned: null,
+    status(msg, isError) {
+      const el = document.getElementById('studio-status');
+      if (!el) return;
+      el.textContent = msg;
+      el.style.color = isError ? 'var(--accent-active, #e0553a)' : 'var(--text-muted)';
+    },
+
+    open() {
+      WindowManager.open('win-studio');
+      setTimeout(() => {
+        this.renderThemeList();
+        // Editör boşsa kayıtlı özel temayı geri yükleyip kaldığı yerden düzenletir.
+        const ta = document.getElementById('studio-css');
+        if (ta && !ta.value.trim()) this.loadSavedToEditor();
+      }, 60);
+    },
+
+    swatchFor(themeId) {
+      const b = (typeof ThemeManager !== 'undefined' && ThemeManager.THEME_BUNDLES[themeId]) || {};
+      return { accent: b.accent || '#2563eb' };
+    },
+
+    renderThemeList() {
+      const list = document.getElementById('studio-theme-list');
+      if (!list || typeof ThemeManager === 'undefined') return;
+      const META = {
+        'theme-matbaa':   { name: 'Matbaa',   desc: 'Kâğıt krem + oksit kırmızı',   bg: '#f2ecdf' },
+        'theme-bakir':    { name: 'Bakır',    desc: 'Grafit + bakır vurgu',          bg: '#141519' },
+        'theme-bostan':   { name: 'Bostan',   desc: 'Adaçayı yeşili, açık',          bg: '#e9edda' },
+        'theme-hat':      { name: 'Hat',      desc: 'Gece petrolü + pirinç',         bg: '#10202b' },
+        'theme-konsol':   { name: 'Konsol',   desc: 'Buz beyaz + terminal yeşili',   bg: '#f5f6f3' },
+        'theme-kesit':    { name: 'Kesit',    desc: 'Işık gri + bizon sarısı',       bg: '#f1f0ec' },
+        'theme-fener':    { name: 'Fener',    desc: 'Köz siyahı + kor turuncu',      bg: '#101113' },
+        'theme-civata':   { name: 'Cıvata',   desc: 'Beyaz + is + limon',            bg: '#fcfcf9' },
+        'theme-mina':     { name: 'Mina',     desc: 'Çam yeşili + mercan',           bg: '#0d211c' },
+        'theme-meridyen': { name: 'Meridyen', desc: 'Kerpiç krem + kobalt',          bg: '#f4f2ea' }
+      };
+      const current = ThemeManager.currentTheme;
+      list.innerHTML = '';
+      this.STUDIO_THEME_IDS.forEach(id => {
+        const m = META[id] || { name: id, desc: '', bg: '#16171b' };
+        const item = document.createElement('div');
+        item.className = 'studio-theme-item' + (current === id ? ' active' : '');
+        item.setAttribute('role', 'button');
+        item.setAttribute('tabindex', '0');
+        const sw = document.createElement('span');
+        sw.className = 'studio-theme-swatch';
+        sw.style.background = m.bg;
+        sw.style.borderBottom = `3px solid ${(this.swatchFor(id).accent)}`;
+        item.appendChild(sw);
+        const info = document.createElement('div');
+        const strong = document.createElement('b');
+        strong.textContent = m.name;
+        const span = document.createElement('span');
+        span.textContent = m.desc;
+        info.appendChild(strong);
+        info.appendChild(span);
+        item.appendChild(info);
+        const go = () => {
+          ThemeManager.setTheme(id);
+          list.querySelectorAll('.studio-theme-item').forEach(x => x.classList.remove('active'));
+          item.classList.add('active');
+          this.status(`"${m.name}" tüm sisteme uygulandı.`);
+        };
+        item.addEventListener('click', go);
+        item.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); }
+        });
+        list.appendChild(item);
+      });
+    },
+
+    cssTemplate() {
+      // Stüdyo şablonu: eksiksiz değişken listesi; eksik değişken temanın
+      // sızmasına yol açtığı için tam blok zorunlu.
+      return 'body.theme-custom {\n' +
+        '  --bg-deep: #0c0d12;\n' +
+        '  --bg-base: #16171b;\n' +
+        '  --bg-panel: #1b1c22;\n' +
+        '  --bg-surface: #24252d;\n' +
+        '  --bg-surface-hover: #2e3039;\n' +
+        '  --bg-surface-active: #393b45;\n' +
+        '  --border-subtle: rgba(255, 255, 255, 0.08);\n' +
+        '  --border-medium: rgba(255, 255, 255, 0.15);\n' +
+        '  --border-focus: rgba(255, 255, 255, 0.38);\n' +
+        '  --border-active-window: #c9754f;\n' +
+        '  --border-highlight: #ece7db;\n' +
+        '  --text-primary: #ece7db;\n' +
+        '  --text-secondary: #a8a396;\n' +
+        '  --text-muted: #8d887c;\n' +
+        '  --text-inverse: #16171b;\n' +
+        '  --accent-white: #ece7db;\n' +
+        '  --accent-gray: #79756a;\n' +
+        '  --accent-active: #c9754f;\n' +
+        '  --surface-flyout: #1c1d23;\n' +
+        '  --taskbar-bg: rgba(22, 23, 27, 0.92);\n' +
+        '  --desktop-bg: #0e0f13;\n' +
+        '  --glass-taskbar: rgba(26, 27, 32, 0.7);\n' +
+        '  --glass-flyout: rgba(26, 27, 32, 0.78);\n' +
+        '}\n';
+    },
+
+    normalizeCss(raw) {
+      const src = (raw || '').trim();
+      if (!src) return '';
+      // Kullanıcı yalnız değişkenleri yazarsa sarmala; blok yazılmışsa doğrudan al.
+      if (/body\.theme-custom\s*\{/.test(src)) return src;
+      return 'body.theme-custom {\n' + src + '\n}\n';
+    },
+
+    applyCustomCss(css, name) {
+      let el = document.getElementById('user-theme-css');
+      if (!el) {
+        el = document.createElement('style');
+        el.id = 'user-theme-css';
+        document.head.appendChild(el);
+      }
+      el.textContent = css;
+      if (typeof ThemeManager !== 'undefined') {
+        ThemeManager.setTheme('theme-custom', false);
+        ThemeManager.currentTheme = 'theme-custom';
+        SafeStorage.setItem('ankora_theme_mode', 'theme-custom');
+      }
+      SafeStorage.setItem('ankora_custom_theme_css', css);
+      const usedName = (name || '').trim();
+      if (usedName) SafeStorage.setItem('ankora_custom_theme_name', usedName);
+      else SafeStorage.removeItem('ankora_custom_theme_name');
+      Terminal.log(`[TEMA STÜDYOSU] Özel tema uygulandı${usedName ? ': ' + usedName : ''}`, 'success');
+      this.status(`Özel tema uygulandı${usedName ? ': ' + usedName : ''}. Değişiklik oturum kaydına alınabilir.`);
+    },
+
+    validate(css) {
+      if (!css) return 'CSS alanı boş. Şablonu yükleyip düzenleyin.';
+      const open = (css.match(/\{/g) || []).length;
+      const close = (css.match(/\}/g) || []).length;
+      if (open === 0 || open !== close) return 'CSS dengesiz: { ve } sayıları eşit değil.';
+      if (!/body\.theme-custom/.test(css)) return 'Blok "body.theme-custom" seçicisiyle başlamalı. Şablonu yükleyin.';
+      // Uzak kaynak taraması: yalnız uyarı, engel değil; kullanıcının kendi
+      // teması olabilir ama izleme pikseli de olabilir.
+      if (/url\(\s*['"]?https?:/i.test(css) || /@import/i.test(css)) {
+        return 'UZAK KAYNAK UYARISI: CSS https url veya @import içeriyor; bu tema ağa bağlanabilir. Yine de uygulamak için Uygula\'ya ikinci kez basın.';
+      }
+      return null;
+    },
+
+    applyFromEditor() {
+      const name = (document.getElementById('studio-name') || {}).value || '';
+      const css = this.normalizeCss((document.getElementById('studio-css') || {}).value);
+      const err = this.validate(css);
+      if (err) {
+        // Uzak kaynak uyarısında ikinci onay pas geçişi: kullanıcı aynı
+        // içeriği bilerek uygularsa engel kalkar.
+        const isWarn = err.indexOf('UZAK') === 0;
+        if (isWarn && this.lastRemoteWarned === css) {
+          this.applyCustomCss(css, name);
+          return;
+        }
+        if (isWarn) this.lastRemoteWarned = css;
+        this.status(err, true); return;
+      }
+      this.lastRemoteWarned = null;
+
+      this.applyCustomCss(css, name);
+
+      const radius = ((document.getElementById('studio-radius') || {}).value || '').trim();
+      if (radius && /^\d+(px)$/.test(radius) && typeof ThemeManager !== 'undefined') {
+        ThemeManager.setCornerRadius(radius);
+      }
+
+      const wpPath = ((document.getElementById('studio-wallpaper') || {}).value || '').trim();
+      if (wpPath) {
+        const isBundled = /^wallpaper[\w-]*\.(svg|jpg|png)$/.test(wpPath.split('/').pop());
+        if (isBundled && typeof ThemeManager !== 'undefined') {
+          ThemeManager.setWallpaper(wpPath);
+        }
+        TauriBridge.invoke('set_desktop_wallpaper', { filePath: wpPath })
+          .then(() => this.status(`Özel tema uygulandı; masaüstü duvar kağıdı güncellendi.`))
+          .catch(() => this.status('Özel tema uygulandı ama duvar kağıdı bulunamadı: yolu kontrol edin.', true));
+      }
+    },
+
+    fillTemplate() {
+      const ta = document.getElementById('studio-css');
+      if (!ta) return;
+      ta.value = this.cssTemplate();
+      this.status('Şablon yüklendi; değişkenleri düzenleyip Uygula dedikten sonra geçerli olur.');
+    },
+
+    loadSavedToEditor() {
+      const css = SafeStorage.getItem('ankora_custom_theme_css');
+      if (!css) return;
+      const ta = document.getElementById('studio-css');
+      if (ta) ta.value = css;
+      const nameEl = document.getElementById('studio-name');
+      if (nameEl) nameEl.value = SafeStorage.getItem('ankora_custom_theme_name') || '';
+    },
+
+    saveSession() {
+      // Uygulamadan bağımsız: editördeki içeriği oturum kaydına alır; Uygula
+      // devreye almaya ayrıdır, kayıt yalnız biriktirme işidir.
+      const ta = document.getElementById('studio-css');
+      const css = this.normalizeCss(ta ? ta.value : '');
+      if (!css) { this.status('Kaydedilecek içerik yok; önce şablonu yükleyin ya da CSS yazın.', true); return; }
+      const name = (document.getElementById('studio-name') || {}).value || '';
+      if (name.trim()) SafeStorage.setItem('ankora_custom_theme_name', name.trim());
+      this.status('İçerik oturum kaydına alındı; Uygula ile devreye alınır.');
+    },
+
+    exportToClipboard() {
+      const name = (document.getElementById('studio-name') || {}).value || '';
+      const css = (document.getElementById('studio-css') || {}).value || '';
+      const manifest = {
+        name: name || 'isimsiz-tema',
+        css: this.normalizeCss(css),
+        wallpaper: (document.getElementById('studio-wallpaper') || {}).value || '',
+        radius: (document.getElementById('studio-radius') || {}).value || '',
+        format: 'ankora-theme/1'
+      };
+      TauriBridge.invoke('set_clipboard_text', { text: JSON.stringify(manifest, null, 2) })
+        .then(() => this.status('Tema manifest panoya alındı.'))
+        .catch(() => this.status('Panoya yazılamadı; metni elle seçip kopyalayın.', true));
+    },
+
+    async applyFromParsed(manifest) {
+      if (!manifest || typeof manifest !== 'object' || manifest.format !== 'ankora-theme/1') {
+        this.status('Manifest biçimi anlaşılamadı: "format":"ankora-theme/1" alanı şart.', true);
+        return;
+      }
+      if (manifest.name) document.getElementById('studio-name').value = manifest.name;
+      const ta = document.getElementById('studio-css');
+      ta.value = this.normalizeCss(manifest.css || '');
+      if (manifest.wallpaper) document.getElementById('studio-wallpaper').value = manifest.wallpaper;
+      if (manifest.radius) document.getElementById('studio-radius').value = manifest.radius;
+      const css = this.normalizeCss(manifest.css || '');
+      const err = this.validate(css);
+      if (err) {
+        const isWarn = err.indexOf('UZAK') === 0;
+        if (isWarn && this.lastRemoteWarned === css) {
+          this.applyCustomCss(css, manifest.name || '');
+        } else {
+          if (isWarn) this.lastRemoteWarned = css;
+          this.status(err, true);
+          return;
+        }
+      } else {
+        this.applyCustomCss(css, manifest.name || '');
+      }
+      const wp = (manifest.wallpaper || '').trim();
+      if (wp) {
+        if (/^wallpaper[\w-]*\.(svg|jpg|png)$/.test(wp.split('/').pop()) && typeof ThemeManager !== 'undefined') {
+          ThemeManager.setWallpaper(wp);
+        }
+        TauriBridge.invoke('set_desktop_wallpaper', { filePath: wp }).catch(() => {});
+      }
+      if (manifest.radius && /^\d+(px)$/.test(manifest.radius) && typeof ThemeManager !== 'undefined') {
+        ThemeManager.setCornerRadius(manifest.radius);
+      }
+    },
+
+    applyFromClipboard() {
+      const ta = document.getElementById('studio-css');
+      if (!ta) return;
+      const useClipboard = typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.readText;
+      if (!useClipboard) {
+        this.status('Panodan okuma izni yok; içeriği alana yapıştırıp Uygula\'ya basın.', true);
+        return;
+      }
+      navigator.clipboard.readText().then(txt => {
+        let manifest = null;
+        try { manifest = JSON.parse(txt); } catch (e) { manifest = null; }
+        if (manifest) { this.applyFromParsed(manifest); return; }
+        // Manifest değilse düz CSS kabul et: alana aktar, Uygula'yı kullanıcıya bırak.
+        ta.value = txt;
+        this.status('Panodaki düz CSS alana aktarıldı; Uygula ile geçerli temanın üstüne biner.');
+      }).catch(() => {
+        this.status('Panodan okunamadı; içeriği alana yapıştırıp Uygula\'ya basın.', true);
+      });
+    },
+
+    async applyFromFileContent(filePath) {
+      try {
+        const res = await TauriBridge.invoke('read_theme_file', { filePath });
+        let manifest = null;
+        try { manifest = JSON.parse(res.content); } catch (e) { manifest = null; }
+        if (manifest) { await this.applyFromParsed(manifest); return; }
+        // Manifest değilse düz CSS kabul et.
+        const css = this.normalizeCss(res.content);
+        const err = this.validate(css);
+        if (err) {
+          const isWarn = err.indexOf('UZAK') === 0;
+          if (isWarn && this.lastRemoteWarned === css) {
+            this.applyCustomCss(css, '');
+            this.status('CSS dosyasından özel tema uygulandı (uzak kaynak uyarısı onaylandı).');
+          } else {
+            if (isWarn) this.lastRemoteWarned = css;
+            this.status(err, true);
+            return;
+          }
+        } else {
+          this.applyCustomCss(css, '');
+          this.status('CSS dosyasından özel tema uygulandı.');
+        }
+      } catch (e) {
+        this.status('Tema dosyası okunamadı: ' + (e.message || e), true);
+      }
+    },
+
+    importFromFile() {
+      const path = window.prompt('Tema dosyasının tam yolu (.css veya .json):', '/home/ankora/Belgeler/temam.css');
+      if (!path) return;
+      this.applyFromFileContent(path.trim());
+    },
+
+    clearCustom() {
+      const el = document.getElementById('user-theme-css');
+      if (el) el.textContent = '';
+      SafeStorage.removeItem('ankora_custom_theme_css');
+      SafeStorage.removeItem('ankora_custom_theme_name');
+      // Geri dönüş: kayıtlı adiər istemeye gerek yok; varsayılan koyu açılır.
+      if (typeof ThemeManager !== 'undefined') ThemeManager.setTheme('theme-dark');
+      this.renderThemeList();
+      this.status('Özel tema kaldırıldı; sistem gözle varsayılan koyu temaya döndü.');
+    },
+
+    init() {
+      const openBtn = document.getElementById('btn-open-studio');
+      if (openBtn) openBtn.addEventListener('click', () => this.open());
+      const bind = (id, fn) => {
+        const b = document.getElementById(id);
+        if (b) b.addEventListener('click', fn);
+      };
+      bind('btn-studio-apply', () => this.applyFromEditor());
+      bind('btn-studio-template', () => this.fillTemplate());
+      bind('btn-studio-save', () => this.saveSession());
+      bind('btn-studio-export', () => this.exportToClipboard());
+      bind('btn-studio-paste', () => this.applyFromClipboard());
+      bind('btn-studio-import', () => this.importFromFile());
+      bind('btn-studio-clear', () => this.clearCustom());
+
+      // Oturum geri döndüğü: kayıtlı özel tema varsa enjuan norengi
+      const saved = SafeStorage.getItem('ankora_custom_theme_css');
+      if (saved && SafeStorage.getItem('ankora_theme_mode') === 'theme-custom') {
+        let el = document.getElementById('user-theme-css');
+        if (!el) {
+          el = document.createElement('style');
+          el.id = 'user-theme-css';
+          document.head.appendChild(el);
+        }
+        el.textContent = saved;
+      }
+    }
+  };
+
 
   // ============================================================================
   // GELİŞMİŞ SİSTEM AYARLARI (7 PANE SETTINGS MANAGER)
@@ -16817,6 +17196,7 @@
     safeInit('WindowManager', () => WindowManager.init());
     safeInit('DesktopControls', () => initDesktopControls());
     safeInit('ThemeManager', () => ThemeManager.init());
+    safeInit('Studio', () => Studio.init());
     safeInit('PanelPrefs', () => PanelPrefs.load());
 
     // 2. Diğer sistem uygulamalarını ve arka plan servislerini bağımsız olarak güvenle çalıştır
@@ -16921,6 +17301,7 @@
     window.DynamicIsland = DynamicIsland;
     window.WindowManager = WindowManager;
     window.ThemeManager = ThemeManager;
+    window.Studio = Studio;
     window.ShortcutManager = ShortcutManager;
     window.NotificationManager = NotificationManager;
     window.AudioDeviceManager = AudioDeviceManager;

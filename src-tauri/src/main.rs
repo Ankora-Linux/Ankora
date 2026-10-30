@@ -2262,6 +2262,92 @@ async fn read_document_file(file_path: String) -> Result<DocumentResult, String>
     }
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ReadThemeResult {
+    pub file_name: String,
+    pub file_size: u64,
+    pub content: String,
+}
+
+/// Tema Stüdyosu dosya okuma komutu: yalnızca .css / .json uzantılı tema
+/// dosyalarını okur. Dizin geçişi, hassas sistem dosyaları ve 512 KB üstü
+/// içerik reddedilir; sonuç Theme Studio import hattına döner.
+#[tauri::command]
+async fn read_theme_file(file_path: String) -> Result<ReadThemeResult, String> {
+    let raw_path = Path::new(&file_path);
+
+    // 1. Dizin geçişi engeli
+    if file_path.contains("..") {
+        return Err("Güvenlik Hatası: Dizin geçişine ('..') izin verilmez.".to_string());
+    }
+
+    // 2. İzin verilen uzantı kontrolü
+    let extension = raw_path
+        .extension()
+        .and_then(|s| s.to_str())
+        .unwrap_or("")
+        .to_lowercase();
+    if extension != "css" && extension != "json" {
+        return Err(format!(
+            "Güvenlik Hatası: '.{}' uzantılı dosyalar tema paketi olarak okunamaz; yalnızca .css ve .json.",
+            extension
+        ));
+    }
+
+    // 3. Kanonik yol çözümleme
+    let canonical = match fs::canonicalize(raw_path) {
+        Ok(p) => p,
+        Err(_) => return Err(format!("Tema dosyası bulunamadı veya erişilemiyor: {}", file_path)),
+    };
+
+    // 4. Hassas sistem dosyası kalıp kontrolü
+    let canonical_lower = canonical.to_string_lossy().to_lowercase();
+    if SENSITIVE_FILE_PATTERNS
+        .iter()
+        .any(|pat| canonical_lower.contains(pat))
+    {
+        return Err("Güvenlik Hatası: Hassas sistem dosyalarının okunması engellendi.".to_string());
+    }
+
+    // 5. Kullanıcı dizin sınırları: tema dosyası kullanıcı alanında yaşar.
+    let allowed_dirs: Vec<PathBuf> = vec![
+        dirs::document_dir().unwrap_or_default(),
+        dirs::download_dir().unwrap_or_default(),
+        dirs::home_dir().unwrap_or_default(),
+        dirs::desktop_dir().unwrap_or_default(),
+    ];
+    let is_in_allowed_dir = allowed_dirs
+        .iter()
+        .any(|d| !d.as_os_str().is_empty() && canonical.starts_with(d));
+    if !is_in_allowed_dir {
+        return Err(
+            "Güvenlik Hatası: Tema dosyası yalnızca kullanıcı dizinlerinden (Belgeler, İndirilenler, Resimler) yüklenebilir."
+                .to_string(),
+        );
+    }
+
+    // 6. Boyut sınırı: 512 KB (tema paketleri görsel taşımaz)
+    let file_size = fs::metadata(&canonical).map_err(|e| e.to_string())?.len();
+    if file_size > 512 * 1024 {
+        return Err("Dosya çok büyük (512 KB üstü tema paketi kabul edilmez).".to_string());
+    }
+
+    let content = fs::read_to_string(&canonical)
+        .map_err(|e| format!("Dosya okunamadı (UTF-8 olmayan içerik devredildi): {}", e))?;
+
+    let file_name = canonical
+        .file_name()
+        .unwrap_or_default()
+        .to_string_lossy()
+        .to_string();
+
+    Ok(ReadThemeResult {
+        file_name,
+        file_size,
+        content,
+    })
+}
+
 #[tauri::command]
 async fn list_available_documents() -> Result<Vec<String>, String> {
     let mut files = Vec::new();
@@ -9435,6 +9521,7 @@ fn main() {
             remove_deb_package,
             run_terminal_command,
             read_document_file,
+            read_theme_file,
             list_available_documents,
             query_local_ai,
             execute_agent_confirmed_action,
