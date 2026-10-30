@@ -8149,7 +8149,7 @@
       'theme-konsol':    { wallpaper: 'wallpaper-meltem.svg',        iconset: 'monokrom', accent: '#186a3f' },
       'theme-kesit':     { wallpaper: 'wallpaper-abstract-lines.svg',iconset: 'monokrom', accent: '#b08c00' },
       'theme-fener':     { wallpaper: 'wallpaper-kor.svg',           iconset: 'sunset',   accent: '#e0553a' },
-      'theme-civata':    { wallpaper: 'wallpaper-mountain.jpg',      iconset: 'monokrom', accent: '#6d7d0f' },
+      'theme-civata':    { wallpaper: 'wallpaper.svg',               iconset: 'monokrom', accent: '#6d7d0f' },
       'theme-mina':      { wallpaper: 'wallpaper-topo.svg',          iconset: 'emerald',  accent: '#e8674a' },
       'theme-meridyen':  { wallpaper: 'wallpaper-nordic.svg',        iconset: 'nordic',   accent: '#2244d8' }
     },
