@@ -186,9 +186,9 @@
 
       // 2. Alt Dock: Temel Uygulamalar
       const apps = [
-        { id: 'start', title: 'Başlat Menüsü', icon: '<circle cx="8" cy="8" r="3.4"/><rect x="9.4" y="9.4" width="7.6" height="7.6"/>', action: () => this.toggleStartMenu() },
+        { id: 'start', title: 'Başlat Menüsü', icon: '<circle cx="8" cy="8" r="3.4"/><rect x="9.4" y="9.4" width="7.6" height="7.6"/>', action: (e) => this.toggleStartMenu(e) },
         { id: 'files', winId: 'win-files', title: 'Dosyalar', icon: '<path d="M3 7h6l2 2h10v10H3z"/>', action: () => this.openApp('win-files') },
-        { id: 'browser', winId: 'win-browser', title: 'Web Tarayıcısı', icon: '<circle cx="12" cy="12" r="8"/><path d="M4 12h16M12 4c-3 4-3 12 0 16M12 4c3 4 3 12 0 16"/>', action: () => this.openApp('win-browser') },
+        { id: 'brave', winId: 'win-browser', title: 'Brave Web Tarayıcısı', icon: '<circle cx="12" cy="12" r="8"/><path d="M4 12h16M12 4c-3 4-3 12 0 16M12 4c3 4 3 12 0 16"/>', action: () => this.openApp('win-browser') },
         { id: 'store', winId: 'win-store', title: 'Yazılım Mağazası', icon: '<path d="M5 8l7-4 7 4-7 4zM12 12v8M5 16l7 4 7-4M5 8v8l7 4 7-4V8"/>', action: () => this.openApp('win-store') },
         { id: 'settings', winId: 'win-settings', title: 'Sistem Ayarları', icon: '<path d="M5 8h14l-1 10H6zM9 8V6a3 3 0 0 1 6 0v2"/>', action: () => this.openApp('win-settings') },
         { id: 'terminal', winId: 'win-terminal', title: 'Uçbirim (Terminal)', icon: '<rect x="4" y="5" width="16" height="14"/><path d="M7 9.5l3 2.5-3 2.5M12 15h5"/>', action: () => this.openApp('win-terminal') }
@@ -201,9 +201,13 @@
         if (app.winId) btn.setAttribute('data-win-id', app.winId);
         btn.title = app.title;
         btn.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24">${app.icon}</svg>`;
-        btn.addEventListener('click', app.action);
+        btn.addEventListener('click', (e) => app.action(e));
+        if (window.IconResolver && app.id !== 'start') {
+          window.IconResolver.tagIcon(btn, { id: app.id, exec: app.id, icon: app.id });
+        }
         dock.appendChild(btn);
       });
+      if (window.IconResolver) window.IconResolver.upgradeScope(dock);
 
       // 3. Masaüstü Metanotu
       meta.textContent = 'ankora / oturum: canlı · çekirdek 6.1';
@@ -218,7 +222,7 @@
       brand.className = 'face-brand-label';
       brand.textContent = 'Ankora';
       brand.title = 'Başlat Menüsü';
-      brand.addEventListener('click', () => this.toggleStartMenu());
+      brand.addEventListener('click', (e) => this.toggleStartMenu(e));
       topPanel.appendChild(brand);
 
       const menu = document.createElement('nav');
@@ -227,7 +231,7 @@
         <span class="bostan-nav-apps">Uygulamalar</span>
         <span class="bostan-nav-settings">Görünüm &amp; Ayarlar</span>
       `;
-      menu.querySelector('.bostan-nav-apps').addEventListener('click', () => this.toggleStartMenu());
+      menu.querySelector('.bostan-nav-apps').addEventListener('click', (e) => this.toggleStartMenu(e));
       menu.querySelector('.bostan-nav-settings').addEventListener('click', () => this.openApp('win-settings'));
       topPanel.appendChild(menu);
 
@@ -247,12 +251,12 @@
 
       // 3. Alt Yeşil Kapsül Dock
       const apps = [
-        { id: 'start', title: 'Başlat Menüsü', icon: '<circle cx="8" cy="8" r="3.4"/><rect x="9.4" y="9.4" width="7.6" height="7.6"/>', action: () => this.toggleStartMenu() },
+        { id: 'start', title: 'Başlat Menüsü', icon: '<circle cx="8" cy="8" r="3.4"/><rect x="9.4" y="9.4" width="7.6" height="7.6"/>', action: (e) => this.toggleStartMenu(e) },
         { id: 'files', winId: 'win-files', title: 'Dosyalar', icon: '<path d="M3 7h6l2 2h10v10H3z"/>', action: () => this.openApp('win-files') },
-        { id: 'browser', winId: 'win-browser', title: 'Web Tarayıcısı', icon: '<circle cx="12" cy="12" r="8"/><path d="M4 12h16M12 4c-3 4-3 12 0 16M12 4c3 4 3 12 0 16"/>', action: () => this.openApp('win-browser') },
+        { id: 'brave', winId: 'win-browser', title: 'Brave Web Tarayıcısı', icon: '<circle cx="12" cy="12" r="8"/><path d="M4 12h16M12 4c-3 4-3 12 0 16M12 4c3 4 3 12 0 16"/>', action: () => this.openApp('win-browser') },
         { id: 'store', winId: 'win-store', title: 'Yazılım Mağazası', icon: '<path d="M5 8l7-4 7 4-7 4zM12 12v8M5 16l7 4 7-4M5 8v8l7 4 7-4V8"/>', action: () => this.openApp('win-store') },
         { id: 'terminal', winId: 'win-terminal', title: 'Uçbirim (Terminal)', icon: '<rect x="4" y="5" width="16" height="14"/><path d="M7 9.5l3 2.5-3 2.5M12 15h5"/>', action: () => this.openApp('win-terminal') },
-        { id: 'settings', winId: 'win-settings', title: 'Sistem Ayarları', icon: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>', action: () => this.openApp('win-settings') }
+        { id: 'settings', winId: 'win-settings', title: 'Sistem Ayarları', icon: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1z"/>', action: () => this.openApp('win-settings') }
       ];
 
       apps.forEach(app => {
@@ -262,9 +266,13 @@
         if (app.winId) btn.setAttribute('data-win-id', app.winId);
         btn.title = app.title;
         btn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24">${app.icon}</svg>`;
-        btn.addEventListener('click', app.action);
+        btn.addEventListener('click', (e) => app.action(e));
+        if (window.IconResolver && app.id !== 'start') {
+          window.IconResolver.tagIcon(btn, { id: app.id, exec: app.id, icon: app.id });
+        }
         dock.appendChild(btn);
       });
+      if (window.IconResolver) window.IconResolver.upgradeScope(dock);
     },
 
     // ------------------------------------------------------------------------
@@ -281,8 +289,8 @@
         <span class="civata-top-datetime"></span>
       `;
 
-      topPanel.querySelector('.civata-brand').addEventListener('click', () => this.toggleStartMenu());
-      topPanel.querySelector('.civata-btn-apps').addEventListener('click', () => this.toggleStartMenu());
+      topPanel.querySelector('.civata-brand').addEventListener('click', (e) => this.toggleStartMenu(e));
+      topPanel.querySelector('.civata-btn-apps').addEventListener('click', (e) => this.toggleStartMenu(e));
       topPanel.querySelector('.civata-btn-wins').addEventListener('click', () => {
         if (window.WorkspaceManager && window.WorkspaceManager.toggleOverview) {
           window.WorkspaceManager.toggleOverview();
@@ -305,9 +313,21 @@
     // ------------------------------------------------------------------------
     // YARDIMCILAR & ETKİLEŞİM
     // ------------------------------------------------------------------------
-    toggleStartMenu() {
-      const btn = document.getElementById('start-btn');
-      if (btn) btn.click();
+    toggleStartMenu(e) {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      if (typeof window.toggleStartMenu === 'function') {
+        window.toggleStartMenu();
+      } else {
+        const flyout = document.getElementById('start-flyout');
+        const startBtn = document.getElementById('start-btn');
+        if (!flyout) return;
+        const isOpen = !flyout.classList.contains('open');
+        flyout.classList.toggle('open', isOpen);
+        if (startBtn) startBtn.classList.toggle('active', isOpen);
+      }
     },
 
     openApp(winId) {

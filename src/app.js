@@ -472,6 +472,41 @@
     _cache: new Map(),
     _pending: new Map(),
 
+    // Yerel icons/ klasöründe bulunan hazır yüksek çözünürlüklü SVG simgeler
+    LOCAL_ICONS: new Set([
+      '7zip', 'antigravity', 'audacious', 'audacity', 'blender', 'brave', 'brave-browser',
+      'btop', 'calibre', 'calibre-gui', 'chromium', 'clementine', 'code', 'darktable',
+      'dia', 'discord', 'disk-utility', 'evince', 'feh', 'ffmpeg', 'filezilla',
+      'firefox-esr', 'fish', 'flameshot', 'gcompris-qt', 'geany', 'geogebra', 'gimp',
+      'git', 'gparted', 'helium', 'heroic', 'htop', 'inkscape', 'kdenlive', 'krita',
+      'libreoffice', 'libreoffice-calc', 'libreoffice-impress', 'libreoffice-main',
+      'libreoffice-writer', 'lshw', 'lutris', 'mc', 'mpv', 'mypaint', 'nmap', 'obs',
+      'obsidian', 'onboard', 'onlyoffice-desktopeditors', 'p7zip', 'pavucontrol',
+      'peek', 'python', 'qbittorrent', 'rawtherapee', 'rhythmbox', 'scratch', 'shotcut',
+      'spotify', 'spotify-client', 'steam', 'stellarium', 'synaptic', 'telegram',
+      'thunderbird', 'timeshift', 'transmission', 'transmission-gtk', 'tuxmath',
+      'tuxtype', 'viewnior', 'vlc', 'wine', 'wireshark', 'xournalpp', 'zathura'
+    ]),
+
+    ALIAS_MAP: {
+      'brave': 'brave',
+      'brave-browser': 'brave',
+      'chrome': 'chromium',
+      'google-chrome': 'chromium',
+      'firefox': 'firefox-esr',
+      'code': 'code',
+      'vscode': 'code',
+      'visual-studio-code': 'code',
+      'ankora-store': 'synaptic',
+      'software-store': 'synaptic',
+      'ankora-installer': 'disk-utility',
+      'ayaz-files': 'filezilla',
+      'ayaz-term': 'fish',
+      'ayaz-browser': 'chromium',
+      'ayaz-calc': 'libreoffice-calc',
+      'ayaz-notepad': 'geany'
+    },
+
     candidatesFor(app) {
       const out = [];
       const push = (v) => {
@@ -483,7 +518,7 @@
       push(app.icon);
       const exec = String(app.exec || '');
       const base = exec.split(/\s+/)[0].split('/').pop();
-      if (base && base !== 'flatpak') push(base);
+      if (base && !base.startsWith('internal:') && base !== 'flatpak') push(base);
       if (app.flatpak) {
         const tail = String(app.flatpak).split('.').pop();
         push(tail && tail.toLowerCase());
@@ -491,13 +526,27 @@
       }
       push(app.deb);
       push(app.id);
-      return out.slice(0, 6);
+      return out.slice(0, 8);
     },
 
-    resolve(names) {
+    async resolve(names) {
       const key = names.join('|');
-      if (this._cache.has(key)) return Promise.resolve(this._cache.get(key));
+      if (this._cache.has(key)) return this._cache.get(key);
       if (this._pending.has(key)) return this._pending.get(key);
+
+      // 1. Önce yerel `icons/` deposundaki zengin SVG seçkisini dene
+      for (const raw of names) {
+        if (!raw) continue;
+        const norm = String(raw).toLowerCase().replace(/[^a-z0-9._-]/g, '');
+        const target = this.ALIAS_MAP[norm] || norm;
+        if (this.LOCAL_ICONS.has(target)) {
+          const localUrl = `icons/${target}.svg`;
+          this._cache.set(key, localUrl);
+          return localUrl;
+        }
+      }
+
+      // 2. Ardından backend IPC köprüsünden kurulu sistem ikonlarını ara
       const p = TauriBridge.invoke('get_app_icon', { names })
         .then(url => {
           const ok = (typeof url === 'string' && url.startsWith('data:image/')) ? url : null;
@@ -510,6 +559,7 @@
           this._pending.delete(key);
           return null;
         });
+
       this._pending.set(key, p);
       return p;
     },
@@ -8279,7 +8329,9 @@
       if (themeName !== 'theme-dark') {
         document.body.classList.add(themeName);
       }
-
+      const isLight = this.LIGHT_THEMES.includes(themeName);
+      document.body.classList.toggle('is-light-theme', isLight);
+      document.documentElement.classList.toggle('is-light-theme', isLight);
       document.querySelectorAll('.theme-card-choice').forEach(card => {
         card.classList.toggle('active', card.getAttribute('data-theme') === themeName);
       });
@@ -9894,6 +9946,7 @@
         }, 50);
       }
     };
+    window.toggleStartMenu = toggleStart;
 
     if (startBtn) {
       startBtn.addEventListener('click', (e) => {
@@ -9907,7 +9960,8 @@
         document.querySelectorAll('.desktop-item.selected').forEach(el => el.classList.remove('selected'));
       }
       if (startFlyout && startFlyout.classList.contains('open')) {
-        if (!startFlyout.contains(e.target) && (!startBtn || !startBtn.contains(e.target))) {
+        const isTrigger = e.target.closest('#start-btn, .face-dock-app[data-app-id="start"], .face-brand-label, .bostan-nav-apps, .civata-btn-apps, .civata-brand, .ayaz-start-trigger');
+        if (!startFlyout.contains(e.target) && !isTrigger) {
           toggleStart(false);
         }
       }
@@ -17327,6 +17381,7 @@
     window.TauriBridge = TauriBridge;
     window.WeatherManager = (typeof WeatherManager !== 'undefined') ? WeatherManager : null;
     window.ReportManager = (typeof ReportManager !== 'undefined') ? ReportManager : null;
+    window.IconResolver = IconResolver;
   }
 
   if (document.readyState === 'loading') {

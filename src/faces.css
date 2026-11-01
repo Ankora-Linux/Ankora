@@ -972,3 +972,240 @@ html[data-iconset] .desktop-item .item-icon svg {
 [data-face="8"] .feature-desc {
   color: #77745f !important;
 }
+
+/* ==========================================================================
+   AÇIK TEMA KUSURSUZ UYARLAMASI (LIGHT THEMES POLISH)
+   Tüm açık temalarda (.is-light-theme, theme-light, theme-bostan, Face 3 vb.)
+   görünmeyen metin, karanlık widget ve kontrast hataları giderilir.
+   ========================================================================== */
+
+/* 1. Masaüstü Widget Kartları (Saat, Hava Durumu, Bellek) */
+body.is-light-theme .desk-widget,
+body.theme-light .desk-widget,
+body.theme-arctic .desk-widget,
+body.theme-cinar .desk-widget,
+body.theme-meltem .desk-widget,
+body.theme-matbaa .desk-widget,
+body.theme-bostan .desk-widget,
+body.theme-konsol .desk-widget,
+body.theme-kesit .desk-widget,
+body.theme-civata .desk-widget,
+body.theme-meridyen .desk-widget {
+  background: rgba(255, 255, 255, 0.88) !important;
+  border: 1px solid rgba(0, 0, 0, 0.12) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.09) !important;
+  color: #0f172a !important;
+}
+
+body.is-light-theme .dw-time,
+body.theme-light .dw-time,
+body.theme-arctic .dw-time,
+body.theme-cinar .dw-time,
+body.theme-meltem .dw-time {
+  color: #0f172a !important;
+}
+
+body.is-light-theme .dw-date,
+body.theme-light .dw-date,
+body.theme-arctic .dw-date,
+body.theme-cinar .dw-date,
+body.theme-meltem .dw-date {
+  color: #475569 !important;
+}
+
+body.is-light-theme .dw-head,
+body.theme-light .dw-head {
+  color: #64748b !important;
+}
+
+body.is-light-theme .dw-meter,
+body.theme-light .dw-meter {
+  background: rgba(0, 0, 0, 0.08) !important;
+}
+
+body.is-light-theme .dw-meter-fill,
+body.theme-light .dw-meter-fill {
+  background: var(--accent-active, #059669) !important;
+}
+
+/* 2. Dinamik Durum Kapsülü (Ada) Açık Tema */
+body.is-light-theme .dynamic-island,
+body.theme-light .dynamic-island,
+body.theme-arctic .dynamic-island,
+body.theme-cinar .dynamic-island,
+body.theme-meltem .dynamic-island {
+  background: rgba(255, 255, 255, 0.94) !important;
+  border-color: rgba(0, 0, 0, 0.12) !important;
+  color: #0f172a !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* 3. Masaüstü Simgeleri Açık Tema Kontrastı */
+body.is-light-theme .desktop-item .item-name,
+body.theme-light .desktop-item .item-name,
+body.theme-arctic .desktop-item .item-name,
+body.theme-cinar .desktop-item .item-name,
+body.theme-meltem .desktop-item .item-name {
+  color: #0f172a !important;
+  text-shadow: 0 1px 3px rgba(255, 255, 255, 0.95), 0 0 10px rgba(255, 255, 255, 0.8) !important;
+  font-weight: 600 !important;
+}
+
+body.is-light-theme .desktop-item .item-icon svg,
+body.theme-light .desktop-item .item-icon svg,
+body.theme-arctic .desktop-item .item-icon svg,
+body.theme-cinar .desktop-item .item-icon svg,
+body.theme-meltem .desktop-item .item-icon svg {
+  stroke: #0f172a !important;
+  filter: drop-shadow(0 2px 4px rgba(255, 255, 255, 0.9)) !important;
+}
+
+/* 4. Başlat Menüsü (Start Flyout) Açık Tema İyileştirmeleri */
+body.is-light-theme .start-flyout,
+body.theme-light .start-flyout,
+body.theme-arctic .start-flyout,
+body.theme-cinar .start-flyout,
+body.theme-meltem .start-flyout,
+body.theme-matbaa .start-flyout,
+body.theme-bostan .start-flyout,
+body.theme-konsol .start-flyout,
+body.theme-kesit .start-flyout,
+body.theme-civata .start-flyout,
+body.theme-meridyen .start-flyout {
+  background: rgba(255, 255, 255, 0.96) !important;
+  border: 1px solid rgba(0, 0, 0, 0.12) !important;
+  color: #0f172a !important;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.16) !important;
+}
+
+body.is-light-theme .start-section-heading span,
+body.theme-light .start-section-heading span {
+  color: #0f172a !important;
+  font-weight: 600 !important;
+}
+
+body.is-light-theme .heading-sub,
+body.theme-light .heading-sub {
+  color: #64748b !important;
+}
+
+body.is-light-theme .app-title,
+body.is-light-theme .pinned-app-name,
+body.theme-light .app-title,
+body.theme-light .pinned-app-name {
+  color: #0f172a !important;
+  font-weight: 600 !important;
+}
+
+body.is-light-theme .app-desc,
+body.theme-light .app-desc {
+  color: #64748b !important;
+}
+
+body.is-light-theme .pinned-icon-box,
+body.theme-light .pinned-icon-box {
+  background: rgba(0, 0, 0, 0.04) !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  color: #0f172a !important;
+}
+
+body.is-light-theme .recent-file-card,
+body.is-light-theme .quick-action-card,
+body.theme-light .recent-file-card,
+body.theme-light .quick-action-card {
+  background: rgba(0, 0, 0, 0.03) !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  color: #0f172a !important;
+}
+
+body.is-light-theme .recent-file-card:hover,
+body.is-light-theme .quick-action-card:hover,
+body.theme-light .recent-file-card:hover,
+body.theme-light .quick-action-card:hover {
+  background: rgba(0, 0, 0, 0.06) !important;
+}
+
+body.is-light-theme .start-profile-capsule,
+body.theme-light .start-profile-capsule {
+  background: #f8fafc !important;
+  border-top: 1px solid rgba(0, 0, 0, 0.08) !important;
+  color: #0f172a !important;
+}
+
+body.is-light-theme .profile-name,
+body.theme-light .profile-name {
+  color: #0f172a !important;
+  font-weight: 600 !important;
+}
+
+body.is-light-theme .profile-role,
+body.theme-light .profile-role {
+  color: #64748b !important;
+}
+
+body.is-light-theme .power-action-btn,
+body.theme-light .power-action-btn {
+  background: rgba(0, 0, 0, 0.05) !important;
+  color: #0f172a !important;
+}
+
+body.is-light-theme .power-action-btn:hover,
+body.theme-light .power-action-btn:hover {
+  background: rgba(0, 0, 0, 0.1) !important;
+}
+
+/* 5. Sağ Tık Bağlam Menüleri Açık Tema */
+body.is-light-theme .desktop-context-menu,
+body.theme-light .desktop-context-menu,
+body.theme-arctic .desktop-context-menu,
+body.theme-cinar .desktop-context-menu,
+body.theme-meltem .desktop-context-menu,
+[data-face="3"] .desktop-context-menu,
+[data-face="8"] .desktop-context-menu {
+  background: rgba(255, 255, 255, 0.96) !important;
+  border: 1px solid rgba(0, 0, 0, 0.12) !important;
+  color: #0f172a !important;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.16) !important;
+}
+
+body.is-light-theme .ctx-item,
+body.theme-light .ctx-item,
+[data-face="3"] .ctx-item,
+[data-face="8"] .ctx-item {
+  color: #0f172a !important;
+}
+
+body.is-light-theme .ctx-item:hover,
+body.theme-light .ctx-item:hover,
+[data-face="3"] .ctx-item:hover,
+[data-face="8"] .ctx-item:hover {
+  background: rgba(0, 0, 0, 0.06) !important;
+  color: var(--accent-active, #059669) !important;
+}
+
+body.is-light-theme .ctx-submenu-list,
+body.theme-light .ctx-submenu-list,
+[data-face="3"] .ctx-submenu-list,
+[data-face="8"] .ctx-submenu-list {
+  background: rgba(255, 255, 255, 0.96) !important;
+  border: 1px solid rgba(0, 0, 0, 0.12) !important;
+}
+
+/* 6. Başlat Menüsü Yüz Konumlandırması */
+[data-face="2"] .start-flyout {
+  bottom: 74px !important;
+  left: max(10px, calc(50% - 230px)) !important;
+  top: auto !important;
+}
+
+[data-face="3"] .start-flyout {
+  top: 44px !important;
+  bottom: auto !important;
+  left: 18px !important;
+}
+
+[data-face="8"] .start-flyout {
+  top: 36px !important;
+  bottom: auto !important;
+  left: 14px !important;
+}
