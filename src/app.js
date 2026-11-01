@@ -1371,6 +1371,9 @@
         });
         this.tabsContainer.appendChild(tab);
       });
+      try {
+        window.dispatchEvent(new CustomEvent('ayaz:tabs-synced'));
+      } catch (e) {}
     },
 
     // Görev çubuğu sekmesi sağ tık menüsü. Tek örnek; dışarı tıklayınca,
@@ -17318,6 +17321,12 @@
     window.MenuEditor = MenuEditor;
     window.UsersManager = UsersManager;
     window.XdgDesktopEngine = XdgDesktopEngine;
+    window.WorkspaceManager = WorkspaceManager;
+    window.AppPinManager = AppPinManager;
+    window.SafeStorage = SafeStorage;
+    window.TauriBridge = TauriBridge;
+    window.WeatherManager = (typeof WeatherManager !== 'undefined') ? WeatherManager : null;
+    window.ReportManager = (typeof ReportManager !== 'undefined') ? ReportManager : null;
   }
 
   if (document.readyState === 'loading') {

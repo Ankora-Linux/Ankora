@@ -6,6 +6,8 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self' file: data:; script-src 'self' file: 'unsafe-inline' 'unsafe-eval'; style-src 'self' file: 'unsafe-inline'; img-src 'self' file: data: blob: https:; font-src 'self' file: data:; connect-src 'self' file: https: http://127.0.0.1:49152 http://127.0.0.1:11434 https://generativelanguage.googleapis.com https://api.groq.com https://api.openai.com https://openrouter.ai https://api.github.com; frame-src 'self' file: data: blob: https: http://127.0.0.1:49152; object-src 'none'; base-uri 'self'; form-action 'self'">
   <title>Ayaz — Ankora Linux</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="fonts/fonts.css">
+  <link rel="stylesheet" href="faces.css">
 </head>
 <body class="desktop-body">
 
@@ -258,7 +260,7 @@
 
           <!-- ANKORA Heading -->
           <h1 class="preview-title">ANKORA</h1>
-          <p class="preview-subtitle">Modern Linux Deneyimine Hoş Geldiniz</p>
+          <p class="preview-subtitle">Ayaz Masaüstü Ortamı</p>
 
           <!-- Sisteminizi Keşfedin -->
           <div class="preview-section-title">Sisteminizi Keşfedin:</div>
@@ -274,8 +276,8 @@
                   </svg>
                 </div>
                 <div class="feature-labels">
-                  <span class="feature-name">Theme Toggles</span>
-                  <span class="feature-desc">Light/Dark Mode</span>
+                  <span class="feature-name">Görünüm Teması</span>
+                  <span class="feature-desc">Açık veya koyu arayüz modu</span>
                 </div>
               </div>
               <div class="feature-right">
@@ -301,8 +303,8 @@
                   </svg>
                 </div>
                 <div class="feature-labels">
-                  <span class="feature-name">Package Installer</span>
-                  <span class="feature-desc">Search packages</span>
+                  <span class="feature-name">Uygulama Mağazası</span>
+                  <span class="feature-desc">Yazılım ve paketleri keşfedin</span>
                 </div>
               </div>
               <div class="feature-right">
@@ -389,7 +391,7 @@
                 </div>
                 <div class="feature-labels">
                   <span class="feature-name">Ayaz Güncelleyici</span>
-                  <span class="feature-desc">Ankora Linux 3.6 sistem yamaları</span>
+                  <span class="feature-desc">Ayaz DE ve sistem güncellemeleri</span>
                 </div>
               </div>
               <div class="feature-right">
@@ -405,7 +407,7 @@
               <span>Açılışta Karşılayıcıyı Göster</span>
             </label>
             <button class="btn-text-link" id="btn-open-advanced-settings" title="Tüm sistem ayarlarını aç">
-              Tüm Ayarlar →
+              Tüm Ayarlar
             </button>
           </div>
         </div>
@@ -1313,6 +1315,50 @@
                 <h3>Görünüm & Kişiselleştirme</h3>
                 <p>Sistem temasını, renk paletini ve arka plan görselini zevkinize göre özelleştirin.</p>
               </div>
+              <!-- Arayüz Yüzü / Mimari Düzen Seçimi (Face Architecture: Örnek UI 2, 3 ve 8) -->
+              <div class="settings-card-group" id="group-face-architecture">
+                <span class="card-group-title">Arayüz Yüzü &amp; Masaüstü Mimarisi</span>
+                <p style="font-size:12px;color:var(--text-muted);margin:4px 0 12px;line-height:1.5;">Ayaz DE'nin panel, dock, tipografi ve arayüz mimarisini değiştirin (Örnek UI: 2 Bakır, 3 Bostan, 8 Cıvata).</p>
+                <div class="face-picker-grid">
+                  <div class="face-card-choice active" data-face="default">
+                    <div class="face-preview-box face-preview-default">
+                      <div class="fp-preview-top-default"></div>
+                      <div class="fp-preview-desk-default"></div>
+                      <div class="fp-preview-dock-default"></div>
+                    </div>
+                    <strong>Varsayılan (Modern Cam)</strong>
+                    <span>Alt görev çubuğu, monokrom ikonlar ve koyu cam mimarisi</span>
+                  </div>
+                  <div class="face-card-choice" data-face="2">
+                    <div class="face-preview-box face-preview-2">
+                      <div class="fp-preview-top-2"></div>
+                      <div class="fp-preview-desk-2"></div>
+                      <div class="fp-preview-dock-2"></div>
+                    </div>
+                    <strong>Yüz 2 · Bakır</strong>
+                    <span>IBM Plex, üst durum paneli (çalışma alanları + kapsül saat), altta yüzen bakır dock</span>
+                  </div>
+                  <div class="face-card-choice" data-face="3">
+                    <div class="face-preview-box face-preview-3">
+                      <div class="fp-preview-top-3"></div>
+                      <div class="fp-preview-desk-3"></div>
+                      <div class="fp-preview-dock-3"></div>
+                    </div>
+                    <strong>Yüz 3 · Bostan</strong>
+                    <span>Newsreader + Figtree, üst menü çubuğu, sağda dev serif saat, solda dikey simgeler, altta yeşil kapsül dock</span>
+                  </div>
+                  <div class="face-card-choice" data-face="8">
+                    <div class="face-preview-box face-preview-8">
+                      <div class="fp-preview-top-8"></div>
+                      <div class="fp-preview-desk-8"></div>
+                      <div class="fp-preview-dock-8"></div>
+                    </div>
+                    <strong>Yüz 8 · Cıvata</strong>
+                    <span>Bricolage Grotesque + Instrument Sans, limon aksanlı üst siyah çubuk, solda dev saat, teknik pencere çizgileri</span>
+                  </div>
+                </div>
+              </div>
+
 
               <!-- Tema Modu Seçimi -->
               <div class="settings-card-group">
@@ -3785,6 +3831,7 @@
   <div id="ayaz-global-toast" class="ayaz-toast-notification" role="status" aria-live="polite"></div>
 
   <script src="app.js"></script>
+  <script src="faces.js"></script>
   <!-- ======================================================================= -->
   <!-- GÜÇ VE ÇIKIŞ DİYALOĞU (POWER DIALOG MODAL)                               -->
   <!-- ======================================================================= -->

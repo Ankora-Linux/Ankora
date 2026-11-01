@@ -2365,49 +2365,57 @@ html, body {
 .desktop-item:focus,
 .desktop-item.selected,
 .ayaz-desktop-shortcut.selected {
-  background: rgba(0, 229, 255, 0.12);
-  border-color: rgba(0, 229, 255, 0.35);
-  box-shadow: 0 4px 16px rgba(0, 229, 255, 0.15);
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.22);
+  border-radius: 8px;
+  box-shadow: none;
 }
 
+/* İkonlar asla kutu içine hapsedilmez; temiz, doğrudan zemin üzerinde durur (Antislop UI) */
 .item-icon {
   position: relative;
-  width: 44px;
-  height: 44px;
-  border-radius: 10px;
-  background: #141724;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+  width: 48px;
+  height: 48px;
+  border-radius: 0;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--text-primary);
-  transition: transform 0.15s ease, background 0.15s ease;
+  transition: transform 0.15s ease;
 }
 
 .item-icon svg {
-  width: 22px;
-  height: 22px;
+  width: 34px;
+  height: 34px;
   stroke: var(--text-primary);
+  filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.7));
   transition: stroke 0.18s ease, transform 0.18s ease;
+}
+
+.item-icon img {
+  width: 36px;
+  height: 36px;
+  filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.7));
 }
 
 .desktop-item:hover .item-icon,
 .ayaz-desktop-shortcut:hover .item-icon {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.16);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 
+.desktop-item:hover .item-icon svg,
+.ayaz-desktop-shortcut:hover .item-icon svg {
+  transform: scale(1.08);
+}
+
+/* Sahte dekoratif durum noktaları kaldırıldı */
 .item-cat-dot {
-  position: absolute;
-  bottom: -2px;
-  right: -2px;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  border: 1.5px solid #0f141f;
-  background: var(--text-muted);
+  display: none !important;
 }
 
 /* Kategori Belirteçleri (Sade, mat ve abartısız) */
@@ -4463,20 +4471,20 @@ body.theme-light .ai-entry.user {
 }
 
 .feature-icon-circle {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.07);
+  width: 28px;
+  height: 28px;
+  border-radius: 0;
+  background: transparent !important;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #ffffff;
+  color: var(--accent-active, #2563eb);
   flex-shrink: 0;
 }
 
 .feature-svg {
-  width: 16px;
-  height: 16px;
+  width: 20px;
+  height: 20px;
   stroke: currentColor;
 }
 

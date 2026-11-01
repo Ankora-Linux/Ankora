@@ -5,6 +5,11 @@
 # ==============================================================================
 set -e
 
+# Açılış ekranından X'e geçiş: Plymouth çalışıyorsa DRM/KMS kilidini bırakması için kapatılır
+if command -v plymouth >/dev/null 2>&1 && plymouth --ping >/dev/null 2>&1; then
+    plymouth quit 2>/dev/null || sudo plymouth quit 2>/dev/null || true
+fi
+
 # 1. X11 Temel Ayarları
 if command -v xsetroot >/dev/null 2>&1; then
     xsetroot -solid "#13141b"

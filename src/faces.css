@@ -1,0 +1,974 @@
+/* ==========================================================================
+   AYAZ DE · ARAYÜZ YÜZLERİ / FACES MİMARİSİ (Antislop UI Standardı)
+   Örnek UI Referansları: 2 (Bakır), 3 (Bostan), 8 (Cıvata)
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   0. Ayarlar Kart Seçimi Izgarası (Settings Pane Integration)
+   -------------------------------------------------------------------------- */
+.face-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.face-card-choice {
+  background: var(--bg-surface, rgba(255, 255, 255, 0.04));
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.1));
+  border-radius: 10px;
+  padding: 12px;
+  cursor: pointer;
+  transition: all 0.16s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.face-card-choice:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+.face-card-choice.active {
+  background: rgba(37, 99, 235, 0.12);
+  border-color: var(--accent-active, #2563eb);
+  box-shadow: 0 0 0 1px var(--accent-active, #2563eb);
+}
+
+.face-card-choice strong {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-primary, #fff);
+}
+
+.face-card-choice span {
+  font-size: 11.5px;
+  color: var(--text-secondary, #a3a6be);
+  line-height: 1.4;
+}
+
+.face-preview-box {
+  width: 100%;
+  height: 64px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+
+.face-preview-default {
+  background: #13141b;
+}
+.face-preview-default .fp-preview-dock-default {
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 70%;
+  height: 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.face-preview-2 {
+  background: #141519;
+}
+.face-preview-2 .fp-preview-top-2 {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 8px;
+  background: #1c1e23;
+  border-bottom: 1px solid #d1794f;
+}
+.face-preview-2 .fp-preview-dock-2 {
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 50%;
+  height: 9px;
+  border-radius: 4px;
+  background: #22242b;
+  border: 1px solid #d1794f;
+}
+
+.face-preview-3 {
+  background: #e6ebd8;
+}
+.face-preview-3 .fp-preview-top-3 {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 8px;
+  background: #faf8ef;
+  border-bottom: 1px solid #e4e0cf;
+}
+.face-preview-3 .fp-preview-dock-3 {
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 44%;
+  height: 9px;
+  border-radius: 6px;
+  background: #3d6b45;
+}
+
+.face-preview-8 {
+  background: #fcfcf9;
+}
+.face-preview-8 .fp-preview-top-8 {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 8px;
+  background: #161309;
+}
+.face-preview-8 .fp-preview-desk-8 {
+  position: absolute;
+  left: 8px;
+  top: 14px;
+  width: 24px;
+  height: 14px;
+  background: #c7e42b;
+  border-radius: 3px;
+}
+
+/* --------------------------------------------------------------------------
+   Genel Yüz Kabuğu (Face Shell Elements)
+   -------------------------------------------------------------------------- */
+#face-top-panel,
+#face-bottom-dock,
+#face-desk-hero,
+#face-meta-note {
+  display: none;
+}
+
+[data-face="2"] #taskbar,
+[data-face="3"] #taskbar,
+[data-face="8"] #taskbar {
+  display: none !important;
+}
+
+[data-face="2"] #face-top-panel,
+[data-face="2"] #face-bottom-dock,
+[data-face="2"] #face-meta-note {
+  display: flex;
+}
+
+[data-face="3"] #face-top-panel,
+[data-face="3"] #face-bottom-dock,
+[data-face="3"] #face-desk-hero {
+  display: flex;
+}
+
+[data-face="8"] #face-top-panel,
+[data-face="8"] #face-desk-hero {
+  display: flex;
+}
+
+/* ==========================================================================
+   YÜZ 2 · BAKIR (IBM Plex Sans & Mono · Üst Panel + Alt Bakır Yüzen Dock)
+   ========================================================================== */
+[data-face="2"] {
+  --bg-desktop: #141519;
+  --copper: #d1794f;
+  --copper-2: #8a4d33;
+  --copper-line: #2e3138;
+  --panel-bg: #1c1e23;
+  --panel-2-bg: #22242b;
+  --text-main: #e9e4da;
+  --dim-text: #9a958a;
+  --font-face-sans: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-face-mono: "IBM Plex Mono", monospace;
+}
+
+[data-face="2"] body {
+  background: #141519 !important;
+  color: #e9e4da !important;
+  font-family: var(--font-face-sans) !important;
+}
+
+[data-face="2"] .desktop-wallpaper {
+  background: radial-gradient(140% 100% at 50% 0%, #1b1d22 0 55%, #101114 100%) !important;
+}
+
+[data-face="2"] .desktop-widgets {
+  display: none !important;
+}
+
+/* Yüz 2 Masaüstü Metanotu */
+#face-meta-note {
+  position: absolute;
+  left: 120px;
+  top: 48px;
+  font: 400 11.5px var(--font-face-mono, "IBM Plex Mono", monospace);
+  color: #565a63;
+  z-index: 5;
+  pointer-events: none;
+  letter-spacing: 0.2px;
+}
+
+/* Yüz 2 Üst Panel */
+[data-face="2"] #face-top-panel {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 36px;
+  background: #1c1e23;
+  border-bottom: 1px solid #2e3138;
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  gap: 14px;
+  z-index: 100;
+  font: 500 12.5px var(--font-face-mono, "IBM Plex Mono", monospace);
+  color: #e9e4da;
+}
+
+[data-face="2"] .face-ws-group {
+  display: flex;
+  gap: 6px;
+}
+
+[data-face="2"] .face-ws-btn {
+  width: 26px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #2e3138;
+  color: #9a958a;
+  font-style: normal;
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  transition: all 0.12s ease;
+}
+
+[data-face="2"] .face-ws-btn:hover {
+  color: #e9e4da;
+  border-color: #d1794f;
+}
+
+[data-face="2"] .face-ws-btn.active {
+  background: #8a4d33;
+  border-color: #d1794f;
+  color: #f7ede4;
+  font-weight: 600;
+}
+
+[data-face="2"] .face-clock-capsule {
+  margin-left: 150px;
+  background: #22242b;
+  border: 1px solid #2e3138;
+  border-radius: 9px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 12px;
+  color: #9a958a;
+  cursor: pointer;
+}
+
+[data-face="2"] .face-clock-capsule b {
+  color: #d1794f;
+  font-weight: 500;
+}
+
+[data-face="2"] .face-panel-spacer {
+  flex: 1;
+}
+
+[data-face="2"] .face-tray-group {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  color: #9a958a;
+}
+
+[data-face="2"] .face-tray-group svg {
+  stroke: #e9e4da;
+  fill: none;
+  stroke-width: 1.6;
+}
+
+/* Yüz 2 Yüzen Alt Dock */
+[data-face="2"] #face-bottom-dock {
+  position: absolute;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 10px;
+  background: #1c1e23;
+  border: 1px solid #2e3138;
+  border-radius: 12px;
+  padding: 9px;
+  z-index: 100;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+}
+
+[data-face="2"] .face-dock-app {
+  width: 46px;
+  height: 46px;
+  border-radius: 8px;
+  background: #22242b;
+  border: 1px solid #2e3138;
+  display: grid;
+  place-items: center;
+  position: relative;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  color: #e9e4da;
+}
+
+[data-face="2"] .face-dock-app:hover {
+  background: #2e3138;
+  border-color: #d1794f;
+  transform: translateY(-2px);
+}
+
+[data-face="2"] .face-dock-app:active {
+  transform: scale(0.95);
+}
+
+[data-face="2"] .face-dock-app.running::after {
+  content: "";
+  position: absolute;
+  bottom: 3px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #d1794f;
+}
+
+[data-face="2"] .face-dock-app svg {
+  width: 22px;
+  height: 22px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.6;
+}
+
+/* Yüz 2 Pencereleri */
+[data-face="2"] .window {
+  background: #1c1e23 !important;
+  border: 1px solid #2e3138 !important;
+  border-top: 2px solid #d1794f !important;
+  border-radius: 10px !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5) !important;
+  color: #e9e4da !important;
+  font-family: var(--font-face-sans) !important;
+}
+
+[data-face="2"] .window-header {
+  height: 40px !important;
+  background: #1c1e23 !important;
+  border-bottom: 1px solid #2e3138 !important;
+  color: #e9e4da !important;
+}
+
+[data-face="2"] .window-meta span {
+  font: 600 14px var(--font-face-sans) !important;
+  color: #e9e4da !important;
+}
+
+[data-face="2"] .window-view {
+  background: #1c1e23 !important;
+  color: #e9e4da !important;
+}
+
+[data-face="2"] .ctrl-btn {
+  border-radius: 3px !important;
+}
+[data-face="2"] .ctrl-btn.close {
+  background: #8a4d33 !important;
+  color: #f7ede4 !important;
+}
+
+/* ==========================================================================
+   YÜZ 3 · BOSTAN (Newsreader & Figtree · Üst Menü + Dev Serif Saat + Yeşil Dock)
+   ========================================================================== */
+[data-face="3"] {
+  --leaf: #e6ebd8;
+  --leaf-2: #d7dfc2;
+  --card: #faf8ef;
+  --ink: #26321f;
+  --ink-2: #6a7560;
+  --green: #3d6b45;
+  --green-2: #2c4f33;
+  --bark: #8a6f4e;
+  --font-serif: "Newsreader", Georgia, serif;
+  --font-sans: "Figtree", system-ui, sans-serif;
+}
+
+[data-face="3"] body {
+  background: #26321f !important;
+  color: #26321f !important;
+  font-family: var(--font-sans) !important;
+}
+
+[data-face="3"] .desktop-wallpaper {
+  background: radial-gradient(130% 100% at 75% 10%, #d7dfc2 0 38%, transparent 66%),
+              radial-gradient(110% 90% at 12% 85%, #eef2e0 0 40%, transparent 70%),
+              #e6ebd8 !important;
+}
+
+[data-face="3"] .desktop-widgets {
+  display: none !important;
+}
+
+/* Yüz 3 Üst Çubuk */
+[data-face="3"] #face-top-panel {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  padding: 0 18px;
+  gap: 16px;
+  z-index: 100;
+  background: transparent;
+  color: #26321f;
+  font-family: var(--font-sans);
+}
+
+[data-face="3"] .face-brand-label {
+  font: 600 15px var(--font-sans);
+  letter-spacing: 0.2px;
+  color: #26321f;
+  cursor: pointer;
+}
+
+[data-face="3"] .face-top-menu {
+  display: flex;
+  gap: 14px;
+  font-size: 13.5px;
+  color: #6a7560;
+}
+
+[data-face="3"] .face-top-menu span {
+  cursor: pointer;
+  transition: color 0.12s ease;
+}
+
+[data-face="3"] .face-top-menu span:hover {
+  color: #26321f;
+}
+
+[data-face="3"] .face-top-clock-serif {
+  margin-left: auto;
+  font: 560 14px var(--font-serif);
+  font-variant-numeric: tabular-nums;
+  color: #26321f;
+}
+
+/* Yüz 3 Sağ Üst Dev Serif Saat & Hava Kartı */
+[data-face="3"] #face-desk-hero {
+  position: absolute;
+  right: 44px;
+  top: 76px;
+  text-align: left;
+  z-index: 5;
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+[data-face="3"] .bostan-hero-time {
+  font: 450 92px/0.92 var(--font-serif);
+  letter-spacing: -2px;
+  color: #26321f;
+}
+
+[data-face="3"] .bostan-hero-time small {
+  font: italic 450 20px var(--font-serif);
+  letter-spacing: 0;
+  margin-left: 10px;
+  color: #6a7560;
+}
+
+[data-face="3"] .bostan-hero-weather {
+  margin-top: 10px;
+  font-size: 14px;
+  color: #2c4f33;
+  font-family: var(--font-sans);
+}
+
+[data-face="3"] .bostan-hero-weather b {
+  font-weight: 600;
+}
+
+/* Yüz 3 Masaüstü Simgeleri (Sol Dikey Izgara) */
+[data-face="3"] .desktop-grid {
+  left: 26px !important;
+  top: 56px !important;
+  width: 90px !important;
+}
+
+[data-face="3"] .desktop-item .item-icon {
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: 12px !important;
+  background: #faf8ef !important;
+  border: 1px solid #e8e4d3 !important;
+  box-shadow: 0 1.5px 0 rgba(38, 50, 31, 0.14) !important;
+}
+
+[data-face="3"] .desktop-item .item-icon svg {
+  width: 22px !important;
+  height: 22px !important;
+  stroke: #26321f !important;
+  filter: none !important;
+}
+
+[data-face="3"] .desktop-item .item-name {
+  color: #26321f !important;
+  text-shadow: none !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+}
+
+/* Yüz 3 Alt Yeşil Kapsül Dock */
+[data-face="3"] #face-bottom-dock {
+  position: absolute;
+  left: 50%;
+  bottom: 20px;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  background: #faf8ef;
+  border: 1px solid #e4e0cf;
+  border-radius: 16px;
+  padding: 8px;
+  box-shadow: 0 10px 26px -14px rgba(38, 50, 31, 0.3);
+  z-index: 100;
+}
+
+[data-face="3"] .face-dock-app {
+  width: 44px;
+  height: 44px;
+  border-radius: 11px;
+  background: #d7dfc2;
+  display: grid;
+  place-items: center;
+  position: relative;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  color: #26321f;
+}
+
+[data-face="3"] .face-dock-app:hover {
+  background: #c9d4b0;
+  transform: translateY(-2px);
+}
+
+[data-face="3"] .face-dock-app.active,
+[data-face="3"] .face-dock-app.running {
+  background: #3d6b45;
+  color: #f4f6ec;
+}
+
+[data-face="3"] .face-dock-app svg {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.7;
+}
+
+/* Yüz 3 Pencereleri (Sıcak Kağıt Kart) */
+[data-face="3"] .window {
+  background: #faf8ef !important;
+  border-radius: 18px !important;
+  border: 1px solid #e4e0cf !important;
+  box-shadow: 0 24px 48px -22px rgba(38, 50, 31, 0.35), 0 1px 0 rgba(255, 255, 255, 0.6) inset !important;
+  color: #26321f !important;
+  font-family: var(--font-sans) !important;
+}
+
+[data-face="3"] .window-header {
+  height: 44px !important;
+  background: #faf8ef !important;
+  border-bottom: 1px solid #e4e0cf !important;
+  color: #26321f !important;
+}
+
+[data-face="3"] .window-meta span {
+  font: 560 16px var(--font-serif) !important;
+  color: #26321f !important;
+}
+
+[data-face="3"] .window-view {
+  background: #faf8ef !important;
+  color: #26321f !important;
+}
+
+[data-face="3"] .ctrl-btn {
+  border-radius: 50% !important;
+  width: 13px !important;
+  height: 13px !important;
+  font-size: 0 !important;
+  background: #d7dfc2 !important;
+}
+[data-face="3"] .ctrl-btn.close {
+  background: #3d6b45 !important;
+}
+
+/* ==========================================================================
+   YÜZ 8 · CIVATA (Bricolage Grotesque & Instrument Sans · Limon/İs Siyah Üst Çubuk)
+   ========================================================================== */
+[data-face="8"] {
+  --civata: #fcfcf9;
+  --is: #161309;
+  --limon: #c7e42b;
+  --limon-2: #e6f4a3;
+  --mute: #77745f;
+  --rule: #e3e1d3;
+  --font-disp: "Bricolage Grotesque", sans-serif;
+  --font-sans: "Instrument Sans", system-ui, sans-serif;
+}
+
+[data-face="8"] body {
+  background: #fcfcf9 !important;
+  color: #161309 !important;
+  font-family: var(--font-sans) !important;
+}
+
+[data-face="8"] .desktop-wallpaper {
+  background: #fcfcf9 !important;
+}
+
+[data-face="8"] .desktop-widgets {
+  display: none !important;
+}
+
+/* Yüz 8 Üst Teknik Siyah Çubuk */
+[data-face="8"] #face-top-panel {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 30px;
+  background: #161309;
+  color: #f4f2e6;
+  display: flex;
+  align-items: center;
+  font: 500 11.5px var(--font-sans);
+  padding: 0 14px;
+  z-index: 100;
+  gap: 14px;
+}
+
+[data-face="8"] .civata-brand {
+  font-weight: 700;
+  cursor: pointer;
+}
+
+[data-face="8"] .civata-nav-item {
+  color: #f4f2e6;
+  cursor: pointer;
+  transition: color 0.12s ease;
+}
+
+[data-face="8"] .civata-nav-item:hover {
+  color: #c7e42b;
+}
+
+[data-face="8"] .civata-highlight {
+  color: #c7e42b;
+  font-style: normal;
+  font-weight: 600;
+}
+
+/* Yüz 8 Sol Dev Display Saat & Hava Durumu */
+[data-face="8"] #face-desk-hero {
+  position: absolute;
+  left: 32px;
+  top: 80px;
+  width: 420px;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+}
+
+[data-face="8"] .civata-hero-time {
+  font: 700 120px/0.9 var(--font-disp);
+  letter-spacing: -4px;
+  color: #161309;
+}
+
+[data-face="8"] .civata-hero-time small {
+  display: block;
+  font: 500 22px var(--font-sans);
+  letter-spacing: 0;
+  margin-top: 12px;
+  color: #77745f;
+}
+
+[data-face="8"] .civata-hero-weather {
+  margin-top: 20px;
+  font: 500 15px var(--font-sans);
+  color: #161309;
+}
+
+[data-face="8"] .civata-hero-weather b {
+  background: #c7e42b;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-weight: 600;
+}
+
+/* Yüz 8 Masaüstü Simgeleri */
+[data-face="8"] .desktop-grid {
+  left: 32px !important;
+  top: 360px !important;
+}
+
+[data-face="8"] .desktop-item .item-icon {
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: 8px !important;
+  background: transparent !important;
+  border: 1.5px solid #161309 !important;
+}
+
+[data-face="8"] .desktop-item .item-icon svg {
+  width: 24px !important;
+  height: 24px !important;
+  stroke: #161309 !important;
+  filter: none !important;
+}
+
+[data-face="8"] .desktop-item .item-name {
+  color: #161309 !important;
+  text-shadow: none !important;
+  font-family: var(--font-sans) !important;
+  font-weight: 600 !important;
+}
+
+/* Yüz 8 Pencereleri (Sert Çerçeveli Teknik Panel) */
+[data-face="8"] .window {
+  background: #fffef9 !important;
+  border: 2px solid #161309 !important;
+  border-radius: 16px !important;
+  box-shadow: 0 16px 36px rgba(22, 19, 9, 0.16) !important;
+  color: #161309 !important;
+  font-family: var(--font-sans) !important;
+}
+
+[data-face="8"] .window-header {
+  height: 44px !important;
+  background: #161309 !important;
+  color: #f4f2e6 !important;
+  border-bottom: 2px solid #161309 !important;
+}
+
+[data-face="8"] .window-meta span {
+  font: 700 15px var(--font-disp) !important;
+  letter-spacing: 0.2px !important;
+  color: #f4f2e6 !important;
+}
+
+[data-face="8"] .window-view {
+  background: #fffef9 !important;
+  color: #161309 !important;
+}
+
+[data-face="8"] .ctrl-btn {
+  border: 1px solid #f4f2e6 !important;
+  border-radius: 4px !important;
+  background: transparent !important;
+  color: #f4f2e6 !important;
+}
+
+[data-face="8"] .ctrl-btn.close:hover {
+  background: #c7e42b !important;
+  color: #161309 !important;
+  border-color: #c7e42b !important;
+}
+
+/* ==========================================================================
+   KESİN ANTISLOP KURALI: MASAÜSTÜ İKONLARI KUTUYA HAPSEDİLMEZ
+   Tüm iconset varyantlarındaki arka plan, kutu bordürü ve gölgeler ezilir.
+   ========================================================================== */
+.desktop-grid .desktop-item .item-icon,
+.desktop-grid .ayaz-desktop-shortcut .item-icon,
+#dynamic-desktop-icons .desktop-item .item-icon,
+html[data-iconset] .desktop-item .item-icon,
+html[data-iconset] .ayaz-desktop-shortcut .item-icon,
+html[data-iconset] .desktop-item:hover .item-icon,
+html[data-iconset] .ayaz-desktop-shortcut:hover .item-icon {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+}
+
+.desktop-grid .desktop-item .item-icon svg,
+#dynamic-desktop-icons .desktop-item .item-icon svg,
+html[data-iconset] .desktop-item .item-icon svg {
+  width: 38px !important;
+  height: 38px !important;
+  stroke: var(--text-primary, #ffffff) !important;
+  filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.85)) !important;
+  transition: transform 0.16s ease !important;
+}
+
+.desktop-grid .desktop-item .item-icon img,
+#dynamic-desktop-icons .desktop-item .item-icon img {
+  width: 38px !important;
+  height: 38px !important;
+  filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.85)) !important;
+}
+
+.desktop-grid .desktop-item:hover .item-icon svg,
+#dynamic-desktop-icons .desktop-item:hover .item-icon svg {
+  transform: scale(1.12) !important;
+}
+
+.desktop-item .item-cat-dot,
+.desktop-item .cat-dot {
+  display: none !important;
+}
+
+/* --------------------------------------------------------------------------
+   Dinamik Ada (Kapsül) Gizleme: Yüz 2, 3 ve 8 kendi özel panellerine sahiptir
+   -------------------------------------------------------------------------- */
+[data-face="2"] #dynamic-island-container,
+[data-face="3"] #dynamic-island-container,
+[data-face="8"] #dynamic-island-container {
+  display: none !important;
+}
+
+/* --------------------------------------------------------------------------
+   YÜZ 3 (BOSTAN) İÇ PENCERE VE AYARLAR UYARLAMASI
+   -------------------------------------------------------------------------- */
+[data-face="3"] .settings-window,
+[data-face="3"] .window-view,
+[data-face="3"] .settings-panes-view {
+  background: #faf8ef !important;
+  color: #26321f !important;
+}
+
+[data-face="3"] .settings-sidebar,
+[data-face="3"] .files-sidebar,
+[data-face="3"] .store-sidebar {
+  background: #f1efe2 !important;
+  border-right: 1px solid #e8e4d3 !important;
+  color: #6a7560 !important;
+}
+
+[data-face="3"] .settings-nav-item,
+[data-face="3"] .files-nav-item,
+[data-face="3"] .store-category-btn {
+  color: #6a7560 !important;
+}
+
+[data-face="3"] .settings-nav-item:hover,
+[data-face="3"] .files-nav-item:hover,
+[data-face="3"] .store-category-btn:hover {
+  background: #e8e4d3 !important;
+  color: #26321f !important;
+}
+
+[data-face="3"] .settings-nav-item.active,
+[data-face="3"] .files-nav-item.active,
+[data-face="3"] .store-category-btn.active {
+  background: #3d6b45 !important;
+  color: #f4f6ec !important;
+  font-weight: 500 !important;
+}
+
+[data-face="3"] .settings-card-group,
+[data-face="3"] .preview-feature-row {
+  background: #fdfcf6 !important;
+  border: 1px solid #e8e4d3 !important;
+  color: #26321f !important;
+}
+
+[data-face="3"] .card-group-title,
+[data-face="3"] .pane-header h3,
+[data-face="3"] .feature-name {
+  color: #26321f !important;
+}
+
+[data-face="3"] .pane-header p,
+[data-face="3"] .feature-desc {
+  color: #6a7560 !important;
+}
+
+/* --------------------------------------------------------------------------
+   YÜZ 8 (CIVATA) İÇ PENCERE VE AYARLAR UYARLAMASI
+   -------------------------------------------------------------------------- */
+[data-face="8"] .settings-window,
+[data-face="8"] .window-view,
+[data-face="8"] .settings-panes-view {
+  background: #fffef9 !important;
+  color: #161309 !important;
+}
+
+[data-face="8"] .settings-sidebar,
+[data-face="8"] .files-sidebar,
+[data-face="8"] .store-sidebar {
+  background: #f4f2e6 !important;
+  border-right: 2px solid #161309 !important;
+  color: #161309 !important;
+}
+
+[data-face="8"] .settings-nav-item,
+[data-face="8"] .files-nav-item,
+[data-face="8"] .store-category-btn {
+  color: #161309 !important;
+  font-weight: 500 !important;
+}
+
+[data-face="8"] .settings-nav-item:hover,
+[data-face="8"] .files-nav-item:hover,
+[data-face="8"] .store-category-btn:hover {
+  background: #e6f4a3 !important;
+  color: #161309 !important;
+}
+
+[data-face="8"] .settings-nav-item.active,
+[data-face="8"] .files-nav-item.active,
+[data-face="8"] .store-category-btn.active {
+  background: #161309 !important;
+  color: #c7e42b !important;
+  font-weight: 600 !important;
+}
+
+[data-face="8"] .settings-card-group,
+[data-face="8"] .preview-feature-row {
+  background: #fcfcf6 !important;
+  border: 2px solid #161309 !important;
+  border-radius: 12px !important;
+  color: #161309 !important;
+}
+
+[data-face="8"] .card-group-title,
+[data-face="8"] .pane-header h3,
+[data-face="8"] .feature-name {
+  color: #161309 !important;
+  font-family: var(--font-disp) !important;
+  font-weight: 700 !important;
+}
+
+[data-face="8"] .pane-header p,
+[data-face="8"] .feature-desc {
+  color: #77745f !important;
+}

@@ -2,6 +2,11 @@
 # Ankora Linux Minimalist X11 Kiosk Başlatıcı (.xinitrc)
 # Devuan GNU/Linux 5 (Daedalus) SysVinit
 
+# Açılış ekranından X'e geçiş: Plymouth çalışıyorsa DRM/KMS kilidini bırakması için kapatılır
+if command -v plymouth >/dev/null 2>&1 && plymouth --ping >/dev/null 2>&1; then
+    plymouth quit 2>/dev/null || sudo plymouth quit 2>/dev/null || true
+fi
+
 # X11 donanım imleci ve arka plan temizliği
 xsetroot -solid "#0b0c10"
 xset -dpms

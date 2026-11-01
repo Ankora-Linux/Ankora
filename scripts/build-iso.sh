@@ -824,7 +824,7 @@ cat << 'XINIT' > /home/ankora/.xinitrc
 # Açılış ekranından X'e sessiz geçiş: plymouth açılış bitmeden kalırsa
 # arkasında biriken boot metinleri ([FAIL] satırları) kullanıcıya görünür.
 if command -v plymouth >/dev/null 2>&1 && plymouth --ping >/dev/null 2>&1; then
-    plymouth quit 2>/dev/null || true
+    plymouth quit 2>/dev/null || sudo plymouth quit 2>/dev/null || true
 fi
 
 # Loopback ağ arabirimini ayağa kaldır
@@ -1013,6 +1013,12 @@ if [ -z "$DISPLAY" ] && [ "$(tty 2>/dev/null)" = "/dev/tty1" ]; then
         echo "Masaüstü önceki denemede başlatılamadı. Günlük: /tmp/ayaz.log"
         echo "Yeniden denemek için: rm /tmp/ankora-desktop-failed && startx"
     else
+        # Açılış ekranından X'e geçiş: startx öncesinde plymouth'un DRM/KMS
+        # ve konsol kilidini bırakması zorunludur. Aksi halde Xorg DRM master
+        # alamaz (EBUSY/EACCES) ve .xinitrc çalışmadan düşer.
+        if command -v plymouth >/dev/null 2>&1 && plymouth --ping >/dev/null 2>&1; then
+            plymouth quit 2>/dev/null || sudo plymouth quit 2>/dev/null || true
+        fi
         exec startx > ~/.xsession-errors 2>&1
     fi
 fi
