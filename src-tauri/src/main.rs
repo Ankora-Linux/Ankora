@@ -1428,6 +1428,144 @@ fn install_vendor_package_blocking(vendor: String) -> Result<XdgApplication, Str
     }
 }
 
+#[derive(Serialize, Deserialize, Clone)]
+pub struct PackageMeta {
+    pub file_name: String,
+    pub file_path: String,
+    pub pkg_type: String, // "deb" | "appimage"
+    pub name: String,
+    pub version: String,
+    pub arch: String,
+    pub size_human: String,
+    pub description: String,
+}
+
+#[tauri::command]
+async fn inspect_package_file(file_path: String) -> Result<PackageMeta, String> {
+    let clean = file_path.trim().to_string();
+    let p = Path::new(&clean);
+    if !p.exists() || !p.is_file() {
+        return Err("Belirtilen dosya bulunamadı.".to_string());
+    }
+
+    let file_name = p.file_name().unwrap_or_default().to_string_lossy().to_string();
+    let lower = file_name.to_lowercase();
+    let file_size = fs::metadata(p).map(|m| m.len()).unwrap_or(0);
+    let size_human = if file_size >= 1024 * 1024 {
+        format!("{:.1} MB", file_size as f64 / (1024.0 * 1024.0))
+    } else {
+        format!("{:.1} KB", file_size as f64 / 1024.0)
+    };
+
+    if lower.ends_with(".deb") {
+        #[cfg(target_os = "linux")]
+        {
+            let out = Command::new("dpkg-deb").args(["-I", &clean]).output();
+            let info = out.map(|o| String::from_utf8_lossy(&o.stdout).to_string()).unwrap_or_default();
+            let mut name = file_name.replace(".deb", "");
+            let mut version = "Bilinmiyor".to_string();
+            let mut arch = "amd64".to_string();
+            let mut desc = "Debian sistemi ikili kurulum paketi.".to_string();
+
+            for line in info.lines() {
+                let l = line.trim();
+                if l.starts_with("Package:") {
+                    name = l.trim_start_matches("Package:").trim().to_string();
+                } else if l.starts_with("Version:") {
+                    version = l.trim_start_matches("Version:").trim().to_string();
+                } else if l.starts_with("Architecture:") {
+                    arch = l.trim_start_matches("Architecture:").trim().to_string();
+                } else if l.starts_with("Description:") {
+                    desc = l.trim_start_matches("Description:").trim().to_string();
+                }
+            }
+
+            return Ok(PackageMeta {
+                file_name,
+                file_path: clean,
+                pkg_type: "deb".to_string(),
+                name,
+                version,
+                arch,
+                size_human,
+                description: desc,
+            });
+        }
+        #[cfg(not(target_os = "linux"))]
+        {
+            return Ok(PackageMeta {
+                file_name: file_name.clone(),
+                file_path: clean,
+                pkg_type: "deb".to_string(),
+                name: file_name.replace(".deb", ""),
+                version: "1.0.0".to_string(),
+                arch: "amd64".to_string(),
+                size_human,
+                description: "Debian sistemi ikili kurulum paketi.".to_string(),
+            });
+        }
+    } else if lower.ends_with(".appimage") {
+        let name = file_name.replace(".appimage", "").replace(".AppImage", "");
+        return Ok(PackageMeta {
+            file_name,
+            file_path: clean,
+            pkg_type: "appimage".to_string(),
+            name,
+            version: "Bağımsız".to_string(),
+            arch: "x86_64".to_string(),
+            size_human,
+            description: "Taşınabilir, bağımsız ve sandbox uyumlu Linux uygulama paketi (AppImage).".to_string(),
+        });
+    }
+
+    Err("Desteklenmeyen paket formatı (Yalnızca .deb ve .AppImage kabul edilir).".to_string())
+}
+
+#[tauri::command]
+async fn install_local_deb_package(file_path: String) -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let clean = file_path.trim();
+        let p = Path::new(clean);
+        if !p.exists() || !p.is_file() {
+            return Err("Kurulacak .deb dosyası bulunamadı.".to_string());
+        }
+        if !clean.to_lowercase().ends_with(".deb") {
+            return Err("Yalnızca .deb uzantılı paket dosyaları kurulabilir.".to_string());
+        }
+
+        #[cfg(target_os = "linux")]
+        {
+            let helper = Path::new("/usr/local/bin/ayaz-pkg-helper");
+            let res = if helper.exists() {
+                root_command("/usr/local/bin/ayaz-pkg-helper", &["install-deb-file", clean])
+            } else {
+                root_command("apt-get", &["install", "-y", "--no-install-recommends", "--", clean])
+            };
+
+            match res {
+                Ok(o) => {
+                    if o.status.success() {
+                        Ok(format!("{} paketi sisteme başarıyla kuruldu.", clean))
+                    } else {
+                        let err = String::from_utf8_lossy(&o.stderr).trim().to_string();
+                        let out = String::from_utf8_lossy(&o.stdout).trim().to_string();
+                        let detail = if err.is_empty() { out } else { err };
+                        Err(format!("Paket kurulumu başarısız:\n{}", detail))
+                    }
+                }
+                Err(e) => Err(format!("Kurulum komutu yürütülemedi: {}", e)),
+            }
+        }
+        #[cfg(not(target_os = "linux"))]
+        {
+            Ok(format!("{} paketi simüle edilerek kuruldu.", clean))
+        }
+    })
+    .await
+    .map_err(|e| format!("Kurulum işlemi hatası: {}", e))?
+}
+
+
 #[tauri::command]
 async fn install_meb_certificate() -> Result<String, String> {
     tauri::async_runtime::spawn_blocking(install_meb_certificate_blocking)
@@ -9514,6 +9652,8 @@ fn main() {
             scan_xdg_applications,
             install_deb_package,
             install_vendor_package,
+            inspect_package_file,
+            install_local_deb_package,
             install_meb_certificate,
             remove_meb_certificate,
             get_xdg_user_dirs,

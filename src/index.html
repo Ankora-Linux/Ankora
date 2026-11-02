@@ -162,6 +162,30 @@
         <span class="di-ai-text" id="di-ai-text">AI Düşünüyor...</span>
       </div>
 
+      <!-- 5. Medya Oynatma Durumu (MPRIS) -->
+      <div class="di-view di-view-media" id="di-view-media">
+        <div class="di-media-wave" aria-hidden="true">
+          <span class="di-wave-bar"></span>
+          <span class="di-wave-bar"></span>
+          <span class="di-wave-bar"></span>
+        </div>
+        <div class="di-media-meta">
+          <span class="di-media-title" id="di-media-title">Müzik Çalıyor</span>
+          <span class="di-media-artist" id="di-media-artist">Bilinmeyen Sanatçı</span>
+        </div>
+        <div class="di-media-controls">
+          <button type="button" class="di-media-btn" id="di-media-btn-prev" title="Önceki Parça">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="19 20 9 12 19 4 19 20"></polygon><line x1="5" y1="19" x2="5" y2="5"></line></svg>
+          </button>
+          <button type="button" class="di-media-btn di-media-btn-toggle" id="di-media-btn-play" title="Oynat / Duraklat">
+            <svg viewBox="0 0 24 24" fill="currentColor" id="di-media-play-icon"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+          </button>
+          <button type="button" class="di-media-btn" id="di-media-btn-next" title="Sonraki Parça">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 4 15 12 5 20 5 4"></polygon><line x1="19" y1="5" x2="19" y2="19"></line></svg>
+          </button>
+        </div>
+      </div>
+
       <!-- 5. Genişletilmiş Hızlı Eylemler Kartı -->
       <div class="di-expanded-card" id="di-expanded-card">
         <div class="di-card-header">
@@ -829,6 +853,19 @@
                 </div>
                 <div class="single-key-footer-info">
                   <span class="provider-auto-pill" id="ai-provider-auto-label">Desteklenen: Google Gemini, Groq Cloud, OpenAI, OpenRouter veya Çevrimdışı (Ollama / Kural Tabanlı Teşhis)</span>
+                </div>
+              </details>
+
+              <details class="ai-settings-section ai-links-box" id="ai-sec-ollama">
+                <summary>Yerel Modeller (Ollama) <span class="ai-links-hint">çevrimdışı yapay zeka</span></summary>
+                <div class="ai-ollama-panel" style="padding:10px 0;">
+                  <div class="ai-ollama-status-row" id="ai-ollama-status-row" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;font-size:11.5px;">
+                    <span id="ai-ollama-status-text" style="color:var(--text-muted, #94a3b8);">Ollama denetleniyor...</span>
+                    <button type="button" class="btn-pkg-sm" id="btn-refresh-ollama" style="padding:2px 8px;font-size:11px;">Yenile</button>
+                  </div>
+                  <div class="ai-ollama-models-grid" id="ai-ollama-models-list" style="display:flex;flex-direction:column;gap:8px;">
+                    <!-- Modeller buraya dinamik yüklenir -->
+                  </div>
                 </div>
               </details>
 
@@ -3103,6 +3140,52 @@
       </div>
     </section>
 
+    <!-- ======================================================================= -->
+    <!-- AYAZ PAKET YÜKLEYİCİ (.deb & .AppImage Grafik Yükleyici) -->
+    <!-- ======================================================================= -->
+    <section class="window" id="win-pkg-installer" style="top: calc(50vh - 200px); left: calc(50vw - 250px); width: 500px; height: auto; min-height: 320px;" aria-labelledby="pkg-installer-title">
+      <div class="window-header" data-tauri-drag-region>
+        <div class="window-meta">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:16px;height:16px;color:var(--accent-active,#38bdf8);margin-right:6px;"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+          <span id="pkg-installer-title">Paket Yükleyici</span>
+        </div>
+        <div class="window-controls">
+          <button class="ctrl-btn close" title="Kapat (Esc)" onclick="WindowManager.close('win-pkg-installer')"></button>
+        </div>
+      </div>
+      <div class="window-view" style="padding: 20px 24px; display: flex; flex-direction: column; gap: 14px;">
+        <div style="display: flex; gap: 14px; align-items: flex-start;">
+          <div id="pkg-inst-icon-box" style="width: 48px; height: 48px; border-radius: 10px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; flex: none;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width: 26px; height: 26px; color: var(--accent-active,#38bdf8);"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>
+          </div>
+          <div style="flex: 1; min-width: 0;">
+            <h3 id="pkg-inst-name" style="margin: 0; font-size: 14px; font-weight: 600; color: var(--text-primary, #f8fafc); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Uygulama Paketi</h3>
+            <div id="pkg-inst-version" style="font-size: 11.5px; color: var(--text-muted, #94a3b8); margin-top: 2px;">Sürüm: -- · Mimari: amd64</div>
+            <div id="pkg-inst-size" style="font-size: 11px; color: var(--text-muted, #94a3b8); margin-top: 2px;">Boyut: --</div>
+          </div>
+        </div>
+
+        <div id="pkg-inst-desc" style="font-size: 11.5px; line-height: 1.45; color: var(--text-secondary, #cbd5e1); max-height: 85px; overflow-y: auto; background: rgba(0,0,0,0.2); padding: 8px 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.06);">
+          Paket bilgileri okunuyor...
+        </div>
+
+        <div id="pkg-inst-progress-wrap" style="display: none; flex-direction: column; gap: 5px;">
+          <div style="display: flex; justify-content: space-between; font-size: 11px;">
+            <span id="pkg-inst-status-label" style="color: var(--accent-active, #38bdf8);">Yükleniyor...</span>
+            <span id="pkg-inst-status-pct" style="color: var(--text-muted, #94a3b8);">Lütfen bekleyin</span>
+          </div>
+          <div style="height: 5px; background: rgba(255,255,255,0.08); border-radius: 3px; overflow: hidden;">
+            <div id="pkg-inst-progress-bar" style="height: 100%; width: 100%; background: var(--accent-active, #38bdf8); transition: width 0.3s ease;"></div>
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 6px;">
+          <button type="button" class="btn-pkg-sm" id="btn-pkg-inst-cancel" onclick="WindowManager.close('win-pkg-installer')">İptal</button>
+          <button type="button" class="btn-pkg-sm" id="btn-pkg-inst-action" style="background: var(--accent-active, #0284c7); color: #ffffff; font-weight: 500;">Paketi Kur</button>
+        </div>
+      </div>
+    </section>
+
   </main>
 
   <!-- SİSTEM ONAY MODALI -->
@@ -3504,6 +3587,7 @@
     <div class="ai-mini-quick-actions" id="ai-mini-quick-actions">
       <button class="ai-mini-chip" data-prompt="Günün planını ve yapılacak işleri özetle">📋 Günün Planı</button>
       <button class="ai-mini-chip" data-prompt="Sistem durumunu ve bellek kullanımını kontrol et">⚡ Sistem Durumu</button>
+      <button class="ai-mini-chip" data-prompt="Sistem doktoru ile sistemi kontrol et ve sorunları onar">🩺 Sistem Doktoru</button>
       <button class="ai-mini-chip" data-prompt="Ankora Mağaza'dan araç önerisi yap">✨ Uygulama Öner</button>
       <button class="ai-mini-chip" data-prompt="Hızlı terminal komut desteği ver">💻 Uçbirim</button>
     </div>

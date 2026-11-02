@@ -547,9 +547,11 @@ fi
 
 # Yalnızca geçerli Debian paket isimleri kabul edilir: [a-zA-Z0-9.+_-]
 # Kesinlikle bayrak (- veya -- ile başlayan argümanlar) veya enjeksiyon kabul edilmez
-if [[ ! "$PKG" =~ ^[a-zA-Z0-9][a-zA-Z0-9.+_-]*$ ]]; then
-    echo "[HATA] Güvenlik İlkesi İhlali: Geçersiz paket adı biçimi: '$PKG'" >&2
-    exit 2
+if [[ "$ACTION" != "install-deb-file" ]]; then
+    if [[ ! "$PKG" =~ ^[a-zA-Z0-9][a-zA-Z0-9.+_-]*$ ]]; then
+        echo "[HATA] Güvenlik İlkesi İhlali: Geçersiz paket adı biçimi: '$PKG'" >&2
+        exit 2
+    fi
 fi
 
 # Tehlikeli / sistem kritik paketlerin kaldırılmasını engelle
@@ -571,6 +573,18 @@ case "$ACTION" in
         fi
         exec /usr/bin/apt-get install -y --no-install-recommends -- "$PKG"
         ;;
+    install-deb-file)
+        DEB_FILE="$PKG"
+        if [[ ! -f "$DEB_FILE" ]]; then
+            echo "[HATA] Belirtilen .deb dosyası bulunamadı: $DEB_FILE" >&2
+            exit 2
+        fi
+        if ! /usr/bin/dpkg-deb -I "$DEB_FILE" >/dev/null 2>&1; then
+            echo "[HATA] Geçersiz veya bozuk Debian paketi: $DEB_FILE" >&2
+            exit 3
+        fi
+        exec /usr/bin/apt-get install -y --no-install-recommends -- "$DEB_FILE"
+        ;;
     remove)
         exec /usr/bin/apt-get remove -y -- "$PKG"
         ;;
@@ -586,7 +600,7 @@ case "$ACTION" in
         esac
         ;;
     *)
-        echo "[HATA] Bilinmeyen işlem: '$ACTION'. Kabul edilenler: install, remove, vendor, mebcert, mebcert-remove, snapshot-create, snapshot-restore, snapshot-delete, set-timezone, set-keyboard, set-language, sync-ntp, drop-caches, usb-flash, usb-format" >&2
+        echo "[HATA] Bilinmeyen işlem: '$ACTION'. Kabul edilenler: install, install-deb-file, remove, vendor, mebcert, mebcert-remove, snapshot-create, snapshot-restore, snapshot-delete, set-timezone, set-keyboard, set-language, sync-ntp, drop-caches, usb-flash, usb-format" >&2
         exit 4
         ;;
 esac

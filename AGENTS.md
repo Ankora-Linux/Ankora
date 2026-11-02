@@ -78,6 +78,13 @@ tarihli satır olarak eklenir; silinmez.
 - 2026-10-26: Oturumlar arası hafıza (tercihler, yol haritası, yarım işler)
   küresel `~/.config/opencode/AGENTS.md` dosyasında tutulur. Bu dosya depo
   içi kuralları, orası kişisel hafızayı taşır.
+- 2026-11-02: 5 temel yetenek ve arayüz sertleştirmesi tamamlandı:
+  (1) Dinamik Ada (Dynamic Island) MPRIS Medya Entegrasyonu: Chromium, Brave, Spotify ve VLC gibi medya oynatıcılarında çalan şarkı/sanatçı bilgisi, duraklat/geç kontrolleri ve çalma durumuna göre canlı animasyonlu ses dalgaları entegre edildi.
+  (2) Eco RAM+ (ZRAM): 4 GB altı belleğe sahip MEB ve düşük donanımlı cihazlarda lz4/zstd sıkıştırmalı RAM içi takas alanının açılışta otomatik devreye alınması (ayaz-session, xinitrc, build-iso).
+  (3) Tek Tıkla Yerel Model Kurulumu: Ollama modelleri (qwen2.5-coder:1.5b, llama3.2:1b, gemma2:2b) için AI Ayarları çekmecesine tek tıkla indirme ilerlemesi ve model seçici entegre edildi.
+  (4) Sistem Doktoru Eylemi: Ankora AI mini popover'ına "Sistem Doktoru" hızlı çipi eklendi; ankora-doctor raporuyla sistem sorunlarını analiz edip tek tıkla güvenli onarım yaptırma desteği bağlandı.
+  (5) Görsel .deb ve .AppImage Yükleyici: Çift tıklanan .deb veya .AppImage dosyalarını terminale gerek kalmadan dpkg-deb meta verileriyle doğrulayıp kuran "win-pkg-installer" grafik arayüzü ve backend IPC uçları (inspect_package_file, install_local_deb_package) eklendi.
+  (6) İkon Çözümleyici ve Yüzler Düzeltmesi: IconResolver eksik getIconSvg metodu, menu ve taskbar pin ikon yükseltmeleri, doğrudan alias eşlemeleri ve Yüz 3/8 dev saat hero alanında canlı hava durumu senkronizasyonu sağlandı.
 
 ## Not
 

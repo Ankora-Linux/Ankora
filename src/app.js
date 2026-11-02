@@ -414,6 +414,24 @@
         case 'delete_file':
           return `Silindi: ${args.path}`;
 
+        case 'inspect_package_file': {
+          const fn = (args.filePath || '').split('/').pop() || 'paket.deb';
+          const isDeb = fn.toLowerCase().endsWith('.deb');
+          return {
+            file_name: fn,
+            file_path: args.filePath || '',
+            pkg_type: isDeb ? 'deb' : 'appimage',
+            name: fn.replace(/\.(deb|AppImage|appimage)$/i, ''),
+            version: '1.0.0',
+            arch: 'amd64',
+            size_human: '14.2 MB',
+            description: isDeb ? 'Debian sistemi ikili kurulum paketi.' : 'Taşınabilir Linux uygulaması (AppImage).'
+          };
+        }
+
+        case 'install_local_deb_package':
+          return `${args.filePath || 'Paket'} başarıyla kuruldu.`;
+
         case 'launch_interactive_terminal':
           return 'Sistem terminali (simüle) başlatıldı.';
 
@@ -504,7 +522,15 @@
       'ayaz-term': 'fish',
       'ayaz-browser': 'chromium',
       'ayaz-calc': 'libreoffice-calc',
-      'ayaz-notepad': 'geany'
+      'ayaz-notepad': 'geany',
+      'files': 'filezilla',
+      'terminal': 'fish',
+      'store': 'synaptic',
+      'settings': 'antigravity',
+      'installer': 'disk-utility',
+      'browser': 'brave',
+      'calc': 'libreoffice-calc',
+      'notepad': 'geany'
     },
 
     candidatesFor(app) {
@@ -562,6 +588,12 @@
 
       this._pending.set(key, p);
       return p;
+    },
+    getIconSvg(app) {
+      if (typeof XdgDesktopEngine !== 'undefined' && XdgDesktopEngine.getAppSvgIcon) {
+        return XdgDesktopEngine.getAppSvgIcon(app);
+      }
+      return '<svg><use href="#ico-package"></use></svg>';
     },
 
     tagIcon(el, app) {
@@ -1683,6 +1715,8 @@
           <div class="pinned-icon-box">${(typeof IconResolver !== 'undefined' && IconResolver.getIconSvg) ? IconResolver.getIconSvg(app) : `<svg><use href="#ico-package"></use></svg>`}</div>
           <div class="pinned-app-meta"><div class="pinned-app-name" style="font-size:10.5px;">${escapeHtml(app.name || id)}</div></div>
         `;
+        const pinBox = card.querySelector('.pinned-icon-box');
+        if (pinBox) this.tagIcon?.(pinBox, app) || (window.IconResolver && window.IconResolver.tagIcon(pinBox, app));
         card.title = `${app.name || id}\n\nSağ tık: seçenekler (sabitlemeyi kaldır)`;
         card.addEventListener('click', () => {
           if (typeof XdgDesktopEngine !== 'undefined' && XdgDesktopEngine.launchApp) XdgDesktopEngine.launchApp(app);
@@ -1696,6 +1730,7 @@
         });
         section.appendChild(card);
       });
+      if (window.IconResolver) window.IconResolver.upgradeScope(section);
     },
 
     // Görev çubuğuna özel sabitlenen simgeler (statik pin'lerin önüne eklenir).
@@ -1711,6 +1746,7 @@
         btn.dataset.pinInternal = pin.id;
         btn.dataset.pinExec = pin.exec || '';
         btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="4" width="16" height="16" rx="3"></rect><circle cx="12" cy="12" r="3"></circle></svg>`;
+        if (window.IconResolver) window.IconResolver.tagIcon(btn, pin);
         btn.addEventListener('click', () => {
           const exec = pin.exec || '';
           if (exec.startsWith('internal:')) {
@@ -1730,6 +1766,7 @@
         });
         host.insertBefore(btn, host.firstChild);
       });
+      if (window.IconResolver) window.IconResolver.upgradeScope(host);
     },
 
     init() {
@@ -3309,6 +3346,13 @@
           }
           WindowManager.open('win-files');
         } else {
+          const ext = (it.name || it.path || '').split('.').pop()?.toLowerCase();
+          if (ext === 'deb' || ext === 'appimage') {
+            if (typeof PackageInstallerManager !== 'undefined') {
+              PackageInstallerManager.open(it.path);
+              return;
+            }
+          }
           await TauriBridge.invoke('open_path', { path: it.path });
         }
       } catch (err) {
@@ -5247,19 +5291,12 @@
         return;
       }
 
-      // 1. Debian paketi (.deb) tıklanınca doğrudan kur ve aç
-      if (item.ext === 'deb') {
-        const doInstall = confirm(`'${item.name}' Debian paketi kurulsun mu?\n\nBu işlem paketi sisteminize kuracak ve başlatılabilir hale getirecektir.`);
-        if (doInstall) {
-          Terminal.log(`[DEB KURULUMU] ${item.path}...`, 'cmd');
-          try {
-            await TauriBridge.invoke('open_path', { path: item.path });
-            Terminal.log(`[DEB BAŞARILI] '${item.name}' kurulum komutu gönderildi.`, 'success');
-          } catch (e) {
-            Terminal.log(`[DEB HATASI] ${e}`, 'error');
-          }
+      // 1. Paket Dosyaları (.deb ve .AppImage): Görsel Paket Yükleyici penceresini aç
+      if (item.ext === 'deb' || item.ext === 'appimage') {
+        if (typeof PackageInstallerManager !== 'undefined') {
+          PackageInstallerManager.open(item.path);
+          return;
         }
-        return;
       }
 
       // 2. Metin, Kod ve Konfigürasyon Dosyaları
@@ -6363,6 +6400,134 @@
   };
 
   // ============================================================================
+  // AYAZ PAKET YÜKLEYİCİ (.deb ve .AppImage Grafiksel Kurulum Yöneticisi)
+  // ============================================================================
+  const PackageInstallerManager = {
+    currentPath: null,
+    currentMeta: null,
+
+    async open(filePath) {
+      if (!filePath) return;
+      this.currentPath = filePath;
+      this.currentMeta = null;
+
+      WindowManager.open('win-pkg-installer');
+
+      const nameEl = document.getElementById('pkg-inst-name');
+      const verEl = document.getElementById('pkg-inst-version');
+      const sizeEl = document.getElementById('pkg-inst-size');
+      const descEl = document.getElementById('pkg-inst-desc');
+      const progWrap = document.getElementById('pkg-inst-progress-wrap');
+      const btnAction = document.getElementById('btn-pkg-inst-action');
+
+      const fn = filePath.split('/').pop() || 'paket';
+      if (nameEl) nameEl.textContent = fn;
+      if (verEl) verEl.textContent = 'Paket inceleniyor...';
+      if (sizeEl) sizeEl.textContent = '';
+      if (descEl) descEl.textContent = 'Paket yapısı ve bağımlılıklar okunuyor, lütfen bekleyin...';
+      if (progWrap) progWrap.style.display = 'none';
+      if (btnAction) {
+        btnAction.disabled = true;
+        btnAction.textContent = 'Hazırlanıyor...';
+      }
+
+      try {
+        const meta = await TauriBridge.invoke('inspect_package_file', { filePath });
+        this.currentMeta = meta;
+
+        if (nameEl) nameEl.textContent = meta.name || fn;
+        if (verEl) verEl.textContent = `Sürüm: ${meta.version} · Mimari: ${meta.arch}`;
+        if (sizeEl) sizeEl.textContent = `Dosya Boyutu: ${meta.size_human}`;
+        if (descEl) descEl.textContent = meta.description || 'Açıklama bulunamadı.';
+
+        if (btnAction) {
+          btnAction.disabled = false;
+          if (meta.pkg_type === 'appimage') {
+            btnAction.textContent = 'Uygulamayı Çalıştır';
+          } else {
+            btnAction.textContent = 'Paketi Kur';
+          }
+        }
+      } catch (err) {
+        if (verEl) verEl.textContent = 'Paket okunamadı';
+        if (descEl) descEl.textContent = `Paket bilgileri alınamadı: ${err.message || err}`;
+        if (btnAction) {
+          btnAction.disabled = true;
+          btnAction.textContent = 'Geçersiz Paket';
+        }
+      }
+
+      if (btnAction) {
+        btnAction.onclick = () => this.executeAction();
+      }
+    },
+
+    async executeAction() {
+      if (!this.currentPath || !this.currentMeta) return;
+      const btnAction = document.getElementById('btn-pkg-inst-action');
+      const btnCancel = document.getElementById('btn-pkg-inst-cancel');
+      const progWrap = document.getElementById('pkg-inst-progress-wrap');
+      const progLabel = document.getElementById('pkg-inst-status-label');
+      const progPct = document.getElementById('pkg-inst-status-pct');
+
+      if (this.currentMeta.pkg_type === 'appimage') {
+        try {
+          await TauriBridge.invoke('open_path', { path: this.currentPath });
+          if (typeof ReportManager !== 'undefined' && ReportManager.showToast) {
+            ReportManager.showToast('AppImage uygulaması başlatıldı.', 'success');
+          }
+          WindowManager.close('win-pkg-installer');
+        } catch (e) {
+          if (typeof ReportManager !== 'undefined' && ReportManager.showToast) {
+            ReportManager.showToast(`Çalıştırılamadı: ${e.message || e}`, 'error');
+          }
+        }
+        return;
+      }
+
+      // .deb kurulum akışı
+      if (btnAction) {
+        btnAction.disabled = true;
+        btnAction.textContent = 'Kuruluyor...';
+      }
+      if (btnCancel) btnCancel.disabled = true;
+      if (progWrap) progWrap.style.display = 'flex';
+      if (progLabel) progLabel.textContent = 'Sistem paket yöneticisi çalışıyor...';
+      if (progPct) progPct.textContent = 'Bağımlılıklar yapılandırılıyor';
+
+      try {
+        await TauriBridge.invoke('install_local_deb_package', { filePath: this.currentPath });
+        if (progLabel) progLabel.textContent = 'Kurulum tamamlandı!';
+        if (progPct) progPct.textContent = 'Hazır';
+
+        if (typeof ReportManager !== 'undefined' && ReportManager.showToast) {
+          ReportManager.showToast(`${this.currentMeta.name} başarıyla kuruldu!`, 'success');
+        }
+        if (typeof XdgDesktopEngine !== 'undefined' && XdgDesktopEngine.scanApplications) {
+          XdgDesktopEngine.scanApplications();
+        }
+
+        setTimeout(() => {
+          WindowManager.close('win-pkg-installer');
+          if (btnCancel) btnCancel.disabled = false;
+          if (btnAction) btnAction.disabled = false;
+        }, 1200);
+      } catch (err) {
+        if (progLabel) progLabel.textContent = 'Kurulum başarısız oldu.';
+        if (progPct) progPct.textContent = 'Hata';
+        if (btnAction) {
+          btnAction.disabled = false;
+          btnAction.textContent = 'Tekrar Dene';
+        }
+        if (btnCancel) btnCancel.disabled = false;
+        if (typeof ReportManager !== 'undefined' && ReportManager.showToast) {
+          ReportManager.showToast(`Kurulum hatası: ${err.message || err}`, 'error');
+        }
+      }
+    }
+  };
+
+  // ============================================================================
   // 6. ANKORA AI (OTONOM AJAN, KULLANICI API BAĞLANTISI & GÜVENLİK ONAY SİSTEMİ)
   // ============================================================================
   // Bağlantılar: ajanın soru anında okuduğu yerel bağlamlar. Dış hesap
@@ -6749,6 +6914,17 @@
           if (q) this.handleQuery(q);
         });
       });
+      document.querySelectorAll('#ai-mini-quick-actions .ai-mini-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+          const p = chip.getAttribute('data-prompt');
+          if (p) this.handleQuery(p);
+        });
+      });
+
+      if (typeof OllamaManager !== 'undefined') {
+        OllamaManager.init();
+      }
+
 
       // Onay Modalı İşleyicileri
       const modal = document.getElementById('confirm-modal');
@@ -7051,7 +7227,17 @@
       let action_command = null;
       let action_desc = null;
 
-      if (q.includes('plan') || q.includes('günün planı') || q.includes('işler') || q.includes('yapılacak')) {
+      if (q.includes('doktor') || q.includes('doctor') || q.includes('onar') || q.includes('sağlık') || q.includes('bakım')) {
+        reply = `🩺 **Ankora Sistem Doktoru Teşhis Raporu:**\n\n` +
+          `• **Paket Bütünlüğü:** Bozuk veya eksik dpkg/apt paketleri doğrulanacak.\n` +
+          `• **Bellek & ZRAM:** Sıkıştırılmış lz4 ZRAM takas havuzu ve çekirdek önbellekleri kontrol edilecek.\n` +
+          `• **Sistem İzinleri:** /tmp ve kritik sudoers yapılandırmaları teftiş edilecek.\n` +
+          `• **Uygulama Sandbox:** Flatpak ve sistem depoları taranacak.\n\n` +
+          `Tespit edilen sistem sorunlarını ve önbellek artıklarını güvenli biçimde onarmak için aşağıdaki eylemi onaylayabilirsiniz:`;
+        has_action = true;
+        action_command = '/usr/local/bin/ankora-doctor';
+        action_desc = 'Ankora Sistem Doktoru kapsamlı bakım ve onarımını çalıştır';
+      } else if (q.includes('plan') || q.includes('günün planı') || q.includes('işler') || q.includes('yapılacak')) {
         reply = `📋 **Ankora Linux Günlük Çalışma Planı:**\n\n` +
           `• ⚡ **Sistem Bakımı:** Paket depolarını güncelle ve güvenlik yamalarını kontrol et (\`apt-get update\`).\n` +
           `• 🧹 **Bellek ve ZRAM Durumu:** Canlı bellek tüketimini ve takas alanını gözden geçir (\`free -h\`).\n` +
@@ -7060,7 +7246,7 @@
           `*Not: Görev listene yeni bir iş eklemek için "görev ekle: [iş adı]" yazabilirsin.*`;
       } else if (q.includes('durum') || q.includes('sistem') || q.includes('bellek') || q.includes('ram') || q.includes('cpu')) {
         reply = `⚡ **Canlı Sistem Durumu & Telemetri:**\n\n` +
-          `• **İşletim Sistemi:** Ankora Linux 3.7 (Devuan Daedalus amd64)\n` +
+          `• **İşletim Sistemi:** Ankora Linux 4.0.1 (Devuan Daedalus amd64)\n` +
           `• **Masaüstü Ortamı:** Ayaz DE (Minimalist Tauri & WebKitGTK)\n` +
           `• **İnit & Hizmet Sistemi:** SysVinit (Düşük kaynak tüketimli)\n` +
           `• **Çekirdek:** Linux LTS x86_64\n` +
@@ -7803,6 +7989,180 @@
       cmdEl.textContent = cmd;
       if (descEl) descEl.textContent = desc || 'Aşağıdaki kabuk komutu çalıştırılacaktır:';
       modal.classList.add('open');
+    }
+  };
+
+  // ============================================================================
+  // OLLAMA YEREL MODEL YÖNETİCİSİ (Tek Tıkla Model İndirme ve Seçim)
+  // ============================================================================
+  const OllamaManager = {
+    RECOMMENDED: [
+      { id: 'qwen2.5-coder:1.5b', name: 'Qwen 2.5 Coder (1.5B)', desc: 'Kodlama, otomasyon ve sistem teftişi için optimize edilmiş hafif model.', size: '986 MB' },
+      { id: 'llama3.2:1b', name: 'Llama 3.2 (1B)', desc: 'Meta’nın hızlı ve akıcı hafif dil modeli; günlük diyalog ve Türkçe desteği.', size: '1.3 GB' },
+      { id: 'gemma2:2b', name: 'Gemma 2 (2B)', desc: 'Google kompakt, yüksek akıl yürütme kabiliyetli hafif genel model.', size: '1.6 GB' }
+    ],
+
+    installedModels: new Set(),
+    isServiceOnline: false,
+
+    init() {
+      const btnRefresh = document.getElementById('btn-refresh-ollama');
+      if (btnRefresh) {
+        btnRefresh.addEventListener('click', () => this.render());
+      }
+      const secOllama = document.getElementById('ai-sec-ollama');
+      if (secOllama) {
+        secOllama.addEventListener('toggle', () => {
+          if (secOllama.open) this.render();
+        });
+      }
+      this.render();
+    },
+
+    async checkService() {
+      try {
+        const resp = await fetch('http://127.0.0.1:11434/api/tags', { method: 'GET', signal: AbortSignal.timeout(2500) });
+        if (resp.ok) {
+          const data = await resp.json();
+          this.installedModels.clear();
+          (data.models || []).forEach(m => {
+            this.installedModels.add(m.name);
+            const baseName = (m.name || '').split(':')[0];
+            if (baseName) this.installedModels.add(baseName);
+          });
+          this.isServiceOnline = true;
+          return true;
+        }
+      } catch (e) {}
+      this.isServiceOnline = false;
+      return false;
+    },
+
+    async render() {
+      const statusText = document.getElementById('ai-ollama-status-text');
+      const listEl = document.getElementById('ai-ollama-models-list');
+      if (!listEl) return;
+
+      const online = await this.checkService();
+      if (!online) {
+        if (statusText) statusText.innerHTML = '<span style="color:#f59e0b;">Ollama çevrimdışı (127.0.0.1:11434 bulunamadı)</span>';
+        listEl.innerHTML = '<div style="font-size:11px;color:var(--text-muted,#94a3b8);padding:6px;">Yerel modeller için sisteminizde Ollama kurulu ve çalışır durumda olmalıdır.</div>';
+        return;
+      }
+
+      if (statusText) {
+        statusText.innerHTML = `<span style="color:var(--success,#10b981);">Ollama Aktif</span> · ${this.installedModels.size} yerel model hazır`;
+      }
+
+      listEl.innerHTML = '';
+      const currentModel = SafeStorage.getItem('ankora_ai_model') || 'qwen2.5:0.5b';
+
+      this.RECOMMENDED.forEach(mod => {
+        const isInstalled = this.installedModels.has(mod.id);
+        const isActive = (SafeStorage.getItem('ankora_ai_provider') === 'ollama') && (currentModel === mod.id);
+
+        const card = document.createElement('div');
+        card.className = 'ai-ollama-card';
+        card.style.cssText = 'background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:8px 10px;display:flex;align-items:center;justify-content:space-between;gap:8px;';
+
+        card.innerHTML = `
+          <div style="min-width:0;flex:1;">
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span style="font-size:12px;font-weight:600;color:var(--text-primary,#f8fafc);">${escapeHtml(mod.name)}</span>
+              <span style="font-size:10px;padding:1px 5px;background:rgba(255,255,255,0.08);border-radius:4px;color:var(--text-muted,#94a3b8);">${escapeHtml(mod.size)}</span>
+              ${isActive ? '<span style="font-size:10px;padding:1px 5px;background:rgba(16,185,129,0.2);color:#34d399;border-radius:4px;font-weight:500;">Etkin</span>' : ''}
+            </div>
+            <div style="font-size:10.5px;color:var(--text-muted,#94a3b8);margin-top:2px;line-height:1.3;">${escapeHtml(mod.desc)}</div>
+            <div class="ollama-dl-prog" id="prog-${mod.id.replace(/[^a-z0-9]/g, '-')}" style="display:none;margin-top:4px;height:4px;background:rgba(255,255,255,0.1);border-radius:2px;overflow:hidden;">
+              <div class="ollama-dl-bar" style="height:100%;background:var(--accent-active,#38bdf8);width:0%;"></div>
+            </div>
+          </div>
+          <div style="flex:none;">
+            ${isActive ? '<button type="button" class="btn-pkg-sm" disabled style="opacity:0.6;font-size:11px;padding:4px 10px;">Seçili</button>' : (
+              isInstalled
+                ? `<button type="button" class="btn-pkg-sm btn-select-ollama" data-model="${mod.id}" style="font-size:11px;padding:4px 10px;">Etkinleştir</button>`
+                : `<button type="button" class="btn-pkg-sm btn-download-ollama" data-model="${mod.id}" style="font-size:11px;padding:4px 10px;">İndir</button>`
+            )}
+          </div>
+        `;
+        listEl.appendChild(card);
+      });
+
+      listEl.querySelectorAll('.btn-select-ollama').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const modId = btn.getAttribute('data-model');
+          if (modId) {
+            SafeStorage.setItem('ankora_ai_provider', 'ollama');
+            SafeStorage.setItem('ankora_ai_model', modId);
+            if (typeof AIAgent !== 'undefined') {
+              AIAgent.provider = 'ollama';
+              AIAgent.model = modId;
+              AIAgent.updateBadges();
+            }
+            if (typeof ReportManager !== 'undefined' && ReportManager.showToast) {
+              ReportManager.showToast(`Yerel model seçildi: ${modId}`, 'success');
+            }
+            this.render();
+          }
+        });
+      });
+
+      listEl.querySelectorAll('.btn-download-ollama').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const modId = btn.getAttribute('data-model');
+          if (modId) this.downloadModel(modId, btn);
+        });
+      });
+    },
+
+    async downloadModel(modelId, btnEl) {
+      btnEl.disabled = true;
+      btnEl.textContent = 'İndiriliyor...';
+      const cleanId = modelId.replace(/[^a-z0-9]/g, '-');
+      const progWrap = document.getElementById(`prog-${cleanId}`);
+      const progBar = progWrap?.querySelector('.ollama-dl-bar');
+      if (progWrap) progWrap.style.display = 'block';
+
+      try {
+        const resp = await fetch('http://127.0.0.1:11434/api/pull', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: modelId })
+        });
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+
+        const reader = resp.body?.getReader();
+        const decoder = new TextDecoder();
+        if (reader) {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            const chunk = decoder.decode(value, { stream: true });
+            chunk.split('\n').filter(Boolean).forEach(line => {
+              try {
+                const j = JSON.parse(line);
+                if (j.total && j.completed && progBar) {
+                  const pct = Math.min(100, Math.round((j.completed / j.total) * 100));
+                  progBar.style.width = `${pct}%`;
+                  btnEl.textContent = `%${pct}`;
+                }
+              } catch (e) {}
+            });
+          }
+        }
+
+        if (typeof ReportManager !== 'undefined' && ReportManager.showToast) {
+          ReportManager.showToast(`${modelId} başarıyla indirildi.`, 'success');
+        }
+        await this.checkService();
+        this.render();
+      } catch (err) {
+        btnEl.disabled = false;
+        btnEl.textContent = 'Hata (Tekrar)';
+        if (typeof ReportManager !== 'undefined' && ReportManager.showToast) {
+          ReportManager.showToast(`Model indirilemedi: ${err.message || err}`, 'error');
+        }
+      }
     }
   };
 
@@ -13410,6 +13770,20 @@
           }
         });
       }
+      // MPRIS Medya kontrolleri dinleyicileri
+      document.getElementById('di-media-btn-prev')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (typeof MprisManager !== 'undefined') MprisManager.sendCommand('previous');
+      });
+      document.getElementById('di-media-btn-play')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (typeof MprisManager !== 'undefined') MprisManager.sendCommand('play-pause');
+      });
+      document.getElementById('di-media-btn-next')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (typeof MprisManager !== 'undefined') MprisManager.sendCommand('next');
+      });
+
 
       // Canlı sistem telemetrisi (hafif, 4 saniyede bir)
       setInterval(() => this.updateTelemetry(), 4000);
@@ -13494,6 +13868,46 @@
       this.expanded = false;
       this.el.classList.remove('state-expanded');
     },
+    setMediaStatus(status) {
+      if (!this.el || !this.isEnabled()) return;
+      const isTransient = this.el.classList.contains('state-toast') ||
+                          this.el.classList.contains('state-progress') ||
+                          this.el.classList.contains('state-ai') ||
+                          this.expanded;
+
+      if (!status || !status.is_active || !status.player_name) {
+        this.el.classList.remove('state-media', 'playing');
+        if (!isTransient && !this.el.classList.contains('state-idle')) {
+          this.el.classList.add('state-idle');
+        }
+        return;
+      }
+
+      const titleEl = document.getElementById('di-media-title');
+      const artistEl = document.getElementById('di-media-artist');
+      const playIcon = document.getElementById('di-media-play-icon');
+
+      if (titleEl) titleEl.textContent = status.title || 'Müzik Çalıyor';
+      if (artistEl) {
+        const sub = [status.artist, status.player_name].filter(Boolean).join(' · ');
+        artistEl.textContent = sub || 'Medya';
+      }
+
+      const isPlaying = (status.playback_status || '').toLowerCase() === 'playing';
+      if (playIcon) {
+        playIcon.innerHTML = isPlaying
+          ? '<rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect>'
+          : '<polygon points="5 3 19 12 5 21 5 3"></polygon>';
+      }
+
+      this.el.classList.toggle('playing', isPlaying);
+
+      if (!isTransient) {
+        this.el.classList.remove('state-idle');
+        this.el.classList.add('state-media');
+      }
+    },
+
 
     flash(msg, kind = 'info', duration = 3200) {
       if (!this.el || !this.isEnabled()) return;
@@ -14373,6 +14787,9 @@
         const iconBtn = document.querySelector('.dw-weather-city-btn');
         if (iconBtn) iconBtn.title = 'Son güncelleme: ' + new Date(at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
       }
+      try {
+        window.dispatchEvent(new CustomEvent('ayaz:weather-updated', { detail: { data, city } }));
+      } catch (e) {}
     },
 
     setWeatherStatus(text, isError) {
@@ -16766,6 +17183,10 @@
     async update() {
       try {
         const res = await TauriBridge.invoke('get_mpris_status');
+        if (typeof DynamicIslandManager !== 'undefined' && DynamicIslandManager.setMediaStatus) {
+          DynamicIslandManager.setMediaStatus(res);
+        }
+
         const card = document.getElementById('mpris-widget-card');
         if (!card) return;
 
@@ -16797,6 +17218,9 @@
           card.style.display = 'none';
         }
       } catch (err) {
+        if (typeof DynamicIslandManager !== 'undefined' && DynamicIslandManager.setMediaStatus) {
+          DynamicIslandManager.setMediaStatus(null);
+        }
         const card = document.getElementById('mpris-widget-card');
         if (card) card.style.display = 'none';
       }

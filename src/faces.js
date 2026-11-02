@@ -32,6 +32,10 @@
         this.syncRunningState();
       });
 
+      window.addEventListener('ayaz:weather-updated', () => {
+        this.updateWeatherHero();
+      });
+
       // 5. Periyodik saat & hava durumu güncellemesi
       this.startClock();
 
@@ -119,6 +123,27 @@
 
       this.updateClockDisplay();
       this.syncRunningState();
+    },
+
+    getLiveWeatherSnippet() {
+      try {
+        const raw = JSON.parse(window.SafeStorage?.getItem('ankora_weather_cache') || 'null');
+        if (raw && raw.data && raw.city) {
+          const cur = raw.data.current || {};
+          const city = raw.city.name || 'Ankara';
+          const temp = Number.isFinite(Number(cur.temperature_2m)) ? Math.round(Number(cur.temperature_2m)) : 14;
+          return { city, temp, ok: true };
+        }
+      } catch (e) {}
+      return { city: 'Ankara', temp: 14, ok: false };
+      },
+
+    updateWeatherHero() {
+      const wx = this.getLiveWeatherSnippet();
+      const bW = document.querySelector('.bostan-hero-weather');
+      if (bW) bW.innerHTML = `${wx.city}'da <b>${wx.temp}°</b>, güncel hava durumu · serin esinti`;
+      const cW = document.querySelector('.civata-hero-weather');
+      if (cW) cW.innerHTML = `${wx.city} <b>${wx.temp}°</b>, güncel hava durumu`;
     },
 
     // ------------------------------------------------------------------------
@@ -240,12 +265,13 @@
       topPanel.appendChild(clk);
 
       // 2. Sağ Üst Dev Serif Saat & Hava Durumu
+      const bostanWx = this.getLiveWeatherSnippet();
       hero.innerHTML = `
         <div class="bostan-hero-time">
           <span class="bostan-live-time"></span><small class="bostan-live-day"></small>
         </div>
         <p class="bostan-hero-weather">
-          Ankara'da <b>14°</b>, açık akşam · serin esinti
+          ${bostanWx.city}'da <b>${bostanWx.temp}°</b>, açık akşam · serin esinti
         </p>
       `;
 
@@ -299,13 +325,14 @@
       topPanel.querySelector('.civata-btn-ai').addEventListener('click', () => this.openApp('win-ai'));
 
       // 2. Sol Dev Display Saat & Hava Durumu
+      const civataWx = this.getLiveWeatherSnippet();
       hero.innerHTML = `
         <div class="civata-hero-time">
           <span class="civata-live-time"></span>
           <small class="civata-live-sub"></small>
         </div>
         <p class="civata-hero-weather">
-          Ankara <b>14°</b>, açık akşam · bu gece 6°
+          ${civataWx.city} <b>${civataWx.temp}°</b>, açık akşam · bu gece 6°
         </p>
       `;
     },

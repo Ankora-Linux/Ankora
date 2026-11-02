@@ -1820,6 +1820,70 @@ def execute_ayaz_command(cmd, args):
         return execute_ayaz_command('install_deb_package',
                                     {'packageName': vendor_pkgs[vendor]})
 
+    elif cmd == 'inspect_package_file':
+        f_path = str(args.get('filePath', '')).strip()
+        if not f_path or not os.path.isfile(f_path):
+            raise Exception('Belirtilen paket dosyası bulunamadı')
+        f_name = os.path.basename(f_path)
+        f_size = os.path.getsize(f_path)
+        size_human = f"{f_size / (1024*1024):.1f} MB" if f_size >= 1024*1024 else f"{f_size / 1024:.1f} KB"
+        lower = f_name.lower()
+        if lower.ends_with('.deb'):
+            proc = subprocess.run(['dpkg-deb', '-I', f_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=5)
+            info = proc.stdout if proc.returncode == 0 else ''
+            name = f_name[:-4]
+            version = "Bilinmiyor"
+            arch = "amd64"
+            desc = "Debian sistemi ikili kurulum paketi."
+            for line in info.splitlines():
+                l = line.strip()
+                if l.startswith("Package:"):
+                    name = l[8:].strip()
+                elif l.startswith("Version:"):
+                    version = l[8:].strip()
+                elif l.startswith("Architecture:"):
+                    arch = l[13:].strip()
+                elif l.startswith("Description:"):
+                    desc = l[12:].strip()
+            return {
+                'file_name': f_name,
+                'file_path': f_path,
+                'pkg_type': 'deb',
+                'name': name,
+                'version': version,
+                'arch': arch,
+                'size_human': size_human,
+                'description': desc
+            }
+        elif lower.ends_with('.appimage'):
+            name = f_name.replace('.appimage', '').replace('.AppImage', '')
+            return {
+                'file_name': f_name,
+                'file_path': f_path,
+                'pkg_type': 'appimage',
+                'name': name,
+                'version': 'Bağımsız',
+                'arch': 'x86_64',
+                'size_human': size_human,
+                'description': 'Taşınabilir, bağımsız ve sandbox uyumlu Linux uygulama paketi (AppImage).'
+            }
+        else:
+            raise Exception('Desteklenmeyen paket formatı')
+
+    elif cmd == 'install_local_deb_package':
+        f_path = str(args.get('filePath', '')).strip()
+        if not f_path or not os.path.isfile(f_path) or not f_path.lower().ends_with('.deb'):
+            raise Exception('Geçerli bir .deb dosyası belirtilmelidir')
+        helper = '/usr/local/bin/ayaz-pkg-helper'
+        if os.path.exists(helper):
+            proc = subprocess.run(['sudo', helper, 'install-deb-file', f_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=600)
+        else:
+            proc = subprocess.run(['sudo', 'apt-get', 'install', '-y', '--no-install-recommends', '--', f_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=600)
+        if proc.returncode != 0:
+            err = (proc.stderr or proc.stdout or '').strip()
+            raise Exception(f'Kurulum başarısız: {err}')
+        return f'{f_path} başarıyla kuruldu.'
+
     elif cmd == 'install_meb_certificate':
         # MEB okul ağı kök sertifikası: indirme ve doğrulama yalnızca
         # root-owned ayaz-pkg-helper içindedir; arayüzden URL alınmaz.
