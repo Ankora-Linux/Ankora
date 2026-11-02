@@ -227,12 +227,8 @@
         btn.title = app.title;
         btn.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24">${app.icon}</svg>`;
         btn.addEventListener('click', (e) => app.action(e));
-        if (window.IconResolver && app.id !== 'start') {
-          window.IconResolver.tagIcon(btn, { id: app.id, exec: app.id, icon: app.id });
-        }
         dock.appendChild(btn);
       });
-      if (window.IconResolver) window.IconResolver.upgradeScope(dock);
 
       // 3. Masaüstü Metanotu
       meta.textContent = 'ankora / oturum: canlı · çekirdek 6.1';
@@ -293,12 +289,8 @@
         btn.title = app.title;
         btn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24">${app.icon}</svg>`;
         btn.addEventListener('click', (e) => app.action(e));
-        if (window.IconResolver && app.id !== 'start') {
-          window.IconResolver.tagIcon(btn, { id: app.id, exec: app.id, icon: app.id });
-        }
         dock.appendChild(btn);
       });
-      if (window.IconResolver) window.IconResolver.upgradeScope(dock);
     },
 
     // ------------------------------------------------------------------------

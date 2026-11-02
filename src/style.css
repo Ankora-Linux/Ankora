@@ -5266,8 +5266,16 @@ body.theme-light .desktop-context-menu {
 
 .taskbar-pin-btn svg {
   display: block;
+  stroke: currentColor;
+  fill: none;
+  width: 17px;
+  height: 17px;
 }
-
+.face-dock-app svg {
+  display: block;
+  stroke: currentColor;
+  fill: none;
+}
 .taskbar-running-tabs {
   display: flex;
   align-items: center;

@@ -1209,3 +1209,54 @@ body.theme-light .ctx-submenu-list,
   bottom: auto !important;
   left: 14px !important;
 }
+
+/* 7. Açık Temalarda Dock ve Panel Uyumu */
+body.is-light-theme [data-face="2"] .face-dock-app,
+body.theme-light [data-face="2"] .face-dock-app,
+body.theme-arctic [data-face="2"] .face-dock-app,
+body.theme-cinar [data-face="2"] .face-dock-app,
+body.theme-meltem [data-face="2"] .face-dock-app {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: rgba(0, 0, 0, 0.14);
+  color: #1e293b;
+}
+
+body.is-light-theme [data-face="2"] #face-top-panel,
+body.theme-light [data-face="2"] #face-top-panel,
+body.theme-arctic [data-face="2"] #face-top-panel,
+body.theme-cinar [data-face="2"] #face-top-panel,
+body.theme-meltem [data-face="2"] #face-top-panel {
+  background: rgba(255, 255, 255, 0.95);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  color: #0f172a;
+}
+
+body.is-light-theme .face-clock-capsule,
+body.theme-light .face-clock-capsule,
+body.theme-arctic .face-clock-capsule,
+body.theme-cinar .face-clock-capsule,
+body.theme-meltem .face-clock-capsule {
+  background: rgba(0, 0, 0, 0.05);
+  border-color: rgba(0, 0, 0, 0.1);
+  color: #0f172a;
+}
+
+body.is-light-theme .face-ws-btn,
+body.theme-light .face-ws-btn,
+body.theme-arctic .face-ws-btn,
+body.theme-cinar .face-ws-btn,
+body.theme-meltem .face-ws-btn {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.12);
+  color: #334155;
+}
+
+body.is-light-theme .face-ws-btn.active,
+body.theme-light .face-ws-btn.active,
+body.theme-arctic .face-ws-btn.active,
+body.theme-cinar .face-ws-btn.active,
+body.theme-meltem .face-ws-btn.active {
+  background: var(--accent-active, #d1794f);
+  border-color: var(--accent-active, #d1794f);
+  color: #ffffff;
+}

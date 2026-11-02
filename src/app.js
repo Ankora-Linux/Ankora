@@ -1746,7 +1746,6 @@
         btn.dataset.pinInternal = pin.id;
         btn.dataset.pinExec = pin.exec || '';
         btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="4" width="16" height="16" rx="3"></rect><circle cx="12" cy="12" r="3"></circle></svg>`;
-        if (window.IconResolver) window.IconResolver.tagIcon(btn, pin);
         btn.addEventListener('click', () => {
           const exec = pin.exec || '';
           if (exec.startsWith('internal:')) {
@@ -1766,7 +1765,6 @@
         });
         host.insertBefore(btn, host.firstChild);
       });
-      if (window.IconResolver) window.IconResolver.upgradeScope(host);
     },
 
     init() {
