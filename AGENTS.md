@@ -85,6 +85,11 @@ tarihli satır olarak eklenir; silinmez.
   (4) Sistem Doktoru Eylemi: Ankora AI mini popover'ına "Sistem Doktoru" hızlı çipi eklendi; ankora-doctor raporuyla sistem sorunlarını analiz edip tek tıkla güvenli onarım yaptırma desteği bağlandı.
   (5) Görsel .deb ve .AppImage Yükleyici: Çift tıklanan .deb veya .AppImage dosyalarını terminale gerek kalmadan dpkg-deb meta verileriyle doğrulayıp kuran "win-pkg-installer" grafik arayüzü ve backend IPC uçları (inspect_package_file, install_local_deb_package) eklendi.
   (6) İkon Çözümleyici ve Yüzler Düzeltmesi: IconResolver eksik getIconSvg metodu, menu ve taskbar pin ikon yükseltmeleri, doğrudan alias eşlemeleri ve Yüz 3/8 dev saat hero alanında canlı hava durumu senkronizasyonu sağlandı.
+- 2026-11-02: Sürüm 4.5.0'a yükseltildi (VERSION, Cargo.toml, Cargo.lock, tauri.conf.json, package.json, CHANGELOG.md).
+- 2026-11-02: Ankora 4.5 için iki resmî tanıtım videosu üretildi:
+  (1) Instagram Reels (9:16 dikey Full HD 1080x1920, 32 sn): `~/Projeler/ankora-reels/ankora-4.5-reels.mp4` ve `~/Videolar/ankora-4.5-reels.mp4`.
+  (2) YouTube Tanıtım Videosu (16:9 yatay 1280x720, 36 sn): `~/Projeler/ankora-tanitim/ankora-4.5-tanitim.mp4` ve `~/Videolar/ankora-4.5-tanitim.mp4`.
+  İki videoda da Antislop/Humanizer ilkeleriyle gerçek 1920x1080 masaüstü yakalamaları (Dinamik Ada medya dalgası, Yüz 2/3/8, Paket Yükleyici, AI Doktoru), canlı ses dalgaları, özgün soundtrack ve doğal Türkçe seslendirme kullanıldı.
 
 ## Not
 
