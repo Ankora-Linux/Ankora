@@ -25,6 +25,7 @@ scratch/*
 !scratch/verify_plymouth.py
 !scratch/test_bridge_logic.py
 !scratch/test_store_data.js
+!scratch/test_ui_comprehensive.py
 
 # OS specific
 .DS_Store

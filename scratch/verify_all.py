@@ -161,6 +161,9 @@ def main():
     check("köprü mantık testleri", ok, err if not ok else "")
     ok, err = run(["node", "scratch/test_store_data.js"])
     check("mağaza veri testleri", ok, err if not ok else "")
+    if shutil.which("chromium"):
+        ok, err = run([sys.executable, "scratch/test_ui_comprehensive.py"])
+        check("headless arayüz ve dock duman testi", ok, err if not ok else "")
 
     # 12. Faz tahta dokunmatik desteği
     try:
