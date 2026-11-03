@@ -13322,3 +13322,33 @@ body.theme-light .store-spotlight-big-icon {
   color: var(--text-secondary, #cbd5e1);
   flex: 1;
 }
+
+/* Açık temalarda medya kartı okunabilirliği */
+body.theme-light .mpris-widget-card {
+  background: rgba(15, 23, 42, 0.04);
+  border-color: rgba(15, 23, 42, 0.1);
+}
+
+body.theme-light .mpris-title {
+  color: var(--text-primary, #0f172a);
+}
+
+body.theme-light .mpris-artist {
+  color: var(--text-muted, #475569);
+}
+
+body.theme-light .mpris-btn {
+  background: rgba(15, 23, 42, 0.05);
+  border-color: rgba(15, 23, 42, 0.14);
+  color: var(--text-primary, #0f172a);
+}
+
+body.theme-light .mpris-btn:hover {
+  background: rgba(15, 23, 42, 0.12);
+  color: var(--text-primary, #0f172a);
+}
+
+body.theme-light .mpris-player-pill {
+  border-color: rgba(15, 23, 42, 0.2);
+  color: var(--text-muted, #475569);
+}
