@@ -6403,25 +6403,34 @@
   const PackageInstallerManager = {
     currentPath: null,
     currentMeta: null,
+    appimageInstalled: false,
 
     async open(filePath) {
       if (!filePath) return;
       this.currentPath = filePath;
       this.currentMeta = null;
+      this.appimageInstalled = false;
 
       WindowManager.open('win-pkg-installer');
 
       const nameEl = document.getElementById('pkg-inst-name');
       const verEl = document.getElementById('pkg-inst-version');
       const sizeEl = document.getElementById('pkg-inst-size');
+      const dependsEl = document.getElementById('pkg-inst-depends');
       const descEl = document.getElementById('pkg-inst-desc');
       const progWrap = document.getElementById('pkg-inst-progress-wrap');
       const btnAction = document.getElementById('btn-pkg-inst-action');
+      const errBox = document.getElementById('pkg-inst-error');
 
       const fn = filePath.split('/').pop() || 'paket';
       if (nameEl) nameEl.textContent = fn;
       if (verEl) verEl.textContent = 'Paket inceleniyor...';
       if (sizeEl) sizeEl.textContent = '';
+      if (dependsEl) dependsEl.textContent = '';
+      if (errBox) {
+        errBox.hidden = true;
+        errBox.textContent = '';
+      }
       if (descEl) descEl.textContent = 'Paket yapısı ve bağımlılıklar okunuyor, lütfen bekleyin...';
       if (progWrap) progWrap.style.display = 'none';
       if (btnAction) {
@@ -6436,12 +6445,17 @@
         if (nameEl) nameEl.textContent = meta.name || fn;
         if (verEl) verEl.textContent = `Sürüm: ${meta.version} · Mimari: ${meta.arch}`;
         if (sizeEl) sizeEl.textContent = `Dosya Boyutu: ${meta.size_human}`;
+        if (dependsEl) {
+          dependsEl.textContent = meta.depends ? `Bağımlılık: ${meta.depends}` : '';
+          dependsEl.title = meta.depends || '';
+          dependsEl.hidden = !meta.depends;
+        }
         if (descEl) descEl.textContent = meta.description || 'Açıklama bulunamadı.';
 
         if (btnAction) {
           btnAction.disabled = false;
           if (meta.pkg_type === 'appimage') {
-            btnAction.textContent = 'Uygulamayı Çalıştır';
+            btnAction.textContent = 'Kur ve Menüye Ekle';
           } else {
             btnAction.textContent = 'Paketi Kur';
           }
@@ -6460,6 +6474,14 @@
       }
     },
 
+    showError(err) {
+      const box = document.getElementById('pkg-inst-error');
+      if (!box) return;
+      const raw = err && err.message ? err.message : String(err);
+      box.textContent = raw;
+      box.hidden = false;
+    },
+
     async executeAction() {
       if (!this.currentPath || !this.currentMeta) return;
       const btnAction = document.getElementById('btn-pkg-inst-action');
@@ -6467,23 +6489,70 @@
       const progWrap = document.getElementById('pkg-inst-progress-wrap');
       const progLabel = document.getElementById('pkg-inst-status-label');
       const progPct = document.getElementById('pkg-inst-status-pct');
+      const errBox = document.getElementById('pkg-inst-error');
 
       if (this.currentMeta.pkg_type === 'appimage') {
-        try {
-          await TauriBridge.invoke('open_path', { path: this.currentPath });
-          if (typeof ReportManager !== 'undefined' && ReportManager.showToast) {
-            ReportManager.showToast('AppImage uygulaması başlatıldı.', 'success');
+        // Kurulduysa ikinci tıklama uygulamayı başlatır.
+        if (this.appimageInstalled) {
+          try {
+            await TauriBridge.invoke('open_path', { path: this.currentPath });
+            if (typeof ReportManager !== 'undefined' && ReportManager.showToast) {
+              ReportManager.showToast('AppImage uygulaması başlatıldı.', 'success');
+            }
+            WindowManager.close('win-pkg-installer');
+          } catch (e) {
+            this.showError(e);
+            if (typeof ReportManager !== 'undefined' && ReportManager.showToast) {
+              ReportManager.showToast(`Çalıştırılamadı: ${e.message || e}`, 'error');
+            }
           }
-          WindowManager.close('win-pkg-installer');
-        } catch (e) {
+          return;
+        }
+
+        if (errBox) errBox.hidden = true;
+        if (btnAction) {
+          btnAction.disabled = true;
+          btnAction.textContent = 'Kuruluyor...';
+        }
+        if (btnCancel) btnCancel.disabled = true;
+        if (progWrap) progWrap.style.display = 'flex';
+        if (progLabel) progLabel.textContent = 'AppImage ~/.local/bin içine kopyalanıyor...';
+        if (progPct) progPct.textContent = 'Uygulama menüsü hazırlanıyor';
+
+        try {
+          const msg = await TauriBridge.invoke('install_appimage', { filePath: this.currentPath });
+          this.appimageInstalled = true;
+          if (progLabel) progLabel.textContent = 'Kurulum tamamlandı!';
+          if (progPct) progPct.textContent = 'Menüye eklendi';
+          if (btnAction) {
+            btnAction.disabled = false;
+            btnAction.textContent = 'Uygulamayı Başlat';
+          }
+          if (btnCancel) btnCancel.disabled = false;
           if (typeof ReportManager !== 'undefined' && ReportManager.showToast) {
-            ReportManager.showToast(`Çalıştırılamadı: ${e.message || e}`, 'error');
+            ReportManager.showToast(msg || 'AppImage kuruldu.', 'success');
+          }
+          if (typeof XdgDesktopEngine !== 'undefined' && XdgDesktopEngine.scanApplications) {
+            XdgDesktopEngine.scanApplications();
+          }
+        } catch (err) {
+          if (progLabel) progLabel.textContent = 'Kurulum başarısız oldu.';
+          if (progPct) progPct.textContent = 'Hata';
+          if (btnAction) {
+            btnAction.disabled = false;
+            btnAction.textContent = 'Tekrar Dene';
+          }
+          if (btnCancel) btnCancel.disabled = false;
+          this.showError(err);
+          if (typeof ReportManager !== 'undefined' && ReportManager.showToast) {
+            ReportManager.showToast('AppImage kurulumu başarısız.', 'error');
           }
         }
         return;
       }
 
       // .deb kurulum akışı
+      if (errBox) errBox.hidden = true;
       if (btnAction) {
         btnAction.disabled = true;
         btnAction.textContent = 'Kuruluyor...';
@@ -6518,6 +6587,7 @@
           btnAction.textContent = 'Tekrar Dene';
         }
         if (btnCancel) btnCancel.disabled = false;
+        this.showError(err);
         if (typeof ReportManager !== 'undefined' && ReportManager.showToast) {
           ReportManager.showToast(`Kurulum hatası: ${err.message || err}`, 'error');
         }
@@ -7995,6 +8065,7 @@
   // ============================================================================
   const OllamaManager = {
     RECOMMENDED: [
+      { id: 'qwen2.5:0.5b', name: 'Qwen 2.5 (0.5B)', desc: 'En hafif seçenek; 4 GB ve altı bellekli sınıf bilgisayarlar için varsayılan.', size: '398 MB' },
       { id: 'qwen2.5-coder:1.5b', name: 'Qwen 2.5 Coder (1.5B)', desc: 'Kodlama, otomasyon ve sistem teftişi için optimize edilmiş hafif model.', size: '986 MB' },
       { id: 'llama3.2:1b', name: 'Llama 3.2 (1B)', desc: 'Meta’nın hızlı ve akıcı hafif dil modeli; günlük diyalog ve Türkçe desteği.', size: '1.3 GB' },
       { id: 'gemma2:2b', name: 'Gemma 2 (2B)', desc: 'Google kompakt, yüksek akıl yürütme kabiliyetli hafif genel model.', size: '1.6 GB' }
@@ -8002,11 +8073,16 @@
 
     installedModels: new Set(),
     isServiceOnline: false,
+    installBusy: false,
 
     init() {
       const btnRefresh = document.getElementById('btn-refresh-ollama');
       if (btnRefresh) {
         btnRefresh.addEventListener('click', () => this.render());
+      }
+      const btnInstall = document.getElementById('btn-install-ollama');
+      if (btnInstall) {
+        btnInstall.addEventListener('click', () => this.install());
       }
       const secOllama = document.getElementById('ai-sec-ollama');
       if (secOllama) {
@@ -8042,9 +8118,18 @@
       if (!listEl) return;
 
       const online = await this.checkService();
+      const installRow = document.getElementById('ai-ollama-install-row');
+      const installBtn = document.getElementById('btn-install-ollama');
+      const installNote = document.getElementById('ai-ollama-install-note');
+      if (installRow) installRow.hidden = online;
+      if (installBtn && !this.installBusy) installBtn.disabled = false;
+
       if (!online) {
         if (statusText) statusText.innerHTML = '<span style="color:#f59e0b;">Ollama çevrimdışı (127.0.0.1:11434 bulunamadı)</span>';
-        listEl.innerHTML = '<div style="font-size:11px;color:var(--text-muted,#94a3b8);padding:6px;">Yerel modeller için sisteminizde Ollama kurulu ve çalışır durumda olmalıdır.</div>';
+        if (installNote) {
+          installNote.textContent = 'Yerel modeller için Ollama motoru gerekir. Kurulum yönetici onayı ister ve tek seferliktir.';
+        }
+        listEl.innerHTML = '<div style="font-size:11px;color:var(--text-muted,#94a3b8);padding:6px;">Motor kurulu değilse yukarıdaki düğmeyle kurabilir; kurulumdan sonra modeller burada listelenir.</div>';
         return;
       }
 
@@ -8111,6 +8196,45 @@
           if (modId) this.downloadModel(modId, btn);
         });
       });
+    },
+
+    async install() {
+      if (this.installBusy) return;
+      const btn = document.getElementById('btn-install-ollama');
+      const note = document.getElementById('ai-ollama-install-note');
+      const statusText = document.getElementById('ai-ollama-status-text');
+      this.installBusy = true;
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Kuruluyor...';
+      }
+      if (note) {
+        note.textContent = 'Resmî arşiv indiriliyor ve sha256 özeti doğrulanıyor. İşlem birkaç dakika sürebilir.';
+      }
+      if (statusText) statusText.textContent = 'Ollama kuruluyor...';
+
+      try {
+        const msg = await TauriBridge.invoke('install_ollama');
+        if (statusText) statusText.textContent = 'Kurulum bitti, servis denetleniyor...';
+        await this.checkService();
+        if (typeof ReportManager !== 'undefined' && ReportManager.showToast) {
+          ReportManager.showToast(msg || 'Ollama kuruldu.', 'success');
+        }
+        await this.render();
+      } catch (err) {
+        const detail = err && err.message ? err.message : String(err);
+        if (statusText) statusText.textContent = 'Kurulum tamamlanamadı';
+        if (note) note.textContent = detail.slice(0, 320);
+        if (typeof ReportManager !== 'undefined' && ReportManager.showToast) {
+          ReportManager.showToast('Ollama kurulumu başarısız.', 'error');
+        }
+      } finally {
+        this.installBusy = false;
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = "Ollama'yı Kur";
+        }
+      }
     },
 
     async downloadModel(modelId, btnEl) {
@@ -17147,9 +17271,16 @@
   // ============================================================================
   const MprisManager = {
     pollTimer: null,
+    tickTimer: null,
     currentStatus: null,
+    selectedPlayer: '',
+    lastArtUrl: '',
+    basePos: 0,
+    baseAt: 0,
 
     init() {
+      this.selectedPlayer = SafeStorage.getItem('ankora_mpris_player') || '';
+
       const btnPrev = document.getElementById('mpris-btn-prev');
       const btnPlay = document.getElementById('mpris-btn-play');
       const btnNext = document.getElementById('mpris-btn-next');
@@ -17175,49 +17306,149 @@
 
       this.update();
       if (this.pollTimer) clearInterval(this.pollTimer);
-      this.pollTimer = setInterval(() => this.update(), 4000);
+      this.pollTimer = setInterval(() => this.update(), 3000);
+      if (this.tickTimer) clearInterval(this.tickTimer);
+      this.tickTimer = setInterval(() => this.paintProgress(), 1000);
+    },
+
+    isPlaying() {
+      return !!this.currentStatus &&
+        String(this.currentStatus.playback_status || '').toLowerCase() === 'playing';
+    },
+
+    currentPosition() {
+      if (!this.currentStatus) return 0;
+      const pos = Number(this.basePos) || 0;
+      const elapsed = this.isPlaying() ? (Date.now() - this.baseAt) / 1000 : 0;
+      const total = Number(this.currentStatus.length_sec) || 0;
+      const raw = pos + Math.max(0, elapsed);
+      return total > 0 ? Math.min(raw, total) : Math.max(0, raw);
+    },
+
+    paintProgress() {
+      const status = this.currentStatus;
+      if (!status) return;
+      const total = Number(status.length_sec) || 0;
+      const pct = total > 0 ? Math.min(100, (this.currentPosition() / total) * 100) : 0;
+      const adaBar = document.getElementById('di-media-progress-bar');
+      const cardBar = document.getElementById('mpris-progress-bar');
+      const faceBar = document.querySelector('.face-media-progress-bar');
+      [adaBar, cardBar].forEach(el => {
+        if (el) el.style.width = `${pct.toFixed(1)}%`;
+      });
+      if (faceBar) faceBar.style.width = `${pct.toFixed(1)}%`;
+    },
+
+    renderPlayers(players) {
+      const box = document.getElementById('mpris-players');
+      if (!box) return;
+      const list = Array.isArray(players) ? players : [];
+      if (list.length < 2) {
+        box.innerHTML = '';
+        box.hidden = true;
+        return;
+      }
+      box.hidden = false;
+      box.innerHTML = '';
+      const makePill = (label, value, title) => {
+        const pill = document.createElement('button');
+        pill.type = 'button';
+        pill.className = 'mpris-player-pill';
+        const isActive = value === this.selectedPlayer ||
+          (!this.selectedPlayer && this.currentStatus && this.currentStatus.player_name === value);
+        pill.classList.toggle('active', !!isActive);
+        pill.textContent = label;
+        pill.title = title || label;
+        pill.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.selectedPlayer = value;
+          if (value) {
+            SafeStorage.setItem('ankora_mpris_player', value);
+          } else {
+            SafeStorage.removeItem('ankora_mpris_player');
+          }
+          this.update();
+        });
+        box.appendChild(pill);
+      };
+      makePill('Otomatik', '', 'Çalan oynatıcıyı kendisi seçer');
+      list.forEach(p => {
+        const name = String(p.player_name || '').split('.instance')[0];
+        makePill(name, p.player_name, `${
+          p.title ? p.title + ' · ' : ''
+        }${p.artist || p.player_name}`);
+      });
     },
 
     async update() {
       try {
-        const res = await TauriBridge.invoke('get_mpris_status');
+        const params = this.selectedPlayer ? { player: this.selectedPlayer } : {};
+        const res = await TauriBridge.invoke('get_mpris_status', params);
+
+        // Seçili oynatıcı artık yoksa otomatik seçime dön.
+        if (this.selectedPlayer && res && Array.isArray(res.players)
+            && res.players.length > 0
+            && !res.players.some(p => p.player_name === this.selectedPlayer)) {
+          this.selectedPlayer = '';
+          SafeStorage.removeItem('ankora_mpris_player');
+        }
+
+        this.currentStatus = (res && res.is_active) ? res : null;
+        this.basePos = res ? (Number(res.position_sec) || 0) : 0;
+        this.baseAt = Date.now();
+
+        this.renderPlayers(res ? res.players : []);
+        this.paintProgress();
+
         if (typeof DynamicIslandManager !== 'undefined' && DynamicIslandManager.setMediaStatus) {
           DynamicIslandManager.setMediaStatus(res);
+        }
+        if (typeof window.FaceManager !== 'undefined' && window.FaceManager.updateMediaBar) {
+          window.FaceManager.updateMediaBar(this.currentStatus);
         }
 
         const card = document.getElementById('mpris-widget-card');
         if (!card) return;
 
-        if (res && res.is_active && res.player_name) {
-          this.currentStatus = res;
+        if (this.currentStatus) {
           card.style.display = 'flex';
           const titleEl = document.getElementById('mpris-title');
           const artistEl = document.getElementById('mpris-artist');
           const playBtn = document.getElementById('mpris-btn-play');
           const artBox = document.getElementById('mpris-art-box');
+          const status = this.currentStatus;
 
-          if (titleEl) titleEl.textContent = res.title || 'Bilinmeyen Parça';
+          if (titleEl) titleEl.textContent = status.title || 'Bilinmeyen Parça';
           if (artistEl) {
-            const sub = [res.artist, res.player_name].filter(Boolean).join(' • ');
+            const sub = [status.artist, status.player_name].filter(Boolean).join(' • ');
             artistEl.textContent = sub || 'Medya Oynatıcı';
           }
           if (playBtn) {
-            const isPlaying = (res.playback_status || '').toLowerCase() === 'playing';
-            playBtn.textContent = isPlaying ? '⏸' : '▶';
-            playBtn.title = isPlaying ? 'Duraklat' : 'Oynat';
+            const playing = this.isPlaying();
+            playBtn.textContent = playing ? '⏸' : '▶';
+            playBtn.title = playing ? 'Duraklat' : 'Oynat';
           }
-          if (artBox && res.art_url && (res.art_url.startsWith('http') || res.art_url.startsWith('file://'))) {
-            artBox.innerHTML = `<img src="${escapeHtml(res.art_url)}" alt="Albüm Kapağı" style="width:100%;height:100%;object-fit:cover;border-radius:6px;">`;
-          } else if (artBox && !artBox.querySelector('svg')) {
-            artBox.innerHTML = '<svg class="glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polygon points="10 8 16 12 10 16 10 8"></polygon></svg>';
+          if (artBox) {
+            const art = status.art_url || '';
+            const usable = art.startsWith('http') || art.startsWith('file://');
+            if (usable && art !== this.lastArtUrl) {
+              this.lastArtUrl = art;
+              artBox.innerHTML = `<img src="${escapeHtml(art)}" alt="Albüm Kapağı" style="width:100%;height:100%;object-fit:cover;border-radius:6px;">`;
+            } else if (!usable && this.lastArtUrl) {
+              this.lastArtUrl = '';
+              artBox.innerHTML = '<svg class="glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polygon points="10 8 16 12 10 16 10 8"></polygon></svg>';
+            }
           }
         } else {
-          this.currentStatus = null;
           card.style.display = 'none';
         }
       } catch (err) {
+        this.currentStatus = null;
         if (typeof DynamicIslandManager !== 'undefined' && DynamicIslandManager.setMediaStatus) {
           DynamicIslandManager.setMediaStatus(null);
+        }
+        if (typeof window.FaceManager !== 'undefined' && window.FaceManager.updateMediaBar) {
+          window.FaceManager.updateMediaBar(null);
         }
         const card = document.getElementById('mpris-widget-card');
         if (card) card.style.display = 'none';
@@ -17226,7 +17457,9 @@
 
     async sendCommand(cmd) {
       try {
-        await TauriBridge.invoke('send_mpris_command', { command: cmd });
+        const payload = { command: cmd };
+        if (this.selectedPlayer) payload.player = this.selectedPlayer;
+        await TauriBridge.invoke('send_mpris_command', payload);
         setTimeout(() => this.update(), 250);
       } catch (err) {
         console.warn('[MprisManager] Komut iletilemedi:', err);

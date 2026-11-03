@@ -123,6 +123,9 @@
 
       this.updateClockDisplay();
       this.syncRunningState();
+      if (window.MprisManager && window.MprisManager.currentStatus) {
+        this.updateMediaBar(window.MprisManager.currentStatus);
+      }
     },
 
     getLiveWeatherSnippet() {
@@ -146,10 +149,69 @@
       if (cW) cW.innerHTML = `${wx.city} <b>${wx.temp}°</b>, güncel hava durumu`;
     },
 
+    ensureMediaBar(topPanel) {
+      if (!topPanel) return null;
+      const existing = topPanel.querySelector('.face-media-bar');
+      if (existing) return existing;
+
+      const bar = document.createElement('div');
+      bar.className = 'face-media-bar';
+      bar.style.display = 'none';
+      bar.innerHTML = `
+        <button type="button" class="face-media-btn" data-mpris="previous" title="Önceki Parça" aria-label="Önceki parça">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="19 20 9 12 19 4 19 20"></polygon><line x1="5" y1="19" x2="5" y2="5"></line></svg>
+        </button>
+        <button type="button" class="face-media-btn face-media-toggle" data-mpris="play-pause" title="Oynat / Duraklat" aria-label="Oynat veya duraklat">
+          <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+        </button>
+        <button type="button" class="face-media-btn" data-mpris="next" title="Sonraki Parça" aria-label="Sonraki parça">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="5 4 15 12 5 20 5 4"></polygon><line x1="19" y1="5" x2="19" y2="19"></line></svg>
+        </button>
+        <div class="face-media-meta">
+          <span class="face-media-title"></span>
+          <span class="face-media-artist"></span>
+        </div>
+        <span class="face-media-progress"><span class="face-media-progress-bar"></span></span>
+      `;
+      bar.querySelectorAll('[data-mpris]').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const cmd = btn.getAttribute('data-mpris');
+          if (window.MprisManager && cmd) window.MprisManager.sendCommand(cmd);
+        });
+      });
+      topPanel.appendChild(bar);
+      return bar;
+    },
+
+    updateMediaBar(status) {
+      const bar = document.querySelector('.face-media-bar');
+      if (!bar) return;
+      if (!status) {
+        bar.style.display = 'none';
+        return;
+      }
+      bar.style.display = 'flex';
+      const title = bar.querySelector('.face-media-title');
+      const artist = bar.querySelector('.face-media-artist');
+      const toggle = bar.querySelector('.face-media-toggle');
+      if (title) title.textContent = status.title || 'Bilinmeyen Parça';
+      if (artist) {
+        artist.textContent = [status.artist, status.player_name].filter(Boolean).join(' · ') || 'Medya';
+      }
+      if (toggle) {
+        const playing = String(status.playback_status || '').toLowerCase() === 'playing';
+        toggle.innerHTML = playing
+          ? '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>'
+          : '<svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>';
+      }
+    },
+
     // ------------------------------------------------------------------------
     // YÜZ 2: BAKIR
     // ------------------------------------------------------------------------
     renderBakir(topPanel, dock, meta) {
+      this.ensureMediaBar(topPanel);
       // 1. Üst Panel: Çalışma Alanları + Kapsül Saat/Tarih + Tepsi
       const wsGroup = document.createElement('div');
       wsGroup.className = 'face-ws-group';
@@ -238,6 +300,7 @@
     // YÜZ 3: BOSTAN
     // ------------------------------------------------------------------------
     renderBostan(topPanel, dock, hero) {
+      this.ensureMediaBar(topPanel);
       // 1. Üst Bar: Ankora Markası + Menü + Tarih
       const brand = document.createElement('b');
       brand.className = 'face-brand-label';
@@ -306,6 +369,7 @@
         <span class="civata-nav-item civata-btn-ai" style="margin-right:12px;">ada: <em class="civata-highlight">genişletilmiş</em></span>
         <span class="civata-top-datetime"></span>
       `;
+      this.ensureMediaBar(topPanel);
 
       topPanel.querySelector('.civata-brand').addEventListener('click', (e) => this.toggleStartMenu(e));
       topPanel.querySelector('.civata-btn-apps').addEventListener('click', (e) => this.toggleStartMenu(e));

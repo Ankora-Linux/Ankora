@@ -82,10 +82,44 @@ def run_tests():
         // 4. Ollama Yerel Model Yöneticisi Denetimi
         const secOllama = document.getElementById('ai-sec-ollama');
         assert('AI Ayarlarında Ollama Bölümü Var', !!secOllama);
+        assert('Ollama Kurulum Satırı Var', !!document.getElementById('ai-ollama-install-row'));
+        assert('Ollama Kurulum Düğmesi Var', !!document.getElementById('btn-install-ollama'));
         if (window.OllamaManager) {
             assert('OllamaManager Nesnesi Tanımlı', typeof window.OllamaManager.render === 'function');
-            assert('Önerilen Modeller Listesi Dolu', window.OllamaManager.RECOMMENDED && window.OllamaManager.RECOMMENDED.length === 3);
+            assert('OllamaManager.install Tanımlı', typeof window.OllamaManager.install === 'function');
+            assert('Önerilen Modeller Listesi Dolu', window.OllamaManager.RECOMMENDED && window.OllamaManager.RECOMMENDED.length === 4);
+            assert('Varsayılan model listede', window.OllamaManager.RECOMMENDED.some(m => m.id === 'qwen2.5:0.5b'));
         }
+
+        // 4b. MPRIS ilerleme, oynatıcı seçici ve medya şeridi
+        assert('Ada medya ilerleme çubuğu var', !!document.getElementById('di-media-progress-bar'));
+        assert('Bildirim kartı ilerleme çubuğu var', !!document.getElementById('mpris-progress-bar'));
+        assert('Oynatıcı çipleri kutusu var', !!document.getElementById('mpris-players'));
+        if (window.MprisManager) {
+            assert('MprisManager.renderPlayers Tanımlı', typeof window.MprisManager.renderPlayers === 'function');
+            window.MprisManager.currentStatus = {
+                is_active: true, player_name: 'vlc', playback_status: 'Playing',
+                title: 'A', artist: 'B', position_sec: 10, length_sec: 100
+            };
+            window.MprisManager.basePos = 10;
+            window.MprisManager.baseAt = Date.now();
+            window.MprisManager.selectedPlayer = 'vlc';
+            window.MprisManager.renderPlayers([
+                { player_name: 'vlc', playback_status: 'Playing', title: 'A', artist: 'B' },
+                { player_name: 'chromium', playback_status: 'Paused', title: 'C', artist: 'D' }
+            ]);
+            const pills = document.querySelectorAll('#mpris-players .mpris-player-pill');
+            assert('Oynatıcı çipleri üretildi', pills.length === 3);
+            assert('Seçili oynatıcı çipi etkin', !!document.querySelector('#mpris-players .mpris-player-pill.active'));
+            window.MprisManager.paintProgress();
+            const pct = parseFloat(document.getElementById('mpris-progress-bar').style.width || '0');
+            assert('İlerleme yüzdesi hesaplandı', pct >= 9 && pct <= 100, `pct=${pct}`);
+            window.MprisManager.currentStatus = null;
+        }
+
+        // 4c. Paket yükleyici alanları
+        assert('Bağımlılık satırı var', !!document.getElementById('pkg-inst-depends'));
+        assert('Hata ayrıntısı kutusu var', !!document.getElementById('pkg-inst-error'));
 
         // 5. İkon Çözümleyici (IconResolver) Denetimi
         if (window.IconResolver) {
@@ -110,6 +144,18 @@ def run_tests():
             assert('Yüz 2: Alt Dock Var', !!dock2 && dock2.children.length > 0);
             const top2 = document.getElementById('face-top-panel');
             assert('Yüz 2: Üst Panel Var', !!top2 && top2.children.length > 0);
+            assert('Yüz 2: Medya Şeridi Var', !!(top2 && top2.querySelector('.face-media-bar')));
+            if (window.FaceManager.updateMediaBar) {
+                window.FaceManager.updateMediaBar({
+                    is_active: true, player_name: 'vlc', playback_status: 'Playing',
+                    title: 'Şerit Testi', artist: 'Ankora'
+                });
+                const mb = document.querySelector('.face-media-bar');
+                assert('Medya Şeridi Görünür Oldu', mb && mb.style.display === 'flex');
+                assert('Medya Şeridi Başlığı Yazıldı', mb && mb.querySelector('.face-media-title').textContent === 'Şerit Testi');
+                window.FaceManager.updateMediaBar(null);
+                assert('Medya Şeridi Yeniden Gizlendi', mb && mb.style.display === 'none');
+            }
             assert('Yüz 2: Taskbar Gizli', getComputedStyle(document.getElementById('taskbar')).display === 'none');
 
             // Yüz 3: Bostan

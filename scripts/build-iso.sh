@@ -6060,6 +6060,10 @@ cp "$ROOT_DIR/scripts/ankora-doctor.sh" "$CHROOT_DIR/usr/local/bin/ankora-doctor
 chmod 0755 "$CHROOT_DIR/usr/local/bin/ankora-doctor" || true
 chown root:root "$CHROOT_DIR/usr/local/bin/ankora-doctor" 2>/dev/null || true
 
+cp "$ROOT_DIR/scripts/ankora-ollama-install.sh" "$CHROOT_DIR/usr/local/bin/ankora-ollama-install" || true
+chmod 0755 "$CHROOT_DIR/usr/local/bin/ankora-ollama-install" || true
+chown root:root "$CHROOT_DIR/usr/local/bin/ankora-ollama-install" 2>/dev/null || true
+
 cp "$ROOT_DIR/scripts/ankora-updater-sudoers" "$CHROOT_DIR/etc/sudoers.d/ankora-updater" || true
 chmod 0440 "$CHROOT_DIR/etc/sudoers.d/ankora-updater" || true
 chown root:root "$CHROOT_DIR/etc/sudoers.d/ankora-updater" 2>/dev/null || true

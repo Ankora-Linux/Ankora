@@ -3,10 +3,12 @@
 
 ## 4.5.0 (2026-11-02)
 - Dinamik Ada (Dynamic Island) MPRIS Medya Entegrasyonu: Chromium, Brave, Spotify ve VLC oynatılırken adada şarkı adı, sanatçı, duraklat/geç kontrolleri ve canlı ses dalgası animasyonu (`.di-view-media`, `state-media`).
+- MPRIS+ (yayın öncesi tamamlandı): Ada ve bildirim merkezindeki oynatıcı kartına parça ilerleme çubuğu, birden fazla oynatıcı arasında seçim yapan oynatıcı çipleri (seçim kalıcı) ve yalnız çalan/duraklatılmış oynatıcının gösterilmesi eklendi. Duran oynatıcıların eskimiş parça adı artık gösterilmez; komutlar seçili oynatıcıya hedeflenir. Aynı medya şeridi (önceki/oynat/sonraki + ilerleme) Bakır, Bostan ve Cıvata yüzlerinin üst panellerine de yerleştirildi.
+- Yerel AI Kurulum Sihirbazı: ISO'ya `ankora-ollama-install` yardımcısı eklendi; AI Ayarları'ndaki "Ollama'yı Kur" düğmesi resmî arşivi indirir, sha256 özetiyle doğrular, `/usr/local` içine kurar ve SysVinit `ollama` servisini başlatır. Önerilen model listesine varsayılanla eşleşen `qwen2.5:0.5b` eklendi.
 - ZRAM Desteği (Eco RAM+): 4 GB altı belleğe sahip cihazlarda açılışta otomatik lz4/zstd ZRAM takas havuzu (ayaz-session, xinitrc, build-iso).
 - Tek Tıkla Yerel Model Kurulumu: Ollama modelleri (qwen2.5-coder:1.5b, llama3.2:1b, gemma2:2b) indirme ilerlemesi ve model seçici.
 - Sistem Doktoru Eylemi: Ankora AI mini popover'ına "Sistem Doktoru" hızlı çipi eklendi; ankora-doctor raporuyla sistem sorunlarını analiz edip tek tıkla güvenli onarım onay kartı sunar.
-- Görsel .deb ve .AppImage Yükleyici: Çift tıklanan paketleri terminale gerek kalmadan doğrulayıp kuran 'win-pkg-installer' grafik arayüzü ve backend IPC uçları (inspect_package_file, install_local_deb_package).
+- Görsel .deb ve .AppImage Yükleyici: Çift tıklanan paketleri terminale gerek kalmadan doğrulayıp kuran 'win-pkg-installer' grafik arayüzü ve backend IPC uçları (inspect_package_file, install_local_deb_package). Kurulum öncesi bağımlılık listesi gösterilir; hata ayrıntısı pencere içinde okunur. AppImage artık yalnız çalıştırılmıyor: `~/.local/bin` içine kurulur, çalıştırma izni verilir ve uygulama menüsüne `.desktop` kısayolu eklenir.
 - İkon Çözümleyici ve Yüzler Düzeltmesi: IconResolver eksik getIconSvg metodu, menu ve taskbar pin ikon yükseltmeleri, doğrudan alias eşlemeleri ve Yüz 3/8 dev saat alanında canlı hava durumu güncellemesi.
 ## 4.0.1 (2026-10-29)
 - Siyah Ekran Güvencesi: Canlı oturumda masaüstü (`ayaz`) başlatılamazsa ekran artık sessiz siyah kalmıyor. Hata günlüğü `/tmp/ayaz.log` dosyasına yazılıp xterm penceresinde son 60 satır gösteriliyor ve kabuk açılıyor. Otomatik `startx` yeniden deneme döngüsü `/tmp/ankora-desktop-failed` işaretiyle kırılıyor; kullanıcı `rm /tmp/ankora-desktop-failed && startx` ile bilinçli olarak yeniden deniyor.

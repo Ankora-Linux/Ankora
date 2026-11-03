@@ -1438,6 +1438,8 @@ pub struct PackageMeta {
     pub arch: String,
     pub size_human: String,
     pub description: String,
+    #[serde(default)]
+    pub depends: String,
 }
 
 #[tauri::command]
@@ -1466,6 +1468,7 @@ async fn inspect_package_file(file_path: String) -> Result<PackageMeta, String> 
             let mut version = "Bilinmiyor".to_string();
             let mut arch = "amd64".to_string();
             let mut desc = "Debian sistemi ikili kurulum paketi.".to_string();
+            let mut depends = String::new();
 
             for line in info.lines() {
                 let l = line.trim();
@@ -1475,6 +1478,8 @@ async fn inspect_package_file(file_path: String) -> Result<PackageMeta, String> 
                     version = l.trim_start_matches("Version:").trim().to_string();
                 } else if l.starts_with("Architecture:") {
                     arch = l.trim_start_matches("Architecture:").trim().to_string();
+                } else if l.starts_with("Depends:") {
+                    depends = l.trim_start_matches("Depends:").trim().to_string();
                 } else if l.starts_with("Description:") {
                     desc = l.trim_start_matches("Description:").trim().to_string();
                 }
@@ -1489,6 +1494,7 @@ async fn inspect_package_file(file_path: String) -> Result<PackageMeta, String> 
                 arch,
                 size_human,
                 description: desc,
+                depends,
             });
         }
         #[cfg(not(target_os = "linux"))]
@@ -1502,6 +1508,7 @@ async fn inspect_package_file(file_path: String) -> Result<PackageMeta, String> 
                 arch: "amd64".to_string(),
                 size_human,
                 description: "Debian sistemi ikili kurulum paketi.".to_string(),
+                depends: String::new(),
             });
         }
     } else if lower.ends_with(".appimage") {
@@ -1515,6 +1522,7 @@ async fn inspect_package_file(file_path: String) -> Result<PackageMeta, String> 
             arch: "x86_64".to_string(),
             size_human,
             description: "Taşınabilir, bağımsız ve sandbox uyumlu Linux uygulama paketi (AppImage).".to_string(),
+            depends: String::new(),
         });
     }
 
@@ -1538,8 +1546,12 @@ async fn install_local_deb_package(file_path: String) -> Result<String, String> 
             let helper = Path::new("/usr/local/bin/ayaz-pkg-helper");
             let res = if helper.exists() {
                 root_command("/usr/local/bin/ayaz-pkg-helper", &["install-deb-file", clean])
+            } else if clean.contains('\n') || clean.contains('\r') {
+                return Err("Geçersiz dosya yolu.".to_string());
             } else {
-                root_command("apt-get", &["install", "-y", "--no-install-recommends", "--", clean])
+                // Tam yol doğrudan verilir; "--" ayırıcısı apt-get tarafından
+                // paket adı sanılabildiği için kullanılmaz.
+                root_command("apt-get", &["install", "-y", "--no-install-recommends", clean])
             };
 
             match res {
@@ -1565,6 +1577,160 @@ async fn install_local_deb_package(file_path: String) -> Result<String, String> 
     .map_err(|e| format!("Kurulum işlemi hatası: {}", e))?
 }
 
+#[tauri::command]
+async fn install_appimage(file_path: String) -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(move || install_appimage_blocking(&file_path))
+        .await
+        .map_err(|e| format!("AppImage kurulum işlemi hatası: {}", e))?
+}
+
+fn install_appimage_blocking(file_path: &str) -> Result<String, String> {
+    let clean = file_path.trim();
+    if clean.is_empty()
+        || clean
+            .chars()
+            .any(|c| matches!(c, '\n' | '\r' | '"' | '\''))
+    {
+        return Err("Geçersiz dosya yolu.".to_string());
+    }
+    let src = Path::new(clean);
+    if !src.exists() || !src.is_file() {
+        return Err("Kurulacak AppImage dosyası bulunamadı.".to_string());
+    }
+    if !clean.to_lowercase().ends_with(".appimage") {
+        return Err("Yalnızca .AppImage uzantılı dosyalar kurulabilir.".to_string());
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        use std::os::unix::fs::PermissionsExt;
+
+        let home = dirs::home_dir()
+            .ok_or_else(|| "Kullanıcı ev dizini bulunamadı.".to_string())?;
+        let canonical = fs::canonicalize(src)
+            .map_err(|_| "Dosya yolu çözümlenemedi.".to_string())?;
+        let canon_str = canonical.to_string_lossy().to_string();
+        let home_str = home.to_string_lossy().to_string();
+        if !canon_str.starts_with(&format!("{}/", home_str)) && !canon_str.starts_with("/tmp/") {
+            return Err(
+                "Güvenlik İlkesi: AppImage yalnızca kullanıcı çalışma alanından kurulabilir."
+                    .to_string(),
+            );
+        }
+
+        let raw_stem = canonical
+            .file_stem()
+            .and_then(|n| n.to_str())
+            .unwrap_or("appimage-app");
+        let slug: String = raw_stem
+            .chars()
+            .map(|c| {
+                if c.is_ascii_alphanumeric() || c == '.' || c == '-' || c == '_' {
+                    c.to_ascii_lowercase()
+                } else {
+                    '-'
+                }
+            })
+            .collect();
+        let slug = slug.trim_matches('-').to_string();
+        let slug = if slug.is_empty() {
+            "appimage-app".to_string()
+        } else {
+            slug
+        };
+
+        let bin_dir = home.join(".local/bin");
+        fs::create_dir_all(&bin_dir)
+            .map_err(|e| format!("Uygulama dizini oluşturulamadı: {}", e))?;
+        let target = bin_dir.join(&slug);
+
+        if canonical != target {
+            fs::copy(&canonical, &target)
+                .map_err(|e| format!("AppImage kopyalanamadı: {}", e))?;
+        }
+        let perms = fs::Permissions::from_mode(0o755);
+        let _ = fs::set_permissions(&target, perms);
+
+        let apps_dir = dirs::data_dir()
+            .unwrap_or_else(|| home.join(".local/share"))
+            .join("applications");
+        fs::create_dir_all(&apps_dir)
+            .map_err(|e| format!("Uygulama menüsü dizini oluşturulamadı: {}", e))?;
+
+        let desktop_name: String = raw_stem
+            .chars()
+            .map(|c| if matches!(c, '\n' | '\r' | '\t') { ' ' } else { c })
+            .collect();
+        let desktop_name = desktop_name.trim().to_string();
+        let desktop_name = if desktop_name.is_empty() {
+            slug.clone()
+        } else {
+            desktop_name
+        };
+        let desktop_path = apps_dir.join(format!("{}.desktop", slug));
+        let desktop = format!(
+            "[Desktop Entry]\nType=Application\nName={}\nComment=AppImage olarak kuruldu (Ankora Ayaz DE)\nExec=\"{}\"\nIcon=application-x-executable\nTerminal=false\nCategories=Utility;\n",
+            desktop_name,
+            target.display()
+        );
+        fs::write(&desktop_path, desktop)
+            .map_err(|e| format!("Masaüstü kısayolu yazılamadı: {}", e))?;
+
+        let _ = Command::new("update-desktop-database")
+            .arg(&apps_dir)
+            .output();
+
+        Ok(format!(
+            "{} uygulaması ~/.local/bin içine kuruldu ve uygulama menüsüne eklendi.",
+            desktop_name
+        ))
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        Err("Bu platformda AppImage kurulumu desteklenmez.".to_string())
+    }
+}
+
+#[tauri::command]
+async fn install_ollama() -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(|| {
+        #[cfg(target_os = "linux")]
+        {
+            let helper = Path::new("/usr/local/bin/ankora-ollama-install");
+            if !helper.exists() {
+                return Err(
+                    "Ollama kurulum yardımcısı bu sistemde bulunamadı; kurulum yalnızca Ankora ISO üzerinde yapılabilir."
+                        .to_string(),
+                );
+            }
+            match root_command("/usr/local/bin/ankora-ollama-install", &[]) {
+                Ok(o) => {
+                    let out = String::from_utf8_lossy(&o.stdout).trim().to_string();
+                    let err = String::from_utf8_lossy(&o.stderr).trim().to_string();
+                    if o.status.success() {
+                        Ok(if out.is_empty() {
+                            "Ollama kuruldu ve servis başlatıldı.".to_string()
+                        } else {
+                            out
+                        })
+                    } else {
+                        Err(format!(
+                            "Ollama kurulumu başarısız:\n{}",
+                            if err.is_empty() { out } else { err }
+                        ))
+                    }
+                }
+                Err(e) => Err(format!("Kurulum komutu yürütülemedi: {}", e)),
+            }
+        }
+        #[cfg(not(target_os = "linux"))]
+        {
+            Err("Bu platformda Ollama kurulumu desteklenmez.".to_string())
+        }
+    })
+    .await
+    .map_err(|e| format!("Ollama kurulum işlemi hatası: {}", e))?
+}
 
 #[tauri::command]
 async fn install_meb_certificate() -> Result<String, String> {
@@ -8808,6 +8974,14 @@ async fn system_update_apt(do_upgrade: Option<bool>) -> Result<String, String> {
 }
 
 #[derive(Serialize, Deserialize, Clone)]
+pub struct MprisPlayerInfo {
+    pub player_name: String,
+    pub title: String,
+    pub artist: String,
+    pub playback_status: String,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
 pub struct MprisStatus {
     pub is_active: bool,
     pub player_name: String,
@@ -8816,44 +8990,125 @@ pub struct MprisStatus {
     pub artist: String,
     pub album: String,
     pub art_url: String,
+    pub position_sec: f64,
+    pub length_sec: f64,
+    pub players: Vec<MprisPlayerInfo>,
+}
+
+const MPRIS_SEP: char = '\u{1f}';
+
+fn mpris_micros_to_sec(raw: &str) -> f64 {
+    raw.trim()
+        .parse::<f64>()
+        .map(|v| (v / 1_000_000.0).max(0.0))
+        .unwrap_or(0.0)
 }
 
 #[tauri::command]
-fn get_mpris_status() -> Result<MprisStatus, String> {
+fn get_mpris_status(player: Option<String>) -> Result<MprisStatus, String> {
     #[cfg(target_os = "linux")]
     {
+        let format = format!(
+            "{{{{playerName}}}}{0}{{{{status}}}}{0}{{{{title}}}}{0}{{{{artist}}}}{0}{{{{album}}}}{0}{{{{mpris:artUrl}}}}{0}{{{{position}}}}{0}{{{{mpris:length}}}}",
+            MPRIS_SEP
+        );
         let out = Command::new("timeout")
-            .args(["1.5", "playerctl", "-a", "metadata", "--format", "{{playerName}}|||{{status}}|||{{title}}|||{{artist}}|||{{album}}|||{{mpris:artUrl}}"])
+            .args(["1.5", "playerctl", "-a", "metadata", "--format", &format])
             .output();
         if let Ok(o) = out {
             if o.status.success() {
                 let stdout = String::from_utf8_lossy(&o.stdout);
+                let mut parsed: Vec<MprisStatus> = Vec::new();
                 for line in stdout.lines() {
-                    let parts: Vec<&str> = line.split("|||").collect();
-                    if parts.len() >= 2 {
-                        let player_name = parts.get(0).unwrap_or(&"").trim().to_string();
-                        let playback_status = parts.get(1).unwrap_or(&"").trim().to_string();
-                        let title = parts.get(2).unwrap_or(&"").trim().to_string();
-                        let artist = parts.get(3).unwrap_or(&"").trim().to_string();
-                        let album = parts.get(4).unwrap_or(&"").trim().to_string();
-                        let art_url = parts.get(5).unwrap_or(&"").trim().to_string();
-                        if !player_name.is_empty() {
-                            return Ok(MprisStatus {
-                                is_active: true,
-                                player_name,
-                                playback_status,
-                                title: if title.is_empty() {
-                                    "Bilinmeyen Parça".into()
-                                } else {
-                                    title
-                                },
-                                artist,
-                                album,
-                                art_url,
-                            });
-                        }
+                    let parts: Vec<&str> = line.split(MPRIS_SEP).collect();
+                    if parts.len() < 8 {
+                        continue;
                     }
+                    let player_name = parts[0].trim().to_string();
+                    if player_name.is_empty() {
+                        continue;
+                    }
+                    let playback_status = parts[1].trim().to_string();
+                    let title = parts[2].trim().to_string();
+                    let artist = parts[3].trim().to_string();
+                    parsed.push(MprisStatus {
+                        is_active: true,
+                        player_name,
+                        playback_status,
+                        title: if title.is_empty() {
+                            "Bilinmeyen Parça".to_string()
+                        } else {
+                            title
+                        },
+                        artist,
+                        album: parts[4].trim().to_string(),
+                        art_url: parts[5].trim().to_string(),
+                        position_sec: mpris_micros_to_sec(parts[6]),
+                        length_sec: mpris_micros_to_sec(parts[7]),
+                        players: Vec::new(),
+                    });
                 }
+
+                // Duran oynatıcılar (Stopped) eskimiş metadata taşır; yalnızca
+                // gerçekten çalan ya da duraklatılmış oynatıcıyı göster.
+                let is_state = |s: &MprisStatus, state: &str| {
+                    s.playback_status.eq_ignore_ascii_case(state)
+                };
+                let requested = player
+                    .as_deref()
+                    .map(|p| p.trim().to_string())
+                    .filter(|p| !p.is_empty());
+                let chosen_index = requested
+                    .as_ref()
+                    .and_then(|want| {
+                        parsed
+                            .iter()
+                            .position(|s| s.player_name.eq_ignore_ascii_case(want))
+                    })
+                    .or_else(|| parsed.iter().position(|s| is_state(s, "Playing")))
+                    .or_else(|| parsed.iter().position(|s| is_state(s, "Paused")));
+
+                let players: Vec<MprisPlayerInfo> = parsed
+                    .iter()
+                    .map(|s| MprisPlayerInfo {
+                        player_name: s.player_name.clone(),
+                        title: s.title.clone(),
+                        artist: s.artist.clone(),
+                        playback_status: s.playback_status.clone(),
+                    })
+                    .collect();
+
+                if let Some(idx) = chosen_index {
+                    let mut best = parsed[idx].clone();
+                    if is_state(&best, "Stopped") {
+                        return Ok(MprisStatus {
+                            is_active: false,
+                            player_name: best.player_name,
+                            playback_status: "Stopped".to_string(),
+                            title: String::new(),
+                            artist: String::new(),
+                            album: String::new(),
+                            art_url: String::new(),
+                            position_sec: 0.0,
+                            length_sec: 0.0,
+                            players,
+                        });
+                    }
+                    best.players = players;
+                    return Ok(best);
+                }
+                return Ok(MprisStatus {
+                    is_active: false,
+                    player_name: String::new(),
+                    playback_status: "Stopped".to_string(),
+                    title: String::new(),
+                    artist: String::new(),
+                    album: String::new(),
+                    art_url: String::new(),
+                    position_sec: 0.0,
+                    length_sec: 0.0,
+                    players,
+                });
             }
         }
     }
@@ -8865,11 +9120,14 @@ fn get_mpris_status() -> Result<MprisStatus, String> {
         artist: String::new(),
         album: String::new(),
         art_url: String::new(),
+        position_sec: 0.0,
+        length_sec: 0.0,
+        players: Vec::new(),
     })
 }
 
 #[tauri::command]
-fn send_mpris_command(command: String) -> Result<String, String> {
+fn send_mpris_command(command: String, player: Option<String>) -> Result<String, String> {
     #[cfg(target_os = "linux")]
     {
         let sub = match command.as_str() {
@@ -8881,9 +9139,27 @@ fn send_mpris_command(command: String) -> Result<String, String> {
             "stop" => "stop",
             _ => return Err("Geçersiz MPRIS komutu".into()),
         };
-        let res = Command::new("timeout")
-            .args(["2.0", "playerctl", sub])
-            .output();
+
+        let target = player.unwrap_or_default().trim().to_string();
+        if !target.is_empty()
+            && (target.len() > 128
+                || !target
+                    .chars()
+                    .all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '-' | ':')))
+        {
+            return Err("Geçersiz oynatıcı adı".to_string());
+        }
+
+        let res = if target.is_empty() {
+            Command::new("timeout")
+                .args(["2.0", "playerctl", sub])
+                .output()
+        } else {
+            Command::new("timeout")
+                .args(["2.0", "playerctl", "-p", &target, sub])
+                .output()
+        };
+
         match res {
             Ok(o) => {
                 if o.status.success() {
@@ -9654,6 +9930,8 @@ fn main() {
             install_vendor_package,
             inspect_package_file,
             install_local_deb_package,
+            install_appimage,
+            install_ollama,
             install_meb_certificate,
             remove_meb_certificate,
             get_xdg_user_dirs,

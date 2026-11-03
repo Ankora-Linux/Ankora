@@ -184,6 +184,9 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 4 15 12 5 20 5 4"></polygon><line x1="19" y1="5" x2="19" y2="19"></line></svg>
           </button>
         </div>
+        <div class="di-media-progress" aria-hidden="true">
+          <span class="di-media-progress-bar" id="di-media-progress-bar"></span>
+        </div>
       </div>
 
       <!-- 5. Genişletilmiş Hızlı Eylemler Kartı -->
@@ -862,6 +865,10 @@
                   <div class="ai-ollama-status-row" id="ai-ollama-status-row" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;font-size:11.5px;">
                     <span id="ai-ollama-status-text" style="color:var(--text-muted, #94a3b8);">Ollama denetleniyor...</span>
                     <button type="button" class="btn-pkg-sm" id="btn-refresh-ollama" style="padding:2px 8px;font-size:11px;">Yenile</button>
+                  </div>
+                  <div class="ai-ollama-install-row" id="ai-ollama-install-row" hidden style="margin-bottom:10px;">
+                    <p class="ai-ollama-install-note" id="ai-ollama-install-note">Yerel modeller için Ollama motoru gerekir. Sunucu yoksa buradan kurabilirsiniz (yönetici onayı istenir).</p>
+                    <button type="button" class="btn-pkg-sm" id="btn-install-ollama">Ollama'yı Kur</button>
                   </div>
                   <div class="ai-ollama-models-grid" id="ai-ollama-models-list" style="display:flex;flex-direction:column;gap:8px;">
                     <!-- Modeller buraya dinamik yüklenir -->
@@ -3162,6 +3169,7 @@
             <h3 id="pkg-inst-name" style="margin: 0; font-size: 14px; font-weight: 600; color: var(--text-primary, #f8fafc); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Uygulama Paketi</h3>
             <div id="pkg-inst-version" style="font-size: 11.5px; color: var(--text-muted, #94a3b8); margin-top: 2px;">Sürüm: -- · Mimari: amd64</div>
             <div id="pkg-inst-size" style="font-size: 11px; color: var(--text-muted, #94a3b8); margin-top: 2px;">Boyut: --</div>
+            <div id="pkg-inst-depends" style="font-size: 11px; color: var(--text-muted, #94a3b8); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Bağımlılık: --</div>
           </div>
         </div>
 
@@ -3183,6 +3191,7 @@
           <button type="button" class="btn-pkg-sm" id="btn-pkg-inst-cancel" onclick="WindowManager.close('win-pkg-installer')">İptal</button>
           <button type="button" class="btn-pkg-sm" id="btn-pkg-inst-action" style="background: var(--accent-active, #0284c7); color: #ffffff; font-weight: 500;">Paketi Kur</button>
         </div>
+        <pre id="pkg-inst-error" hidden style="margin: 0; max-height: 110px; overflow: auto; font-size: 10.5px; line-height: 1.4; color: #fca5a5; background: rgba(127, 29, 29, 0.25); border: 1px solid rgba(248, 113, 113, 0.35); border-radius: 6px; padding: 8px 10px; white-space: pre-wrap;"></pre>
       </div>
     </section>
 
@@ -3992,6 +4001,10 @@
       <div class="mpris-info">
         <span class="mpris-title" id="mpris-title">Müzik / Medya Oynatılıyor</span>
         <span class="mpris-artist" id="mpris-artist">Oynatıcı</span>
+        <div class="mpris-progress" aria-hidden="true">
+          <span class="mpris-progress-bar" id="mpris-progress-bar"></span>
+        </div>
+        <div class="mpris-players" id="mpris-players" role="group" aria-label="Medya oynatıcı seçimi"></div>
       </div>
       <div class="mpris-controls">
         <button class="mpris-btn" id="mpris-btn-prev" title="Önceki Parça">⏮</button>
