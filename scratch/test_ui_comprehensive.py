@@ -181,6 +181,58 @@ def run_tests():
             assert('Geri Dönüş: Taskbar Görünür', getComputedStyle(document.getElementById('taskbar')).display !== 'none');
         }
 
+        // 6b. Görev çubuğu sabitlemesi: gerçek simge + ölçü sınırı (Bakır/Bostan)
+        if (window.AppPinManager && window.IconResolver) {
+            try { localStorage.removeItem('ankora_taskbar_pins'); } catch (e) {}
+            window.AppPinManager.renderTaskbarPins();
+            const pinThemes = ['theme-bakir', 'theme-bostan', ''];
+            for (const t of pinThemes) {
+                const etiket = t || 'varsayılan';
+                document.body.className = t;
+                window.AppPinManager.toggleTaskbarPin({ id: 'ayaz-files', name: 'Dosyalar', exec: 'internal:win-files' });
+                const pin = document.querySelector('.taskbar-dynamic-pin');
+                const icon = pin && pin.querySelector('.taskbar-pin-icon');
+                const br = pin ? pin.getBoundingClientRect() : null;
+                const ir = icon ? icon.getBoundingClientRect() : null;
+                assert(`Pin simgesi uygulamanın kendi glifini taşır (${etiket})`,
+                    !!icon && !/x="4" y="4" width="16" height="16"/.test(icon.innerHTML));
+                assert(`Pin simgesi düğme kutusunu aşmaz (${etiket})`,
+                    !!ir && ir.width <= 18 && ir.height <= 18 && ir.width <= br.width && ir.height <= br.height,
+                    `ikon=${ir && ir.width}x${ir && ir.height} düğme=${br && br.width}x${br.height}`);
+
+                // Gerçek ikon yükseltmesi devreye girse de kutu ölçüsü korunur.
+                const big = document.createElement('img');
+                big.className = 'real-app-icon';
+                big.src = 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512"><rect width="512" height="512" fill="#c0392b"/></svg>');
+                icon.innerHTML = '';
+                icon.appendChild(big);
+                await big.decode().catch(() => {});
+                const bRect = big.getBoundingClientRect();
+                assert(`512 px gerçek ikon pin kutusuna sığar (${etiket})`,
+                    bRect.width <= 18 && bRect.height <= 18,
+                    `ölçü=${bRect.width}x${bRect.height}`);
+
+                window.AppPinManager.toggleTaskbarPin({ id: 'ayaz-files', name: 'Dosyalar', exec: 'internal:win-files' });
+            }
+            document.body.className = '';
+            assert('Pin kaldırılınca düğme silinir', !document.querySelector('.taskbar-dynamic-pin'));
+
+            // Başlat menüsündeki sabitleme kartı da aynı kurala uyar.
+            const cardBox = document.querySelector('.pinned-app-card .pinned-icon-box');
+            if (cardBox) {
+                const bigCard = document.createElement('img');
+                bigCard.className = 'real-app-icon';
+                bigCard.src = 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512"><rect width="512" height="512" fill="#2c7a7b"/></svg>');
+                cardBox.innerHTML = '';
+                cardBox.appendChild(bigCard);
+                await bigCard.decode().catch(() => {});
+                const cRect = bigCard.getBoundingClientRect();
+                assert('512 px ikon sabitleme kartında 22 px ile sınırlanır',
+                    cRect.width <= 23 && cRect.height <= 23,
+                    `ölçü=${cRect.width}x${cRect.height}`);
+            }
+        }
+
         // 7. Tüm Temaların (24 Tema) Uygulanabilirlik ve Stil Denetimi
         const allThemes = [
             'theme-nordik', 'theme-modern', 'theme-deep', 'theme-fjord', 'theme-pine',

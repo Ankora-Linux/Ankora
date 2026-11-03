@@ -3585,6 +3585,15 @@ body.is-dragging button {
   border-radius: 6px;
 }
 
+/* Başlat menüsündeki sabitleme kartında gerçek ikon kutu kadar büyümesin:
+   yanındaki vektör simgelerle aynı görsel ağırlıkta kalsın. */
+.pinned-icon-box .real-app-icon {
+  width: auto;
+  height: auto;
+  max-width: 22px;
+  max-height: 22px;
+}
+
 .store-card-icon:has(.real-app-icon),
 .item-icon:has(.real-app-icon),
 .pinned-icon-box:has(.real-app-icon) {
@@ -5270,6 +5279,37 @@ body.theme-light .desktop-context-menu {
   fill: none;
   width: 17px;
   height: 17px;
+}
+
+/* Sabitlenen uygulama artık kendi simgesiyle geliyor. Gerçek ikon da yer
+   tutucu glifle aynı kutuda kalmalı: Bakır ve Bostan panellerinde pin
+   düğmesinin görünür çerçevesi olduğu için ölçü farkı hemen göze çarpıyor. */
+.taskbar-pin-btn {
+  flex: 0 0 auto;
+}
+
+.taskbar-pin-icon {
+  width: 17px;
+  height: 17px;
+  max-width: 17px;
+  max-height: 17px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  overflow: hidden;
+}
+
+.taskbar-pin-icon svg,
+.taskbar-pin-icon img,
+.taskbar-pin-btn > img {
+  display: block;
+  width: 17px;
+  height: 17px;
+  max-width: 17px;
+  max-height: 17px;
+  object-fit: contain;
+  flex: none;
 }
 .face-dock-app svg {
   display: block;

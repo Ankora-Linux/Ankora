@@ -362,6 +362,16 @@
   stroke-width: 1.6;
 }
 
+/* Gerçek uygulama ikonu da dock kutusunu aşmaz. */
+[data-face="2"] .face-dock-app img,
+[data-face="2"] .face-dock-app .real-app-icon {
+  width: 22px;
+  height: 22px;
+  max-width: 22px;
+  max-height: 22px;
+  object-fit: contain;
+}
+
 /* Yüz 2 Pencereleri */
 [data-face="2"] .window {
   background: #1c1e23 !important;
@@ -589,6 +599,16 @@
   stroke: currentColor;
   fill: none;
   stroke-width: 1.7;
+}
+
+/* Gerçek uygulama ikonu da dock kutusunu aşmaz. */
+[data-face="3"] .face-dock-app img,
+[data-face="3"] .face-dock-app .real-app-icon {
+  width: 20px;
+  height: 20px;
+  max-width: 20px;
+  max-height: 20px;
+  object-fit: contain;
 }
 
 /* Yüz 3 Pencereleri (Sıcak Kağıt Kart) */

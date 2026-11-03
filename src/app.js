@@ -1673,15 +1673,39 @@
       this.renderMenuPins();
     },
 
+    // Pin kaydı yalnız kimlik taşısaydı yeniden çizimde uygulamanın simgesi
+    // kayboluyor, panelde genel "bilinmeyen uygulama" glifi kalıyordu.
+    resolveApp(app) {
+      const list = (typeof XdgDesktopEngine !== 'undefined' && Array.isArray(XdgDesktopEngine.installedApps))
+        ? XdgDesktopEngine.installedApps
+        : [];
+      const base = list.find(a => a && a.id === (app && app.id)) || {};
+      const out = Object.assign({}, base, app || {});
+      ['name', 'exec', 'icon', 'cat', 'deb', 'flatpak', 'desktopFile'].forEach(key => {
+        if (!out[key] && base[key]) out[key] = base[key];
+      });
+      return out;
+    },
+
     toggleTaskbarPin(app) {
+      if (!app || !app.id) return;
       const pinned = this.isPinnedTaskbar(app.id);
       if (pinned) {
         this.write(this.TASKBAR_KEY, this.read(this.TASKBAR_KEY).filter(p => p.id !== app.id));
         ReportManager?.showToast('Panel simgesi kaldırıldı.');
       } else {
+        const full = this.resolveApp(app);
         const pins = this.read(this.TASKBAR_KEY);
-        pins.push({ id: app.id, name: app.name, exec: app.exec || app.id });
-        this.write(this.TASKBAR_KEY, pins.slice(-8)); // panede en fazla 8 özel simge
+        pins.push({
+          id: full.id,
+          name: full.name || full.id,
+          exec: full.exec || full.id,
+          icon: full.icon || '',
+          cat: full.cat || '',
+          deb: full.deb || '',
+          flatpak: full.flatpak || ''
+        });
+        this.write(this.TASKBAR_KEY, pins.slice(-8)); // panelde en fazla 8 özel simge
         ReportManager?.showToast('Uygulama görev çubuğuna eklendi.');
       }
       this.renderTaskbarPins();
@@ -1740,12 +1764,21 @@
       host.querySelectorAll('.taskbar-dynamic-pin').forEach(el => el.remove());
       const pins = this.read(this.TASKBAR_KEY);
       pins.forEach(pin => {
+        const app = this.resolveApp(pin);
         const btn = document.createElement('button');
         btn.className = 'taskbar-pin-btn taskbar-dynamic-pin';
         btn.title = `${pin.name || pin.id}\n\nSağ tık: seçenekler`;
         btn.dataset.pinInternal = pin.id;
         btn.dataset.pinExec = pin.exec || '';
-        btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="4" width="16" height="16" rx="3"></rect><circle cx="12" cy="12" r="3"></circle></svg>`;
+        const placeholder = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="4" width="16" height="16" rx="3"></rect><circle cx="12" cy="12" r="3"></circle></svg>';
+        const iconSvg = (typeof IconResolver !== 'undefined' && IconResolver.getIconSvg)
+          ? IconResolver.getIconSvg(app)
+          : placeholder;
+        btn.innerHTML = `<span class="taskbar-pin-icon">${iconSvg}</span>`;
+        const iconBox = btn.querySelector('.taskbar-pin-icon');
+        if (iconBox && typeof IconResolver !== 'undefined' && IconResolver.tagIcon) {
+          IconResolver.tagIcon(iconBox, app);
+        }
         btn.addEventListener('click', () => {
           const exec = pin.exec || '';
           if (exec.startsWith('internal:')) {
@@ -1765,6 +1798,10 @@
         });
         host.insertBefore(btn, host.firstChild);
       });
+      // Paneldeki pin simgeleri de gerçek uygulama ikonuna yükseltilir.
+      if (typeof IconResolver !== 'undefined' && IconResolver.upgradeScope) {
+        IconResolver.upgradeScope(host);
+      }
     },
 
     init() {
