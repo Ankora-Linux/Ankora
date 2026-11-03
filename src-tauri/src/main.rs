@@ -9013,7 +9013,14 @@ fn get_mpris_status(player: Option<String>) -> Result<MprisStatus, String> {
             MPRIS_SEP
         );
         let out = Command::new("timeout")
-            .args(["1.5", "playerctl", "-a", "metadata", "--format", &format])
+            .args([
+                "1.5",
+                "playerctl",
+                "-a",
+                "metadata",
+                "--format",
+                format.as_str(),
+            ])
             .output();
         if let Ok(o) = out {
             if o.status.success() {
