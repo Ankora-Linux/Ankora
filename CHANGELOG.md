@@ -1,15 +1,48 @@
 # Ankora Linux — Sürüm Notları
 
 
-## 4.5.0 (2026-11-02)
-- Dinamik Ada (Dynamic Island) MPRIS Medya Entegrasyonu: Chromium, Brave, Spotify ve VLC oynatılırken adada şarkı adı, sanatçı, duraklat/geç kontrolleri ve canlı ses dalgası animasyonu (`.di-view-media`, `state-media`).
-- MPRIS+ (yayın öncesi tamamlandı): Ada ve bildirim merkezindeki oynatıcı kartına parça ilerleme çubuğu, birden fazla oynatıcı arasında seçim yapan oynatıcı çipleri (seçim kalıcı) ve yalnız çalan/duraklatılmış oynatıcının gösterilmesi eklendi. Duran oynatıcıların eskimiş parça adı artık gösterilmez; komutlar seçili oynatıcıya hedeflenir. Aynı medya şeridi (önceki/oynat/sonraki + ilerleme) Bakır, Bostan ve Cıvata yüzlerinin üst panellerine de yerleştirildi.
-- Yerel AI Kurulum Sihirbazı: ISO'ya `ankora-ollama-install` yardımcısı eklendi; AI Ayarları'ndaki "Ollama'yı Kur" düğmesi resmî arşivi indirir, sha256 özetiyle doğrular, `/usr/local` içine kurar ve SysVinit `ollama` servisini başlatır. Önerilen model listesine varsayılanla eşleşen `qwen2.5:0.5b` eklendi.
-- ZRAM Desteği (Eco RAM+): 4 GB altı belleğe sahip cihazlarda açılışta otomatik lz4/zstd ZRAM takas havuzu (ayaz-session, xinitrc, build-iso).
-- Tek Tıkla Yerel Model Kurulumu: Ollama modelleri (qwen2.5-coder:1.5b, llama3.2:1b, gemma2:2b) indirme ilerlemesi ve model seçici.
-- Sistem Doktoru Eylemi: Ankora AI mini popover'ına "Sistem Doktoru" hızlı çipi eklendi; ankora-doctor raporuyla sistem sorunlarını analiz edip tek tıkla güvenli onarım onay kartı sunar.
-- Görsel .deb ve .AppImage Yükleyici: Çift tıklanan paketleri terminale gerek kalmadan doğrulayıp kuran 'win-pkg-installer' grafik arayüzü ve backend IPC uçları (inspect_package_file, install_local_deb_package). Kurulum öncesi bağımlılık listesi gösterilir; hata ayrıntısı pencere içinde okunur. AppImage artık yalnız çalıştırılmıyor: `~/.local/bin` içine kurulur, çalıştırma izni verilir ve uygulama menüsüne `.desktop` kısayolu eklenir.
-- İkon Çözümleyici ve Yüzler Düzeltmesi: IconResolver eksik getIconSvg metodu, menu ve taskbar pin ikon yükseltmeleri, doğrudan alias eşlemeleri ve Yüz 3/8 dev saat alanında canlı hava durumu güncellemesi.
+## 4.5.0 (2026-11-03)
+
+### 🎵 MPRIS+ Medya Entegrasyonu (Dinamik Ada + Bildirim Merkezi + Bakır/Bostan/Cıvata Panelleri)
+- **Dinamik Ada**: Çalan medyada şarkı adı, sanatçı, albüm kapağı, duraklat/öniçi/sonraki kontrolleri, canlı ses dalgası animasyonu ve parça ilerleme çubuğu (1 sn yumuşak interpolasyon).
+- **Bildirim Merkezi Kartı**: Aynı kontroller, ilerleme çubuğu ve birden fazla oynatıcı (Chromium, Brave, Spotify, VLC, mpv) arasında seçim yapan **oynatıcı çipleri** (seçim `ankora_mpris_player` anahtarıyla kalıcı).
+- **Akıllı Filtreleme**: Yalnız **Playing > Paused** durumundaki oynatıcı gösterilir; Stopped/durdurulanlar eskimiş metadata taşımadığı için gizlenir. Komutlar seçili oynatıcıya hedeflenir (`playerctl -p <name>`).
+- **Yüz Panelleri (Bakır/Bostan/Cıvata)**: Üst panellere entegre medya şeridi — önceki/oynat/sonraki + başlık/sanatçı + ilerleme çubuğu; her yüzün paletiyle (bakır/yeşil/mürekkep) renklendirilmiş, açık temalarda kontrast düzeltmesi.
+
+### 🤖 Yerel AI Kurulum Sihirbazı (Ollama)
+- ISO içine `/usr/local/bin/ankora-ollama-install` yardımcısı eklendi (GitHub resmî `ollama-linux-amd64.tgz` + sha256 doğrulama, `/usr/local` kurulum, **SysVinit `ollama` servisi** otomatik etkinleştirme).
+- AI Ayarları → "Yerel Modeller (Ollama)" bölümüne **"Ollama'yı Kur"** düğmesi (offline görünür, kurulum sonrası servis denetlenip model listesi yüklenir).
+- **Varsayılan model** `qwen2.5:0.5b` öneri listesine eklendi (4 GB ve altı RAM için optimize).
+- Önerilen modeller: `qwen2.5:0.5b` (398 MB), `qwen2.5-coder:1.5b` (986 MB), `llama3.2:1b` (1.3 GB), `gemma2:2b` (1.6 GB).
+
+### ⚡ ZRAM Desteği (Eco RAM+)
+- 4 GB altı bellekli cihazlarda açılışta otomatik `lz4`/`zstd` sıkıştırmalı ZRAM takas havuzu (`ayaz-session`, `xinitrc`, `build-iso` entegrasyonu).
+- *Not: Init scripti henüz RAM eşiğini gözetmiyor (boyut politikası init=RAM/2, session=RAM); 4.5.1'de iyileştirilecek.*
+
+### 📦 Görsel Paket Yükleyici (.deb + .AppImage)
+- Çift tıklanan `.deb` / `.AppImage` dosyaları için **win-pkg-installer** grafik arayüzü.
+- **Backend IPC**: `inspect_package_file` (meta: ad, sürüm, mimari, boyut, **bağımlılıklar Depends**), `install_local_deb_package`, `install_appimage`.
+- Kurulum öncesi bağımlılık listesi gösterilir; hata ayrıntısı pencere içi `<pre>` kutusunda okunur (toast yerine).
+- **AppImage kalıcı kurulum**: `~/.local/bin` kopyası + `0755` + `~/.local/share/applications/*.desktop` menü girişi; ikinci tık "Uygulamayı Başlat".
+
+### 🩺 Sistem Doktoru Eylemi
+- Ankora AI mini popover'ına "Sistem Doktoru" hızlı çipi.
+- `ankora-doctor` raporuyla sistem sorunlarını analiz edip **tek tıkla güvenli onarım onay kartı** sunar.
+
+### 🔧 İkon Çözümleyici ve Yüzler Düzeltmeleri
+- **IconResolver**: Eksik `getIconSvg` metodu, menu/taskbar pin ikon yükseltmeleri, doğrudan alias eşlemeleri (`files`→`org.gnome.Nautilus`, `terminal`→`utilities-terminal`, vb.).
+- **Yüz 3 (Bostan) / Yüz 8 (Cıvata)**: Dev saat hero alanında canlı hava durumu senkronizasyonu.
+- **🐛 DÜZELTME**: Bakır/Bostan panellerinde görev çubuğuna uygulama sabitlendiğinde ikon **devasa/bozuk görünüyordu** — nedeni: pin kaydı yalnız `id/name/exec` taşıyor, gerçek ikon yükseltmesi 512 px SVG/PNG gelince 34×32 px düğmeyi aşıyordu.
+  - `AppPinManager.toggleTaskbarPin` artık tam kayıt (`icon/exec/cat/deb/flatpak`) yazar; yeniden çizimde yer tutucu yerine uygulamanın kendi glifi gelir.
+  - Panel pin düğmesi: `.taskbar-pin-icon` sarmalayıcı, `max-width/height: 17px`, `object-fit: contain` — 512 px ikon bile 17×17 kutuda kalır.
+  - Yüz 2/3 dock: `.face-dock-app img/.real-app-icon` → `max 22×22` / `20×20` px.
+  - Başlat menüsü sabitleme kartı: `.pinned-icon-box .real-app-icon` → `max 22×22` px.
+  - Headless regression testleri eklendi (`scratch/test_ui_comprehensive.py`).
+
+---
+
+## 4.0.1 (2026-10-29)
+...
 ## 4.0.1 (2026-10-29)
 - Siyah Ekran Güvencesi: Canlı oturumda masaüstü (`ayaz`) başlatılamazsa ekran artık sessiz siyah kalmıyor. Hata günlüğü `/tmp/ayaz.log` dosyasına yazılıp xterm penceresinde son 60 satır gösteriliyor ve kabuk açılıyor. Otomatik `startx` yeniden deneme döngüsü `/tmp/ankora-desktop-failed` işaretiyle kırılıyor; kullanıcı `rm /tmp/ankora-desktop-failed && startx` ile bilinçli olarak yeniden deniyor.
 - VT Kaçışı: tty1 otomatik girişinde `startx -- -keeptty` yerine `startx` kullanılıyor. Önceki davranışta siyah ekranda kalan kullanıcı Ctrl+Alt+F2 ile metin konsoluna geçemiyordu.
