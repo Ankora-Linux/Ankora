@@ -376,6 +376,7 @@ apt-get install -y --no-install-recommends \
     python3-gi-cairo \
     python3-cairo \
     gir1.2-webkit2-4.0 \
+    gir1.2-webkit2-4.1 \
     gir1.2-gtk-3.0 \
     bubblewrap \
     xdg-dbus-proxy \
@@ -819,173 +820,7 @@ SYSCTL_ZRAM
 # -----------------------------------------------------------------------
 # X11 Otomatik Kiosk Başlatıcı
 # -----------------------------------------------------------------------
-cat << 'XINIT' > /home/ankora/.xinitrc
-#!/bin/sh
-# Açılış ekranından X'e sessiz geçiş: plymouth açılış bitmeden kalırsa
-# arkasında biriken boot metinleri ([FAIL] satırları) kullanıcıya görünür.
-if command -v plymouth >/dev/null 2>&1 && plymouth --ping >/dev/null 2>&1; then
-    plymouth quit 2>/dev/null || sudo plymouth quit 2>/dev/null || true
-fi
-
-# Loopback ağ arabirimini ayağa kaldır
-ip link set lo up 2>/dev/null || ifconfig lo 127.0.0.1 up 2>/dev/null || true
-
-xsetroot -solid "#0b0c10" 2>/dev/null || true
-xset -dpms 2>/dev/null || true
-xset s off 2>/dev/null || true
-xset s noblank 2>/dev/null || true
-
-# WebKitGTK ve X11 ortam ayarları (fiziksel donanım ve sanal makine uyumluluğu)
-export GDK_BACKEND=x11
-export WEBKIT_DISABLE_DMABUF_RENDERER=1
-export WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS=1
-
-# Sanal makine (VirtualBox, QEMU, KVM, VMware) tespiti:
-# Sanal GPU'larda (VMSVGA/QXL) DRI çökmelerini önlemek için yazılımsal render (llvmpipe) devreye alınır;
-# Fiziksel donanımlarda (Intel/AMD/Nvidia) tam GPU hızlandırması korunur.
-IS_VM=0
-for dmi in /sys/class/dmi/id/product_name /sys/class/dmi/id/sys_vendor /sys/class/dmi/id/board_vendor; do
-    if [ -r "$dmi" ]; then
-        case "$(cat "$dmi" 2>/dev/null)" in
-            *[Vv]irtual[Bb]ox*|*[Vv][Mm]ware*|*KVM*|*QEMU*|*[Bb]ochs*|*innotek*) IS_VM=1; break ;;
-        esac
-    fi
-done
-if [ "$IS_VM" = "1" ]; then
-    export LIBGL_ALWAYS_SOFTWARE=1
-fi
-# Kullanıcının Ayarlar'dan verdiği DPMS zaman aşımı yeniden başlatmada korunur
-[ -f "$HOME/.config/ankora/dpms_secs" ] && xset +dpms dpms "$(cat "$HOME/.config/ankora/dpms_secs")" "$(cat "$HOME/.config/ankora/dpms_secs")" "$(cat "$HOME/.config/ankora/dpms_secs")" 2>/dev/null || true
-
-# 1) Ekranın önerilen (native) çözünürlüğüne geç: kurulu sistemde düşük
-#    modda kalan ekranın bulanık/sahte görünmesini böyle önlenir.
-# 2) Önerilen okunamazsa ve çözünürlük hâlâ çok düşükse (ör. sanal
-#    makinenin varsayılanı) eski düzeltme uygulanır; fiziksel ekranda
-#    orijinal çözünürlük asla düşürülmez.
-PREF=$(xrandr 2>/dev/null | awk '{
-    for (i = 2; i <= NF; i++) {
-        if (index($i, "+") && $(i - 1) ~ /^[0-9]+x[0-9]+$/) { print $(i - 1); exit }
-    }
-}')
-CURM=$(xrandr 2>/dev/null | awk '{
-    for (i = 2; i <= NF; i++) {
-        if (index($i, "*") && $(i - 1) ~ /^[0-9]+x[0-9]+$/) { print $(i - 1); exit }
-    }
-}')
-if [ -n "$PREF" ] && [ "$PREF" != "$CURM" ]; then
-    xrandr -s "$PREF" 2>/dev/null || true
-fi
-
-CURW=$(xrandr 2>/dev/null | awk '/\*/{print $1; exit}' | cut -dx -f1)
-case "$CURW" in
-    ''|640*|720*|800*|854*|960*) xrandr -s 1280x800 2>/dev/null || xrandr -s 1024x768 2>/dev/null || true ;;
-esac
-
-# Dokunmatik giriş (Faz tahta/IR çerçeve + dokunmatik ped): pedlerde
-# dokun-kaydır, tahta aygıtları her zaman açık. Kalibrasyon Ayarlar'dan.
-# ETA sürücü varsa önce o koşar (Faz1-3/IR/eGalax/HID eşleşmesi + matris).
-if [ -x /usr/bin/eta-touchdrv ]; then
-    /usr/bin/eta-touchdrv --enable 2>/dev/null || true
-fi
-if command -v xinput >/dev/null 2>&1; then
-    for _dev in $(xinput --list --id-only 2>/dev/null); do
-        _name=$(xinput --list --name-only "$_dev" 2>/dev/null || true)
-        case "$_name" in
-            *[Tt]ouchpad*|*Synaptics*|*Elan*|*ELAN*)
-                xinput --set-prop "$_dev" "libinput Tapping Enabled" 1 2>/dev/null || true
-                xinput --set-prop "$_dev" "libinput Natural Scroll Enabled" 0 2>/dev/null || true
-                xinput --set-prop "$_dev" "libinput Scroll Method Enabled" 0 0 1 2>/dev/null || true
-                xinput --set-prop "$_dev" "libinput Click Method Enabled" 0 1 2>/dev/null || true
-                ;;
-            *[Tt]ouchscreen*|*[Tt]ouch*|*IR*|*Vestel*|*Arcelik*|*Faz*)
-                xinput --enable "$_dev" 2>/dev/null || true
-                ;;
-        esac
-    done
-    unset _dev _name
-fi
-
-# Ankora Openbox Yapılandırmasını Hazırla ve Başlat
-mkdir -p "$HOME/.config/openbox"
-if [ -f /usr/share/ayaz/openbox-rc.xml ]; then
-    cp -u /usr/share/ayaz/openbox-rc.xml "$HOME/.config/openbox/rc.xml"
-fi
-
-if command -v openbox >/dev/null 2>&1; then
-    if [ -f "$HOME/.config/openbox/rc.xml" ]; then
-        openbox --config-file "$HOME/.config/openbox/rc.xml" &
-    else
-        openbox &
-    fi
-fi
-
-# Ses sunucusunu kullanıcı oturumunda başlat
-if command -v pulseaudio >/dev/null 2>&1; then
-    # Arka planda: ses sunucusu takılırsa oturum başlatma onu beklemez.
-    pulseaudio --start --exit-idle-time=-1 >/dev/null 2>&1 &
-fi
-
-# Bildirim sunucusunu arka planda başlat
-if command -v dunst >/dev/null 2>&1; then
-    dunst &
-fi
-
-# Polkit Grafiksel Yetkilendirme Ajanı (GParted, Synaptic vb. root araçları için)
-if command -v lxpolkit >/dev/null 2>&1; then
-    lxpolkit &
-elif [ -x /usr/lib/policykit-1-gnome/polkit-gnome-authentication-agent-1 ]; then
-    /usr/lib/policykit-1-gnome/polkit-gnome-authentication-agent-1 &
-fi
-
-# XSettings Daemon (GTK/Qt tema eşitleme)
-if command -v xsettingsd >/dev/null 2>&1; then
-    xsettingsd &
-fi
-
-# Sistem Tepsisi (Systray)
-if command -v trayer >/dev/null 2>&1; then
-    trayer --edge bottom --align right --widthtype request --height 32 --transparent true --alpha 0 --tint 0x0f172a --distance 6 --expand false &
-elif command -v stalonetray >/dev/null 2>&1; then
-    stalonetray --geometry 1x1-10+10 --grow-gravity NE --icon-gravity NE --kludges force_icons_size --transparent --tint-color "#0f172a" &
-fi
-
-# Ayaz DE Masaüstü Ortamını çalıştır
-# Sessiz siyah ekran yasağı: masaüstü düşerse günlük görünür bir pencerede
-# sunulur ve kabuk açılır. Önceden süreç ölünce ekran yalnızca xsetroot
-# renginde kalıyor, kullanıcı hiçbir hata göremiyordu.
-AYAZ_LOG=/tmp/ayaz.log
-if ! : > "$AYAZ_LOG" 2>/dev/null; then
-    AYAZ_LOG=/dev/null
-fi
-
-AYAZ_BIN=
-if [ -x /usr/bin/ayaz ]; then
-    AYAZ_BIN=/usr/bin/ayaz
-elif [ -x /usr/local/bin/ayaz ]; then
-    AYAZ_BIN=/usr/local/bin/ayaz
-fi
-
-if [ -z "$AYAZ_BIN" ]; then
-    printf '[Ayaz] Masaüstü ikilisi bulunamadı (/usr/bin/ayaz, /usr/local/bin/ayaz).\n' >>"$AYAZ_LOG"
-    AYAZ_RC=127
-else
-    "$AYAZ_BIN" >>"$AYAZ_LOG" 2>&1
-    AYAZ_RC=$?
-fi
-
-if [ "$AYAZ_RC" -ne 0 ]; then
-    # Otomatik yeniden deneme döngüsünü kır: bir sonraki tty1 girişinde
-    # startx kendiliğinden tekrar başlamaz, kullanıcı bilinçli karar verir.
-    : > /tmp/ankora-desktop-failed 2>/dev/null || true
-    printf '[Ayaz] Masaüstü başlatılamadı (çıkış kodu %s). Günlük: %s\n' "$AYAZ_RC" "$AYAZ_LOG" >&2
-    if command -v xterm >/dev/null 2>&1; then
-        exec xterm -T "Ayaz — Başlatma Hatası" -fa Monospace -fs 11 -geometry 120x36 \
-            -e sh -c 'tail -n 60 "$1" 2>/dev/null; printf "\n--- Kabuk açık. Yeniden denemek için: exit, sonra startx ---\n"; exec sh' sh "$AYAZ_LOG"
-    fi
-    exec sh
-fi
-
-XINIT
+install -m 0755 /.ankora-xinitrc /home/ankora/.xinitrc
 chmod +x /home/ankora/.xinitrc
 cp /home/ankora/.xinitrc /etc/skel/.xinitrc
 
@@ -1069,8 +904,10 @@ du -sh / 2>/dev/null || true
 EOF
 
 chmod +x "$CHROOT_DIR/chroot-setup.sh"
+# .xinitrc tek kaynaktan gelir: depodaki scripts/xinitrc chroot icine kopyalanir.
+cp -f "$ROOT_DIR/scripts/xinitrc" "$CHROOT_DIR/.ankora-xinitrc"
 chroot "$CHROOT_DIR" /chroot-setup.sh
-rm -f "$CHROOT_DIR/chroot-setup.sh"
+rm -f "$CHROOT_DIR/chroot-setup.sh" "$CHROOT_DIR/.ankora-xinitrc"
 
 # 6.b Örnek belgeler: canlı oturum ankora ile çalışır, /root/Belgeler'e
 # erişemez. Ofis ve Dosyalar GERÇEK açılan dosyalar göstermeli; PDF
@@ -1175,6 +1012,11 @@ cp -r "$ROOT_DIR/src/"* "$CHROOT_DIR/usr/share/ayaz/"
 
 # .deb varsa kur (güncelleyici paket kimliği + ayaz-de ikilisi için)
 if [ -f "$ROOT_DIR/dist/ayaz-de-latest-amd64.deb" ]; then
+    DEB_PATH="$ROOT_DIR/dist/ayaz-de-latest-amd64.deb"
+    if [ "$ROOT_DIR/src" -nt "$DEB_PATH" ] || [ "$ROOT_DIR/src-tauri/src" -nt "$DEB_PATH" ] || [ "$ROOT_DIR/src-tauri/tauri.conf.json" -nt "$DEB_PATH" ]; then
+        echo "[UYARI] dist/ayaz-de-latest-amd64.deb kaynaktan eski; yeniden derleniyor..."
+        bash "$ROOT_DIR/scripts/package-deb.sh" || echo "[UYARI] Yeniden derleme basarisiz, mevcut .deb ile devam ediliyor..."
+    fi
     echo "[BİLGİ] Önceden derlenmiş Ayaz DE .deb paketi kuruluyor..."
     cp "$ROOT_DIR/dist/ayaz-de-latest-amd64.deb" "$CHROOT_DIR/tmp/ayaz.deb"
     chroot "$CHROOT_DIR" bash -c "dpkg -i /tmp/ayaz.deb || apt-get install -f -y; rm -f /tmp/ayaz.deb"
