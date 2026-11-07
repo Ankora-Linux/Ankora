@@ -102,6 +102,11 @@ tarihli satır olarak eklenir; silinmez.
   typelib artik kurulu olacak. dist/ayaz-de-latest-amd64.deb kaynaktan
   eskiyse build-iso.sh once yeniden derliyor (eski gomulu arayuz tasinmasin).
 
+- 2026-11-07: Surum 4.5.1 hazirlandi. CSP sikilastirmasi, .xinitrc tek kaynak,
+  WebKit2 typelib on kontrolu, yuz 2/3/8 AI balonu ve magaza tema duzeltmeleri
+  bu surumde. Ana derleme main'den workflow_dispatch ile test edildi (run
+  42410776116, 19 dk, success, ISO 864 MB); hibrit MBR/UEFI dogrulamasi gecti.
+
 ## Not
 
 Bu repo, Ankora Linux'un resmî merkez deposudur. Tüm proje mantığı, geliştirici ve yayın akışı burada bulunur.
