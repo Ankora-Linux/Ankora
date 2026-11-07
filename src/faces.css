@@ -1418,3 +1418,222 @@ body.theme-meltem .face-ws-btn.active {
 [data-face="8"] .face-media-progress {
   background: rgba(22, 19, 9, 0.16);
 }
+
+/* --------------------------------------------------------------------------
+   Yüz 2/3/8 · Sağ üst Ankora AI balonu
+   Görev çubuğu bu yüzlerde gizleniyor; AI'a tek dokunuşluk giriş noktası.
+   Yüz paletini kendi değişkenlerinden alır, ana temaya dokunmaz.
+   -------------------------------------------------------------------------- */
+#face-ai-bubble {
+  display: none;
+}
+
+[data-face="2"] #face-ai-bubble,
+[data-face="3"] #face-ai-bubble,
+[data-face="8"] #face-ai-bubble {
+  position: fixed;
+  top: 46px;
+  right: 14px;
+  z-index: 8600;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 30px;
+  padding: 0 12px 0 9px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.1px;
+  transition: background-color 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
+}
+
+#face-ai-bubble .face-ai-glyph {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+#face-ai-bubble:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+/* Yüz 2 · Bakır (koyu) */
+[data-face="2"] #face-ai-bubble {
+  background: rgba(34, 36, 43, 0.92);
+  border-color: #2e3138;
+  color: #e9e4da;
+}
+
+[data-face="2"] #face-ai-bubble .face-ai-glyph {
+  color: #d1794f;
+}
+
+[data-face="2"] #face-ai-bubble:hover {
+  border-color: #d1794f;
+  box-shadow: 0 4px 14px rgba(209, 121, 79, 0.22);
+  transform: translateY(-1px);
+}
+
+/* Yüz 3 · Bostan (açık kağıt) */
+[data-face="3"] #face-ai-bubble {
+  background: #faf8ef;
+  border-color: rgba(38, 50, 31, 0.18);
+  color: #26321f;
+}
+
+[data-face="3"] #face-ai-bubble .face-ai-glyph {
+  color: #3d6b45;
+}
+
+[data-face="3"] #face-ai-bubble:hover {
+  border-color: #3d6b45;
+  box-shadow: 0 4px 14px rgba(61, 107, 69, 0.18);
+  transform: translateY(-1px);
+}
+
+/* Yüz 8 · Cıvata (açık, limon vurgu) */
+[data-face="8"] #face-ai-bubble {
+  background: #fcfcf9;
+  border-color: #e3e1d3;
+  color: #161309;
+}
+
+[data-face="8"] #face-ai-bubble .face-ai-glyph {
+  color: #161309;
+}
+
+[data-face="8"] #face-ai-bubble:hover {
+  border-color: #161309;
+  box-shadow: 0 4px 14px rgba(22, 19, 9, 0.14);
+  transform: translateY(-1px);
+}
+
+/* --------------------------------------------------------------------------
+   Yüz 2 · üst panel 36px; simge ızgarası panelin altından başlasın.
+   Meta notu simgelerin üstüne binmesin, sol alta taşındı.
+   -------------------------------------------------------------------------- */
+[data-face="2"] .desktop-grid {
+  top: 46px !important;
+}
+
+#face-meta-note {
+  top: auto !important;
+  bottom: 84px !important;
+  left: 24px !important;
+  z-index: 6;
+}
+
+/* --------------------------------------------------------------------------
+   Yüz 3 / Yüz 8 · Mağaza penceresi açık yüzeylere uyum sağlasın.
+   Mağaza iç bileşenleri --bg-* / --text-* değişkenlerini kullanıyor;
+   yalnız pencere kapsamında eşitliyoruz, küresel temaya dokunmuyoruz.
+   -------------------------------------------------------------------------- */
+[data-face="3"] #win-store {
+  --bg-deep: #f2efe2;
+  --bg-base: #fbf9f1;
+  --bg-panel: #f7f4e9;
+  --bg-surface: #efece0;
+  --bg-surface-hover: #e6e2d3;
+  --bg-surface-active: #dcd8c7;
+  --border-subtle: rgba(38, 50, 31, 0.12);
+  --border-medium: rgba(38, 50, 31, 0.2);
+  --text-primary: #26321f;
+  --text-secondary: #4a5842;
+  --text-muted: #6a7560;
+  --text-inverse: #ffffff;
+  --accent-active: #3d6b45;
+}
+
+[data-face="8"] #win-store {
+  --bg-deep: #f4f2e8;
+  --bg-base: #fcfcf9;
+  --bg-panel: #f7f5ec;
+  --bg-surface: #efede1;
+  --bg-surface-hover: #e6e3d4;
+  --bg-surface-active: #dcd9c7;
+  --border-subtle: #e3e1d3;
+  --border-medium: #d5d2c0;
+  --text-primary: #161309;
+  --text-secondary: #4a473a;
+  --text-muted: #77745f;
+  --text-inverse: #ffffff;
+  --accent-active: #161309;
+}
+
+/* Yüz 3 · mağaza vitrini ve birincil düğme koyu sabitlerden arındırıldı */
+[data-face="3"] .store-spotlight-card {
+  background: linear-gradient(135deg, rgba(61, 107, 69, 0.12) 0%, rgba(250, 248, 239, 0.92) 100%);
+  border-color: rgba(38, 50, 31, 0.18);
+}
+
+[data-face="3"] .store-spotlight-title {
+  color: #26321f;
+}
+
+[data-face="3"] .store-spotlight-desc {
+  color: #4a5842;
+}
+
+[data-face="3"] .store-spotlight-badge {
+  color: #3d6b45;
+}
+
+[data-face="3"] .store-spotlight-big-icon {
+  background: rgba(38, 50, 31, 0.06);
+  border-color: rgba(38, 50, 31, 0.16);
+  color: #26321f;
+}
+
+[data-face="3"] .store-spotlight-meta {
+  color: #6a7560;
+}
+
+[data-face="3"] #win-store .btn-pkg {
+  background: #3d6b45;
+  border-color: #3d6b45;
+  color: #fbf9f1;
+}
+
+/* Yüz 8 · aynı düzen, mürekkep + limon paleti */
+[data-face="8"] .store-spotlight-card {
+  background: linear-gradient(135deg, rgba(199, 228, 43, 0.22) 0%, rgba(252, 252, 249, 0.94) 100%);
+  border-color: #e3e1d3;
+}
+
+[data-face="8"] .store-spotlight-title {
+  color: #161309;
+}
+
+[data-face="8"] .store-spotlight-desc {
+  color: #4a473a;
+}
+
+[data-face="8"] .store-spotlight-badge {
+  color: #161309;
+}
+
+[data-face="8"] .store-spotlight-big-icon {
+  background: rgba(22, 19, 9, 0.05);
+  border-color: #d5d2c0;
+  color: #161309;
+}
+
+[data-face="8"] .store-spotlight-meta {
+  color: #77745f;
+}
+
+[data-face="8"] #win-store .btn-pkg {
+  background: #161309;
+  border-color: #161309;
+  color: #fcfcf9;
+}

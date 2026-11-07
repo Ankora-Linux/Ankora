@@ -67,6 +67,24 @@
         meta.id = 'face-meta-note';
         document.body.appendChild(meta);
       }
+
+      // Görev çubuğu gizlenen yüzlerde (2/3/8) AI için tek giriş noktası:
+      // sağ üstte küçük Ankora AI balonu. Yüz paletini CSS'ten alır.
+      if (!document.getElementById('face-ai-bubble')) {
+        const bubble = document.createElement('button');
+        bubble.id = 'face-ai-bubble';
+        bubble.type = 'button';
+        bubble.className = 'face-ai-bubble';
+        bubble.title = 'Ankora AI';
+        bubble.setAttribute('aria-label', 'Ankora AI asistanını aç');
+        bubble.innerHTML = '<svg class="face-ai-glyph" viewBox="0 0 24 24" aria-hidden="true"><use href="#ico-bot"></use></svg><span class="face-ai-text">Ankora AI</span>';
+        bubble.addEventListener('click', () => {
+          if (typeof WindowManager !== 'undefined' && WindowManager.open) {
+            WindowManager.open('win-ai');
+          }
+        });
+        document.body.appendChild(bubble);
+      }
     },
 
     setFace(faceId, persist = true) {
