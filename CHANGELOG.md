@@ -3,26 +3,26 @@
 
 ## 4.5.1 (2026-11-07)
 
-### Guvenlik
-- CSP sikilastirildi: `script-src` icinden `'unsafe-inline'` ve `'unsafe-eval'` kaldirildi (`index.html` + `tauri.conf.json` senkron). Iki satir ici `onclick` baglantisi kaldirildi, iptal dugmesi `app.js` icinde baglandi.
-- 36 bos `innerHTML` atamasi `replaceChildren()` ile degistirildi.
-- Masaustu simge listesinde `.`, `..` ve gizli dosyalar filtreleniyor.
+### Güvenlik
+- CSP sıkılaştırıldı: `script-src` içinden `'unsafe-inline'` ve `'unsafe-eval'` kaldırıldı (`index.html` + `tauri.conf.json` senkron). İki satır içi `onclick` bağlantısı kaldırıldı, iptal düğmesi `app.js` içinde bağlandı.
+- 36 boş `innerHTML` ataması `replaceChildren()` ile değiştirildi.
+- Masaüstü simge listesinde `.`, `..` ve gizli dosyalar filtreleniyor.
 
-### Arayuz
-- Yuz 2 (Bakir), 3 (Bostan) ve 8 (Civata) icin sag ustte, yuz paletine uyan kucuk `Ankora AI` balonu eklendi. Bu yuzlerde gorev cubugu gizli oldugu icin AI'a giris noktasi kalmiyordu.
-- Yuz 2: masaustu simgeleri 36 px'lik ust panelin altinda kaliyordu, izgara 46 px'e indirildi; meta notu sol alta tasindi.
-- Magaza penceresi acik yuzlerde koyu kaliyordu; yuz 3 ve 8 icin pencere kapsaminda yuzey/metin degiskenleri esitlendi, vitrin karti ve birincil dugme yuz paletine baglandi.
-- 55 `transition: all` bildirimi acik ozellik listelerine cevrildi.
-- README surum rozeti 4.5.0'a cekildi.
+### Arayüz
+- Yüz 2 (Bakır), 3 (Bostan) ve 8 (Cıvata) için sağ üstte, yüz paletine uyan küçük `Ankora AI` balonu eklendi. Bu yüzlerde görev çubuğu gizli olduğu için AI'a giriş noktası kalmıyordu.
+- Yüz 2: masaüstü simgeleri 36 px'lik üst panelin altında kalıyordu, ızgara 46 px'e indirildi; meta notu sol alta taşındı.
+- Mağaza penceresi açık yüzlerde koyu kalıyordu; yüz 3 ve 8 için pencere kapsamında yüzey/metin değişkenleri eşitlendi, vitrin kartı ve birincil düğme yüz paletine bağlandı.
+- 55 `transition: all` bildirimi açık özellik listelerine çevrildi.
+- README sürüm rozeti 4.5.0'a çekildi.
 
-### ISO ve baslatma
-- `.xinitrc` artik tek kaynaktan uretiliyor: `build-iso.sh` icindeki kopya heredoc kaldirildi, depodaki `scripts/xinitrc` chroot'a kuruluyor. Dokunmatik ped ayarlari ve FAZ/Arcelik desenleri iki dosyada ayrisamaz.
-- `.xinitrc` icine WebKit2 typelib on kontrolu eklendi: 4.0 ve 4.1 typelib'lerinin ikisi de yoksa `/tmp/ayaz.log` dosyasina okunur uyari yazilir, sessiz siyah ekran yerine xterm hata penceresi acilir.
-- ISO paket listesine `gir1.2-webkit2-4.1` eklendi; Python koprusu 4.0 bulamazsa 4.1'e duser.
-- `dist/ayaz-de-latest-amd64.deb` kaynaktan eskiyse `build-iso.sh` once yeniden derler.
+### ISO ve başlatma
+- `.xinitrc` artık tek kaynaktan üretiliyor: `build-iso.sh` içindeki kopya heredoc kaldırıldı, depodaki `scripts/xinitrc` chroot'a kuruluyor. Dokunmatik ped ayarları ve FAZ/Arçelik desenleri iki dosyada ayrışamaz.
+- `.xinitrc` içine WebKit2 typelib ön kontrolü eklendi: 4.0 ve 4.1 typelib'lerinin ikisi de yoksa `/tmp/ayaz.log` dosyasına okunur uyarı yazılır, sessiz siyah ekran yerine xterm hata penceresi açılır.
+- ISO paket listesine `gir1.2-webkit2-4.1` eklendi; Python köprüsü 4.0 bulamazsa 4.1'e düşer.
+- `dist/ayaz-de-latest-amd64.deb` kaynaktan eskiyse `build-iso.sh` önce yeniden derler.
 
 ### Test
-- Arayuz duman testi tasinabilir hale getirildi: `tempfile` ile gecici dizin, `CHROME_BIN`/chromium/chrome kesfi, 8 s + 20 s iki deneme, utf-8 cozumleme ve stderr kuyrugu raporu.
+- Arayüz duman testi taşınabilir hale getirildi: `tempfile` ile geçici dizin, `CHROME_BIN`/chromium/chrome keşfi, 8 s + 20 s iki deneme, utf-8 çözümleme ve stderr kuyruğu raporu.
 
 ---
 
