@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self' file: data:; script-src 'self' file: 'unsafe-inline' 'unsafe-eval'; style-src 'self' file: 'unsafe-inline'; img-src 'self' file: data: blob: https:; font-src 'self' file: data:; connect-src 'self' file: https: http://127.0.0.1:49152 http://127.0.0.1:11434 https://generativelanguage.googleapis.com https://api.groq.com https://api.openai.com https://openrouter.ai https://api.github.com; frame-src 'self' file: data: blob: https: http://127.0.0.1:49152; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' file: data:; script-src 'self' file:; style-src 'self' file: 'unsafe-inline'; img-src 'self' file: data: blob: https:; font-src 'self' file: data:; connect-src 'self' file: https: http://127.0.0.1:49152 http://127.0.0.1:11434 https://generativelanguage.googleapis.com https://api.groq.com https://api.openai.com https://openrouter.ai https://api.github.com; frame-src 'self' file: data: blob: https: http://127.0.0.1:49152; object-src 'none'; base-uri 'self'; form-action 'self'">
   <title>Ayaz — Ankora Linux</title>
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="fonts/fonts.css">
@@ -3157,7 +3157,7 @@
           <span id="pkg-installer-title">Paket Yükleyici</span>
         </div>
         <div class="window-controls">
-          <button class="ctrl-btn close" title="Kapat (Esc)" onclick="WindowManager.close('win-pkg-installer')"></button>
+          <button class="ctrl-btn close" title="Kapat (Esc)"></button>
         </div>
       </div>
       <div class="window-view" style="padding: 20px 24px; display: flex; flex-direction: column; gap: 14px;">
@@ -3188,7 +3188,7 @@
         </div>
 
         <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 6px;">
-          <button type="button" class="btn-pkg-sm" id="btn-pkg-inst-cancel" onclick="WindowManager.close('win-pkg-installer')">İptal</button>
+          <button type="button" class="btn-pkg-sm" id="btn-pkg-inst-cancel">İptal</button>
           <button type="button" class="btn-pkg-sm" id="btn-pkg-inst-action" style="background: var(--accent-active, #0284c7); color: #ffffff; font-weight: 500;">Paketi Kur</button>
         </div>
         <pre id="pkg-inst-error" hidden style="margin: 0; max-height: 110px; overflow: auto; font-size: 10.5px; line-height: 1.4; color: #fca5a5; background: rgba(127, 29, 29, 0.25); border: 1px solid rgba(248, 113, 113, 0.35); border-radius: 6px; padding: 8px 10px; white-space: pre-wrap;"></pre>

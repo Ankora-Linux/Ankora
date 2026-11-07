@@ -612,7 +612,7 @@
         if (!names.length) return;
         this.resolve(names).then(url => {
           if (url && el.isConnected) {
-            el.innerHTML = '';
+            el.replaceChildren();
             const img = document.createElement('img');
             img.src = url;
             img.alt = '';
@@ -1374,7 +1374,7 @@
       }).join('\n') + '\n#' + (this.nativeWindows || []).map(n => `${n.id}|${n.is_active}|${n.title}`).join('\n');
       if (sig === this._tabsSig) return;
       this._tabsSig = sig;
-      this.tabsContainer.innerHTML = '';
+      this.tabsContainer.replaceChildren();
 
       const makeTab = (title, active, iconHtml, tip) => {
         const tab = document.createElement('button');
@@ -1473,7 +1473,7 @@
         document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') hide(); });
         window.addEventListener('blur', hide);
       }
-      menu.innerHTML = '';
+      menu.replaceChildren();
       items.forEach(it => {
         const b = document.createElement('button');
         b.type = 'button';
@@ -1560,7 +1560,7 @@
     syncDots() {
       const host = document.getElementById('taskbar-ws-dots');
       if (!host) return;
-      host.innerHTML = '';
+      host.replaceChildren();
       for (let i = 1; i <= this.count; i++) {
         const dot = document.createElement('button');
         dot.type = 'button';
@@ -1724,7 +1724,7 @@
         host.parentNode.insertBefore(section, host);
       }
       const pins = this.read(this.MENU_KEY);
-      section.innerHTML = '';
+      section.replaceChildren();
       if (!pins.length) {
         section.style.display = 'none';
         return;
@@ -2460,7 +2460,7 @@
     renderToDesktop() {
       const container = document.getElementById('dynamic-desktop-icons');
       if (!container) return;
-      container.innerHTML = '';
+      container.replaceChildren();
       // Çöp kutusu masaüstünde dâimî simgedir; XDG yeniden çiziminde kaybolmasın.
       if (typeof DesktopFiles !== 'undefined' && DesktopFiles.ensureTrashIcon) {
         DesktopFiles.ensureTrashIcon(container);
@@ -2791,7 +2791,7 @@
       const container = document.getElementById('dynamic-start-apps');
       if (!container) return;
 
-      container.innerHTML = '';
+      container.replaceChildren();
       // Menü düzenleyiciden gizlenen uygulamalar menüde listelenmez.
       const menuApps = this.installedApps.filter(a => a.is_menu_hidden !== true);
       if (menuApps.length === 0) {
@@ -3286,7 +3286,12 @@
         }
         if (!this.dir) return;
         const res = await TauriBridge.invoke('list_directory', { path: this.dir });
-        const items = (res && res.items ? res.items : []).filter(it => !it.is_hidden);
+        const items = (res && res.items ? res.items : []).filter(it => {
+          const name = String((it && it.name) || '').trim();
+          // "." / ".." ve gizli dosyalar masaüstünde simge olarak görünmesin.
+          if (!name || name === '.' || name === '..' || name.startsWith('.')) return false;
+          return !it.is_hidden;
+        });
         if (!items.length) return;
         const frag = document.createDocumentFragment();
         items.forEach(it => {
@@ -3958,7 +3963,7 @@
 
     render(query = '') {
       if (!this.tableBody) return;
-      this.tableBody.innerHTML = '';
+      this.tableBody.replaceChildren();
 
       const frag = document.createDocumentFragment();
       const q = query.toLowerCase().trim();
@@ -4525,7 +4530,7 @@
       const btnClearLogs = document.getElementById('btn-term-clear-logs');
       if (btnClearLogs) {
         btnClearLogs.addEventListener('click', () => {
-          if (this.logs) this.logs.innerHTML = '';
+          if (this.logs) this.logs.replaceChildren();
         });
       }
 
@@ -4591,7 +4596,7 @@
       }
 
       if (clean.toLowerCase() === 'clear') {
-        if (this.logs) this.logs.innerHTML = '';
+        if (this.logs) this.logs.replaceChildren();
         return '';
       }
 
@@ -5153,7 +5158,7 @@
         this.selectedItem = null;
 
         if (breadcrumbs) {
-          breadcrumbs.innerHTML = '';
+          breadcrumbs.replaceChildren();
           const parts = this.currentPath.split('/').filter(Boolean);
           
           const rootCrumb = document.createElement('span');
@@ -5190,7 +5195,7 @@
         }
 
         if (grid) {
-          grid.innerHTML = '';
+          grid.replaceChildren();
           if (visibleItems.length === 0) {
             const emptyNotice = document.createElement('div');
             emptyNotice.className = 'files-empty-state';
@@ -5481,7 +5486,7 @@
         if (statusSelected) statusSelected.textContent = 'Seçili öge yok';
 
         if (!grid) return;
-        grid.innerHTML = '';
+        grid.replaceChildren();
 
         const banner = document.createElement('div');
         banner.className = 'trash-banner';
@@ -5965,7 +5970,7 @@
         listEl.innerHTML = '<div style="padding:10px;color:var(--text-muted);font-size:12px;">Yükleniyor...</div>';
         try {
           const res = await TauriBridge.invoke('list_directory', { path: dir });
-          listEl.innerHTML = '';
+          listEl.replaceChildren();
           const dirs = (res.items || []).filter(it => it.is_dir && !it.is_hidden).sort((a, b) => a.name.localeCompare(b.name, 'tr'));
           if (dir !== '/') {
             const up = document.createElement('div');
@@ -6229,7 +6234,7 @@
 
       try {
         const apps = await TauriBridge.invoke('get_open_with_apps', { filePath: item.path });
-        listEl.innerHTML = '';
+        listEl.replaceChildren();
 
         if (!Array.isArray(apps) || apps.length === 0) {
           listEl.innerHTML = '<div style="color:var(--text-muted);font-size:12px;padding:8px 0;">Bu dosya türü için ilişkili uygulama bulunamadı. Aşağıdan özel bir komut yazabilirsiniz.</div>';
@@ -7008,7 +7013,7 @@
               </div>
             </div>
           `;
-          if (this.miniFeed) this.miniFeed.innerHTML = '';
+          if (this.miniFeed) this.miniFeed.replaceChildren();
           Terminal.log('[AI] Sohbet geçmişi ve DOM önbelleği temizlendi.', 'cmd');
         });
       }
@@ -8174,7 +8179,7 @@
         statusText.innerHTML = `<span style="color:var(--success,#10b981);">Ollama Aktif</span> · ${this.installedModels.size} yerel model hazır`;
       }
 
-      listEl.innerHTML = '';
+      listEl.replaceChildren();
       const currentModel = SafeStorage.getItem('ankora_ai_model') || 'qwen2.5:0.5b';
 
       this.RECOMMENDED.forEach(mod => {
@@ -8524,7 +8529,7 @@
 
       try {
         const disks = await TauriBridge.invoke('get_storage_devices');
-        box.innerHTML = '';
+        box.replaceChildren();
 
         if (!disks || disks.length === 0) {
           this.selectedDisk = null;
@@ -9079,7 +9084,7 @@
         'theme-meridyen': { name: 'Meridyen', desc: 'Kerpiç krem + kobalt',          bg: '#f4f2ea' }
       };
       const current = ThemeManager.currentTheme;
-      list.innerHTML = '';
+      list.replaceChildren();
       this.STUDIO_THEME_IDS.forEach(id => {
         const m = META[id] || { name: id, desc: '', bg: '#16171b' };
         const item = document.createElement('div');
@@ -9458,7 +9463,7 @@
 
       const fillRates = (modeObj) => {
         if (!selRate) return;
-        selRate.innerHTML = '';
+        selRate.replaceChildren();
         if (!modeObj) return;
         (modeObj.rates || []).forEach(r => {
           const opt = document.createElement('option');
@@ -9469,7 +9474,7 @@
         });
       };
 
-      selMode.innerHTML = '';
+      selMode.replaceChildren();
       info.modes.forEach(m => {
         const opt = document.createElement('option');
         opt.value = m.mode;
@@ -9578,7 +9583,7 @@
 
           if (boxDetected && listDetected) {
             boxDetected.style.display = 'block';
-            listDetected.innerHTML = '';
+            listDetected.replaceChildren();
             data.monitors.forEach(m => {
               const badge = document.createElement('span');
               badge.style.cssText = `padding:3px 8px;border-radius:4px;font-size:11px;background:${m.connected ? 'rgba(56,189,248,0.15)' : 'rgba(255,255,255,0.05)'};color:${m.connected ? '#38bdf8' : 'var(--text-muted)'};border:1px solid ${m.connected ? 'rgba(56,189,248,0.3)' : 'transparent'};`;
@@ -9707,7 +9712,7 @@
         if (!r) return;
         if (Array.isArray(r.available_timezones) && r.available_timezones.length) {
           const cur = selTz.value;
-          selTz.innerHTML = '';
+          selTz.replaceChildren();
           r.available_timezones.forEach((z) => {
             const o = document.createElement('option');
             o.value = z;
@@ -11659,7 +11664,7 @@
       if (!listEl || typeof XdgDesktopEngine === 'undefined') return;
 
       const q = (search ? search.value : '').trim().toLocaleLowerCase('tr');
-      listEl.innerHTML = '';
+      listEl.replaceChildren();
 
       const apps = (XdgDesktopEngine.installedApps || []).filter(a => !q || a.name.toLocaleLowerCase('tr').includes(q));
 
@@ -11791,7 +11796,7 @@
         this.users = Array.isArray(users) ? users : [];
         if (statusEl) statusEl.textContent = `${this.users.length} kullanıcı hesabı bulundu.`;
 
-        listEl.innerHTML = '';
+        listEl.replaceChildren();
         if (!this.users.length) {
           listEl.innerHTML = '<div style="padding:10px;color:var(--text-muted,#64748b);font-size:12px;text-align:center;">Kullanıcı hesabı görünmüyor.</div>';
           return;
@@ -12316,7 +12321,7 @@
 
     render(query = '') {
       if (!this.tableBody) return;
-      this.tableBody.innerHTML = '';
+      this.tableBody.replaceChildren();
 
       // 2,5 sn'lik otomatik yenilemede satırlar fragment ile tek seferde girer.
       const frag = document.createDocumentFragment();
@@ -13229,7 +13234,7 @@
     renderSettings() {
       const container = document.getElementById('shortcuts-list-container');
       if (!container) return;
-      container.innerHTML = '';
+      container.replaceChildren();
 
       this.shortcuts.forEach(sc => {
         const row = document.createElement('div');
@@ -16226,7 +16231,7 @@
     render() {
       const container = document.getElementById('clipboard-items-list');
       if (!container) return;
-      container.innerHTML = '';
+      container.replaceChildren();
 
       if (this.history.length === 0) {
         container.innerHTML = '<div style="color:#64748b;font-size:12px;text-align:center;padding:24px 0;">Henüz kopyalanan metin yok</div>';
@@ -16867,7 +16872,7 @@
         return;
       }
 
-      list.innerHTML = '';
+      list.replaceChildren();
       devs.forEach(d => {
         const row = document.createElement('div');
         row.className = 'bt-device-row';
@@ -17250,7 +17255,7 @@
 
     renderItems() {
       if (!this.results) return;
-      this.results.innerHTML = '';
+      this.results.replaceChildren();
 
       if (this.currentItems.length === 0) {
         this.results.innerHTML = `
@@ -17381,12 +17386,12 @@
       if (!box) return;
       const list = Array.isArray(players) ? players : [];
       if (list.length < 2) {
-        box.innerHTML = '';
+        box.replaceChildren();
         box.hidden = true;
         return;
       }
       box.hidden = false;
-      box.innerHTML = '';
+      box.replaceChildren();
       const makePill = (label, value, title) => {
         const pill = document.createElement('button');
         pill.type = 'button';
@@ -17526,7 +17531,7 @@
         if (!Array.isArray(items)) return;
 
         this.items = items;
-        container.innerHTML = '';
+        container.replaceChildren();
 
         items.forEach(item => {
           const btn = document.createElement('button');
@@ -17642,7 +17647,7 @@
 
       try {
         const targets = await TauriBridge.invoke('get_usb_flash_targets');
-        select.innerHTML = '';
+        select.replaceChildren();
 
         if (!Array.isArray(targets) || targets.length === 0) {
           select.innerHTML = '<option value="">Uygun USB bellek bulunamadı (Sistem diskleri korunmuştur)</option>';
@@ -17669,7 +17674,7 @@
 
       try {
         const targets = await TauriBridge.invoke('get_usb_flash_targets');
-        select.innerHTML = '';
+        select.replaceChildren();
 
         if (!Array.isArray(targets) || targets.length === 0) {
           select.innerHTML = '<option value="">Uygun USB bellek bulunamadı</option>';
@@ -17824,7 +17829,7 @@
 
       try {
         const snapshots = await TauriBridge.invoke('list_system_snapshots');
-        container.innerHTML = '';
+        container.replaceChildren();
 
         if (!Array.isArray(snapshots) || snapshots.length === 0) {
           container.innerHTML = '<div style="color:var(--text-muted);font-size:12px;padding:12px;background:rgba(255,255,255,0.02);border-radius:6px;border:1px dashed rgba(255,255,255,0.1);">Henüz bir kurtarma noktası oluşturulmamış. "Nokta Oluştur" butonuna basarak ilk kurtarma noktanızı kaydedebilirsiniz.</div>';
@@ -18074,6 +18079,13 @@
     window.WeatherManager = (typeof WeatherManager !== 'undefined') ? WeatherManager : null;
     window.ReportManager = (typeof ReportManager !== 'undefined') ? ReportManager : null;
     window.IconResolver = IconResolver;
+
+    // Satır içi onclick kaldırıldı (CSP: script-src 'self').
+    // Paket yükleyici "İptal" düğmesi burada bağlanır.
+    const pkgCancelBtn = document.getElementById('btn-pkg-inst-cancel');
+    if (pkgCancelBtn) {
+      pkgCancelBtn.addEventListener('click', () => WindowManager.close('win-pkg-installer'));
+    }
   }
 
   if (document.readyState === 'loading') {
