@@ -5,7 +5,7 @@
   <p><b>Resmî ana depo · Ayaz Desktop Environment (Ayaz DE)</b></p>
 
   <p>
-    <img src="https://img.shields.io/badge/S%C3%9CR%C3%9CM-4.0.0-ffffff?style=for-the-badge&labelColor=111111" alt="Sürüm">
+    <img src="https://img.shields.io/badge/S%C3%9CR%C3%9CM-4.5.0-ffffff?style=for-the-badge&labelColor=111111" alt="Sürüm">
     <img src="https://img.shields.io/badge/HEDEF-ANKORA_LINUX-2563eb?style=for-the-badge&labelColor=111111" alt="Dağıtım">
   </p>
   <p>
