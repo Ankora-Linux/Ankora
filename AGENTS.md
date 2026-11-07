@@ -91,6 +91,17 @@ tarihli satır olarak eklenir; silinmez.
   (2) YouTube Tanıtım Videosu (16:9 yatay 1280x720, 36 sn): `~/Projeler/ankora-tanitim/ankora-4.5-tanitim.mp4` ve `~/Videolar/ankora-4.5-tanitim.mp4`.
   İki videoda da Antislop/Humanizer ilkeleriyle iddialı/abartılı sloganlar ve robotik seslendirme tamamen elendi; saf atmosferik ambient müzik, gerçek 1920x1080 masaüstü yakalamaları, her sahnede net Ankora logosu ve yalın teknik metrikler kullanıldı.
 
+- 2026-11-07: Baslatma riskleri kapatildi. .xinitrc artik tek kaynaktan uretiliyor:
+  depodaki scripts/xinitrc, ISO derlemesinde chroot'a kopyalanip kuruluyor
+  (onceden build-iso.sh icinde ayri bir heredoc kopyasi vardi; dokunmatik ped
+  ayarlari ve FAZ/Arcelik desenleri iki dosyada ayrisabiliyordu). .xinitrcye
+  WebKit2 typelib on kontrolu eklendi: 4.0 ve 4.1 typelib'lerinin ikisi de yoksa
+  /tmp/ayaz.log dosyasina okunur bir uyari yaziliyor ve sessiz siyah ekran
+  yerine mevcut xterm hata penceresi devreye giriyor. ISO paket listesine
+  gir1.2-webkit2-4.1 eklendi; Python koprusu 4.0 bulamazsa 4.1'e dusecek ve
+  typelib artik kurulu olacak. dist/ayaz-de-latest-amd64.deb kaynaktan
+  eskiyse build-iso.sh once yeniden derliyor (eski gomulu arayuz tasinmasin).
+
 ## Not
 
 Bu repo, Ankora Linux'un resmî merkez deposudur. Tüm proje mantığı, geliştirici ve yayın akışı burada bulunur.

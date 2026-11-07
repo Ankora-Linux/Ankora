@@ -1,17 +1,17 @@
 #!/bin/sh
-# Ankora Linux 4.0.1 Minimalist X11 Kiosk Başlatıcı (.xinitrc)
-# Devuan GNU/Linux 5 (Daedalus) SysVinit
-
-# Açılış ekranından X'e geçiş: Plymouth çalışıyorsa DRM/KMS kilidini bırakması için kapatılır
+# Açılış ekranından X'e sessiz geçiş: plymouth açılış bitmeden kalırsa
+# arkasında biriken boot metinleri ([FAIL] satırları) kullanıcıya görünür.
 if command -v plymouth >/dev/null 2>&1 && plymouth --ping >/dev/null 2>&1; then
     plymouth quit 2>/dev/null || sudo plymouth quit 2>/dev/null || true
 fi
 
-# X11 donanım imleci ve arka plan temizliği
-xsetroot -solid "#0b0c10"
-xset -dpms
-xset s off
-xset s noblank
+# Loopback ağ arabirimini ayağa kaldır
+ip link set lo up 2>/dev/null || ifconfig lo 127.0.0.1 up 2>/dev/null || true
+
+xsetroot -solid "#0b0c10" 2>/dev/null || true
+xset -dpms 2>/dev/null || true
+xset s off 2>/dev/null || true
+xset s noblank 2>/dev/null || true
 
 # WebKitGTK ve X11 ortam ayarları (fiziksel donanım ve sanal makine uyumluluğu)
 export GDK_BACKEND=x11
@@ -19,8 +19,8 @@ export WEBKIT_DISABLE_DMABUF_RENDERER=1
 export WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS=1
 
 # Sanal makine (VirtualBox, QEMU, KVM, VMware) tespiti:
-# Sanal GPU'larda DRI çökmelerini önlemek için yazılımsal render (llvmpipe) devreye alınır;
-# Fiziksel donanımlarda tam GPU hızlandırması korunur.
+# Sanal GPU'larda (VMSVGA/QXL) DRI çökmelerini önlemek için yazılımsal render (llvmpipe) devreye alınır;
+# Fiziksel donanımlarda (Intel/AMD/Nvidia) tam GPU hızlandırması korunur.
 IS_VM=0
 for dmi in /sys/class/dmi/id/product_name /sys/class/dmi/id/sys_vendor /sys/class/dmi/id/board_vendor; do
     if [ -r "$dmi" ]; then
@@ -32,82 +32,39 @@ done
 if [ "$IS_VM" = "1" ]; then
     export LIBGL_ALWAYS_SOFTWARE=1
 fi
+# Kullanıcının Ayarlar'dan verdiği DPMS zaman aşımı yeniden başlatmada korunur
+[ -f "$HOME/.config/ankora/dpms_secs" ] && xset +dpms dpms "$(cat "$HOME/.config/ankora/dpms_secs")" "$(cat "$HOME/.config/ankora/dpms_secs")" "$(cat "$HOME/.config/ankora/dpms_secs")" 2>/dev/null || true
 
-# Eco RAM+ (ZRAM): 4 GB altı belleğe sahip cihazlarda (eski MEB / düşük RAM PC)
-# açılışta ZRAM lz4/zstd sıkıştırmalı takas alanını otomatik devreye al
-MEM_KB=$(grep -m1 MemTotal /proc/meminfo 2>/dev/null | awk '{print $2}')
-if [ -n "$MEM_KB" ] && [ "$MEM_KB" -lt 4194304 ]; then
-    if ! swapon -s 2>/dev/null | grep -q zram; then
-        if [ -x /etc/init.d/zram-swap ]; then
-            /etc/init.d/zram-swap start 2>/dev/null || true
-        elif command -v modprobe >/dev/null 2>&1; then
-            modprobe zram num_devices=1 2>/dev/null || true
-            if [ -e /dev/zram0 ]; then
-                for alg in lz4 zstd lzo; do
-                    if grep -q "$alg" /sys/block/zram0/comp_algorithm 2>/dev/null; then
-                        echo "$alg" > /sys/block/zram0/comp_algorithm 2>/dev/null && break
-                    fi
-                done
-                DISKSIZE=$(( MEM_KB * 1024 ))
-                echo "$DISKSIZE" > /sys/block/zram0/disksize 2>/dev/null || true
-                mkswap /dev/zram0 >/dev/null 2>&1 || true
-                swapon -p 100 /dev/zram0 2>/dev/null || true
-            fi
-        fi
-    fi
+# 1) Ekranın önerilen (native) çözünürlüğüne geç: kurulu sistemde düşük
+#    modda kalan ekranın bulanık/sahte görünmesini böyle önlenir.
+# 2) Önerilen okunamazsa ve çözünürlük hâlâ çok düşükse (ör. sanal
+#    makinenin varsayılanı) eski düzeltme uygulanır; fiziksel ekranda
+#    orijinal çözünürlük asla düşürülmez.
+PREF=$(xrandr 2>/dev/null | awk '{
+    for (i = 2; i <= NF; i++) {
+        if (index($i, "+") && $(i - 1) ~ /^[0-9]+x[0-9]+$/) { print $(i - 1); exit }
+    }
+}')
+CURM=$(xrandr 2>/dev/null | awk '{
+    for (i = 2; i <= NF; i++) {
+        if (index($i, "*") && $(i - 1) ~ /^[0-9]+x[0-9]+$/) { print $(i - 1); exit }
+    }
+}')
+if [ -n "$PREF" ] && [ "$PREF" != "$CURM" ]; then
+    xrandr -s "$PREF" 2>/dev/null || true
 fi
 
-# Ankora Openbox Yapılandırmasını Hazırla ve Başlat
-mkdir -p "$HOME/.config/openbox"
-if [ -f /usr/share/ayaz/openbox-rc.xml ]; then
-    cp -u /usr/share/ayaz/openbox-rc.xml "$HOME/.config/openbox/rc.xml"
-elif [ -f "$(dirname "$0")/openbox-rc.xml" ]; then
-    cp -u "$(dirname "$0")/openbox-rc.xml" "$HOME/.config/openbox/rc.xml"
-fi
+CURW=$(xrandr 2>/dev/null | awk '/\*/{print $1; exit}' | cut -dx -f1)
+case "$CURW" in
+    ''|640*|720*|800*|854*|960*) xrandr -s 1280x800 2>/dev/null || xrandr -s 1024x768 2>/dev/null || true ;;
+esac
 
-if command -v openbox >/dev/null 2>&1; then
-    if [ -f "$HOME/.config/openbox/rc.xml" ]; then
-        openbox --config-file "$HOME/.config/openbox/rc.xml" &
-    else
-        openbox &
-    fi
-fi
-
-if command -v pulseaudio >/dev/null 2>&1; then
-    pulseaudio --start --exit-idle-time=-1 2>/dev/null || true
-fi
-
-if command -v dunst >/dev/null 2>&1; then
-    dunst &
-fi
-
-# Polkit Grafiksel Yetkilendirme Ajanı (GParted, Synaptic, Sistem Araçları için)
-if command -v lxpolkit >/dev/null 2>&1; then
-    lxpolkit &
-elif [ -x /usr/lib/policykit-1-gnome/polkit-gnome-authentication-agent-1 ]; then
-    /usr/lib/policykit-1-gnome/polkit-gnome-authentication-agent-1 &
-fi
-
-# XSettings Daemon (GTK/Qt uygulamalarıyla anlık tema ve font eşitleme)
-if command -v xsettingsd >/dev/null 2>&1; then
-    xsettingsd &
-fi
-
-# Sistem Tepsisi (Systray / Notification Area - Discord, Telegram, VPN vb.)
-if command -v trayer >/dev/null 2>&1; then
-    trayer --edge bottom --align right --widthtype request --height 32 --transparent true --alpha 0 --tint 0x0f172a --distance 6 --expand false &
-elif command -v stalonetray >/dev/null 2>&1; then
-    stalonetray --geometry 1x1-10+10 --grow-gravity NE --icon-gravity NE --kludges force_icons_size --transparent --tint-color "#0f172a" &
-fi
-
-# Dokunmatik giriş (libinput): Faz tahta/IR çerçeve ve dokunmatik pedler.
-# ETA sürücü varsa önce o koşar (Faz1-3/IR/eGalax/HID eşleşmesi).
+# Dokunmatik giriş (Faz tahta/IR çerçeve + dokunmatik ped): pedlerde
+# dokun-kaydır, tahta aygıtları her zaman açık. Kalibrasyon Ayarlar'dan.
+# ETA sürücü varsa önce o koşar (Faz1-3/IR/eGalax/HID eşleşmesi + matris).
 if [ -x /usr/bin/eta-touchdrv ]; then
     /usr/bin/eta-touchdrv --enable 2>/dev/null || true
 fi
-# Dokun-kaydır kaydırsın, tek parmak dokunuş tıklasın; iki parmak sağ tık.
-# Hepsi korumalı: araç yoksa atlanır. Dokunma ayarları yalnız dokunmatik
-# pedlere uygulanır; tahta kalibrasyonu Ayarlar > Ekran üzerinden yapılır.
 if command -v xinput >/dev/null 2>&1; then
     for _dev in $(xinput --list --id-only 2>/dev/null); do
         _name=$(xinput --list --name-only "$_dev" 2>/dev/null || true)
@@ -119,7 +76,6 @@ if command -v xinput >/dev/null 2>&1; then
                 xinput --set-prop "$_dev" "libinput Click Method Enabled" 0 1 2>/dev/null || true
                 ;;
             *[Tt]ouchscreen*|*[Tt]ouch*|*IR*|*Vestel*|*Arçelik*|*Arcelik*|*FAZ*|*Faz*)
-                # Tahta dokunmatiği her zaman açık; eksen eşlemesi sürücüde kalır.
                 xinput --enable "$_dev" 2>/dev/null || true
                 ;;
         esac
@@ -127,12 +83,66 @@ if command -v xinput >/dev/null 2>&1; then
     unset _dev _name
 fi
 
+# Ankora Openbox Yapılandırmasını Hazırla ve Başlat
+mkdir -p "$HOME/.config/openbox"
+if [ -f /usr/share/ayaz/openbox-rc.xml ]; then
+    cp -u /usr/share/ayaz/openbox-rc.xml "$HOME/.config/openbox/rc.xml"
+fi
+
+if command -v openbox >/dev/null 2>&1; then
+    if [ -f "$HOME/.config/openbox/rc.xml" ]; then
+        openbox --config-file "$HOME/.config/openbox/rc.xml" &
+    else
+        openbox &
+    fi
+fi
+
+# Ses sunucusunu kullanıcı oturumunda başlat
+if command -v pulseaudio >/dev/null 2>&1; then
+    # Arka planda: ses sunucusu takılırsa oturum başlatma onu beklemez.
+    pulseaudio --start --exit-idle-time=-1 >/dev/null 2>&1 &
+fi
+
+# Bildirim sunucusunu arka planda başlat
+if command -v dunst >/dev/null 2>&1; then
+    dunst &
+fi
+
+# Polkit Grafiksel Yetkilendirme Ajanı (GParted, Synaptic vb. root araçları için)
+if command -v lxpolkit >/dev/null 2>&1; then
+    lxpolkit &
+elif [ -x /usr/lib/policykit-1-gnome/polkit-gnome-authentication-agent-1 ]; then
+    /usr/lib/policykit-1-gnome/polkit-gnome-authentication-agent-1 &
+fi
+
+# XSettings Daemon (GTK/Qt tema eşitleme)
+if command -v xsettingsd >/dev/null 2>&1; then
+    xsettingsd &
+fi
+
+# Sistem Tepsisi (Systray)
+if command -v trayer >/dev/null 2>&1; then
+    trayer --edge bottom --align right --widthtype request --height 32 --transparent true --alpha 0 --tint 0x0f172a --distance 6 --expand false &
+elif command -v stalonetray >/dev/null 2>&1; then
+    stalonetray --geometry 1x1-10+10 --grow-gravity NE --icon-gravity NE --kludges force_icons_size --transparent --tint-color "#0f172a" &
+fi
+
 # Ayaz DE Masaüstü Ortamını çalıştır
 # Sessiz siyah ekran yasağı: masaüstü düşerse günlük görünür bir pencerede
-# sunulur ve kabuk açılır.
+# sunulur ve kabuk açılır. Önceden süreç ölünce ekran yalnızca xsetroot
+# renginde kalıyor, kullanıcı hiçbir hata göremiyordu.
 AYAZ_LOG=/tmp/ayaz.log
 if ! : > "$AYAZ_LOG" 2>/dev/null; then
     AYAZ_LOG=/dev/null
+fi
+
+# WebKitGTK on kontrolu: Python koprusu WebKit2 4.0, yoksa 4.1 typelib'i ister.
+# Eksikse sessiz siyah ekran yerine loga okunur bir satir yazilir.
+if command -v python3 >/dev/null 2>&1; then
+    if ! python3 -c "import gi; gi.require_version('WebKit2','4.0')" 2>/dev/null \
+       && ! python3 -c "import gi; gi.require_version('WebKit2','4.1')" 2>/dev/null; then
+        printf '[Ayaz] UYARI: WebKit2 typelib (4.0/4.1) bulunamadi; arayuz acilamayabilir.\n' >>"$AYAZ_LOG"
+    fi
 fi
 
 AYAZ_BIN=
@@ -151,6 +161,8 @@ else
 fi
 
 if [ "$AYAZ_RC" -ne 0 ]; then
+    # Otomatik yeniden deneme döngüsünü kır: bir sonraki tty1 girişinde
+    # startx kendiliğinden tekrar başlamaz, kullanıcı bilinçli karar verir.
     : > /tmp/ankora-desktop-failed 2>/dev/null || true
     printf '[Ayaz] Masaüstü başlatılamadı (çıkış kodu %s). Günlük: %s\n' "$AYAZ_RC" "$AYAZ_LOG" >&2
     if command -v xterm >/dev/null 2>&1; then
