@@ -3,9 +3,11 @@ import http.server
 import json
 import os
 import re
+import shutil
 import socketserver
 import subprocess
 import sys
+import tempfile
 import threading
 import time
 from pathlib import Path
@@ -273,15 +275,21 @@ def run_tests():
     }
     """
 
-    # Inject test script temporarily into a clean copy of index.html in /tmp
-    tmp_dir = Path("/tmp/ankora-ui-test")
-    tmp_dir.mkdir(parents=True, exist_ok=True)
+    # Inject test script temporarily into a clean copy of index.html
+    tmp_dir = Path(tempfile.mkdtemp(prefix="ankora-ui-test-"))
     
-    # Create symlinks or copy assets
+    # Copy assets (symlink is tried first, copy is the portable fallback)
     for item in SRC_DIR.iterdir():
         target = tmp_dir / item.name
-        if not target.exists():
+        if target.exists():
+            continue
+        try:
             target.symlink_to(item)
+        except OSError:
+            if item.is_dir():
+                shutil.copytree(item, target)
+            else:
+                shutil.copy2(item, target)
 
     # Modified index.html with test_js
     orig_html = (SRC_DIR / "index.html").read_text(encoding="utf-8")
@@ -304,25 +312,46 @@ def run_tests():
     url = f"http://127.0.0.1:{test_port}/index.html"
     print(f"Test Sunucusu Açıldı: {url}")
 
-    # Launch Chromium with virtual time
-    cmd = [
-        "chromium",
-        "--headless=new",
-        "--no-sandbox",
-        "--disable-gpu",
-        "--virtual-time-budget=8000",
-        "--dump-dom",
-        url
-    ]
-    try:
-        res = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
-        dom = res.stdout
+    # Tarayıcıyı bul: CHROME_BIN, chromium, chromium-browser, google-chrome.
+    browser = None
+    for candidate in [os.environ.get("CHROME_BIN", ""), "chromium", "chromium-browser",
+                      "google-chrome", "google-chrome-stable"]:
+        if candidate and shutil.which(candidate):
+            browser = candidate
+            break
+    if not browser:
+        print("[BILGI] Headless tarayıcı bulunamadı; arayüz duman testi atlandı.")
+        test_server.shutdown()
+        server.shutdown()
+        return 0
 
-        # Extract data-test-results
-        match = re.search(r'data-test-results="([^"]+)"', dom)
-        if not match:
-            # Maybe escaped HTML entities
-            match = re.search(r'data-test-results=\'([^\']+)\'', dom)
+    def run_browser(budget_ms):
+        cmd = [
+            browser,
+            "--headless=new",
+            "--no-sandbox",
+            "--disable-gpu",
+            "--disable-dev-shm-usage",
+            f"--virtual-time-budget={budget_ms}",
+            "--dump-dom",
+            url,
+        ]
+        return subprocess.run(cmd, capture_output=True, text=True, timeout=60,
+                              encoding="utf-8", errors="replace")
+
+    try:
+        match = None
+        dom = ""
+        last_res = None
+        # İlk turda 8 s, gerekirse 20 s bütçe ile tekrar denenir.
+        for budget in (8000, 20000):
+            last_res = run_browser(budget)
+            dom = last_res.stdout or ""
+            match = re.search(r'data-test-results="([^"]+)"', dom)
+            if not match:
+                match = re.search(r"data-test-results='([^']+)'", dom)
+            if match:
+                break
 
         if match:
             raw_json = match.group(1).replace("&quot;", '"').replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">")
@@ -351,11 +380,17 @@ def run_tests():
                 return 1
         else:
             print("Test sonuçları DOM içinde bulunamadı.")
+            print("Tarayıcı:", browser)
+            if last_res is not None:
+                err_tail = (last_res.stderr or "").strip().splitlines()[-5:]
+                for line in err_tail:
+                    print("  stderr:", line)
             print("DOM parçası:", dom[-500:])
             return 1
     finally:
         test_server.shutdown()
         server.shutdown()
+        shutil.rmtree(tmp_dir, ignore_errors=True)
 
 if __name__ == "__main__":
     sys.exit(run_tests())
