@@ -302,18 +302,33 @@ apt-get install -y --no-install-recommends \
     dbus-x11
 
 # -----------------------------------------------------------------------
-# GPU FİRMWARE — gerçek donanımda test bulgusu: Radeon (amdgpu/r600/ati)
-# kartları non-free firmware olmadan siyah ekran/büyütülmüş boyut veriyor.
-# xserver-xorg-video-amdgpu + mesa kurulu olsa bile kart firmware beklemeden
-# init etmiyor; bu yüzden AMD ve genel non-free firmware seti kurulur.
+# GPU FİRMWARE — gerçek donanımda test bulgusu: Radeon (r600/ati) kartları
+# non-free firmware olmadan siyah ekran veriyor ve konsolu kilitliyor.
+#
+# ÖNEMLİ: paketleri TEK TEK kur. Tek bir bulunmayan paket adı (daedalus'ta
+# firmware-radeon yok, firmware-amd-graphics içine katıldı) tüm apt komutunu
+# düşürüyordu; eski hali `2>/dev/null || true` ile hatayı yutuyor ve ISO
+# firmware'siz çıkıyordu. Bu yüzden artık hem tek tek kuruluyor hem de
+# sonuç doğrulanıyor.
 # -----------------------------------------------------------------------
-apt-get install -y --no-install-recommends \
-    firmware-linux-nonfree \
-    firmware-amd-graphics \
-    firmware-radeon 2>/dev/null || true
+for fw_pkg in firmware-linux-nonfree firmware-amd-graphics firmware-radeon; do
+    if apt-get install -y --no-install-recommends "$fw_pkg"; then
+        echo "[OK] $fw_pkg kuruldu"
+    else
+        echo "[UYARI] $fw_pkg kurulamadi (bu depoda bulunmuyor olabilir)"
+    fi
+done
 
-# Güncel depolarda firmware-radeon firmware-amd-graphics içine katıldıysa
-# derleme kırılmaz (yukarıdaki "|| true" kapsar).
+# Doğrulama: radeon/amdgpu firmware gerçekten indi mi? İnmediyse ISO'yu
+# yayınlamak anlamsız; eski AMD kartlarda siyah ekranın tek sebebi bu.
+FW_RADEON=$(ls /lib/firmware/radeon 2>/dev/null | wc -l)
+FW_AMDGPU=$(ls /lib/firmware/amdgpu 2>/dev/null | wc -l)
+if [ "$FW_RADEON" -eq 0 ] && [ "$FW_AMDGPU" -eq 0 ]; then
+    echo "[HATA] GPU firmware yok: /lib/firmware/radeon ve /lib/firmware/amdgpu bos."
+    echo "[HATA] firmware-amd-graphics kurulamadi; ISO AMD/Radeon kartlarda siyah ekran verir."
+    exit 1
+fi
+echo "[OK] GPU firmware: $FW_RADEON radeon, $FW_AMDGPU amdgpu dosyasi"
 
 # -----------------------------------------------------------------------
 # KABLOSUZ (Wi-Fi) DONANIM KAPSAMA — gerçek donanımda ağ kartı sürücüsü

@@ -1,6 +1,16 @@
 # Ankora Linux — Sürüm Notları
 
 
+## 4.5.2 (2026-11-08)
+
+### Kritik: AMD/Radeon GPU firmware
+- ISO, GPU firmware olmadan derleniyordu. `firmware-linux-nonfree`, `firmware-amd-graphics` ve `firmware-radeon` tek bir `apt-get install` satirindaydi; daedalus deposunda bulunmayan `firmware-radeon` adi komutun tamamini dusuruyor, `2>/dev/null || true` da hatayi yutuyordu.
+- Sonuc: `/lib/firmware/radeon` ve `/lib/firmware/amdgpu` dizinleri bos kaliyordu. Radeon (r600/HD 4000 serisi) kartlarda surucu firmware beklemeden init etmedigi icin acilis konsolda kilitleniyor, masaustu hic acilmiyordu.
+- Paketler artik tek tek kuruluyor, hata gizlenmiyor. Kurulumdan sonra firmware dizinleri dogrulaniyor; ikisi de bos ise derleme acik hatayla duruyor.
+
+### Dogrulama
+- ISO icindeki squashfs denetlendi: 4.5.1 imajinda `firmware-amd-graphics` kurulu degildi, `/lib/firmware/radeon` yoktu. Bu surumde derleme bunu yakalar.
+
 ## 4.5.1 (2026-11-07)
 
 ### Güvenlik
