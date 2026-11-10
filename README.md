@@ -5,7 +5,7 @@
   <p><b>Resmî ana depo · Ayaz Desktop Environment (Ayaz DE)</b></p>
 
   <p>
-    <img src="https://img.shields.io/badge/S%C3%9CR%C3%9CM-4.5.2-ffffff?style=for-the-badge&labelColor=111111" alt="Sürüm">
+    <img src="https://img.shields.io/badge/S%C3%9CR%C3%9CM-4.6.0-ffffff?style=for-the-badge&labelColor=111111" alt="Sürüm">
     <img src="https://img.shields.io/badge/HEDEF-ANKORA_LINUX-2563eb?style=for-the-badge&labelColor=111111" alt="Dağıtım">
   </p>
   <p>
@@ -180,7 +180,7 @@ En son sürüm [GitHub Releases sayfasında](https://github.com/Ankora-Linux/Ank
 Bütünlük doğrulaması (ISO ile aynı dizindeyken):
 
 ```bash
-sha256sum -c ankora-linux-4.5.2-ayaz-amd64.iso.sha256
+sha256sum -c ankora-linux-4.6.0-ayaz-amd64.iso.sha256
 ```
 
 ## USB'ye yazdırma ve başlatma
@@ -193,7 +193,7 @@ ve yazdırma hedefinin başında bölüm numarası **olmayan** cihaz
 ```bash
 # Uyarı: /dev/sdX yerine kendi cihazınızı yazın. Yanlış hedef diskteki
 # tüm verileri siler.
-sudo dd if=ankora-linux-4.5.2-ayaz-amd64.iso of=/dev/sdX bs=4M oflag=direct status=progress
+sudo dd if=ankora-linux-4.6.0-ayaz-amd64.iso of=/dev/sdX bs=4M oflag=direct status=progress
 sync
 ```
 
@@ -229,8 +229,8 @@ belleğini yükseltin ya da GRUB menüsünden **Güvenli Mod (Failsafe)**
 ## Sürüm dağıtımı ve güncellenme akışı
 
 ```text
-git tag v4.5.2
-git push origin v4.5.2
+git tag v4.6.0
+git push origin v4.6.0
 ```
 
 `build-iso.yml` iş akışı tetiklenir ve sırasıyla:

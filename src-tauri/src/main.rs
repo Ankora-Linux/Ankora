@@ -2043,6 +2043,22 @@ fn polkit_agent_running() -> bool {
 fn sudo_available() -> bool {
     static SUDO_OK: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
     *SUDO_OK.get_or_init(|| {
+        let check_bin_true = Command::new("sudo")
+            .args(["-n", "/bin/true"])
+            .output()
+            .map(|o| o.status.success())
+            .unwrap_or(false);
+        if check_bin_true {
+            return true;
+        }
+        let check_usr_true = Command::new("sudo")
+            .args(["-n", "/usr/bin/true"])
+            .output()
+            .map(|o| o.status.success())
+            .unwrap_or(false);
+        if check_usr_true {
+            return true;
+        }
         Command::new("sudo")
             .args(["-n", "true"])
             .output()
@@ -5132,6 +5148,7 @@ async fn download_and_apply_de_update(
         let stage_sha = computed_sha256.to_lowercase();
         let stage_status = Command::new("sudo")
             .args([
+                "-n",
                 helper_str.as_str(),
                 "--stage",
                 stage_src.as_str(),
@@ -5184,7 +5201,7 @@ async fn download_and_apply_de_update(
         }
 
         let install_status = if helper_path.exists() {
-            Command::new("sudo").args(&helper_args).status()
+            Command::new("sudo").arg("-n").args(&helper_args).status()
         } else {
             return Err("Güvenlik İlkesi İhlali: /usr/local/bin/ayaz-update-helper bulunamadı. Güncelleme yalnızca doğrulanmış yardımcı üzerinden kurulabilir.".to_string());
         };

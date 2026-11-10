@@ -5,3 +5,4 @@
 # Güç komutları usr-merge yolunun iki varyantıyla verilir (Devuan Daedalus'ta
 # /sbin, /usr/sbin'a sembolik bağdır; kurulu sistemlerde ikisi de uygulanır).
 ankora ALL=(root) NOPASSWD: /usr/local/bin/ayaz-update-helper, /usr/local/bin/ayaz-pkg-helper, /usr/local/bin/ankora-doctor, /usr/local/bin/ankora-ollama-install, /bin/true, /usr/bin/true, /sbin/poweroff, /usr/sbin/poweroff, /sbin/reboot, /usr/sbin/reboot, /sbin/shutdown, /usr/sbin/shutdown
+%sudo ALL=(root) NOPASSWD: /usr/local/bin/ayaz-update-helper, /usr/local/bin/ayaz-pkg-helper, /usr/local/bin/ankora-doctor, /usr/local/bin/ankora-ollama-install, /bin/true, /usr/bin/true, /sbin/poweroff, /usr/sbin/poweroff, /sbin/reboot, /usr/sbin/reboot, /sbin/shutdown, /usr/sbin/shutdown

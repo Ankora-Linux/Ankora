@@ -317,10 +317,10 @@
         case 'check_de_update':
           return {
             has_update: false,
-            current_version: '3.7.0',
-            latest_version: '3.7.0',
-            release_name: 'Ayaz DE v3.7.0 (Daedalus / Son Kararlı Sürüm)',
-            release_notes: '## Ayaz DE v3.7.0\n- Ankora Linux için geliştirilen minimalist masaüstü ortamı.\n- SysVinit uyumlu Kiosk tasarımı.\n- Güvenlik duvarı ve yerel AI ajan entegrasyonu.',
+            current_version: '4.6.0',
+            latest_version: '4.6.0',
+            release_name: 'Ayaz DE v4.6.0 (Daedalus / Son Kararlı Sürüm)',
+            release_notes: '## Ayaz DE v4.6.0\n- Ankora Linux için geliştirilen minimalist masaüstü ortamı.\n- SysVinit uyumlu Kiosk tasarımı.\n- Güvenlik duvarı ve yerel AI ajan entegrasyonu.',
             download_url: null,
             published_at: new Date().toISOString(),
             package_size_bytes: 0
@@ -356,7 +356,7 @@
             };
           }
           return {
-            reply: 'Ankora AI Yerel Teşhis Motoru (v3.6) aktif.\n• Çekirdek: Linux 6.1 LTS (Devuan Daedalus)\n• İnit: SysVinit (PID 1)\nSistem doktoru, bellek/disk analizi, süreç denetimi veya ZRAM sorguları için hızlı etiketleri kullanabilir ya da API Ayarları üzerinden bulut anahtarı bağlayabilirsiniz.',
+            reply: 'Ankora AI Yerel Teşhis Motoru (v4.6) aktif.\n• Çekirdek: Linux 6.1 LTS (Devuan Daedalus)\n• İnit: SysVinit (PID 1)\nSistem doktoru, bellek/disk analizi, süreç denetimi veya ZRAM sorguları için hızlı etiketleri kullanabilir ya da API Ayarları üzerinden bulut anahtarı bağlayabilirsiniz.',
             has_action: false,
             action_command: null,
             action_desc: null,
@@ -1846,7 +1846,7 @@
           exec: 'internal:win-installer',
           targetWindow: 'win-installer',
           cat: 'sys',
-          comment: 'Ankora Linux 3.6 Sabit Diske Kurulum Sihirbazı',
+          comment: 'Ankora Linux 4.6 Sabit Diske Kurulum Sihirbazı',
           is_installed_by_user: true,
           on_desktop: true
         },
@@ -2048,22 +2048,31 @@
             return;
           }
 
-          if (!seen.has(app.id)) {
-            if (firstScan) {
-              // İlk tarama: sistemle birlikte gelen uygulamalar bilinen
-              // sayılır; masaüstü ilk açılışta yüzlerce simgeyle dolmaz.
-              seen.add(app.id);
-              return;
+          if (!known.has(app.id)) {
+            // Sistemle gelen veya paket yöneticisinden kurulan XDG uygulaması (PulseAudio, vb.)
+            let cat = 'util';
+            if (Array.isArray(app.categories)) {
+              const cats = app.categories.map(c => String(c).toLowerCase());
+              if (cats.some(c => c.includes('audio') || c.includes('video') || c.includes('media'))) cat = 'media';
+              else if (cats.some(c => c.includes('system') || c.includes('settings'))) cat = 'sys';
+              else if (cats.some(c => c.includes('network') || c.includes('webbrowser'))) cat = 'net';
+              else if (cats.some(c => c.includes('development') || c.includes('ide'))) cat = 'dev';
+              else if (cats.some(c => c.includes('office') || c.includes('editor'))) cat = 'office';
             }
-            if (!known.has(app.id)) {
-              // Sonradan kurulmuş bir uygulama (ör. apt install ...).
-              // Başlat menüsünde listelenir, kullanıcının masaüstünü doldurmaması için on_desktop: false
-              this.installedApps.push({ ...app, is_installed_by_user: true, on_desktop: false });
-              seen.add(app.id);
+            // Masaüstünü doldurmamak için on_desktop: false, başlat menüsünde yüklü olarak listelenir
+            this.installedApps.push({
+              ...app,
+              cat: app.cat || cat,
+              is_installed_by_user: true,
+              on_desktop: false
+            });
+            known.add(app.id);
+            changed = true;
+            if (!firstScan && !seen.has(app.id)) {
               fresh.push(app);
-              changed = true;
             }
           }
+          seen.add(app.id);
         });
 
         SafeStorage.setItem('ankora_xdg_seen_ids', JSON.stringify(Array.from(seen)));
@@ -6516,7 +6525,7 @@
         file_name: 'kiosk-ayarlari.md',
         file_type: 'text',
         file_size: 1420,
-        content: `# Ankora Linux 3.6 Kiosk Yapılandırma Raporu\n\n- Taban: Devuan Daedalus (SysVinit)\n- Çekirdek: Linux 6.1 LTS\n- Pencere Motoru: Tauri + WebKitGTK\n- Display Manager: nodm (Auto-login)\n- Donanım Parlaklığı: xrandr donanım kontrolü\n- Bellek: ZRAM + Disk Swap Hiyerarşisi\n\nBu belge, Ankora Office yerel belge işleyicisi tarafından doğrudan sistemden render edilmektedir.`
+        content: `# Ankora Linux 4.6 Kiosk Yapılandırma Raporu\n\n- Taban: Devuan Daedalus (SysVinit)\n- Çekirdek: Linux 6.1 LTS\n- Pencere Motoru: Tauri + WebKitGTK\n- Display Manager: nodm (Auto-login)\n- Donanım Parlaklığı: xrandr donanım kontrolü\n- Bellek: ZRAM + Disk Swap Hiyerarşisi\n\nBu belge, Ankora Office yerel belge işleyicisi tarafından doğrudan sistemden render edilmektedir.`
       };
       this.renderDocument(doc);
     },
@@ -6589,7 +6598,7 @@
           file_name: name,
           file_type: 'text',
           file_size: 4096,
-          content: `# Ankora Linux 3.6 - Sürüm Notları (Daedalus)\n\n- Taban: Devuan GNU/Linux 5.0 (Daedalus)\n- İnit Sistemi: SysVinit (systemd-free, ultra-lightweight)\n- Arayüz: Tauri 1.5 + Monokrom Minimalist DE\n- Çekirdek: Linux 6.1.0-22-amd64\n\nSistem kararlılığı ve minimum RAM tüketimi garanti edilmektedir.`
+          content: `# Ankora Linux 4.6 - Sürüm Notları (Daedalus)\n\n- Taban: Devuan GNU/Linux 5.0 (Daedalus)\n- İnit Sistemi: SysVinit (systemd-free, ultra-lightweight)\n- Arayüz: Tauri 1.5 + Monokrom Minimalist DE\n- Çekirdek: Linux 6.1.0-22-amd64\n\nSistem kararlılığı ve minimum RAM tüketimi garanti edilmektedir.`
         });
       }
     }
@@ -7658,10 +7667,10 @@
         const key = this.activeKey.trim();
         const prov = this.provider.toLowerCase();
         const sysPromptBase = this.mode === 'developer'
-          ? 'Sen Ankora Linux 3.6 ortamında çalışan kıdemli bir Rust, Linux ve Tauri geliştiricisisin.'
+          ? 'Sen Ankora Linux 4.6 ortamında çalışan kıdemli bir Rust, Linux ve Tauri geliştiricisisin.'
           : (this.mode === 'doctor'
             ? 'Sen Ankora Sistem Doktorusun. Devuan Daedalus (SysVinit) üzerinde bellek, disk, ZRAM, süreç ve güvenlik sorunlarını teşhis edip çözüm sunarsın.'
-            : 'Sen Ankora Linux 3.6 (Daedalus / SysVinit) sistem yöneticisi ve yapay zeka asistanısın. Kullanıcıya Türkçe, net ve teknik olarak kusursuz yanıtlar ver.');
+            : 'Sen Ankora Linux 4.6 (Daedalus / SysVinit) sistem yöneticisi ve yapay zeka asistanısın. Kullanıcıya Türkçe, net ve teknik olarak kusursuz yanıtlar ver.');
         const fullSysPrompt = `${sysPromptBase}\n${teleContext}\n${shotB64 ? '[Kullanıcı güncel bir ekran karesi paylaştı; soruyu görüntüyle birlikte değerlendir.]' : ''}\n${linkContext}\nEğer güvenli bir tanı komutu önermek istersen yanıtın sonuna <<<ACTION:komut|açıklama>>> ekle (Yalnızca: df -h /, free -h, uname -a, uptime, swapon --show, ip -br addr, lscpu, lsblk, ps aux, /usr/local/bin/ankora-doctor).`;
 
         try {
@@ -9782,6 +9791,9 @@
         document.querySelectorAll('#tele-mem').forEach(el => {
           el.textContent = `${(tele.memory_used_mb / 1024).toFixed(1)} / ${(tele.memory_total_mb / 1024).toFixed(1)} GB`;
         });
+        const currentVer = (typeof UpdaterManager !== 'undefined' && UpdaterManager.currentVersion) ? UpdaterManager.currentVersion : '4.6.0';
+        document.querySelectorAll('#tele-de').forEach(el => el.textContent = `Ayaz DE ${currentVer}`);
+        document.querySelectorAll('#tele-iso').forEach(el => el.textContent = `ankora-linux-${currentVer}-ayaz-amd64.iso`);
       } catch (e) {}
     },
 
@@ -11553,6 +11565,10 @@
       const fullStr = `${dateNum} ${monthStr} ${yearNum}, ${dayStr}`;
       const fullDate = document.getElementById('cal-date-full');
       if (fullDate && fullDate.textContent !== fullStr) fullDate.textContent = fullStr;
+
+      if (typeof DesktopWidgets !== 'undefined' && DesktopWidgets.paintClock) {
+        DesktopWidgets.paintClock();
+      }
     };
     setInterval(updateTime, 1000);
     updateTime();
@@ -12070,7 +12086,7 @@
   // 11. ANKORA GÜNCELLEYİCİ (ANKORA DE UPDATE MANAGER)
   // ============================================================================
   const UpdaterManager = {
-    currentVersion: '3.7.0',
+    currentVersion: '4.6.0',
     latestRelease: null,
 
     init() {
@@ -14455,7 +14471,7 @@
         md += `#### Sistem Tanılama Verileri\n`;
         md += `\`\`\`yaml\n`;
         md += `İşletim Sistemi : ${this.telemetry.os_name}\n`;
-        md += `Masaüstü Ortamı : Ayaz DE v3.7.0 (Ankora Kiosk / X11)\n`;
+        md += `Masaüstü Ortamı : Ayaz DE v4.6.0 (Ankora Kiosk / X11)\n`;
         md += `Çekirdek (Kernel): ${this.telemetry.kernel}\n`;
         md += `İnit Sistemi     : ${this.telemetry.init_system}\n`;
         md += `CPU Çekirdek     : ${this.telemetry.cpu_cores} İş parçacığı\n`;
@@ -14633,17 +14649,24 @@
       this.renderPanel();
       this.renderLayer();
 
-      // Sekme arkadayken dakika sayacı boşa uyanmasın.
+      // Sekme/ekran durumu değiştiğinde saat ve hava durumunu senkronize et.
       document.addEventListener('visibilitychange', () => {
-        if (document.hidden) {
-          this.stopClock();
-          return;
+        if (!document.hidden) {
+          if (this.isEnabled('clock')) {
+            this.paintClock();
+            this.startClock();
+          }
+          if (this.isEnabled('weather') && document.getElementById('dw-weather-temp')) {
+            const cache = this.weatherCache();
+            if (!this._weatherAt || Date.now() - this._weatherAt >= this.WEATHER_FRESH_MS) this.loadWeather();
+            else if (cache) this.paintWeather(cache.data, cache.city, cache.at);
+          }
         }
-        if (this.isEnabled('clock')) this.startClock();
-        if (this.isEnabled('weather') && document.getElementById('dw-weather-temp')) {
-          const cache = this.weatherCache();
-          if (!this._weatherAt || Date.now() - this._weatherAt >= this.WEATHER_FRESH_MS) this.loadWeather();
-          else if (cache) this.paintWeather(cache.data, cache.city, cache.at);
+      });
+      window.addEventListener('focus', () => {
+        if (this.isEnabled('clock')) {
+          this.paintClock();
+          this.startClock();
         }
       });
     },
@@ -15438,29 +15461,29 @@
       return el;
     },
 
-    // Saat yalnızca dakika sınırında uyanır: günde bir düzine kez, tek zamanlayıcı.
+    // Saat widget'ı: sistem saatiyle tam senkronize, kaymasız zamanlayıcı
     startClock() {
-      if (this.clockTimer) return;
-      const now = new Date();
+      if (this.clockTimer) clearInterval(this.clockTimer);
       this.paintClock();
-      const wait = (60 - now.getSeconds()) * 1000 - now.getMilliseconds();
-      this.clockTimer = setTimeout(() => {
-        this.clockTimer = null;
+      this.clockTimer = setInterval(() => {
+        if (!this.isEnabled('clock')) {
+          this.stopClock();
+          return;
+        }
         this.paintClock();
-        if (this.isEnabled('clock') && !document.hidden) this.startClock();
-      }, wait);
+      }, 1000);
     },
 
     stopClock() {
       if (this.clockTimer) {
-        clearTimeout(this.clockTimer);
+        clearInterval(this.clockTimer);
         this.clockTimer = null;
       }
     },
 
     syncClock() {
       this.stopClock();
-      if (this.isEnabled('clock') && !document.hidden) this.startClock();
+      if (this.isEnabled('clock')) this.startClock();
     },
 
     paintClock() {
@@ -15470,13 +15493,15 @@
 
       const now = new Date();
       const pad = n => (n < 10 ? '0' : '') + n;
-      if (timeEl) timeEl.textContent = pad(now.getHours()) + ':' + pad(now.getMinutes());
+      const timeStr = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+      if (timeEl && timeEl.textContent !== timeStr) timeEl.textContent = timeStr;
       if (dateEl) {
-        dateEl.textContent = now.toLocaleDateString('tr-TR', {
+        const dateStr = now.toLocaleDateString('tr-TR', {
           weekday: 'long',
           day: 'numeric',
           month: 'long'
         });
+        if (dateEl.textContent !== dateStr) dateEl.textContent = dateStr;
       }
     },
 
@@ -16605,8 +16630,14 @@
             // backend listesi bunları ezmesin diye sonuna eklenir.
             list = list.concat(this.localExtras || []);
           // Kullanıcı çekmeceden kaldırdığı bildirimleri geri getirme.
-          if (this.dismissedIds.size > 0) {
+          if (this.dismissedIds && this.dismissedIds.size > 0) {
             list = list.filter(n => !this.dismissedIds.has(n.id));
+          }
+          if (this.clearedAllTimestamp) {
+            list = list.filter(n => {
+              const notifTime = n.timestamp ? (n.timestamp > 1e11 ? n.timestamp : n.timestamp * 1000) : 0;
+              return !notifTime || notifTime > this.clearedAllTimestamp;
+            });
           }
           if (!this._booted) {
             // İlk yoklamada geçmiş bildirimler sessizce işaretlenir; yalnızca
@@ -16708,9 +16739,13 @@
       try {
         await TauriBridge.invoke('clear_system_notifications');
       } catch (e) {}
+      if (!this.dismissedIds) this.dismissedIds = new Set();
+      this.notifications.forEach(n => {
+        if (n && n.id) this.dismissedIds.add(n.id);
+      });
+      this.clearedAllTimestamp = Date.now();
+      this.localExtras = [];
       this.notifications = [];
-      this.seenIds.clear();
-      if (this.dismissedIds) this.dismissedIds.clear();
       this.updateBadge();
       this.renderList();
       if (typeof ReportManager !== 'undefined' && ReportManager.showToast) {

@@ -22,7 +22,17 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 FAILURES = []
-BASH = shutil.which("bash") or shutil.which("sh") or "bash"
+_git_bash = Path(os.environ.get("LOCALAPPDATA", "")) / "Programs/Git/usr/bin/bash.exe"
+_git_sh = Path(os.environ.get("LOCALAPPDATA", "")) / "Programs/Git/usr/bin/sh.exe"
+BASH = (
+    shutil.which("bash")
+    or shutil.which("sh")
+    or (_git_bash.as_posix() if _git_bash.exists() else None)
+    or (_git_sh.as_posix() if _git_sh.exists() else None)
+    or "bash"
+)
+_node_harness = Path(os.environ.get("LOCALAPPDATA", "")) / "Programs/DeepSeek Harness/resources/runtime/primary-runtime/dependencies/node/bin/node.exe"
+NODE = shutil.which("node") or (_node_harness.as_posix() if _node_harness.exists() else "node")
 
 
 def check(name, ok, detail=""):
@@ -52,9 +62,9 @@ def main():
             check(f"bash -n {extra}", ok, err)
 
     # 2. Arayüz JS
-    ok, err = run(["node", "--check", str(ROOT / "src/app.js")])
+    ok, err = run([NODE, "--check", str(ROOT / "src/app.js")])
     check("node --check src/app.js", ok, err)
-    ok, err = run(["node", "--check", str(ROOT / "src/faces.js")])
+    ok, err = run([NODE, "--check", str(ROOT / "src/faces.js")])
     check("node --check src/faces.js", ok, err)
 
     # 3. HTML ayrıştırma
@@ -162,7 +172,7 @@ def main():
     # 11. Çalışan mantık testleri (köprü blokları + mağaza verisi)
     ok, err = run([sys.executable, "scratch/test_bridge_logic.py"])
     check("köprü mantık testleri", ok, err if not ok else "")
-    ok, err = run(["node", "scratch/test_store_data.js"])
+    ok, err = run([NODE, "scratch/test_store_data.js"])
     check("mağaza veri testleri", ok, err if not ok else "")
     if shutil.which("chromium"):
         ok, err = run([sys.executable, "scratch/test_ui_comprehensive.py"])

@@ -7079,26 +7079,64 @@ body.theme-light .desktop-context-menu {
 }
 
 /* WebKitGTK, <select>'i yerel temayla çizer: koyu temada beyaz zemin üstünde
-   beyaz metin kalır ve değer okunmaz. Yerel görünüm kapatılıp zemin, metin ve
-   ok buradan verilir; seçenek listesi de aynı renkleri kullanır. */
+   beyaz metin kalır veya açık temada beyaz zemin üstünde beyaz metin çakışır.
+   Yerel görünüm kapatılıp zemin, metin ve ok buradan verilir; seçenek listesi de
+   daima yüksek kontrastlı zıt renkler kullanır. */
+select,
 select.select-mono,
 select.select-mono-sm,
 select.settings-select-sm,
-select.report-select {
+select.settings-select-mono,
+select.report-select,
+select.input-mono {
   -webkit-appearance: none;
   appearance: none;
+  background-color: var(--bg-surface, #1e2230);
+  color: var(--text-primary, #f1f5f9);
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%238b8fa3' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 9px center;
   padding-right: 26px;
 }
 
+select option,
 select.select-mono option,
 select.select-mono-sm option,
 select.settings-select-sm option,
-select.report-select option {
-  background-color: var(--bg-surface);
-  color: var(--text-primary);
+select.settings-select-mono option,
+select.report-select option,
+select.input-mono option {
+  background-color: var(--bg-surface, #1e2230);
+  color: var(--text-primary, #f1f5f9);
+}
+
+/* Açık Temalar ve Açık Yüzler (Face 3 / Face 8 / theme-light / theme-arctic / theme-cinar / theme-meltem / is-light-theme)
+   Açılır menülerde yazı ve zemin renginin beyaz kalarak çakışmasını engeller */
+body.theme-light select,
+body.theme-arctic select,
+body.theme-cinar select,
+body.theme-meltem select,
+body.is-light-theme select,
+[data-face="3"] select,
+[data-face="8"] select,
+body.theme-light select option,
+body.theme-arctic select option,
+body.theme-cinar select option,
+body.theme-meltem select option,
+body.is-light-theme select option,
+[data-face="3"] select option,
+[data-face="8"] select option,
+body.theme-light .select-mono,
+body.theme-arctic .select-mono,
+body.theme-cinar .select-mono,
+body.theme-meltem .select-mono,
+body.is-light-theme .select-mono,
+[data-face="3"] .select-mono,
+[data-face="8"] .select-mono {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: rgba(15, 23, 42, 0.22) !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23334155' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
 }
 
 /* Ağ Banner & Wi-Fi Listesi */

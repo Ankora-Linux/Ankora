@@ -1,7 +1,28 @@
 # Ankora Linux — Sürüm Notları
 
 
-## Yayınlanmamış (main)
+## 4.6.0 (2026-11-10)
+
+### Sürüm ve Sistem Bilgisi Güncellemesi
+- **4.6.0 Taban Sürümü**: Sistem sürümü resmi olarak 4.6.0'a yükseltildi. Ayarlar, Telemetri, Terminal, Kiosk raporları ve Hakkında pencerelerindeki eski 3.6 ve 3.7 sabit metinleri temizlendi. Canlı telemetri motoru dinamik olarak `/etc/os-release` ve `UpdaterManager` sürümünü yansıtır.
+
+### Uygulama Menüsü ve XDG Entegrasyonu
+- **Sistem Uygulamaları Menü Görünürlüğü (PulseAudio vb.)**: İlk taramadaki filtre mantığı düzeltildi; PulseAudio Ses Denetimi (pavucontrol), GParted ve önceden kurulu gelen tüm geçerli XDG uygulamaları Başlat Menüsündeki yüklü uygulamalar listesine ve arama motoruna dahil edildi. Masaüstü temizliği (`on_desktop: false`) korunurken menü erişimi eksiksiz hale getirildi.
+
+### Tema ve Arayüz Kontrastı
+- **Açılır Menü (Select/Dropdown) Renk Çakışması Giderildi**: Açık temalarda (Açık, Kutup, Çınar, Meltem, Yüz 3 Bostan, Yüz 8 Cıvata) açılır menü ve seçeneklerin beyaz arka plan üstünde beyaz kalarak okunamaz hale gelmesi engellendi; evrensel yüksek kontrastlı zıt renk kuralları tanımlandı. Ses giriş ve çıkış aygıtı seçicilerindeki satır içi beyaz renk zorlaması kaldırıldı.
+
+### Bildirim Merkezi
+- **Tümünü Temizle Kararlılığı**: Bildirim merkezinde "Tümünü Temizle" tıklandığında son temizlenen bildirimlerin arka plan yoklamasında yeniden ekrana gelmesi sorunu giderildi; silinen bildirim kimlikleri ve temizleme zaman damgası korunarak yalnızca yeni gelen sistem bildirimlerinin listelenmesi sağlandı.
+
+### Paket Yöneticisi ve Ayaz Güncelleyici
+- **Güvenlik İlkesi ve Root Yetkisi İyileştirmeleri**: Sudoers yapılandırmasına `%sudo` grubu NOPASSWD erişimi eklendi; farklı kullanıcı adlarıyla yapılan kurulumlarda şifresiz güncelleme ve bakım yardımcılarının çalışması garanti altına alındı.
+- **Ayaz Güncelleyici Staging ve Sudo Entegrasyonu**: Rust backend'indeki güncelleme çağrısına `-n` ve `--stage` adımları entegre edildi, `/bin/true` ve `/usr/bin/true` üzerinden tam yollu sudo kontrolü sağlandı.
+
+### Masaüstü Widget Saat Uygulamacığı
+- **Takılmayan Senkronize Saat**: Masaüstü saat widget'ı tek seferlik gecikmeli zamanlayıcı yerine saniyelik kaymasız döngüye ve görev çubuğu saatiyle doğrudan senkronizasyona bağlandı. Sekme/ekran odak değişimlerinde anlık uyanma sağlandı, saat takılması sorunu çözüldü.
+
+## Yayınlanmamış (Önceki İyileştirmeler)
 
 ### Arayüz, Dock ve Harici X11 Pencere Entegrasyonu
 - **Yüz 8 (Cıvata) ve Yüz 3 (Bostan) Masaüstü Izgarası**: `XdgDesktopEngine._gridSize()` artık `getBoundingClientRect()` ile gerçek kullanılabilir yüksekliği hesaplar; Yüz 8'de üst saat/hava kartı nedeniyle oluşan dikey simge taşması giderildi. Yüz 3 ve Yüz 8 açık zeminlerinde masaüstü SVG/IMG simgeleri koyu mürekkep konturu (`#26321f` / `#161309`) ile çizilir.

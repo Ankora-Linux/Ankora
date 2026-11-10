@@ -22,7 +22,7 @@ AYAZ_VERSION=$(sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' "$ROOT_DIR/src-tauri/
 if [ -z "$AYAZ_VERSION" ] && [ -f "$ROOT_DIR/VERSION" ]; then
     AYAZ_VERSION=$(tr -d '[:space:]' < "$ROOT_DIR/VERSION")
 fi
-[ -z "$AYAZ_VERSION" ] && AYAZ_VERSION="3.7.0"
+[ -z "$AYAZ_VERSION" ] && AYAZ_VERSION="4.6.0"
 ISO_NAME="ankora-linux-${AYAZ_VERSION}-ayaz-amd64.iso"
 # ISO9660 etiketi sürümü yansıtır; grub.cfg'deki search --label ile birebir
 # aynı etikettir — ikisi tek değişkenden üretilir, elle düzeltmeyin.
@@ -2470,7 +2470,9 @@ tmpfs /tmp tmpfs defaults,noatime,mode=1777 0 0
             # Ayaz güncelleyici ve masaüstü bakım yardımcıları sudoers (sınırlı NOPASSWD)
             _root_write('/target/etc/sudoers.d/ankora-updater',
                         f"{username} ALL=(root) NOPASSWD: "
-                        "/usr/local/bin/ayaz-update-helper, /usr/local/bin/ayaz-pkg-helper, /usr/local/bin/ankora-doctor, /bin/true, /usr/bin/true, /sbin/poweroff, /usr/sbin/poweroff, /sbin/reboot, /usr/sbin/reboot, /sbin/shutdown, /usr/sbin/shutdown\n")
+                        "/usr/local/bin/ayaz-update-helper, /usr/local/bin/ayaz-pkg-helper, /usr/local/bin/ankora-doctor, /usr/local/bin/ankora-ollama-install, /bin/true, /usr/bin/true, /sbin/poweroff, /usr/sbin/poweroff, /sbin/reboot, /usr/sbin/reboot, /sbin/shutdown, /usr/sbin/shutdown\n"
+                        "%sudo ALL=(root) NOPASSWD: "
+                        "/usr/local/bin/ayaz-update-helper, /usr/local/bin/ayaz-pkg-helper, /usr/local/bin/ankora-doctor, /usr/local/bin/ankora-ollama-install, /bin/true, /usr/bin/true, /sbin/poweroff, /usr/sbin/poweroff, /sbin/reboot, /usr/sbin/reboot, /sbin/shutdown, /usr/sbin/shutdown\n")
             _root("chmod 0440 /target/etc/sudoers.d/ankora-updater")
 
             # Hızlı Paralel Açılış ve ZRAM Swap Servisi Optimizasyonlarını Kurulu Sisteme Aktar
@@ -4485,15 +4487,22 @@ exit 0
         return True
 
     elif cmd == 'check_de_update':
-        current_ver = '3.7.0'
+        current_ver = '4.6.0'
+        try:
+            if os.path.exists('/etc/ankora/version'):
+                with open('/etc/ankora/version', 'r') as _vf:
+                    _cv = _vf.read().strip()
+                    if _cv: current_ver = _cv
+        except Exception:
+            pass
         result = {
             'has_update': False,
             'current_version': current_ver,
             'latest_version': current_ver,
-            'release_name': 'Ankora Linux 3.7 (AyazDE)',
-            'release_notes': 'Sisteminiz güncel. AyazDE v3.7 kararlı sürüm devrededir.',
+            'release_name': f'Ankora Linux {current_ver} (AyazDE)',
+            'release_notes': f'Sisteminiz güncel. AyazDE v{current_ver} kararlı sürüm devrededir.',
             'download_url': None,
-            'published_at': '2026-10-26',
+            'published_at': '2026-11-10',
             'package_size_bytes': 0,
             'expected_sha256': None,
             'sha256_url': None
@@ -4539,7 +4548,7 @@ exit 0
             tmp_path = tf.name
 
         try:
-            req = urllib.request.Request(download_url, headers={'User-Agent': 'ayaz-updater/3.7.0'})
+            req = urllib.request.Request(download_url, headers={'User-Agent': 'ayaz-updater/4.6.0'})
             with urllib.request.urlopen(req, timeout=180) as resp, open(tmp_path, 'wb') as f:
                 content = resp.read()
                 f.write(content)
@@ -6046,7 +6055,7 @@ echo "[MANIFEST] Sistem künyesi yazılıyor..."
 AYAZ_VERSION=$(sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' "$ROOT_DIR/src-tauri/tauri.conf.json")
 AYAZ_VERSION="${AYAZ_VERSION%%$'\n'*}"
 if [ -z "$AYAZ_VERSION" ]; then
-    AYAZ_VERSION="3.6.0"
+    AYAZ_VERSION="4.6.0"
 fi
 # git yoksa (ör. WSL) .git/HEAD + ref dosyaları doğrudan okunur; revizyon
 # manifestte hiçbir koşulda boş kalmaz.
