@@ -18,6 +18,14 @@ export GDK_BACKEND=x11
 export WEBKIT_DISABLE_DMABUF_RENDERER=1
 export WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS=1
 
+# Düşük RAM optimizasyonları (800 MB -> 450 MB hedefi)
+# Glibc thread arena kısıtlaması: WebKit thread patlamasını ve bellek şişmesini önler
+export MALLOC_ARENA_MAX=2
+# WebKitGTK önbellek modelini masaüstü/kiosk için hafif tutar
+export WEBKIT_CACHE_MODEL=DOCUMENT_VIEWER
+# Glib dilim ayırıcısının boşa çıkan belleği OS'a hemen iade etmesini sağlar
+export G_SLICE=always-malloc
+
 # Sanal makine (VirtualBox, QEMU, KVM, VMware) tespiti:
 # Sanal GPU'larda (VMSVGA/QXL) DRI çökmelerini önlemek için yazılımsal render (llvmpipe) devreye alınır;
 # Fiziksel donanımlarda (Intel/AMD/Nvidia) tam GPU hızlandırması korunur.
@@ -121,15 +129,9 @@ if command -v openbox >/dev/null 2>&1; then
     fi
 fi
 
-# Ses sunucusunu kullanıcı oturumunda başlat
+# Ses sunucusunu kullanıcı oturumunda başlat (30 sn boşta kalınca uyku modu)
 if command -v pulseaudio >/dev/null 2>&1; then
-    # Arka planda: ses sunucusu takılırsa oturum başlatma onu beklemez.
-    pulseaudio --start --exit-idle-time=-1 >/dev/null 2>&1 &
-fi
-
-# Bildirim sunucusunu arka planda başlat
-if command -v dunst >/dev/null 2>&1; then
-    dunst &
+    pulseaudio --start --exit-idle-time=30 >/dev/null 2>&1 &
 fi
 
 # Polkit Grafiksel Yetkilendirme Ajanı (GParted, Synaptic vb. root araçları için)

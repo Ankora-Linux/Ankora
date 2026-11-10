@@ -833,11 +833,11 @@ VERBOSE=no
 FSCKFIX=no
 RCS_CONF
 
-# Kernel ZRAM bellek optimizasyonları
+# Kernel ZRAM bellek optimizasyonları (Ultra-Low RAM hedefi)
 mkdir -p /etc/sysctl.d
 cat << 'SYSCTL_ZRAM' > /etc/sysctl.d/99-zram.conf
 vm.swappiness = 100
-vm.vfs_cache_pressure = 50
+vm.vfs_cache_pressure = 150
 vm.watermark_boost_factor = 0
 vm.dirty_background_ratio = 5
 vm.dirty_ratio = 10
@@ -2479,7 +2479,7 @@ tmpfs /tmp tmpfs defaults,noatime,mode=1777 0 0
             _root_write('/target/etc/default/rcS',
                         "# Ankora Linux 3.5 Hızlı Paralel Açılış\nCONCURRENCY=makefile\nUTC=yes\nVERBOSE=no\nFSCKFIX=no\n")
             _root_write('/target/etc/sysctl.d/99-zram.conf',
-                        "vm.swappiness = 100\nvm.vfs_cache_pressure = 50\nvm.watermark_boost_factor = 0\nvm.dirty_background_ratio = 5\nvm.dirty_ratio = 10\n")
+                        "vm.swappiness = 100\nvm.vfs_cache_pressure = 150\nvm.watermark_boost_factor = 0\nvm.dirty_background_ratio = 5\nvm.dirty_ratio = 10\n")
             zram_target_script = """#!/bin/sh
 ### BEGIN INIT INFO
 # Provides:          zram-swap
