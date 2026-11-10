@@ -170,6 +170,7 @@
 }
 
 [data-face="8"] #face-top-panel,
+[data-face="8"] #face-bottom-dock,
 [data-face="8"] #face-desk-hero {
   display: flex;
 }
@@ -527,7 +528,8 @@
 [data-face="3"] .desktop-grid {
   left: 26px !important;
   top: 56px !important;
-  width: 90px !important;
+  right: 380px !important;
+  bottom: 84px !important;
 }
 
 [data-face="3"] .desktop-item .item-icon {
@@ -719,30 +721,31 @@
 [data-face="8"] #face-desk-hero {
   position: absolute;
   left: 32px;
-  top: 80px;
+  top: 48px;
   width: 420px;
   z-index: 5;
   display: flex;
   flex-direction: column;
+  pointer-events: none;
 }
 
 [data-face="8"] .civata-hero-time {
-  font: 700 120px/0.9 var(--font-disp);
+  font: 700 100px/0.9 var(--font-disp);
   letter-spacing: -4px;
   color: #161309;
 }
 
 [data-face="8"] .civata-hero-time small {
   display: block;
-  font: 500 22px var(--font-sans);
+  font: 500 20px var(--font-sans);
   letter-spacing: 0;
-  margin-top: 12px;
+  margin-top: 8px;
   color: #77745f;
 }
 
 [data-face="8"] .civata-hero-weather {
-  margin-top: 20px;
-  font: 500 15px var(--font-sans);
+  margin-top: 12px;
+  font: 500 14.5px var(--font-sans);
   color: #161309;
 }
 
@@ -756,7 +759,143 @@
 /* Yüz 8 Masaüstü Simgeleri */
 [data-face="8"] .desktop-grid {
   left: 32px !important;
-  top: 360px !important;
+  top: 252px !important;
+  right: 32px !important;
+  bottom: 78px !important;
+}
+
+/* Yüz 8 Alt Teknik Dock & Üst Sekme Şeridi */
+[data-face="8"] #face-bottom-dock {
+  position: absolute;
+  left: 50%;
+  bottom: 14px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fcfcf9;
+  border: 2px solid #161309;
+  border-radius: 12px;
+  padding: 6px 8px;
+  box-shadow: 0 6px 0 #161309;
+  z-index: 100;
+}
+
+[data-face="8"] .face-dock-app {
+  width: 42px;
+  height: 42px;
+  border-radius: 8px;
+  background: #f4f2e6;
+  border: 1.5px solid #161309;
+  display: grid;
+  place-items: center;
+  position: relative;
+  cursor: pointer;
+  color: #161309;
+  transition: color 0.14s ease, background-color 0.14s ease, border-color 0.14s ease, transform 0.14s ease;
+}
+
+[data-face="8"] .face-dock-app:hover {
+  background: #e6f4a3;
+  transform: translateY(-2px);
+}
+
+[data-face="8"] .face-dock-app.running {
+  background: #e6f4a3;
+  color: #161309;
+}
+
+[data-face="8"] .face-dock-app.active {
+  background: #161309;
+  color: #c7e42b;
+}
+
+[data-face="8"] .face-dock-app svg {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.8;
+}
+
+[data-face="8"] .face-dock-app img,
+[data-face="8"] .face-dock-app .real-app-icon {
+  width: 20px;
+  height: 20px;
+  max-width: 20px;
+  max-height: 20px;
+  object-fit: contain;
+}
+
+[data-face="8"] .civata-running-tabs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  max-width: 48vw;
+  scrollbar-width: none;
+}
+
+[data-face="8"] .civata-tab-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  padding: 0 9px;
+  border-radius: 5px;
+  border: 1px solid rgba(244, 242, 230, 0.24);
+  background: rgba(244, 242, 230, 0.08);
+  color: #f4f2e6;
+  font: 600 11px var(--font-sans);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.12s ease, background-color 0.12s ease, border-color 0.12s ease;
+}
+
+[data-face="8"] .civata-tab-pill:hover {
+  border-color: #c7e42b;
+  color: #c7e42b;
+}
+
+[data-face="8"] .civata-tab-pill.active {
+  background: #c7e42b;
+  border-color: #c7e42b;
+  color: #161309;
+}
+
+/* Yüz 2, 3 ve 8 ortak dinamik dock ayracı ve harici uygulama rozeti */
+.face-dock-sep {
+  width: 1px;
+  height: 28px;
+  align-self: center;
+  margin: 0 2px;
+  background: rgba(128, 128, 128, 0.28);
+}
+
+[data-face="2"] .face-dock-sep {
+  background: #2e3138;
+}
+
+[data-face="3"] .face-dock-sep {
+  background: #d7dfc2;
+}
+
+[data-face="8"] .face-dock-sep {
+  width: 2px;
+  background: #161309;
+}
+
+.face-dock-app .face-dock-letter {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+[data-face="2"] .face-dock-app.active {
+  background: #2e3138;
+  border-color: #d1794f;
+  color: #f7ede4;
 }
 
 [data-face="8"] .desktop-item .item-icon {
@@ -861,6 +1000,34 @@ html[data-iconset] .desktop-item .item-icon svg {
   transform: scale(1.12) !important;
 }
 
+/* Açık zeminli yüzlerde (Yüz 3 Bostan, Yüz 8 Cıvata) masaüstü ikon kontrastı:
+   Temel tema koyu olsa bile beyaz çizgi + siyah gölge ezilir, koyu mürekkep kullanılır. */
+[data-face="3"] .desktop-grid .desktop-item .item-icon svg,
+[data-face="3"] #dynamic-desktop-icons .desktop-item .item-icon svg,
+html[data-face="3"][data-iconset] .desktop-item .item-icon svg {
+  stroke: #26321f !important;
+  color: #26321f !important;
+  filter: drop-shadow(0 1px 2px rgba(250, 248, 239, 0.92)) !important;
+}
+
+[data-face="3"] .desktop-grid .desktop-item .item-icon img,
+[data-face="3"] #dynamic-desktop-icons .desktop-item .item-icon img {
+  filter: drop-shadow(0 2px 4px rgba(38, 50, 31, 0.22)) !important;
+}
+
+[data-face="8"] .desktop-grid .desktop-item .item-icon svg,
+[data-face="8"] #dynamic-desktop-icons .desktop-item .item-icon svg,
+html[data-face="8"][data-iconset] .desktop-item .item-icon svg {
+  stroke: #161309 !important;
+  color: #161309 !important;
+  filter: none !important;
+}
+
+[data-face="8"] .desktop-grid .desktop-item .item-icon img,
+[data-face="8"] #dynamic-desktop-icons .desktop-item .item-icon img {
+  filter: drop-shadow(0 2px 0 rgba(22, 19, 9, 0.18)) !important;
+}
+
 .desktop-item .item-cat-dot,
 .desktop-item .cat-dot {
   display: none !important;
@@ -895,20 +1062,23 @@ html[data-iconset] .desktop-item .item-icon svg {
 
 [data-face="3"] .settings-nav-item,
 [data-face="3"] .files-nav-item,
-[data-face="3"] .store-category-btn {
+[data-face="3"] .store-category-btn,
+[data-face="3"] .store-filter-btn {
   color: #6a7560 !important;
 }
 
 [data-face="3"] .settings-nav-item:hover,
 [data-face="3"] .files-nav-item:hover,
-[data-face="3"] .store-category-btn:hover {
+[data-face="3"] .store-category-btn:hover,
+[data-face="3"] .store-filter-btn:hover {
   background: #e8e4d3 !important;
   color: #26321f !important;
 }
 
 [data-face="3"] .settings-nav-item.active,
 [data-face="3"] .files-nav-item.active,
-[data-face="3"] .store-category-btn.active {
+[data-face="3"] .store-category-btn.active,
+[data-face="3"] .store-filter-btn.active {
   background: #3d6b45 !important;
   color: #f4f6ec !important;
   font-weight: 500 !important;
@@ -952,21 +1122,24 @@ html[data-iconset] .desktop-item .item-icon svg {
 
 [data-face="8"] .settings-nav-item,
 [data-face="8"] .files-nav-item,
-[data-face="8"] .store-category-btn {
+[data-face="8"] .store-category-btn,
+[data-face="8"] .store-filter-btn {
   color: #161309 !important;
   font-weight: 500 !important;
 }
 
 [data-face="8"] .settings-nav-item:hover,
 [data-face="8"] .files-nav-item:hover,
-[data-face="8"] .store-category-btn:hover {
+[data-face="8"] .store-category-btn:hover,
+[data-face="8"] .store-filter-btn:hover {
   background: #e6f4a3 !important;
   color: #161309 !important;
 }
 
 [data-face="8"] .settings-nav-item.active,
 [data-face="8"] .files-nav-item.active,
-[data-face="8"] .store-category-btn.active {
+[data-face="8"] .store-category-btn.active,
+[data-face="8"] .store-filter-btn.active {
   background: #161309 !important;
   color: #c7e42b !important;
   font-weight: 600 !important;
@@ -1545,6 +1718,7 @@ body.theme-meltem .face-ws-btn.active {
   --bg-surface: #efece0;
   --bg-surface-hover: #e6e2d3;
   --bg-surface-active: #dcd8c7;
+  --bg-input: #e7e3d4;
   --border-subtle: rgba(38, 50, 31, 0.12);
   --border-medium: rgba(38, 50, 31, 0.2);
   --text-primary: #26321f;
@@ -1561,6 +1735,7 @@ body.theme-meltem .face-ws-btn.active {
   --bg-surface: #efede1;
   --bg-surface-hover: #e6e3d4;
   --bg-surface-active: #dcd9c7;
+  --bg-input: #e8e5d5;
   --border-subtle: #e3e1d3;
   --border-medium: #d5d2c0;
   --text-primary: #161309;
@@ -1568,6 +1743,69 @@ body.theme-meltem .face-ws-btn.active {
   --text-muted: #77745f;
   --text-inverse: #ffffff;
   --accent-active: #161309;
+}
+
+/* Yüz 3 & Yüz 8 · Mağaza kaynak seçici (Tümü / Sistem APT / Flathub) ve arama kutusu uyumu */
+[data-face="3"] #win-store .store-source-selector {
+  background: #e5e1d0 !important;
+  border: 1px solid rgba(38, 50, 31, 0.16) !important;
+}
+
+[data-face="3"] #win-store .store-source-btn {
+  background: transparent !important;
+  color: #4a5842 !important;
+  transition: none !important;
+}
+
+[data-face="3"] #win-store .store-source-btn:hover {
+  color: #26321f !important;
+}
+
+[data-face="3"] #win-store .store-source-btn.active {
+  background: #3d6b45 !important;
+  background-color: #3d6b45 !important;
+  color: #fbf9f1 !important;
+  box-shadow: 0 1px 3px rgba(38, 50, 31, 0.2) !important;
+}
+
+[data-face="3"] #win-store .store-search-box {
+  background: #efece0 !important;
+  border: 1px solid rgba(38, 50, 31, 0.18) !important;
+}
+
+[data-face="3"] #win-store .store-search {
+  color: #26321f !important;
+}
+
+[data-face="8"] #win-store .store-source-selector {
+  background: #e8e5d5 !important;
+  border: 1.5px solid #161309 !important;
+}
+
+[data-face="8"] #win-store .store-source-btn {
+  background: transparent !important;
+  color: #4a473a !important;
+  transition: none !important;
+}
+
+[data-face="8"] #win-store .store-source-btn:hover {
+  color: #161309 !important;
+}
+
+[data-face="8"] #win-store .store-source-btn.active {
+  background: #161309 !important;
+  background-color: #161309 !important;
+  color: #c7e42b !important;
+  box-shadow: none !important;
+}
+
+[data-face="8"] #win-store .store-search-box {
+  background: #fcfcf9 !important;
+  border: 1.5px solid #161309 !important;
+}
+
+[data-face="8"] #win-store .store-search {
+  color: #161309 !important;
 }
 
 /* Yüz 3 · mağaza vitrini ve birincil düğme koyu sabitlerden arındırıldı */

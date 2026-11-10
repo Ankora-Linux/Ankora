@@ -22,6 +22,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 FAILURES = []
+BASH = shutil.which("bash") or shutil.which("sh") or "bash"
 
 
 def check(name, ok, detail=""):
@@ -42,17 +43,19 @@ def run(cmd):
 def main():
     # 1. Kabuk betikleri
     for script in sorted((ROOT / "scripts").glob("*.sh")):
-        ok, err = run(["bash", "-n", str(script)])
+        ok, err = run([BASH, "-n", str(script)])
         check(f"bash -n {script.name}", ok, err)
     for extra in ("scripts/ayaz-session", "scripts/xinitrc", "scripts/ayaz-ctl"):
         p = ROOT / extra
         if p.exists():
-            ok, err = run(["bash", "-n", str(p)])
+            ok, err = run([BASH, "-n", str(p)])
             check(f"bash -n {extra}", ok, err)
 
     # 2. Arayüz JS
     ok, err = run(["node", "--check", str(ROOT / "src/app.js")])
     check("node --check src/app.js", ok, err)
+    ok, err = run(["node", "--check", str(ROOT / "src/faces.js")])
+    check("node --check src/faces.js", ok, err)
 
     # 3. HTML ayrıştırma
     try:
@@ -146,7 +149,7 @@ def main():
     # 10. İkon kapsamı: öne çıkan her uygulamanın özel dalı olmalı.
     try:
         app_js = (ROOT / "src/app.js").read_text(encoding="utf-8")
-        icon_fn = app_js.split("getAppSvgIcon(app) {", 1)[1].split("\n    },", 1)[0]
+        icon_fn = re.split(r"\r?\n    \},", app_js.split("getAppSvgIcon(app) {", 1)[1], 1)[0]
         missing = [k for k in (
             "firefox", "chromium", "telegram", "spotify", "vscode",
             "vlc", "scratch", "meb", "gcompris", "xournal", "evince",
@@ -179,7 +182,7 @@ def main():
               and "btn-touch-eta" in html_text
               and "initTouchControls" in app_js)
         check("iso: kalibrasyon + ekran klavyesi",
-              "xinput-calibrator" in iso and re.search(r"^\s*onboard\s*\\\\?$", iso, re.M) is not None)
+              "xinput-calibrator" in iso and re.search(r"^\s*onboard\s*\\?\r?$", iso, re.M) is not None)
         check("xinitrc: ped/tahta ayrımı", "ouchpad" in xin and "ouchscreen" in xin)
     except Exception as e:
         check("faz tahta dokunmatik desteği", False, str(e)[:200])
@@ -197,13 +200,13 @@ def main():
         check("eta: oturumda otomatik", "eta-touchdrv --enable" in xin
               and "eta-touchdrv --enable" in (ROOT / "scripts/ayaz-session").read_text(encoding="utf-8"))
         import subprocess as _sp
-        r = _sp.run(["bash", "-n", "scripts/eta-touchdrv"], cwd=ROOT)
+        r = _sp.run([BASH, "-n", "scripts/eta-touchdrv"], cwd=ROOT)
         check("eta: bash -n", r.returncode == 0)
-        r = _sp.run(["bash", "scripts/eta-touchdrv", "--help"], cwd=ROOT,
-                    capture_output=True, text=True)
+        r = _sp.run([BASH, "scripts/eta-touchdrv", "--help"], cwd=ROOT,
+                    capture_output=True, text=True, encoding="utf-8", errors="replace")
         check("eta: --help çalışır", r.returncode == 0 and "Kullanım" in r.stdout)
-        r = _sp.run(["bash", "scripts/eta-touchdrv", "--kötü-arg"], cwd=ROOT,
-                    capture_output=True, text=True)
+        r = _sp.run([BASH, "scripts/eta-touchdrv", "--kötü-arg"], cwd=ROOT,
+                    capture_output=True, text=True, encoding="utf-8", errors="replace")
         check("eta: kötü argüman reddi", r.returncode == 1)
         udev = (ROOT / "scripts/99-faz-touch.rules").read_text(encoding="utf-8")
         check("udev: eşleşme=çift-esittir atama=tek",
@@ -259,6 +262,24 @@ def main():
               and "GRUB_GFXPAYLOAD_LINUX=auto" in grubdef)
     except Exception as e:
         check("önyükleme zinciri", False, str(e)[:200])
+
+    # 15. Sürüm rozeti, CUPS/SANE yazıcı-tarayıcı desteği ve ZRAM eşitlemesi
+    try:
+        ver_str = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        hw_doc = (ROOT / "HARDWARE.md").read_text(encoding="utf-8") if (ROOT / "HARDWARE.md").is_file() else ""
+        ayaz_sess = (ROOT / "scripts/ayaz-session").read_text(encoding="utf-8")
+        check("README sürüm rozeti VERSION ile eşleşir", f"S%C3%9CR%C3%9CM-{ver_str}-" in readme)
+        check("README ve HARDWARE.md em-dash içermez", "—" not in readme and bool(hw_doc) and "—" not in hw_doc)
+        check("iso: CUPS + SANE yazıcı ve tarayıcı paketleri",
+              all(pkg in iso for pkg in (
+                  "cups", "printer-driver-gutenprint", "system-config-printer",
+                  "sane-utils", "simple-scan", "lp,scanner"
+              )))
+        check("zram: algoritma (zstd lz4 lzo) ve %50 boyut eşitlemesi",
+              all("zstd lz4 lzo" in s and "/ 2 ))" in s for s in (iso, ayaz_sess, xin)))
+    except Exception as e:
+        check("sürüm rozeti, CUPS/SANE ve ZRAM eşitlemesi", False, str(e)[:200])
 
     print()
     if FAILURES:

@@ -1,6 +1,19 @@
 # Ankora Linux — Sürüm Notları
 
 
+## Yayınlanmamış (main)
+
+### Arayüz, Dock ve Harici X11 Pencere Entegrasyonu
+- **Yüz 8 (Cıvata) ve Yüz 3 (Bostan) Masaüstü Izgarası**: `XdgDesktopEngine._gridSize()` artık `getBoundingClientRect()` ile gerçek kullanılabilir yüksekliği hesaplar; Yüz 8'de üst saat/hava kartı nedeniyle oluşan dikey simge taşması giderildi. Yüz 3 ve Yüz 8 açık zeminlerinde masaüstü SVG/IMG simgeleri koyu mürekkep konturu (`#26321f` / `#161309`) ile çizilir.
+- **Mağaza Açık Yüz ve Açık Tema Kontrastı**: `#win-store .store-source-selector`, `.store-source-btn`, `.store-filter-btn` ve `.store-search-box` bileşenleri Yüz 3 (Bostan), Yüz 8 (Cıvata) ve tüm `body.is-light-theme` / `body.theme-light` açık temalarda yüzey paletine bağlandı.
+- **Tüm Yüzlerde Harici Uygulama (Brave, VLC vb.) Dock/Panel Sekmeleri**: Açık iç pencereler ve harici X11 pencereleri (`WindowManager.nativeWindows`) Yüz 2 (Bakır), Yüz 3 (Bostan) ve Yüz 8 (Cıvata) alt dock'larında ve Cıvata üst barında dinamik listelenir; tıklanınca odaklanır veya küçültülür, orta tık ve sağ tık menüsüyle kapatılır. `wmctrl -l -x` ayrıştırmasında `client_machine` makine adının pencere başlığına karışması düzeltildi, Openbox alt kenar boşluğu `<bottom>68</bottom>` olarak güncellendi.
+
+### Yazılım Mağazası (378 Paket) ve Sistem Altyapısı (CUPS, SANE, ZRAM)
+- **Mağaza Kataloğu (278 -> 378 Paket)**: Okul/eğitim, geliştirici, medya, grafik, ağ, ofis ve sistem kategorilerine 100 yeni doğrulanmış Debian/Devuan APT ve Flathub paketi eklendi. "Tüm Paketler" (`data-cat="all"`) görünümünün 378 paketin tamamını kart olarak çizmesi sağlandı.
+- **Yazıcı ve Tarayıcı Desteği (CUPS + SANE)**: ISO kurulumuna `cups`, `cups-client`, `cups-bsd`, `printer-driver-gutenprint`, `system-config-printer`, `sane-utils`, `libsane1` ve `simple-scan` eklendi; `ankora` kullanıcısı `lp` ve `scanner` gruplarına dahil edildi.
+- **ZRAM Politikası Eşitlemesi**: `scripts/build-iso.sh` (`/etc/init.d/zram-swap`), `scripts/ayaz-session` ve `scripts/xinitrc` genelinde ZRAM sıkıştırma algoritması önceliği (`zstd > lz4 > lzo`) ve boyut oranı (`MemTotal / 2`) eşitlendi.
+- **Donanım Uyumluluk Rehberi ve CI**: `HARDWARE.md` eklendi; `ci.yml` 5 sürüm dosyasının tamamını (`tauri.conf.json`, `Cargo.toml`, `Cargo.lock`, `package.json`, `VERSION`) denetler, `build-iso.yml` sürüm notlarını `CHANGELOG.md` içinden çıkarır.
+
 ## 4.5.2 (2026-11-08)
 
 ### Kritik: AMD/Radeon GPU firmware

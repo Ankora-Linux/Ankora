@@ -1423,9 +1423,26 @@
       // Gerçek X11 Yerel Uygulama Pencereleri Görev Çubuğunda Listelenir
       (this.nativeWindows || []).forEach(nw => {
         const shortTitle = (nw.title || nw.app_name || 'Uygulama').split(/ [—–-] /).pop().trim().substring(0, 28) || nw.app_name;
+        const appKey = String(nw.app_name || nw.wm_class || shortTitle).toLowerCase();
         const letter = escapeHtml((nw.app_name || '?').charAt(0).toUpperCase());
-        const tab = makeTab(shortTitle, nw.is_active, `<span class="task-tab-letter">${letter}</span>`, `${nw.title} (${nw.app_name})`);
+        const matchedApp = (typeof XdgDesktopEngine !== 'undefined' && Array.isArray(XdgDesktopEngine.installedApps))
+          ? XdgDesktopEngine.installedApps.find(a => {
+              const aid = String(a.id || '').toLowerCase();
+              const aexec = String(a.exec || '').toLowerCase();
+              return aid.includes(appKey) || appKey.includes(aid) || (aexec && appKey.includes(aexec));
+            })
+          : null;
+        const iconTarget = matchedApp || { id: appKey, name: nw.app_name || shortTitle };
+        const iconHtml = (typeof IconResolver !== 'undefined' && typeof IconResolver.getIconSvg === 'function')
+          ? IconResolver.getIconSvg(iconTarget)
+          : `<span class="task-tab-letter">${letter}</span>`;
+        const tab = makeTab(shortTitle, nw.is_active, iconHtml, `${nw.title} (${nw.app_name})`);
         tab.classList.add('native-task-tab');
+        tab.setAttribute('data-native-id', nw.id);
+        const iconSpan = tab.querySelector('.task-tab-icon');
+        if (iconSpan && typeof IconResolver !== 'undefined' && typeof IconResolver.tagIcon === 'function') {
+          IconResolver.tagIcon(iconSpan, iconTarget);
+        }
         const refresh = (ms) => setTimeout(() => this.refreshNativeWindows(true), ms);
         const activate = () => {
           this.ensureDesktopLayer(false);
@@ -1453,6 +1470,9 @@
         });
         this.tabsContainer.appendChild(tab);
       });
+      if (typeof IconResolver !== 'undefined' && typeof IconResolver.upgradeScope === 'function') {
+        IconResolver.upgradeScope(this.tabsContainer);
+      }
       try {
         window.dispatchEvent(new CustomEvent('ayaz:tabs-synced'));
       } catch (e) {}
@@ -1802,6 +1822,9 @@
       if (typeof IconResolver !== 'undefined' && IconResolver.upgradeScope) {
         IconResolver.upgradeScope(host);
       }
+      try {
+        window.dispatchEvent(new CustomEvent('ayaz:tabs-synced'));
+      } catch (e) {}
     },
 
     init() {
@@ -2549,12 +2572,19 @@
     },
 
     _gridSize(container) {
+      const rect = (container && typeof container.getBoundingClientRect === 'function')
+        ? container.getBoundingClientRect()
+        : null;
+      const topOffset = (rect && Number.isFinite(rect.top) && rect.top >= 0) ? rect.top : 48;
+      const leftOffset = (rect && Number.isFinite(rect.left) && rect.left >= 0) ? rect.left : 24;
+      const viewportW = Math.max(320, (window.innerWidth || 1280) - leftOffset - 24);
+      const viewportH = Math.max(120, (window.innerHeight || 720) - topOffset - 78);
       const w = (container && container.clientWidth > 0)
-        ? container.clientWidth
-        : (window.innerWidth ? window.innerWidth - 32 : 1280);
+        ? Math.min(container.clientWidth, viewportW)
+        : viewportW;
       const h = (container && container.clientHeight > 0)
-        ? container.clientHeight
-        : (window.innerHeight ? window.innerHeight - 80 : 720);
+        ? Math.min(container.clientHeight, viewportH)
+        : viewportH;
       const cols = Math.max(1, Math.floor(w / this.ICON_CELL_W));
       const rows = Math.max(1, Math.floor(h / this.ICON_CELL_H));
       return { cols, rows };
@@ -2571,12 +2601,12 @@
 
       items.forEach(el => {
         const p = saved[el.dataset.appId];
-        if (p && p.c < cols && p.r < rows && !used.has(`${p.c},${p.r}`)) {
+        if (p && p.c >= 0 && p.c < cols && p.r >= 0 && p.r < rows && !used.has(`${p.c},${p.r}`)) {
           used.add(`${p.c},${p.r}`);
           placed.set(el, p);
         }
       });
-      // Konumu olmayanlar sütun sütun ilk boş hücreye dizilir.
+      // Konumu olmayanlar veya ekran/yüz sınırını aşanlar sütun sütun ilk boş hücreye dizilir.
       let c = 0, r = 0;
       items.forEach(el => {
         if (placed.has(el)) return;
@@ -2584,9 +2614,13 @@
           r++;
           if (r >= rows) { r = 0; c++; }
         }
-        const p = { c: Math.min(c, cols - 1), r };
+        const safeC = Math.min(c, Math.max(0, cols - 1));
+        const safeR = Math.min(r, Math.max(0, rows - 1));
+        const p = { c: safeC, r: safeR };
         used.add(`${p.c},${p.r}`);
         placed.set(el, p);
+        r++;
+        if (r >= rows) { r = 0; c++; }
       });
 
       placed.forEach((p, el) => {
@@ -3040,7 +3074,10 @@
       if (app.id === 'brave-browser' || app.exec === 'brave-browser') {
         Terminal.log('[AYAZ BAŞLATICI] Brave Browser başlatılıyor...', 'cmd');
         try {
+          WindowManager.ensureDesktopLayer(false);
           await TauriBridge.invoke('launch_application', { exec: 'brave-browser' });
+          setTimeout(() => WindowManager.refreshNativeWindows(true), 600);
+          setTimeout(() => WindowManager.refreshNativeWindows(true), 1800);
           ReportManager.showToast('Brave Web Tarayıcı başlatıldı.');
           return;
         } catch (e) {
@@ -3078,7 +3115,10 @@
       } else {
         Terminal.log(`[AYAZ BAŞLATICI] '${app.name}' yerel uygulama olarak başlatılıyor: ${app.exec}`, 'cmd');
         try {
+          WindowManager.ensureDesktopLayer(false);
           await TauriBridge.invoke('launch_application', { exec: app.exec });
+          setTimeout(() => WindowManager.refreshNativeWindows(true), 600);
+          setTimeout(() => WindowManager.refreshNativeWindows(true), 1800);
           Terminal.log(`[AYAZ OK] ${app.name} başlatıldı.`, 'success');
         } catch (e) {
           Terminal.log(`[BAŞLATMA HATASI] ${e}`, 'error');
@@ -3858,6 +3898,121 @@
       { id: 'srm', name: 'Secure Delete Güvenli Silici', deb: 'secure-delete', desc: 'Bellek, takas alanı ve dosyalardaki verileri kurtarılamaz biçimde temizleme', cat: 'sys', size: '1 MB', installed: false },
       { id: 'dosfstools', name: 'Dosfstools FAT32 Onarım Araçları', deb: 'dosfstools', desc: 'FAT16 ve FAT32 USB belleklerini biçimlendirme ve fsck ile onarma kiti', cat: 'sys', size: '2 MB', installed: false },
       { id: 'ntfs-3g', name: 'NTFS-3G Dosya Sistemi Desteği', deb: 'ntfs-3g', desc: 'Windows disk bölümlerini tam okuma ve yazma desteğiyle bağlama sürücüsü', cat: 'sys', size: '3 MB', installed: false },
+
+      // 11. KAPSAM GENİŞLETMESİ III: OKUL, ROBOTİK, YAZICI/TARAYICI VE UZMANLIK PAKETLERİ (100)
+      // 11a. OKUL, FEN, DİL & ROBOTİK (16)
+      { id: 'thonny', name: 'Thonny Python IDE (Eğitim)', deb: 'thonny', desc: 'Öğrenciler ve öğretmenler için adım adım değişken izlemeli Python geliştirme ortamı', cat: 'dev', school: true, size: '24 MB', installed: false },
+      { id: 'mu-editor', name: 'Mu Kod Editörü (Python & Micro:bit)', deb: 'mu-editor', desc: 'Okullarda Python, Pygame Zero ve BBC micro:bit programlama için sade editör', cat: 'dev', school: true, size: '38 MB', installed: false },
+      { id: 'arduino', name: 'Arduino IDE Robotik Kodlama', deb: 'arduino', desc: 'Arduino mikrodenetleyici kartlarını programlama ve seri port izleme ortamı', cat: 'dev', school: true, size: '145 MB', installed: false },
+      { id: 'fritzing', name: 'Fritzing Elektronik Devre Tasarımı', deb: 'fritzing', desc: 'Breadboard devre şeması kurma, sensör bağlantısı ve PCB baskı devre çizim aracı', cat: 'dev', school: true, size: '78 MB', installed: false },
+      { id: 'kicad', name: 'KiCad Elektronik Şema & PCB Stüdyosu', deb: 'kicad', desc: 'Çok katmanlı elektronik devre şeması, 3B bileşen görüntüleme ve PCB tasarım paketi', cat: 'dev', school: true, size: '380 MB', installed: false },
+      { id: 'simulide', name: 'SimulIDE Gerçek Zamanlı Devre Simülatörü', deb: 'simulide', desc: 'PIC, AVR ve Arduino mikrodenetleyicileri ile elektronik devre simülasyonu', cat: 'dev', school: true, size: '18 MB', installed: false },
+      { id: 'gperiodic', name: 'GPeriodic Kimya Element Tablosu', deb: 'gperiodic', desc: 'Atom ağırlıkları, erime noktaları ve elektron dizilimleriyle hafif periyodik cetvel', cat: 'office', school: true, size: '2 MB', installed: false },
+      { id: 'kanagram', name: 'Kanagram Kelime Bulmaca Oyunu', deb: 'kanagram', desc: 'Harfleri karışık verilen kelimeleri çözerek kelime dağarcığını geliştiren eğitim oyunu', cat: 'util', school: true, size: '9 MB', installed: false },
+      { id: 'khangman', name: 'KHangMan Kelime Tahmin Oyunu', deb: 'khangman', desc: 'Kategorilere ayrılmış sözcüklerle dil ve imla pratiği sağlayan sınıf oyunu', cat: 'util', school: true, size: '8 MB', installed: false },
+      { id: 'kwordquiz', name: 'KWordQuiz Kelime ve Kavram Kartları', deb: 'kwordquiz', desc: 'Yabancı dil ve ders terimlerini çoktan seçmeli ve soru-cevap kartlarıyla çalışma aracı', cat: 'office', school: true, size: '6 MB', installed: false },
+      { id: 'parley', name: 'Parley Dil ve Kelime Eğitmeni', deb: 'parley', desc: 'Ezber kartları, eş anlamlılar ve telaffuz testleriyle dil öğrenim yazılımı', cat: 'office', school: true, size: '14 MB', installed: false },
+      { id: 'ktouch', name: 'KTouch On Parmak Klavye Kursu', deb: 'ktouch', desc: 'Hız ve doğruluk grafikleriyle adım adım on parmak daktilo eğitim programı', cat: 'util', school: true, size: '11 MB', installed: false },
+      { id: 'klavaro', name: 'Klavaro Dokunmatik Yazım Öğretmeni', deb: 'klavaro', desc: 'F ve Q klavye düzenlerini destekleyen hafif on parmak klavye alıştırma aracı', cat: 'util', school: true, size: '4 MB', installed: false },
+      { id: 'minuet', name: 'Minuet Müzik Kulağı Eğitimi', deb: 'minuet', desc: 'Akorlar, aralıklar, gamlar ve ritim egzersizleriyle müzik dersi yazılımı', cat: 'media', school: true, size: '28 MB', installed: false },
+      { id: 'kgeography', name: 'KGeography Coğrafya ve Harita Testi', deb: 'kgeography', desc: 'Ülkeler, başkentler, bayraklar ve kıtalar üzerinde etkileşimli harita sınavları', cat: 'office', school: true, size: '16 MB', installed: false },
+      { id: 'LabPlot', name: 'LabPlot Bilimsel Veri ve Grafik Analizi', deb: 'labplot', desc: 'Deney verilerini görselleştirme, eğri uydurma ve istatistiksel grafik çizim stüdyosu', cat: 'office', school: true, size: '34 MB', installed: false },
+
+      // 11b. YAZICI, TARAYICI, PDF & OFİS ARAÇLARI (14)
+      { id: 'simple-scan', name: 'Belge Tarayıcı (Simple Scan)', deb: 'simple-scan', desc: 'SANE uyumlu tarayıcılardan tek tıkla çok sayfalı PDF ve görsel tarama uygulaması', cat: 'office', size: '5 MB', installed: false },
+      { id: 'system-config-printer', name: 'Yazıcı ve CUPS Yöneticisi', deb: 'system-config-printer', desc: 'USB ve ağ yazıcılarını otomatik bulma, sürücü tanıtma ve kuyruk yönetim arayüzü', cat: 'sys', size: '6 MB', installed: false },
+      { id: 'xsane', name: 'XSane Gelişmiş Tarayıcı Arayüzü', deb: 'xsane', desc: 'Renk kalibrasyonu, DPI ayarı ve çoklu sayfa yakalama destekli tarayıcı yazılımı', cat: 'graphics', size: '8 MB', installed: false },
+      { id: 'gscan2pdf', name: 'gscan2pdf OCR Destekli Tarama', deb: 'gscan2pdf', desc: 'Kağıt belgeleri tarayıp Tesseract OCR ile aranabilir PDF belgesine dönüştürme', cat: 'office', size: '9 MB', installed: false },
+      { id: 'okular', name: 'Okular Evrensel Belge Okuyucu', deb: 'okular', desc: 'PDF, EPUB, DjVu ve çizgi romanlarda vurgulama, not alma ve dijital imza desteği', cat: 'office', size: '38 MB', installed: false },
+      { id: 'atril', name: 'Atril Hafif Belge Görüntüleyici', deb: 'atril', desc: 'MATE masaüstünün hızlı açılan PDF, PostScript ve DjVu okuyucusu', cat: 'office', size: '12 MB', installed: false },
+      { id: 'qpdfview', name: 'qpdfview Sekmeli PDF Okuyucu', deb: 'qpdfview', desc: 'Düşük bellek tüketen, sekme ve yer imi destekli hızlı PDF görüntüleyici', cat: 'office', size: '4 MB', installed: false },
+      { id: 'foliate', name: 'Foliate Modern E-Kitap Okuyucu', deb: 'foliate', desc: 'EPUB, Mobipocket ve Kindle kitapları için sözlük ve not destekli okuma arayüzü', cat: 'office', size: '9 MB', installed: false },
+      { id: 'fbreader', name: 'FBReader E-Kitap Kütüphanesi', deb: 'fbreader', desc: 'Eski donanımlarda bile anında açılan hafif e-kitap okuyucu', cat: 'office', size: '6 MB', installed: false },
+      { id: 'homebank', name: 'HomeBank Kişisel Muhasebe ve Bütçe', deb: 'homebank', desc: 'Gelir-gider takibi, banka hesapları ve kategori bazlı bütçe grafikleri', cat: 'office', size: '8 MB', installed: false },
+      { id: 'gnucash', name: 'GnuCash Çift Kayıtlı Muhasebe', deb: 'gnucash', desc: 'Küçük işletmeler ve kişisel finans için fatura, mizan ve bilanço yazılımı', cat: 'office', size: '68 MB', installed: false },
+      { id: 'osmo', name: 'Osmo Kişisel Ajanda ve Takvim', deb: 'osmo', desc: 'İnternet bağlantısı gerektirmeyen yerel takvim, görev listesi ve kişi rehberi', cat: 'office', size: '3 MB', installed: false },
+      { id: 'focuswriter', name: 'FocusWriter Dikkat Dağıtmayan Yazar', deb: 'focuswriter', desc: 'Tam ekran daktilo sesi, günlük kelime hedefi ve zamanlayıcılı metin yazarı', cat: 'office', size: '14 MB', installed: false },
+      { id: 'goldendict', name: 'GoldenDict Çevrimdışı Çoklu Sözlük', deb: 'goldendict', desc: 'StarDict, Babylon ve Wikipedia paketlerini tek pencerede arayan kapsamlı sözlük', cat: 'office', size: '16 MB', installed: false },
+
+      // 11c. YAZILIM GELİŞTİRME & MÜHENDİSLİK (16)
+      { id: 'qtcreator', name: 'Qt Creator C++/QML IDE', deb: 'qtcreator', desc: 'Masaüstü ve gömülü sistemler için görsel arayüz tasarımcılı C++ geliştirme ortamı', cat: 'dev', size: '95 MB', installed: false },
+      { id: 'lazarus', name: 'Lazarus Free Pascal RAD IDE', deb: 'lazarus', desc: 'Delphi uyumlu sürükle-bırak form tasarımcılı hızlı yerel uygulama geliştirici', cat: 'dev', size: '160 MB', installed: false },
+      { id: 'bluefish', name: 'Bluefish Web ve HTML Editörü', deb: 'bluefish', desc: 'HTML, CSS, PHP ve JavaScript projeleri için hızlı çoklu dosya web editörü', cat: 'dev', size: '8 MB', installed: false },
+      { id: 'cudatext', name: 'CudaText Hızlı Kod Editörü', flatpak: ' io.github.cudatext.CudaText'.trim(), desc: '200den fazla dil için sözdizimi vurgulu, çoklu imleçli hafif kod düzenleyici', cat: 'dev', size: '28 MB', installed: false },
+      { id: 'gitg', name: 'gitg Grafiksel Git Depo Tarayıcısı', deb: 'gitg', desc: 'Commit geçmişini, dalları ve satır farklarını görsel ağaç olarak inceleme aracı', cat: 'dev', size: '7 MB', installed: false },
+      { id: 'gitk', name: 'gitk Klasik Git Geçmiş Görüntüleyici', deb: 'gitk', desc: 'Büyük kod depolarında hızlı dal ve tarihçe inceleme aracı', cat: 'dev', size: '2 MB', installed: false },
+      { id: 'tig', name: 'Tig Konsol Git Arayüzü', deb: 'tig', desc: 'Terminal içinde etkileşimli git log, diff ve blame gezgini', cat: 'dev', size: '2 MB', installed: false },
+      { id: 'subversion', name: 'Apache Subversion (SVN)', deb: 'subversion', desc: 'Merkezi sürüm kontrol sistemi istemcisi ve depo yönetim araçları', cat: 'dev', size: '6 MB', installed: false },
+      { id: 'mercurial', name: 'Mercurial (hg) Dağıtık Sürüm Kontrolü', deb: 'mercurial', desc: 'Büyük ölçekli kod tabanları için hızlı dağıtık kaynak kontrol sistemi', cat: 'dev', size: '12 MB', installed: false },
+      { id: 'strace', name: 'strace Sistem Çağrısı İzleyici', deb: 'strace', desc: 'Çalışan süreçlerin Linux çekirdeğine yaptığı sistem çağrılarını ve sinyalleri teşhis etme', cat: 'dev', size: '2 MB', installed: false },
+      { id: 'ltrace', name: 'ltrace Dinamik Kütüphane İzleyici', deb: 'ltrace', desc: 'Programların paylaşımlı kütüphane (.so) fonksiyon çağrılarını yakalama aracı', cat: 'dev', size: '1 MB', installed: false },
+      { id: 'cppcheck', name: 'Cppcheck C/C++ Statik Analiz', deb: 'cppcheck', desc: 'C ve C++ kodlarında bellek taşması ve tanımsız davranışları derleme öncesi bulma', cat: 'dev', size: '6 MB', installed: false },
+      { id: 'clang-format', name: 'Clang-Format Kod Biçimlendirici', deb: 'clang-format', desc: 'C, C++, Java ve JavaScript kodlarını kurumsal stil kurallarına göre otomatik hizalama', cat: 'dev', size: '5 MB', installed: false },
+      { id: 'meson', name: 'Meson Modern Derleme Sistemi', deb: 'meson', desc: 'Ninja arka ucuyla çalışan hızlı ve okunabilir proje yapılandırma motoru', cat: 'dev', size: '4 MB', installed: false },
+      { id: 'autoconf', name: 'GNU Autoconf Yapılandırma Üretici', deb: 'autoconf', desc: 'UNIX kaynak paketleri için taşınabilir configure betikleri üreten derleme aracı', cat: 'dev', size: '3 MB', installed: false },
+      { id: 'pkg-config', name: 'pkg-config Derleme Bayrak Çözücü', deb: 'pkg-config', desc: 'C/C++ kütüphanelerinin başlık ve bağlayıcı bayraklarını derleyiciye bildiren araç', cat: 'dev', size: '1 MB', installed: false },
+
+      // 11d. SES, VİDEO & MEDYA (14)
+      { id: 'qmmp', name: 'Qmmp Winamp Tarzı Müzik Çalar', deb: 'qmmp', desc: 'Klasik Winamp görünüm temalarını ve 10 bant ekolayzeri destekleyen ses oynatıcı', cat: 'media', size: '14 MB', installed: false },
+      { id: 'elisa', name: 'Elisa Modern Müzik Çalar', deb: 'elisa', desc: 'Albüm kapakları, sanatçı görünümü ve yerel indeksleme destekli müzik oynatıcı', cat: 'media', size: '18 MB', installed: false },
+      { id: 'kwave', name: 'Kwave Ses Dalga Düzenleyici', deb: 'kwave', desc: 'WAV, OGG ve MP3 ses kayıtlarını kesme, birleştirme ve tayf analizi yapma aracı', cat: 'media', size: '15 MB', installed: false },
+      { id: 'hydrogen', name: 'Hydrogen Davul Makinesi ve Ritim Stüdyosu', deb: 'hydrogen', desc: 'Örneklem tabanlı profesyonel davul dizici ve ritim kompozisyon yazılımı', cat: 'media', size: '24 MB', installed: false },
+      { id: 'qsynth', name: 'Qsynth FluidSynth MIDI Sentezleyici', deb: 'qsynth', desc: 'SoundFont (.sf2/.sf3) destekli gerçek zamanlı MIDI ses sentezleyici arayüzü', cat: 'media', size: '4 MB', installed: false },
+      { id: 'qjackctl', name: 'QjackCtl JACK Ses Yönlendirici', deb: 'qjackctl', desc: 'Düşük gecikmeli profesyonel ses stüdyosu bağlantıları ve yama paneli yöneticisi', cat: 'media', size: '5 MB', installed: false },
+      { id: 'vokoscreen-ng', name: 'vokoscreenNG Ders ve Ekran Kaydedici', deb: 'vokoscreen-ng', desc: 'Kamera penceresi, büyüteç ve tıklama vurgusuyla ders videosu kaydetme aracı', cat: 'media', school: true, size: '9 MB', installed: false },
+      { id: 'kazam', name: 'Kazam Pratik Ekran Kaydı ve Görüntüsü', deb: 'kazam', desc: 'Masaüstü videosu ve mikrofon sesini tek tıkla MP4/WebM olarak kaydeden hafif araç', cat: 'media', size: '4 MB', installed: false },
+      { id: 'mediainfo-gui', name: 'MediaInfo Ses ve Video Teknik Analizi', deb: 'mediainfo-gui', desc: 'Video dosyalarının kodek, bit hızı, kare hızı ve ses kanalı verilerini inceleme', cat: 'media', size: '5 MB', installed: false },
+      { id: 'mkvtoolnix-gui', name: 'MKVToolNix Matroska Video Birleştirici', deb: 'mkvtoolnix-gui', desc: 'MKV videolarına yeniden kodlama yapmadan altyazı ve ses izi ekleme/çıkarma', cat: 'media', size: '26 MB', installed: false },
+      { id: 'subtitleeditor', name: 'Subtitle Editor Altyazı Stüdyosu', deb: 'subtitleeditor', desc: 'SRT ve ASS altyazılarının zamanlamasını ses dalga formu üzerinde senkronize etme', cat: 'media', size: '8 MB', installed: false },
+      { id: 'gaupol', name: 'Gaupol Altyazı Çeviri ve Düzeltme', deb: 'gaupol', desc: 'Altyazı dosyalarında toplu süre kaydırma, hız düzeltme ve metin çevirisi aracı', cat: 'media', size: '5 MB', installed: false },
+      { id: 'kid3-qt', name: 'Kid3 Gelişmiş Müzik Etiketleyici', deb: 'kid3-qt', desc: 'ID3v1, ID3v2, FLAC ve Ogg ses etiketlerini dosya adlarından otomatik doldurma', cat: 'media', size: '9 MB', installed: false },
+      { id: 'cdparanoia', name: 'cdparanoia Hatasız Ses CD Okuyucu', deb: 'cdparanoia', desc: 'Çizik ses CDlerinden hata düzeltmeli dijital ses verisi çıkarma aracı', cat: 'media', size: '2 MB', installed: false },
+
+      // 11e. GRAFİK, FOTOĞRAF & 3B TASARIM (12)
+      { id: 'hugin', name: 'Hugin Panorama Fotoğraf Birleştirici', deb: 'hugin', desc: 'Çoklu fotoğrafları kusursuz 360 derece panoramik görüntülere dönüştürme stüdyosu', cat: 'graphics', size: '48 MB', installed: false },
+      { id: 'luminance-hdr', name: 'Luminance HDR Yüksek Dinamik Aralık', deb: 'luminance-hdr', desc: 'Farklı pozlamalı fotoğraflardan HDR görüntü üretme ve ton eşleme yazılımı', cat: 'graphics', size: '22 MB', installed: false },
+      { id: 'enblend', name: 'Enblend Kusursuz Görüntü Harmanlayıcı', deb: 'enblend', desc: 'Fotoğraf birleşim çizgilerini renk ve parlaklık geçişleriyle görünmez kılma aracı', cat: 'graphics', size: '6 MB', installed: false },
+      { id: 'nomacs', name: 'nomacs Hızlı ve Şık Resim Görüntüleyici', deb: 'nomacs', desc: 'RAW, PSD ve ZIP içi görselleri açabilen, yan yana fotoğraf karşılaştırma destekli gezgin', cat: 'graphics', size: '12 MB', installed: false },
+      { id: 'ristretto', name: 'Ristretto Hafif Resim Görüntüleyici', deb: 'ristretto', desc: 'Düşük donanımlı bilgisayarlar için anında açılan sade fotoğraf görüntüleyici', cat: 'graphics', size: '3 MB', installed: false },
+      { id: 'mirage', name: 'Mirage Hızlı GTK Görsel Tarayıcı', deb: 'mirage', desc: 'Kırpma, yeniden boyutlandırma ve küçük resim şeridine sahip hızlı resim açıcı', cat: 'graphics', size: '2 MB', installed: false },
+      { id: 'gpick', name: 'Gpick Gelişmiş Renk Seçici ve Palet', deb: 'gpick', desc: 'Ekrandan piksel rengi alma, HEX/RGB/HSL dönüşümü ve uyumlu renk paleti üretici', cat: 'graphics', size: '4 MB', installed: false },
+      { id: 'agave', name: 'Agave Renk Şeması Tasarımcısı', deb: 'agave', desc: 'Web ve arayüz tasarımcıları için tamamlayıcı ve üçlü renk uyumu oluşturucu', cat: 'graphics', size: '2 MB', installed: false },
+      { id: 'potrace', name: 'Potrace Bitmapten Vektöre Dönüştürücü', deb: 'potrace', desc: 'Taranmış siyah-beyaz çizimleri ve logoları pürüzsüz SVG/EPS vektörlerine çevirme', cat: 'graphics', size: '1 MB', installed: false },
+      { id: 'autotrace', name: 'AutoTrace Otomatik Vektörleştirici', deb: 'autotrace', desc: 'Piksel tabanlı görsellerden dış hat ve merkez çizgisi vektörü çıkarma aracı', cat: 'graphics', size: '2 MB', installed: false },
+      { id: 'pngquant', name: 'pngquant Akıllı PNG Boyut Küçültücü', deb: 'pngquant', desc: 'Alfa saydamlığını koruyarak PNG dosyalarını %70e kadar küçülten sıkıştırıcı', cat: 'graphics', size: '1 MB', installed: false },
+      { id: 'webp', name: 'WebP Görsel Dönüştürme Araçları (cwebp)', deb: 'webp', desc: 'PNG ve JPEG resimleri modern WebP formatına dönüştürme ve açma kiti', cat: 'graphics', size: '2 MB', installed: false },
+
+      // 11f. AĞ, SUNUCU & GÜVENLİ İLETİŞİM (14)
+      { id: 'putty', name: 'PuTTY SSH, Telnet ve Seri Konsol', deb: 'putty', desc: 'Ağ anahtarlarına, yönlendiricilere ve seri portlara bağlanma arayüzü', cat: 'net', size: '5 MB', installed: false },
+      { id: 'vinagre', name: 'TightVNC / xtightvncviewer Uzak Ekran', deb: 'xtightvncviewer', desc: 'Uzak bilgisayarların ekranına VNC protokolüyle düşük gecikmeli bağlanma istemcisi', cat: 'net', size: '2 MB', installed: false },
+      { id: 'tigervnc-viewer', name: 'TigerVNC Yüksek Hızlı VNC İstemcisi', deb: 'tigervnc-viewer', desc: 'Şifreli ve sıkıştırmalı uzak masaüstü bağlantı görüntüleyicisi', cat: 'net', size: '4 MB', installed: false },
+      { id: 'x11vnc', name: 'x11vnc Mevcut Ekranı Paylaşma Sunucusu', deb: 'x11vnc', desc: 'Açık olan X11 masaüstü oturumunu ağ üzerinden öğretmen veya teknik desteğe açma', cat: 'net', school: true, size: '3 MB', installed: false },
+      { id: 'veyon-service', name: 'Epoptes / Veyon Sınıf Laboratuvar Aracı', flatpak: 'io.veyon.Veyon', desc: 'Bilgisayar laboratuvarında öğrenci ekranlarını izleme ve ders yayınlama sistemi', cat: 'net', school: true, size: '65 MB', installed: false },
+      { id: 'liferea', name: 'Liferea Haber ve RSS Okuyucu', deb: 'liferea', desc: 'Blogları, haber sitelerini ve podcast yayınlarını çevrimdışı okuma desteğiyle takip etme', cat: 'net', size: '7 MB', installed: false },
+      { id: 'claws-mail', name: 'Claws Mail Hızlı E-Posta İstemcisi', deb: 'claws-mail', desc: 'Düşük bellekli sistemlerde bile saniyede açılan hafif POP3/IMAP e-posta istemcisi', cat: 'net', size: '12 MB', installed: false },
+      { id: 'geary', name: 'Geary Konuşma Odaklı E-Posta', deb: 'geary', desc: 'E-postaları sohbet dizisi şeklinde gruplayan temiz ve sade masaüstü posta istemcisi', cat: 'net', size: '18 MB', installed: false },
+      { id: 'mutt', name: 'Mutt Konsol E-Posta İstemcisi', deb: 'mutt', desc: 'Klavye kısayolları ve GPG şifrelemesiyle çalışan güçlü terminal posta okuyucu', cat: 'net', size: '4 MB', installed: false },
+      { id: 'irssi', name: 'Irssi Terminal IRC Sohbet İstemcisi', deb: 'irssi', desc: 'Düşük kaynak tüketen, Perl betikleriyle özelleştirilebilir konsol IRC programı', cat: 'net', size: '3 MB', installed: false },
+      { id: 'lftp', name: 'LFTP Gelişmiş Dosya Transfer Aracı', deb: 'lftp', desc: 'FTP, FTPS, HTTP ve SFTP sunucularıyla otomatik dizin eşitleme ve kuyruk aktarımı', cat: 'net', size: '3 MB', installed: false },
+      { id: 'sshfs', name: 'SSHFS Uzak Klasör Bağlayıcı', deb: 'sshfs', desc: 'Uzak SSH sunucularındaki dizinleri yerel bir klasörmüş gibi dosya yöneticisine bağlama', cat: 'net', size: '1 MB', installed: false },
+      { id: 'avahi-discover', name: 'Avahi Yerel Ağ Servis Keşfedici', deb: 'avahi-discover', desc: 'Yerel ağdaki mDNS/Zeroconf yazıcıları, dosya paylaşımlarını ve cihazları listeleme', cat: 'net', size: '2 MB', installed: false },
+      { id: 'wavemon', name: 'wavemon Kablosuz Ağ Sinyal Analizörü', deb: 'wavemon', desc: 'Wi-Fi sinyal kalitesini, gürültü seviyesini ve kanal yoğunluğunu canlı ölçen konsol aracı', cat: 'net', size: '1 MB', installed: false },
+
+      // 11g. SİSTEM, DONANIM & GÜNLÜK YARDIMCILAR (14)
+      { id: 'psensor', name: 'Psensor Grafiksel Sıcaklık Monitörü', deb: 'psensor', desc: 'İşlemci, ekran kartı ve sabit disk sıcaklıklarını canlı çizgi grafiklerle izleme', cat: 'sys', size: '3 MB', installed: false },
+      { id: 'arandr', name: 'ARandR Ekran ve Projeksiyon Düzeni', deb: 'arandr', desc: 'Çoklu monitör, akıllı tahta ve projeksiyon çözünürlük/konum ayarlarını görsel yapma', cat: 'sys', school: true, size: '2 MB', installed: false },
+      { id: 'lxrandr', name: 'LXRandR Hızlı Monitör Ayarlayıcı', deb: 'lxrandr', desc: 'İkinci ekranı ve projeksiyonu tek tıkla yansıtma veya genişletme aracı', cat: 'sys', size: '1 MB', installed: false },
+      { id: 'gdebi', name: 'GDebi .deb Paket Kurucu', deb: 'gdebi', desc: 'İndirilen yerel .deb paketlerini bağımlılıklarını otomatik çözerek kuran arayüz', cat: 'sys', size: '3 MB', installed: false },
+      { id: 'aptitude', name: 'Aptitude Konsol Paket Yöneticisi', deb: 'aptitude', desc: 'Gelişmiş bağımlılık çözücülü etkileşimli terminal paket yönetim arayüzü', cat: 'sys', size: '6 MB', installed: false },
+      { id: 'exfatprogs', name: 'exFAT Büyük USB Disk Desteği', deb: 'exfatprogs', desc: '64 GB üstü exFAT biçimli USB bellek ve SD kartları oluşturma ve onarma araçları', cat: 'sys', size: '1 MB', installed: false },
+      { id: 'partclone', name: 'Partclone Bölüm Yedekleme Motoru', deb: 'partclone', desc: 'Yalnızca dolu disk bloklarını okuyarak hızlı bölüm imajı alma ve geri yükleme aracı', cat: 'sys', size: '3 MB', installed: false },
+      { id: 'nvme-cli', name: 'nvme-cli NVMe SSD Yönetim Aracı', deb: 'nvme-cli', desc: 'M.2 NVMe disklerin sağlık yüzdesi, sıcaklık ve donanım yazılımı bilgilerini okuma', cat: 'sys', size: '2 MB', installed: false },
+      { id: 'hdparm', name: 'hdparm SATA Disk Hız ve Güç Aracı', deb: 'hdparm', desc: 'Sabit disk okuma hızı testi ve uyku süresi parametrelerini yapılandırma', cat: 'sys', size: '1 MB', installed: false },
+      { id: 'keepassxc', name: 'KeePassXC Şifre Kasası Yöneticisi', deb: 'keepassxc', desc: 'Parolaları çevrimdışı AES-256 şifreli veritabanında güvenle saklama ve otomatik doldurma', cat: 'util', size: '28 MB', installed: false },
+      { id: 'galculator', name: 'Galculator Bilimsel ve Cebirsel Hesap', deb: 'galculator', desc: 'Standart, bilimsel, finansal ve programcı (HEX/BIN) modlarına sahip hesap makinesi', cat: 'util', size: '3 MB', installed: false },
+      { id: 'xarchiver', name: 'Xarchiver Hafif Arşiv Yöneticisi', deb: 'xarchiver', desc: '7z, ZIP, RAR, TAR.GZ veXZ arşivlerini görsel pencerede açma ve oluşturma aracı', cat: 'util', size: '4 MB', installed: false },
+      { id: 'engrampa', name: 'Engrampa Arşiv ve Sıkıştırma Yöneticisi', deb: 'engrampa', desc: 'Şifreli arşivleri, çok parçalı paketleri ve ISO dosyalarını açan görsel arşivci', cat: 'util', size: '8 MB', installed: false },
+      { id: 'onboard', name: 'Onboard Dokunmatik Ekran Klavyesi', deb: 'onboard', desc: 'Akıllı tahtalar ve dokunmatik ekranlar için özelleştirilebilir Türkçe ekran klavyesi', cat: 'util', school: true, size: '9 MB', installed: false },
     ],
     tableBody: null,
     // Açılışta kafa karıştırmayan kısa liste; tamamı "Tümü" sekmesinde.
@@ -4008,8 +4163,9 @@
         countEl.textContent = `${filtered.length} paket`;
       }
 
-      // Ana ekran: arama boşsa ve "featured" veya "all" seçiliyse vitrin düzeni
-      if (!q && (this.currentCat === 'featured' || (this.currentCat === 'all' && this.currentSource === 'all'))) {
+      // Ana ekran: arama boşsa ve "featured" (Öne Çıkanlar) seçiliyse vitrin düzeni;
+      // "all" (Tüm Paketler) seçildiğinde tüm paket kataloğu kart olarak listelenir.
+      if (!q && this.currentCat === 'featured' && this.currentSource === 'all') {
         this.buildStoreHome(frag, filtered);
       } else {
         if (filtered.length === 0) {
@@ -18050,10 +18206,12 @@
       SystrayManager,
       FlasherManager,
       SnapshotManager,
+      StoreManager,
       DynamicIsland
     };
     window.DynamicIsland = DynamicIsland;
     window.WindowManager = WindowManager;
+    window.StoreManager = StoreManager;
     window.ThemeManager = ThemeManager;
     window.Studio = Studio;
     window.ShortcutManager = ShortcutManager;

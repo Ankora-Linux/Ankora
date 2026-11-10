@@ -6068,6 +6068,7 @@ pub struct NativeWindowInfo {
     pub id: String,
     pub title: String,
     pub app_name: String,
+    pub wm_class: String,
     pub is_active: bool,
 }
 
@@ -6109,7 +6110,12 @@ fn get_native_windows() -> Result<Vec<NativeWindowInfo>, String> {
             }
             let win_id = parts[0].to_lowercase();
             let wm_class = parts[2];
-            let title = parts[3..].join(" ");
+            // wmctrl -l -x biçimi: <win_id> <desktop> <wm_class> <client_machine> <title...>
+            let title = if parts.len() >= 5 {
+                parts[4..].join(" ")
+            } else {
+                parts[3..].join(" ")
+            };
 
             let lower_class = wm_class.to_lowercase();
             let lower_title = title.to_lowercase();
@@ -6132,6 +6138,7 @@ fn get_native_windows() -> Result<Vec<NativeWindowInfo>, String> {
                 id: parts[0].to_string(),
                 title,
                 app_name,
+                wm_class: wm_class.to_string(),
                 is_active,
             });
         }

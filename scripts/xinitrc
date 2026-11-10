@@ -32,6 +32,30 @@ done
 if [ "$IS_VM" = "1" ]; then
     export LIBGL_ALWAYS_SOFTWARE=1
 fi
+
+# Eco RAM+ (ZRAM): 4 GB altı belleğe sahip cihazlarda (eski MEB / düşük RAM PC)
+# açılışta ZRAM zstd/lz4 sıkıştırmalı takas alanını (RAM'in %50'si) otomatik devreye al
+MEM_KB=$(grep -m1 MemTotal /proc/meminfo 2>/dev/null | awk '{print $2}')
+if [ -n "$MEM_KB" ] && [ "$MEM_KB" -lt 4194304 ]; then
+    if ! swapon -s 2>/dev/null | grep -q zram; then
+        if [ -x /etc/init.d/zram-swap ]; then
+            /etc/init.d/zram-swap start 2>/dev/null || true
+        elif command -v modprobe >/dev/null 2>&1; then
+            modprobe zram num_devices=1 2>/dev/null || true
+            if [ -e /dev/zram0 ]; then
+                for alg in zstd lz4 lzo; do
+                    if grep -q "$alg" /sys/block/zram0/comp_algorithm 2>/dev/null; then
+                        echo "$alg" > /sys/block/zram0/comp_algorithm 2>/dev/null && break
+                    fi
+                done
+                DISKSIZE=$(( MEM_KB * 1024 / 2 ))
+                echo "$DISKSIZE" > /sys/block/zram0/disksize 2>/dev/null || true
+                mkswap /dev/zram0 >/dev/null 2>&1 || true
+                swapon -p 100 /dev/zram0 2>/dev/null || true
+            fi
+        fi
+    fi
+fi
 # Kullanıcının Ayarlar'dan verdiği DPMS zaman aşımı yeniden başlatmada korunur
 [ -f "$HOME/.config/ankora/dpms_secs" ] && xset +dpms dpms "$(cat "$HOME/.config/ankora/dpms_secs")" "$(cat "$HOME/.config/ankora/dpms_secs")" "$(cat "$HOME/.config/ankora/dpms_secs")" 2>/dev/null || true
 

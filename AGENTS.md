@@ -14,10 +14,13 @@ Bu depo, Ankora Linux projesinin resmî ana deposudur. Burada Ayaz Desktop Envir
 | Dosya | İçerik |
 |---|---|
 | `src/index.html` | Masaüstü arayüzü, pencereler, başlat menüsü |
-| `src/app.js` | Pencere yöneticisi, güncelleyici, AI ajanı |
-| `src/style.css` | Monokrom cam tasarım sistemi ve temalar |
+| `src/app.js` | Pencere yöneticisi, 378 paketlik mağaza, güncelleyici, AI ajanı |
+| `src/faces.js` | 4 arayüz yüzü (Klasik, Bakır, Bostan, Cıvata) ve dock senkronu |
+| `src/faces.css` | Yüzlere özel tasarım kuralları ve açık yüzey kontrastı |
+| `src/style.css` | Tasarım sistemi ve 24 tema |
 | `src-tauri/src/main.rs` | Sistem telemetrisi, IPC, güncelleme motoru, güvenlik kalkanı |
 | `scripts/*.sh` | ISO üretimi, güvenli kurulum yardımcıları ve üst seviye betikler |
+| `HARDWARE.md` | Desteklenen donanım ve akıllı tahta uyumluluk tablosu |
 | `third_party/` | Üçüncü parti paketler ve Devuan keyring dosyaları |
 
 ## Geliştirme kuralları
@@ -106,6 +109,28 @@ tarihli satır olarak eklenir; silinmez.
   WebKit2 typelib on kontrolu, yuz 2/3/8 AI balonu ve magaza tema duzeltmeleri
   bu surumde. Ana derleme main'den workflow_dispatch ile test edildi (run
   42410776116, 19 dk, success, ISO 864 MB); hibrit MBR/UEFI dogrulamasi gecti.
+
+- 2026-11-10: v4.5.2 kapsaminda arayuz, dock, magaza ve sistem altyapisi
+  iyilestirmeleri tamamlandi:
+  (1) Yuz 8 (Civata) dikey masaustu simge tasmasi, Yuz 3 (Bostan) + Yuz 8
+      masaustu simge kontrasti ve Magaza kaynak secici (`store-source-selector`,
+      `store-source-btn`) acik yuz/tema uyumu giderildi.
+  (2) Harici X11 uygulamalarinin (Brave, VLC vb.) ve acik pencerelerin Yuz 2
+      (Bakir), Yuz 3 (Bostan) ve Yuz 8 (Civata) alt dock'larinda ve Civata ust
+      barinda dinamik listelenmesi, odaklanmasi/kucultulmesi ve kapatilmasi
+      baglandi; `wmctrl -l -x` pencere basligi ayristirmasi duzeltildi, Openbox
+      alt kenar boslugu 68 px yapildi.
+  (3) Magazaya 100 yeni dogrulanmis Linux paketi eklendi (toplam 378 benzersiz
+      paket) ve "Tum Paketler" gorunumunun 378 kartin tamamini cizmesi
+      dogrulandi.
+  (4) ISO kurulumuna CUPS (`cups`, `printer-driver-gutenprint`,
+      `system-config-printer`) ve SANE (`sane-utils`, `simple-scan`) yazici ve
+      tarayici destegi eklendi; ZRAM politikasi (`zstd > lz4 > lzo`, RAM'in
+      %50'si) `build-iso.sh`, `ayaz-session` ve `xinitrc` arasinda esitlendi.
+  (5) `HARDWARE.md` olusturuldu, `README.md` (v4.5.2 rozeti, 24 tema, 4 yuz,
+      378 paket, sifir em-dash), `ci.yml` (5 dosya surum kontrolu),
+      `build-iso.yml` (CHANGELOG surum notu cikarma) ve `verify_all.py`
+      guncellendi.
 
 ## Not
 

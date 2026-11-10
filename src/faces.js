@@ -105,6 +105,10 @@
       }
 
       this.renderFaceShell();
+      if (window.XdgDesktopEngine && typeof window.XdgDesktopEngine.layoutDesktopIcons === 'function') {
+        window.XdgDesktopEngine.layoutDesktopIcons();
+        requestAnimationFrame(() => window.XdgDesktopEngine.layoutDesktopIcons());
+      }
     },
 
     renderFaceShell() {
@@ -136,7 +140,7 @@
       } else if (this.currentFace === '3') {
         this.renderBostan(topPanel, dock, hero);
       } else if (this.currentFace === '8') {
-        this.renderCivata(topPanel, hero);
+        this.renderCivata(topPanel, dock, hero);
       }
 
       this.updateClockDisplay();
@@ -293,7 +297,7 @@
       const apps = [
         { id: 'start', title: 'Başlat Menüsü', icon: '<circle cx="8" cy="8" r="3.4"/><rect x="9.4" y="9.4" width="7.6" height="7.6"/>', action: (e) => this.toggleStartMenu(e) },
         { id: 'files', winId: 'win-files', title: 'Dosyalar', icon: '<path d="M3 7h6l2 2h10v10H3z"/>', action: () => this.openApp('win-files') },
-        { id: 'brave', winId: 'win-browser', title: 'Brave Web Tarayıcısı', icon: '<circle cx="12" cy="12" r="8"/><path d="M4 12h16M12 4c-3 4-3 12 0 16M12 4c3 4 3 12 0 16"/>', action: () => this.openApp('win-browser') },
+        { id: 'brave', winId: 'win-browser', title: 'Brave Web Tarayıcısı', icon: '<circle cx="12" cy="12" r="8"/><path d="M4 12h16M12 4c-3 4-3 12 0 16M12 4c3 4 3 12 0 16"/>', action: () => this.launchOrToggleBrave() },
         { id: 'store', winId: 'win-store', title: 'Yazılım Mağazası', icon: '<path d="M5 8l7-4 7 4-7 4zM12 12v8M5 16l7 4 7-4M5 8v8l7 4 7-4V8"/>', action: () => this.openApp('win-store') },
         { id: 'settings', winId: 'win-settings', title: 'Sistem Ayarları', icon: '<path d="M5 8h14l-1 10H6zM9 8V6a3 3 0 0 1 6 0v2"/>', action: () => this.openApp('win-settings') },
         { id: 'terminal', winId: 'win-terminal', title: 'Uçbirim (Terminal)', icon: '<rect x="4" y="5" width="16" height="14"/><path d="M7 9.5l3 2.5-3 2.5M12 15h5"/>', action: () => this.openApp('win-terminal') }
@@ -356,7 +360,7 @@
       const apps = [
         { id: 'start', title: 'Başlat Menüsü', icon: '<circle cx="8" cy="8" r="3.4"/><rect x="9.4" y="9.4" width="7.6" height="7.6"/>', action: (e) => this.toggleStartMenu(e) },
         { id: 'files', winId: 'win-files', title: 'Dosyalar', icon: '<path d="M3 7h6l2 2h10v10H3z"/>', action: () => this.openApp('win-files') },
-        { id: 'brave', winId: 'win-browser', title: 'Brave Web Tarayıcısı', icon: '<circle cx="12" cy="12" r="8"/><path d="M4 12h16M12 4c-3 4-3 12 0 16M12 4c3 4 3 12 0 16"/>', action: () => this.openApp('win-browser') },
+        { id: 'brave', winId: 'win-browser', title: 'Brave Web Tarayıcısı', icon: '<circle cx="12" cy="12" r="8"/><path d="M4 12h16M12 4c-3 4-3 12 0 16M12 4c3 4 3 12 0 16"/>', action: () => this.launchOrToggleBrave() },
         { id: 'store', winId: 'win-store', title: 'Yazılım Mağazası', icon: '<path d="M5 8l7-4 7 4-7 4zM12 12v8M5 16l7 4 7-4M5 8v8l7 4 7-4V8"/>', action: () => this.openApp('win-store') },
         { id: 'terminal', winId: 'win-terminal', title: 'Uçbirim (Terminal)', icon: '<rect x="4" y="5" width="16" height="14"/><path d="M7 9.5l3 2.5-3 2.5M12 15h5"/>', action: () => this.openApp('win-terminal') },
         { id: 'settings', winId: 'win-settings', title: 'Sistem Ayarları', icon: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1z"/>', action: () => this.openApp('win-settings') }
@@ -377,12 +381,13 @@
     // ------------------------------------------------------------------------
     // YÜZ 8: CIVATA
     // ------------------------------------------------------------------------
-    renderCivata(topPanel, hero) {
+    renderCivata(topPanel, dock, hero) {
       // 1. Üst Siyah Teknik Çubuk (30px)
       topPanel.innerHTML = `
         <b class="civata-brand" title="Başlat Menüsü">Ankora</b>
         <span class="civata-nav-item civata-btn-apps">uygulamalar</span>
         <span class="civata-nav-item civata-btn-wins">açık pencereler <em class="civata-highlight civata-open-count">0</em></span>
+        <div class="civata-running-tabs" id="civata-running-tabs"></div>
         <div style="flex:1;"></div>
         <span class="civata-nav-item civata-btn-ai" style="margin-right:12px;">ada: <em class="civata-highlight">genişletilmiş</em></span>
         <span class="civata-top-datetime"></span>
@@ -409,11 +414,66 @@
           ${civataWx.city} <b>${civataWx.temp}°</b>, açık akşam · bu gece 6°
         </p>
       `;
+
+      // 3. Alt Teknik Dock (Cıvata)
+      if (dock) {
+        const apps = [
+          { id: 'start', title: 'Başlat Menüsü', icon: '<circle cx="8" cy="8" r="3.4"/><rect x="9.4" y="9.4" width="7.6" height="7.6"/>', action: (e) => this.toggleStartMenu(e) },
+          { id: 'files', winId: 'win-files', title: 'Dosyalar', icon: '<path d="M3 7h6l2 2h10v10H3z"/>', action: () => this.openApp('win-files') },
+          { id: 'brave', winId: 'win-browser', title: 'Brave Web Tarayıcısı', icon: '<circle cx="12" cy="12" r="8"/><path d="M4 12h16M12 4c-3 4-3 12 0 16M12 4c3 4 3 12 0 16"/>', action: () => this.launchOrToggleBrave() },
+          { id: 'store', winId: 'win-store', title: 'Yazılım Mağazası', icon: '<path d="M5 8l7-4 7 4-7 4zM12 12v8M5 16l7 4 7-4M5 8v8l7 4 7-4V8"/>', action: () => this.openApp('win-store') },
+          { id: 'terminal', winId: 'win-terminal', title: 'Uçbirim (Terminal)', icon: '<rect x="4" y="5" width="16" height="14"/><path d="M7 9.5l3 2.5-3 2.5M12 15h5"/>', action: () => this.openApp('win-terminal') },
+          { id: 'settings', winId: 'win-settings', title: 'Sistem Ayarları', icon: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1z"/>', action: () => this.openApp('win-settings') }
+        ];
+
+        apps.forEach(app => {
+          const btn = document.createElement('span');
+          btn.className = 'face-dock-app';
+          btn.setAttribute('data-app-id', app.id);
+          if (app.winId) btn.setAttribute('data-win-id', app.winId);
+          btn.title = app.title;
+          btn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24">${app.icon}</svg>`;
+          btn.addEventListener('click', (e) => app.action(e));
+          dock.appendChild(btn);
+        });
+      }
     },
 
     // ------------------------------------------------------------------------
     // YARDIMCILAR & ETKİLEŞİM
     // ------------------------------------------------------------------------
+    async launchOrToggleBrave() {
+      const wm = window.WindowManager;
+      const nativeWins = (wm && Array.isArray(wm.nativeWindows)) ? wm.nativeWindows : [];
+      const braveNative = nativeWins.find(nw => {
+        const hay = `${nw.app_name || ''} ${nw.wm_class || ''} ${nw.title || ''}`.toLowerCase();
+        return hay.includes('brave');
+      });
+
+      if (braveNative && window.TauriBridge) {
+        if (braveNative.is_active) {
+          window.TauriBridge.invoke('minimize_native_window', { id: braveNative.id }).catch(() => {});
+        } else {
+          if (wm && typeof wm.ensureDesktopLayer === 'function') wm.ensureDesktopLayer(false);
+          window.TauriBridge.invoke('activate_native_window', { id: braveNative.id }).catch(() => {});
+        }
+        setTimeout(() => {
+          if (wm && typeof wm.refreshNativeWindows === 'function') wm.refreshNativeWindows(true);
+        }, 250);
+        return;
+      }
+
+      if (window.XdgDesktopEngine && typeof window.XdgDesktopEngine.launchApp === 'function') {
+        await window.XdgDesktopEngine.launchApp({ id: 'brave-browser', name: 'Brave Web Tarayıcı', exec: 'brave-browser' });
+        if (wm && typeof wm.refreshNativeWindows === 'function') {
+          setTimeout(() => wm.refreshNativeWindows(true), 600);
+          setTimeout(() => wm.refreshNativeWindows(true), 1800);
+        }
+        return;
+      }
+
+      this.openApp('win-browser');
+    },
     toggleStartMenu(e) {
       if (e) {
         e.preventDefault();
@@ -452,25 +512,242 @@
     syncRunningState() {
       if (this.currentFace === 'default') return;
 
-      const openWins = Array.from(document.querySelectorAll('.window.open'));
-      const activeWin = document.querySelector('.window.open.active:not(.minimized)');
+      const wm = window.WindowManager;
+      const openWins = Array.from(document.querySelectorAll('.window.open:not(.ws-hide)'));
+      const nativeWins = (wm && Array.isArray(wm.nativeWindows)) ? wm.nativeWindows : [];
+      const dock = document.getElementById('face-bottom-dock');
 
-      // Yüz 2 & 3: Dock göstergelerini güncelle
-      document.querySelectorAll('#face-bottom-dock .face-dock-app').forEach(btn => {
-        const winId = btn.getAttribute('data-win-id');
-        if (!winId) return;
-        const win = document.getElementById(winId);
-        const isOpen = win && win.classList.contains('open');
-        const isActive = win && win.classList.contains('active') && !win.classList.contains('minimized');
+      const staticWinIds = new Set();
+      if (dock) {
+        dock.querySelectorAll('.face-dock-dynamic, .face-dock-sep').forEach(el => el.remove());
 
-        btn.classList.toggle('running', !!isOpen);
-        btn.classList.toggle('active', !!isActive);
-      });
+        dock.querySelectorAll('.face-dock-app:not(.face-dock-dynamic)').forEach(btn => {
+          const appId = btn.getAttribute('data-app-id');
+          const winId = btn.getAttribute('data-win-id');
+          if (winId) staticWinIds.add(winId);
 
-      // Yüz 8: Açık pencere sayısı
+          if (appId === 'brave') {
+            const win = winId ? document.getElementById(winId) : null;
+            const internalOpen = !!(win && win.classList.contains('open') && !win.classList.contains('ws-hide'));
+            const internalActive = !!(internalOpen && win.classList.contains('active') && !win.classList.contains('minimized'));
+            const braveNative = nativeWins.filter(nw => {
+              const hay = `${nw.app_name || ''} ${nw.wm_class || ''} ${nw.title || ''}`.toLowerCase();
+              return hay.includes('brave');
+            });
+            const nativeOpen = braveNative.length > 0;
+            const nativeActive = braveNative.some(nw => nw.is_active);
+            btn.classList.toggle('running', internalOpen || nativeOpen);
+            btn.classList.toggle('active', internalActive || nativeActive);
+            return;
+          }
+
+          if (!winId) return;
+          const win = document.getElementById(winId);
+          const isOpen = win && win.classList.contains('open') && !win.classList.contains('ws-hide');
+          const isActive = isOpen && win.classList.contains('active') && !win.classList.contains('minimized');
+
+          btn.classList.toggle('running', !!isOpen);
+          btn.classList.toggle('active', !!isActive);
+        });
+
+        // Statik dock dışında kalan sabitlenmiş görev çubuğu uygulamaları, açık iç pencereler ve tüm harici X11 pencereleri
+        const extraInternalWins = openWins.filter(w => !staticWinIds.has(w.id));
+        const pins = (window.AppPinManager && typeof window.AppPinManager.read === 'function')
+          ? window.AppPinManager.read(window.AppPinManager.TASKBAR_KEY)
+          : [];
+        const extraPins = pins.filter(pin => {
+          const id = String(pin.id || '').toLowerCase();
+          const exec = String(pin.exec || '').toLowerCase();
+          if (id.includes('brave') || exec.includes('brave')) return false;
+          if (exec.startsWith('internal:') && staticWinIds.has(exec.replace('internal:', ''))) return false;
+          return true;
+        });
+
+        if (extraPins.length > 0 || extraInternalWins.length > 0 || nativeWins.length > 0) {
+          const sep = document.createElement('span');
+          sep.className = 'face-dock-sep';
+          sep.setAttribute('aria-hidden', 'true');
+          dock.appendChild(sep);
+        }
+
+        // 1) Sabitlenmiş ek uygulamalar
+        extraPins.forEach(pin => {
+          const resolved = (window.AppPinManager && window.AppPinManager.resolveApp)
+            ? window.AppPinManager.resolveApp(pin)
+            : pin;
+          const btn = document.createElement('span');
+          btn.className = 'face-dock-app face-dock-dynamic face-dock-pin';
+          btn.setAttribute('data-app-id', resolved.id || '');
+          btn.title = resolved.name || resolved.id || 'Uygulama';
+          const iconSvg = (window.IconResolver && window.IconResolver.getIconSvg)
+            ? window.IconResolver.getIconSvg(resolved)
+            : `<span class="face-dock-letter">${String(resolved.name || '?').charAt(0).toUpperCase()}</span>`;
+          btn.innerHTML = iconSvg;
+          if (window.IconResolver && window.IconResolver.tagIcon) {
+            window.IconResolver.tagIcon(btn, resolved);
+          }
+          btn.addEventListener('click', () => {
+            const exec = resolved.exec || '';
+            if (exec.startsWith('internal:')) {
+              this.openApp(exec.replace('internal:', ''));
+            } else if (window.XdgDesktopEngine && window.XdgDesktopEngine.launchApp) {
+              window.XdgDesktopEngine.launchApp(resolved);
+            } else if (window.TauriBridge) {
+              window.TauriBridge.invoke('launch_application', { exec: exec || resolved.id }).catch(() => {});
+            }
+          });
+          dock.appendChild(btn);
+        });
+
+        // 2) Statik dock'ta yer almayan açık iç pencereler (Notlar, Ankora AI, Hesap Makinesi vb.)
+        extraInternalWins.forEach(win => {
+          const titleSpan = win.querySelector('.window-meta span');
+          const title = titleSpan ? titleSpan.textContent.split(/ [—–-] /)[0].trim() : (win.id || 'Pencere');
+          const svg = win.querySelector('.window-meta svg');
+          const isActive = win.classList.contains('active') && !win.classList.contains('minimized');
+
+          const btn = document.createElement('span');
+          btn.className = `face-dock-app face-dock-dynamic running${isActive ? ' active' : ''}`;
+          btn.setAttribute('data-win-id', win.id);
+          btn.title = title;
+          btn.innerHTML = svg
+            ? svg.outerHTML
+            : `<span class="face-dock-letter">${title.charAt(0).toLocaleUpperCase('tr')}</span>`;
+          btn.addEventListener('click', () => this.openApp(win.id));
+          btn.addEventListener('auxclick', (e) => {
+            if (e.button === 1 && wm) {
+              e.preventDefault();
+              wm.close(win);
+            }
+          });
+          btn.addEventListener('contextmenu', (e) => {
+            if (!wm || typeof wm.showTabMenu !== 'function') return;
+            e.preventDefault();
+            e.stopPropagation();
+            wm.showTabMenu(e, [
+              { label: win.classList.contains('minimized') ? 'Geri yükle' : 'Küçült', run: () => this.openApp(win.id) },
+              { label: win.classList.contains('maximized') ? 'Eski boyut' : 'Büyüt', run: () => wm.toggleMaximize(win) },
+              { label: 'Kapat', danger: true, run: () => wm.close(win) }
+            ]);
+          });
+          dock.appendChild(btn);
+        });
+
+        // 3) Açık harici X11 pencereleri (Brave, VLC, LibreOffice, GIMP vb.)
+        nativeWins.forEach(nw => {
+          const rawTitle = nw.title || nw.app_name || 'Uygulama';
+          const shortTitle = rawTitle.split(/ [—–-] /).pop().trim().substring(0, 28) || nw.app_name || 'Uygulama';
+          const appKey = String(nw.app_name || nw.wm_class || shortTitle).toLowerCase();
+          const letter = String(nw.app_name || shortTitle || '?').charAt(0).toLocaleUpperCase('tr');
+
+          const btn = document.createElement('span');
+          btn.className = `face-dock-app face-dock-dynamic face-dock-native native-task-tab running${nw.is_active ? ' active' : ''}`;
+          btn.setAttribute('data-native-id', nw.id);
+          btn.setAttribute('data-app-id', appKey);
+          btn.title = `${rawTitle} (${nw.app_name || 'X11'})`;
+
+          const matchedApp = (window.XdgDesktopEngine && Array.isArray(window.XdgDesktopEngine.installedApps))
+            ? window.XdgDesktopEngine.installedApps.find(a => {
+                const aid = String(a.id || '').toLowerCase();
+                const aexec = String(a.exec || '').toLowerCase();
+                return aid.includes(appKey) || appKey.includes(aid) || (aexec && appKey.includes(aexec));
+              })
+            : null;
+          const iconTarget = matchedApp || { id: appKey, name: nw.app_name || shortTitle };
+          const iconSvg = (window.IconResolver && typeof window.IconResolver.getIconSvg === 'function')
+            ? window.IconResolver.getIconSvg(iconTarget)
+            : `<span class="face-dock-letter">${letter}</span>`;
+          btn.innerHTML = iconSvg;
+          if (window.IconResolver && typeof window.IconResolver.tagIcon === 'function') {
+            window.IconResolver.tagIcon(btn, iconTarget);
+          }
+
+          const refresh = (ms) => setTimeout(() => {
+            if (wm && typeof wm.refreshNativeWindows === 'function') wm.refreshNativeWindows(true);
+          }, ms);
+          const activate = () => {
+            if (wm && typeof wm.ensureDesktopLayer === 'function') wm.ensureDesktopLayer(false);
+            if (window.TauriBridge) window.TauriBridge.invoke('activate_native_window', { id: nw.id }).catch(() => {});
+            refresh(250);
+          };
+          const minimize = () => {
+            if (window.TauriBridge) window.TauriBridge.invoke('minimize_native_window', { id: nw.id }).catch(() => {});
+            refresh(250);
+          };
+          const close = () => {
+            if (window.TauriBridge) window.TauriBridge.invoke('close_native_window', { id: nw.id }).catch(() => {});
+            refresh(400);
+          };
+
+          btn.addEventListener('click', () => (nw.is_active ? minimize() : activate()));
+          btn.addEventListener('auxclick', (e) => {
+            if (e.button === 1) {
+              e.preventDefault();
+              close();
+            }
+          });
+          btn.addEventListener('contextmenu', (e) => {
+            if (!wm || typeof wm.showTabMenu !== 'function') return;
+            e.preventDefault();
+            e.stopPropagation();
+            wm.showTabMenu(e, [
+              { label: 'Öne getir', run: activate },
+              { label: 'Küçült', run: minimize },
+              { label: 'Kapat', danger: true, run: close }
+            ]);
+          });
+          dock.appendChild(btn);
+        });
+
+        if (window.IconResolver && typeof window.IconResolver.upgradeScope === 'function') {
+          window.IconResolver.upgradeScope(dock);
+        }
+      }
+
+      // Yüz 8: Açık pencere sayısı ve üst çubuk sekme hapları
       const countEl = document.querySelector('.civata-open-count');
       if (countEl) {
-        countEl.textContent = String(openWins.length);
+        countEl.textContent = String(openWins.length + nativeWins.length);
+      }
+
+      const civataTabs = document.getElementById('civata-running-tabs');
+      if (civataTabs) {
+        civataTabs.replaceChildren();
+        openWins.forEach(win => {
+          const titleSpan = win.querySelector('.window-meta span');
+          const title = titleSpan ? titleSpan.textContent.split(/ [—–-] /)[0].trim() : 'Pencere';
+          const isActive = win.classList.contains('active') && !win.classList.contains('minimized');
+          const pill = document.createElement('button');
+          pill.type = 'button';
+          pill.className = `civata-tab-pill${isActive ? ' active' : ''}`;
+          pill.title = title;
+          pill.textContent = title.substring(0, 22);
+          pill.addEventListener('click', () => this.openApp(win.id));
+          civataTabs.appendChild(pill);
+        });
+
+        nativeWins.forEach(nw => {
+          const rawTitle = nw.title || nw.app_name || 'Uygulama';
+          const shortTitle = rawTitle.split(/ [—–-] /).pop().trim().substring(0, 22) || nw.app_name || 'Uygulama';
+          const pill = document.createElement('button');
+          pill.type = 'button';
+          pill.className = `civata-tab-pill native-task-tab${nw.is_active ? ' active' : ''}`;
+          pill.setAttribute('data-native-id', nw.id);
+          pill.title = `${rawTitle} (${nw.app_name || 'X11'})`;
+          pill.textContent = shortTitle;
+          pill.addEventListener('click', () => {
+            if (nw.is_active) {
+              if (window.TauriBridge) window.TauriBridge.invoke('minimize_native_window', { id: nw.id }).catch(() => {});
+            } else {
+              if (wm && typeof wm.ensureDesktopLayer === 'function') wm.ensureDesktopLayer(false);
+              if (window.TauriBridge) window.TauriBridge.invoke('activate_native_window', { id: nw.id }).catch(() => {});
+            }
+            setTimeout(() => {
+              if (wm && typeof wm.refreshNativeWindows === 'function') wm.refreshNativeWindows(true);
+            }, 250);
+          });
+          civataTabs.appendChild(pill);
+        });
       }
     },
 

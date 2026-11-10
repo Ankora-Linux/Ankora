@@ -5,7 +5,7 @@
   <p><b>Resmî ana depo · Ayaz Desktop Environment (Ayaz DE)</b></p>
 
   <p>
-    <img src="https://img.shields.io/badge/S%C3%9CR%C3%9CM-4.5.0-ffffff?style=for-the-badge&labelColor=111111" alt="Sürüm">
+    <img src="https://img.shields.io/badge/S%C3%9CR%C3%9CM-4.5.2-ffffff?style=for-the-badge&labelColor=111111" alt="Sürüm">
     <img src="https://img.shields.io/badge/HEDEF-ANKORA_LINUX-2563eb?style=for-the-badge&labelColor=111111" alt="Dağıtım">
   </p>
   <p>
@@ -18,6 +18,7 @@
   <p><a href="https://ankora-linux.github.io/">Web sitesi</a> ·
      <a href="https://github.com/Ankora-Linux/Ankora/releases">Sürümler</a> ·
      <a href="CHANGELOG.md">Sürüm notları</a> ·
+     <a href="HARDWARE.md">Donanım uyumu</a> ·
      <a href="https://www.instagram.com/ankoralinux/">Instagram</a> ·
      <a href="https://x.com/ankoralinux">X</a> ·
      <a href="https://www.youtube.com/@AnkoraLinux">YouTube</a></p>
@@ -31,14 +32,14 @@ yönetilir.
 
 Depoda yer alan temel bileşenler:
 
-- **Ayaz Desktop Environment (Ayaz DE)** — Rust + WebKitGTK (Tauri 1.5)
+- **Ayaz Desktop Environment (Ayaz DE)**: Rust + WebKitGTK (Tauri 1.5)
   üzerine kurulu, SysVinit tabanlı masaüstü ortamı
-- **Ankora Yapay Zekâ Asistanı** — yerel Ollama ve bulut sağlayıcılarla
+- **Ankora Yapay Zekâ Asistanı**: yerel Ollama ve bulut sağlayıcılarla
   çalışan, beyaz liste denetimli sistem ajanı
-- **Yazılım Mağazası ve İç Güncelleme Kanalı** — Flathub/APT kaynakları
-  birleştiren mağaza ve yayımlanan Debian paketi üzerinden yükseltme
-- **Devuan tabanlı sistem yapılandırmaları** — debootstrap düşük seviye
-  hattı, GRUB/plymouth temaları, MEB okul sertifikasyon araçları
+- **Yazılım Mağazası ve İç Güncelleme Kanalı**: Flathub/APT kaynakları
+  birleştiren 378 paketlik mağaza ve yayımlanan Debian paketi üzerinden yükseltme
+- **Devuan tabanlı sistem yapılandırmaları**: debootstrap düşük seviye
+  hattı, GRUB/plymouth temaları, MEB okul sertifikasyon araçları, CUPS/SANE yazıcı ve tarayıcı altyapısı
 - **ISO üretim betikleri ve doğrulama araçları**
 
 Ayaz DE yalnız **Ankora Linux** ile dağıtılır. ISO içi paket derleme
@@ -63,8 +64,8 @@ Boyut ve tepki hedefleri:
 
 - Canlı sistem boştayken yaklaşık **750 MB RAM** (panel, pencereler ve
   sistem hizmetleri dahil).
-- **4 GB altı** bellekte **Eco RAM kipi** ilk açılışta otomatik devreye
-  girer; servis azaltımı ve bellek temizliği ile sistem hafifletilir.
+- **4 GB altı** bellekte **Eco RAM+ (ZRAM)** kipi açılışta otomatik devreye
+  girer; `zstd`/`lz4` sıkıştırmalı bellek takas alanı (RAM'in %50'si) ile sistem hafifletilir.
 - Sistem dili tamamen Türkçedir; klavye düzeninde Türkçe, İngilizce,
   Almanca, Fransızca ve İngiliz (GB) seçenekleri sunulur.
 
@@ -72,90 +73,97 @@ Boyut ve tepki hedefleri:
 
 ### Masaüstü
 
-* **14 tam sistem teması** — Nordik Açık, Modern Grafit, Derin Gece,
-  Kuzey Fjordu, Çam Ormanı, Kor Ateşi (Ember), Arktik Serinlik, Çınar,
-  Meltem, Kor, Dem, Boğaz, Ayna ve 29 Ekim özel **Cumhuriyet** teması.
-  Her tema; cam değişkenleri, vurgu rengi, eşleşen ikon seti ve duvar
-  kağıdı tek paket olarak gelir; tema seçici kartından tek tıkla
-  değiştirilir.
-* **15 arka plan** — matrix, aurora, obsidian, topo, zenith, nordik ve
-  Cumhuriyet dahil; 14 vektörel SVG ek 1 fotoğraf arka
+* **24 tam sistem teması ve 4 masaüstü yüzü (Klasik, Bakır, Bostan, Cıvata)**:
+  Nordik Açık, Modern Grafit, Derin Gece, Kuzey Fjordu, Çam Ormanı,
+  Kor Ateşi (Ember), Arktik Serinlik, Çınar, Meltem, Kor, Dem, Boğaz,
+  Ayna, Cumhuriyet ve 10 editoryal tema (Matbaa, Bakır, Bostan, Hat,
+  Konsol, Kesit, Fener, Cıvata, Mina, Meridyen). Ayrıca 4 farklı kabuk
+  mimarisi (Klasik alt görev çubuğu, Yüz 2 Bakır zanaatkar dock, Yüz 3
+  Bostan organik kapsül dock, Yüz 8 Cıvata endüstriyel üst bar + teknik
+  dock) arasında anında geçiş yapılabilir; açık iç ve harici X11
+  uygulamaları (Brave, VLC, LibreOffice vb.) tüm yüzlerin dock ve
+  panellerinde listelenir.
+* **15 arka plan**: matrix, aurora, obsidian, topo, zenith, nordik ve
+  Cumhuriyet dahil; 14 vektörel SVG ve 1 fotoğraf arka
   plan (Ayaz Dağı).
-* **Dinamik Ada (Dynamic Island)** — ekranın üstünde cam kapsül: bildirim
-  tostları, indirme ilerlemesi, AI işlem mikro etkileşimi ve canlı
-  CPU/RAM telemetrisi. Beş ayrı yoldan açılabilir/kapatılabilir:
+* **Dinamik Ada (Dynamic Island)**: ekranın üstünde cam kapsül: MPRIS medya
+  oynatıcı kontrolleri, bildirim tostları, indirme ilerlemesi, AI işlem mikro
+  etkileşimi ve canlı CPU/RAM telemetrisi. Beş ayrı yoldan açılabilir/kapatılabilir:
   Ayarlar anahtarı, Hızlı Ayarlar karo, masaüstü sağ tık menüsü, kapsül
   sağ tık menüsü ("Gizle") ve kapsül içi düğme; her yol kalıcı yazılır.
-* **Görev çubuğu ve başlat menüsü** — ortalanmış düzen; Windows 11 ve
-  Chrome OS Flex esinli. Sabitleme: Başlat menüsüne, Araç Çubuna,
-  Masaüstüne.
-* **Masaüstü kategori klasörleri** — 2x2 mini önizleme karoları, sürükle
+* **Görev çubuğu ve başlat menüsü**: ortalanmış düzen; Sabitleme: Başlat
+  menüsüne, Araç Çubuğuna, Masaüstüne.
+* **Masaüstü kategori klasörleri**: 2x2 mini önizleme karoları, sürükle
   gruplama, sağ tık menüleri (aç/yeniden adlandır/sil/çıkar).
-* **Dosya yöneticisi** — kes/kopyala/yapıştır ilerleme çubukları,
-  özellikler/izinler penceresi, çoklu seçim, removable diskler,
-  "Şuraya Kopyala"/yazdırma.
-* **Canlı hava durumu widget'ı** — Open-Meteo (API anahtar gerektirmez),
+* **Dosya yöneticisi**: kes/kopyala/yapıştır ilerleme çubukları,
+  özellikler/izinler penceresi, çoklu seçim, çıkarılabilir diskler,
+  "Şuraya Kopyala"/yazdırma ve `.deb`/`.AppImage` grafik paket kurucu.
+* **Canlı hava durumu widget'ı**: Open-Meteo (API anahtar gerektirmez),
   3 günlük şerit, şehir arama, anlık yenileme, 15 dakikalık önbellek.
-* **Fatih Kalem 2 akıllı tahta çizim aracı** — okul ve ekran çizim/not
-  senaryoları; Ada kontrol kartından, Mağazadan ve Başlat menüsünden
-  başlatılır.
-* **MEB Okul Sertifikası** — Mağaza'daki `meb-cert` eylemiyle kurulur;
+* **Fatih Kalem 2 ve ETA dokunmatik tahta desteği**: FAZ 1/2/3 etkileşimli
+  tahtalar için `eta-touchdrv` sürücü ve kalibrasyon aracı; Ada kontrol
+  kartından, Mağazadan ve Başlat menüsünden başlatılır.
+* **MEB Okul Sertifikası**: Mağaza'daki `meb-cert` eylemiyle kurulur;
   `mebcert-remove` kök sertifikayı sistem ve tarayıcı NSS
   depolarından (`~/.pki/nssdb`) eksiksiz kaldırır; profil klasörlerine
   sahte veri yazılmaz.
 
 ### Yazılım Mağazası ve Güncelleme
 
-* **278 doğrulanmış paket** — eğitim, bilim, geliştirme, medya, ofis ve
-  sistem kategorilerinde; kaynak rozetleri (Flathub / Devuan APT / Sistem
-  deposu), uygulama detay görünümü, mimari uyum tespiti.
-* **Ayaz Güncelleyici** — GitHub Releases tabanlı: sürümü kontrol et,
+* **378 doğrulanmış paket**: okul/eğitim, bilim, geliştirme, medya, grafik,
+  ağ, ofis ve sistem kategorilerinde; kaynak rozetleri (Flathub / Devuan APT /
+  Sistem deposu), uygulama detay görünümü, mimari uyum tespiti.
+* **Ayaz Güncelleyici**: GitHub Releases tabanlı: sürümü kontrol et,
   indir, yükleyiciyi çalıştır; işlemler terminale ihtiyaç duymadan güvenli
   sudoers katmanı üzerinden yapılır. Kurulu sistemin Ankora olduğu
   doğrulanmadan ağ sorgusu yapılmaz.
 
 ### Yapay Zekâ Ajanı
 
-* **Sağlayıcılar:** Ollama (localhost), Google Gemini, Groq, OpenAI ve
-  OpenRouter; seçim panelden yapılır.
-* **Görüntü anlama ("Ekranı İzle", "Bak ve Anlat")** — Gemini, OpenAI ve
+* **Sağlayıcılar:** Ollama (localhost, tek tıkla yerel model indirme),
+  Google Gemini, Groq, OpenAI ve OpenRouter; seçim panelden yapılır.
+* **Görüntü anlama ("Ekranı İzle", "Bak ve Anlat")**: Gemini, OpenAI ve
   OpenRouter görüntü girdisi kabul eder; Ollama ve Groq metin notu verir.
-* **Beyaz liste denetimli eylemler** — 31 izinli komut (`apt-get clean`,
+* **Beyaz liste denetimli eylemler**: 31 izinli komut (`apt-get clean`,
   `df -h` gibi) ve 15 ajan eylemi; her yürütme tek vuruşluk jeton ister,
   jeton başka eylemde yeniden kullanılamaz.
 * **Kasa:** AI sağlayıcı anahtarları Rust tarafındaki şifreli kasada
   tutulur (`get_ai_credential`), düz localStorage'a yazılmaz.
-* **Mini sohbet balonu** — görev çubuğu üzerinde cam balon; dosya bırakma
-  (özetle/kod analiz), Günün Planı widget'ı ve doğal dil görev planı
-  kartı.
+* **Mini sohbet balonu ve Sistem Doktoru**: görev çubuğu ve yüzlerde sağ
+  üst balon; dosya bırakma (özetle/kod analiz), Günün Planı widget'ı ve
+  `ankora-doctor` ile tek tıkla sistem teşhis/onarım eylemi.
 
 ### Güvenlik
 
-* **Kilit ekranı sertleştirmesi** — girişim sınırlayıcı, 30 saniyelik tek
+* **Kilit ekranı sertleştirmesi**: girişim sınırlayıcı, 30 saniyelik tek
   vuruşluk kilit açma yetkisi; `ankora_lock_on_startup` ile açılışta
   otomatik kilit.
-* **Pano koruması** — kilitliyken pano sızıntısı engellenir.
-* **IPC çerçevesi** — Origin denetimi + 256-bit token + zaman-sabitli
+* **Pano koruması**: kilitliyken pano sızıntısı engellenir.
+* **IPC çerçevesi**: Origin denetimi + 256-bit token + zaman-sabitli
   karşılaştırma; 50 kötü denemede kalıcı blok.
-* **Komut beyaz listesi** — 31 izinli komut; `sudo`, `su`, `pkexec`,
+* **Komut beyaz listesi**: 31 izinli komut; `sudo`, `su`, `pkexec`,
   `dd` gibi 59 ikili dosyanın yetkisiz çalıştırılmasına kapalıdır.
-* **Saldırı yüzeyi azaltma** — sembolik bağ üzerine yazma ataklarının
+* **Saldırı yüzeyi azaltma**: sembolik bağ üzerine yazma ataklarının
   durdurulması, yürütme çıktısı boyut sınırları (DoS), MEB sertifikasına
   CA:TRUE Basic Constraints doğrulaması, Tauri CSP sıkılaştırması
-  (`object-src 'none'`), snapshot/backup yedek izinleri 0700/0600.
-* **Bağımlılık sağlığı** — reqwest 0.12 (h2 >= 0.4.20, RUSTSEC-2026-0258
+  (`script-src 'self' file:`, `object-src 'none'`), snapshot/backup yedek izinleri 0700/0600.
+* **Bağımlılık sağlığı**: reqwest 0.12 (h2 >= 0.4.20, RUSTSEC-2026-0258
   kapalı); `cargo audit` taramasında açık sayısı 0.
-* **4.0.0 güvenlik paketi** — 14 tarama bulgusu kapatıldı; ayrıntı
-  `CHANGELOG.md` içindeki 4.0.0 maddesindedir.
+* **Güvenlik geçmişi**: ayrıntılar `CHANGELOG.md` dosyasındadır.
 
 ### Sistem
 
-* **Devuan 5.0 Daedalus** (SysVinit) tabanlı — systemd yok;
-  X11 `nodm` oturum yönetimi.
-* **Hibrit canlı ISO** — aynı dosya hem BIOS (isohdpfx MBR) hem UEFI
+* **Devuan 5.0 Daedalus** (SysVinit) tabanlı: systemd yok;
+  X11 `nodm` ve Openbox oturum yönetimi.
+* **Hibrit canlı ISO**: aynı dosya hem BIOS (isohdpfx MBR) hem UEFI
   (GPT bas-dat) firmware'den başlatılabilir; derleme sonunda sistem
-  alanı bayt düzeyinden doğrulanır (aşağıda).
-* **USB başlatma güvencesi** — hibrit derleme adımının sessiz CD-only
+  alanı bayt düzeyinden doğrulanır.
+* **GPU firmware ve çevre birimi desteği**: AMD/Radeon (`firmware-amd-graphics`,
+  `/lib/firmware/radeon` ve `/lib/firmware/amdgpu`), Intel ve Wi-Fi firmware
+  paketleri yerleşiktir. Yazıcılar için **CUPS** (`cups`, `printer-driver-gutenprint`,
+  `system-config-printer`) ve tarayıcılar için **SANE** (`sane-utils`, `simple-scan`)
+  bir sonraki ISO derlemesinden itibaren kurulu gelir (ayrıntılar için bkz. [HARDWARE.md](HARDWARE.md)).
+* **USB başlatma güvencesi**: hibrit derleme adımının sessiz CD-only
   fallback'i kaldırıldı; isohdpfx MBR veya efi.img eksikse derleme açık
   hatayla durur.
 
@@ -165,14 +173,14 @@ En son sürüm [GitHub Releases sayfasında](https://github.com/Ankora-Linux/Ank
 
 | Asset | Amaç |
 |---|---|
-| `ankora-linux-<sürüm>-ayaz-amd64.iso` | Canlı ISO — USB'ye yazdırıp başlatılır |
+| `ankora-linux-<sürüm>-ayaz-amd64.iso` | Canlı ISO: USB'ye yazdırıp başlatılır |
 | `ankora-linux-<sürüm>-ayaz-amd64.iso.sha256` | Bütünlük özeti |
 | `ayaz-de-latest-amd64.deb` | Ayaz Güncelleyici ile içeriden yükseltme paketi |
 
 Bütünlük doğrulaması (ISO ile aynı dizindeyken):
 
 ```bash
-sha256sum -c ankora-linux-4.0.0-ayaz-amd64.iso.sha256
+sha256sum -c ankora-linux-4.5.2-ayaz-amd64.iso.sha256
 ```
 
 ## USB'ye yazdırma ve başlatma
@@ -185,7 +193,7 @@ ve yazdırma hedefinin başında bölüm numarası **olmayan** cihaz
 ```bash
 # Uyarı: /dev/sdX yerine kendi cihazınızı yazın. Yanlış hedef diskteki
 # tüm verileri siler.
-sudo dd if=ankora-linux-4.0.0-ayaz-amd64.iso of=/dev/sdX bs=4M oflag=direct status=progress
+sudo dd if=ankora-linux-4.5.2-ayaz-amd64.iso of=/dev/sdX bs=4M oflag=direct status=progress
 sync
 ```
 
@@ -205,7 +213,7 @@ ayarlar:
 
 | Ayar | Değer |
 |---|---|
-| Grafik denetleyicisi | VBoxSVGA (VMSVGA sorun çıkarırsa) |
+| Grafik denetleyicisi | VBoxSVGA veya VMSVGA (64 MB+ VRAM ile) |
 | Video belleği | 64 MB veya üzeri |
 | 3D hızlandırma | Kapalı |
 | Bellek | 2048 MB veya üzeri |
@@ -215,34 +223,35 @@ VMSVGA + 16 MB video belleği birleşiminde sanal GPU sürücüsü
 kilitlenebiliyor. Belirtisi, Plymouth'tan sonra düz siyah ekran ve
 Ctrl+Alt+F2'nin yanıt vermemesidir. Bu durumda makineyi kapatıp video
 belleğini yükseltin ya da GRUB menüsünden **Güvenli Mod (Failsafe)**
-(`nomodeset`) ile açın. 4.0.1'den itibaren masaüstü başlatılamazsa hata,
+(`nomodeset`) ile açın. Masaüstü başlatılamazsa hata,
 `/tmp/ayaz.log` günlüğüyle birlikte bir terminal penceresinde gösterilir.
 
 ## Sürüm dağıtımı ve güncellenme akışı
 
 ```text
-git tag v4.0.0
-git push origin v4.0.0
+git tag v4.5.2
+git push origin v4.5.2
 ```
 
 `build-iso.yml` iş akışı tetiklenir ve sırasıyla:
 
 1. Sürüm damgalarını doğrular (`tauri.conf.json` = `VERSION` = `Cargo.toml`
-   = `package.json`).
-2. Güvenlik ve bütünlük denetimini çalıştırır (SAST + `cargo audit`).
+   = `Cargo.lock` = `package.json`).
+2. Güvenlik ve bütünlük denetimini çalıştırır (`verify_all.py` + `verify_plymouth.py`).
 3. Ayaz DE iç paketini derler (ISO içi enjeksiyon).
-4. `build-iso.sh` ile hibrit canlı ISOyu üretir (8 aşama) ve sonunda
+4. `build-iso.sh` ile hibrit canlı ISO'yu üretir (8 aşama) ve sonunda
    sistem alanını doğrular:
    - MBR 1. bölüm girişi önyüklenebilir (`0x80`, offset 446),
    - MBR 2. bölüm girişi EFI tipinde (`0xef`, offset 466),
    - LBA 1'de GPT imzası (`EFI PART`),
    - isohdpfx bootloader kodu ISO'nun ilk 432 baytında birebir.
-5. ISO + `.sha256` + `ayaz-de-latest-amd64.deb` paketini GitHub Releases'a
-   yükler. `releases/latest` güncellenir; kurulu Ankora sistemlerindeki
-   Ayaz Güncelleyici bu sürümü görür.
+5. `CHANGELOG.md` içinden ilgili sürümün notlarını çıkarır ve ISO + `.sha256`
+   + `ayaz-de-latest-amd64.deb` paketini GitHub Releases'a yükler.
+   `releases/latest` güncellenir; kurulu Ankora sistemlerindeki Ayaz
+   Güncelleyici bu sürümü görür.
 
 Kurulu sistemler için uygun **iç yükseltme yolu**: masaüstündeki Ayaz
-Güncelleyici → Kontrol Et → İndir → Kur; her adım ayaz-update-helper
+Güncelleyici -> Kontrol Et -> İndir -> Kur; her adım `ayaz-update-helper`
 sudoers katmanı üzerinden doğrulanmış `.deb` kurar.
 
 ## Dizin yapısı
@@ -251,7 +260,7 @@ sudoers katmanı üzerinden doğrulanmış `.deb` kurar.
 Ankora/
 ├── .github/workflows/
 │   ├── build-iso.yml            # Canlı ISO derleme iş akışı (etiket tetiklemeli)
-│   └── ci.yml                   # Kalite denetimi (node --check, bash -n, sürüm uyum örnekleri)
+│   └── ci.yml                   # Kalite denetimi (node --check, bash -n, 5 dosya sürüm uyumu)
 ├── assets/                      # Logo, duvar kağıdı önizlemeleri, masaüstü ekran görseli
 ├── scripts/
 │   ├── ankora-doctor.sh         # Sistem doktoru ve hızlı onarım aracı
@@ -272,9 +281,11 @@ Ankora/
 │   ├── plymouth-theme-ankora/   # Açılış splash teması
 │   └── xinitrc                  # X oturum başlangıç betiği
 ├── src/                         # Arayüz
-│   ├── app.js                   # Pencere yöneticisi, güncelleyici, AI ajanı, Ada
+│   ├── app.js                   # Pencere yöneticisi, 378 paketlik mağaza, AI ajanı, Ada
+│   ├── faces.js                 # 4 arayüz yüzü (Klasik, Bakır, Bostan, Cıvata) ve dock senkronu
+│   ├── faces.css                # Yüzlere özel tasarım kuralları ve açık yüzey kontrastı
 │   ├── index.html               # Masaüstü, pencereler, başlat menüsü, mağaza
-│   ├── style.css                # Monokrom cam tasarım sistemi ve 14 tema
+│   ├── style.css                # Tasarım sistemi ve 24 tema
 │   └── wallpaper-*.svg          # Vektörel duvar kağıtları (14 SVG; ek 1 fotoğraf arka plan assets/ içinde)
 ├── src-tauri/                   # Rust arka ucu
 │   ├── Cargo.toml
@@ -282,11 +293,14 @@ Ankora/
 │   └── src/main.rs              # Sistem telemetrisi, IPC, güncelleme motoru
 ├── my-linux-orchestrator/       # Yapılandırma orkestratörü ve beceri tanımları
 ├── scratch/
-│   ├── test_store_data.js       # Mağaza veri doğrulama testi (278 paket)
-│   └── verify_all.py            # ISO/GRUB/plymouth/kur betik yapısı denetimi
+│   ├── test_bridge_logic.py     # Köprü ve wmctrl pencere ayrıştırma testleri
+│   ├── test_store_data.js       # Mağaza veri doğrulama testi (378 paket)
+│   ├── test_ui_comprehensive.py # Headless tarayıcıda 24 tema, 4 yüz, dock ve mağaza testi
+│   └── verify_all.py            # ISO/GRUB/plymouth/kurulum betik yapısı denetimi
 ├── third_party/                 # Devuan keyring, Fatih Kalem 2, üçüncü parti paketler
 ├── AGENTS.md                    # Depo geliştirici kuralları ve oturum hafızası
 ├── CHANGELOG.md                 # Sürüm notları
+├── HARDWARE.md                  # Desteklenen donanım ve akıllı tahta uyumluluk tablosu
 ├── LICENSE                      # GPL-3.0
 ├── package.json
 └── README.md
@@ -300,7 +314,7 @@ Ankora/
   ```bash
   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
   ```
-* Node.js v18 veya v20
+* Node.js v18, v20 veya v22
 * Debian/Devuan kütüphaneleri:
   ```bash
   sudo apt-get install -y libwebkit2gtk-4.0-dev build-essential curl wget file libssl-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev
@@ -317,9 +331,10 @@ Yapı değişimlerinde hızlı sözdizimi kapısı:
 
 ```bash
 node --check src/app.js
+node --check src/faces.js
 bash -n scripts/build-iso.sh
 python3 scratch/verify_all.py    # ISO/GRUB/plymouth/kurulum betik denetimi
-node scratch/test_store_data.js  # Mağaza veri doğrulaması
+node scratch/test_store_data.js  # Mağaza veri doğrulaması (378 paket)
 ```
 
 ### Üretim derlemesi (Canlı ISO)
@@ -330,7 +345,7 @@ sudo bash scripts/build-iso.sh
 
 Betiğin işleyişi: apt düşük seviye araçlarını (debootstrap, xorriso,
 mtools, grub-*) kendisi kurar ve doğrular; 8 aşamalı hat
-aşağıdaki kapılara sahiptir — MBR bootloader kodu, UEFI efi.img ve GPT
+aşağıdaki kapılara sahiptir: MBR bootloader kodu, UEFI efi.img ve GPT
 yapısından biri üretilmezse derleme açık hatayla durur:
 
 1. Host paketleri ve Devuan anahtarlık denetimi
@@ -343,8 +358,8 @@ yapısından biri üretilmezse derleme açık hatayla durur:
 8. Sistem alanı bayt doğrulaması + SHA256 özeti
 
 ISO çıktısı `dist/ankora-linux-<sürüm>-ayaz-amd64.iso` dosyasıdır.
-`ayaz-de-latest-amd64.deb` üretimi `scripts/package-deb.sh` Tarafından
-yapılır ve build-iso iş akışı her sürümle beraber releases'a yükler.
+`ayaz-de-latest-amd64.deb` üretimi `scripts/package-deb.sh` tarafından
+yapılır ve `build-iso` iş akışı her sürümle beraber Releases sayfasına yükler.
 
 ### Ayaz DE .deb paketi
 
@@ -361,28 +376,28 @@ böylece kurulu sistemler sorgusuz bulur.
 
 Depoda yeni bir **etiket push edildiğinde** `build-iso.yml` otomatik
 tetiklenir ve derlemeyi etiketin işaret ettiği commit'ten yapar. Sürüm
-damgaları (`tauri.conf.json` = `VERSION` = `Cargo.toml` = `package.json`)
+damgaları (`tauri.conf.json` = `VERSION` = `Cargo.toml` = `Cargo.lock` = `package.json`)
 uyuşmazsa iş başlangıçta durur.
 
-Sürüm damgası her sürümde dört dosyada da güncellenmelidir:
-`src-tauri/tauri.conf.json` (tek kaynak), `VERSION`, `Cargo.toml`,
-`package.json`. CI bu dördü karşılaştırır ve uyuşmazlıkta işi durdurur.
+Sürüm damgası her sürümde beş dosyada da güncellenmelidir:
+`src-tauri/tauri.conf.json` (tek kaynak), `VERSION`, `src-tauri/Cargo.toml`,
+`src-tauri/Cargo.lock`, `package.json`. CI bu beşi karşılaştırır ve uyuşmazlıkta işi durdurur.
 
 ## Test ve doğrulama
 
 `scratch/verify_all.py`, ISO üretim hattının kritik kapılarını süzer:
 grub.cfg sözdizimi ve tema yapısı, plymouth sprite API kuralları, kurulum
-betikleri, dokunmatik tahta sürücü kancaları, GRUB tema kalabalığı ve
-font kapıları, ISO hibrit satırları — ayrıntı betiğin maddelerinde.
+betikleri, dokunmatik tahta sürücü kancaları, CUPS/SANE yazıcı-tarayıcı
+paketleri, GRUB tema kalabalığı ve font kapıları, ISO hibrit satırları.
 
 `node scratch/test_store_data.js` mağaza veri bütünlüğünü doğrular:
-278 kayıt, zorunlu alanlar (isim, kategori, kaynak, kurulum yolu,
+378 benzersiz kayıt, zorunlu alanlar (isim, kategori, kaynak, kurulum yolu,
 boyut), kategori geçerliliği ve öne çıkan eşleşmeleri.
 
 ## Web sitesi ve topluluk
 
 - Site: [https://ankora-linux.github.io/](https://ankora-linux.github.io/)
-  — indirme, kurulum, güvenlik ve SSS sayfaları; site deposu açık kodlu.
+  (indirme, kurulum, güvenlik ve SSS sayfaları; site deposu açık kodlu).
 - Hata bildirimi: depo GitHub **Issues** sekmesi.
 - Güvenlik açığı bildirimi: `linuxankora@gmail.com` adresine e-posta
   gönderin; duyarlı bildirimleri genel Issues'ta açmayın.

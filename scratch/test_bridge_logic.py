@@ -51,13 +51,13 @@ def test_xdg_english(bridge):
     body = extract_block(bridge, "get_xdg_user_dirs")
     with tempfile.TemporaryDirectory() as home:
         os.makedirs(os.path.join(home, ".config"))
-        with open(os.path.join(home, ".config/user-dirs.dirs"), "w") as fh:
+        with open(os.path.join(home, ".config/user-dirs.dirs"), "w", encoding="utf-8") as fh:
             fh.write('XDG_DOWNLOAD_DIR="$HOME/Downloads"\nXDG_DESKTOP_DIR="$HOME/Desktop"\n')
         os.makedirs(os.path.join(home, "Downloads"))
         os.makedirs(os.path.join(home, "Desktop"))
         res = run_block(body, home_dir=home)
-    assert res["download"].endswith("/Downloads"), res
-    assert res["desktop"].endswith("/Desktop"), res
+    assert res["download"].replace("\\", "/").endswith("/Downloads"), res
+    assert res["desktop"].replace("\\", "/").endswith("/Desktop"), res
     print("[OK  ] xdg: İngilizce dizinler çözüldü")
 
 
@@ -65,13 +65,13 @@ def test_xdg_turkish(bridge):
     body = extract_block(bridge, "get_xdg_user_dirs")
     with tempfile.TemporaryDirectory() as home:
         os.makedirs(os.path.join(home, ".config"))
-        with open(os.path.join(home, ".config/user-dirs.dirs"), "w") as fh:
+        with open(os.path.join(home, ".config/user-dirs.dirs"), "w", encoding="utf-8") as fh:
             fh.write('XDG_DOWNLOAD_DIR="$HOME/İndirilenler"\nXDG_DESKTOP_DIR="$HOME/Masaüstü"\n')
         os.makedirs(os.path.join(home, "İndirilenler"))
         os.makedirs(os.path.join(home, "Masaüstü"))
         res = run_block(body, home_dir=home)
-    assert res["download"].endswith("/İndirilenler"), res
-    assert res["desktop"].endswith("/Masaüstü"), res
+    assert res["download"].replace("\\", "/").endswith("/İndirilenler"), res
+    assert res["desktop"].replace("\\", "/").endswith("/Masaüstü"), res
     print("[OK  ] xdg: Türkçe dizinler çözüldü")
 
 
@@ -80,7 +80,7 @@ def test_xdg_missing_config(bridge):
     with tempfile.TemporaryDirectory() as home:
         os.makedirs(os.path.join(home, "Downloads"))
         res = run_block(body, home_dir=home)
-    assert res["download"].endswith("/Downloads"), res
+    assert res["download"].replace("\\", "/").endswith("/Downloads"), res
     assert res["home"] == home, res
     print("[OK  ] xdg: yapılandırma yokken yedek çalıştı")
 
@@ -107,6 +107,41 @@ def test_icon_missing_and_unsafe(bridge):
     print("[OK  ] ikon: eksik/güvensiz adaylar None döndü")
 
 
+def test_native_windows_parsing(bridge):
+    import types
+    body = extract_block(bridge, "get_native_windows")
+    wmctrl_sample = (
+        "0x01200003 -1 trayer.panel ankora-live panel\n"
+        "0x01400007  0 ayaz.Ayaz ankora-live Ayaz — Ankora\n"
+        "0x01800003  0 brave-browser.Brave-browser ankora-live Yeni Sekme - Brave\n"
+        "0x02000009  0 vlc.Vlc ankora-live Ders_Kaydi.mp4 - VLC media player\n"
+    )
+
+    def fake_which(name):
+        return f"/usr/bin/{name}" if name in ("wmctrl", "xdotool") else None
+
+    def fake_run(cmd, **kwargs):
+        res = types.SimpleNamespace(returncode=0, stdout="")
+        if cmd[0] == "wmctrl":
+            res.stdout = wmctrl_sample
+        elif cmd[0] == "xdotool":
+            res.stdout = str(int("0x01800003", 16))
+        return res
+
+    fake_shutil = types.SimpleNamespace(which=fake_which)
+    fake_sp = types.SimpleNamespace(run=fake_run, PIPE=-1, DEVNULL=-3)
+    wins = run_block(body, shutil=fake_shutil, subprocess=fake_sp)
+    assert len(wins) == 2, wins
+    assert wins[0]["id"] == "0x01800003"
+    assert wins[0]["title"] == "Yeni Sekme - Brave", wins[0]
+    assert wins[0]["app_name"] == "Brave-browser", wins[0]
+    assert wins[0]["wm_class"] == "brave-browser.Brave-browser", wins[0]
+    assert wins[0]["is_active"] is True
+    assert wins[1]["title"] == "Ders_Kaydi.mp4 - VLC media player", wins[1]
+    assert wins[1]["is_active"] is False
+    print("[OK  ] get_native_windows: wmctrl -l -x başlık ve aktif pencere ayrıştırması doğru")
+
+
 def main():
     bridge = load_bridge()
     test_xdg_english(bridge)
@@ -114,6 +149,7 @@ def main():
     test_xdg_missing_config(bridge)
     test_icon_found(bridge)
     test_icon_missing_and_unsafe(bridge)
+    test_native_windows_parsing(bridge)
     print("KÖPRÜ MANTIK TESTLERİ: geçti.")
     return 0
 

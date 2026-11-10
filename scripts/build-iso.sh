@@ -458,7 +458,15 @@ apt-get install -y --no-install-recommends \
     p7zip-full \
     zip \
     unzip \
-    gvfs
+    gvfs \
+    cups \
+    cups-client \
+    cups-bsd \
+    printer-driver-gutenprint \
+    system-config-printer \
+    sane-utils \
+    libsane1 \
+    simple-scan
 
 # Flathub Resmi Deposu Entegrasyonu (Spotify, Discord, Steam, VS Code 1-Tık)
 flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo 2>/dev/null || true
@@ -562,14 +570,14 @@ CONSOLE
 # -----------------------------------------------------------------------
 # Canlı Oturum Kullanıcısı: ankora
 # -----------------------------------------------------------------------
-for grp in sudo audio video plugdev netdev; do
+for grp in sudo audio video plugdev netdev lp scanner; do
     getent group "$grp" >/dev/null || groupadd -r "$grp" 2>/dev/null || true
 done
 
 if ! id -u ankora &>/dev/null; then
-    useradd -m -s /bin/bash -u 1000 -G sudo,audio,video,plugdev,netdev ankora
+    useradd -m -s /bin/bash -u 1000 -G sudo,audio,video,plugdev,netdev,lp,scanner ankora
 else
-    usermod -aG sudo,audio,video,plugdev,netdev ankora 2>/dev/null || true
+    usermod -aG sudo,audio,video,plugdev,netdev,lp,scanner ankora 2>/dev/null || true
 fi
 
 # Root hesabı doğrudan girişlere kilitlenir
@@ -752,6 +760,9 @@ if [ -f /etc/init.d/dbus ]; then
 fi
 if [ -f /etc/init.d/network-manager ]; then
     update-rc.d network-manager defaults 2>/dev/null || true
+fi
+if [ -f /etc/init.d/cups ]; then
+    update-rc.d cups defaults 2>/dev/null || true
 fi
 # D-Bus başlamazsa NM de başlamaz; dbus init betiği $network tesisatına
 # bağlantı bile olmadan kendi saatini bekler, bu yüzden düz kademe yeterli.
@@ -3255,7 +3266,8 @@ exit 0
             active_num = None
         windows = []
         for line in out.splitlines():
-            parts = line.split(None, 3)
+            # wmctrl -l -x biçimi: <win_id> <desktop> <wm_class> <client_machine> <title...>
+            parts = line.split(None, 4)
             if len(parts) < 4:
                 continue
             # Masaüstü -1: yapışkan paneller (trayer, dunst); görev değil.
@@ -3263,7 +3275,7 @@ exit 0
                 continue
             win_id = parts[0].strip().lower()
             wm_class = parts[2].strip()
-            title = parts[3].strip()
+            title = parts[4].strip() if len(parts) >= 5 else parts[3].strip()
             lower_class = wm_class.lower()
             lower_title = title.lower()
             if any(k in lower_class for k in ['ayaz', 'openbox', 'desktop', 'trayer', 'dunst']) or 'ayaz — ankora' in lower_title or title == 'Desktop':
@@ -3310,10 +3322,13 @@ exit 0
 
     elif cmd == 'set_desktop_layer':
         above = bool(args.get('above', False))
-        arg = 'add,above' if above else 'remove,above'
         if shutil.which('wmctrl'):
-            subprocess.run(['wmctrl', '-r', 'Ayaz — Ankora', '-b', arg], timeout=3)
-            if not above:
+            if above:
+                subprocess.run(['wmctrl', '-r', 'Ayaz — Ankora', '-b', 'remove,below'], timeout=3)
+                subprocess.run(['wmctrl', '-r', 'Ayaz — Ankora', '-b', 'add,above'], timeout=3)
+                subprocess.run(['wmctrl', '-a', 'Ayaz — Ankora'], timeout=3)
+            else:
+                subprocess.run(['wmctrl', '-r', 'Ayaz — Ankora', '-b', 'remove,above'], timeout=3)
                 subprocess.run(['wmctrl', '-r', 'Ayaz — Ankora', '-b', 'add,below'], timeout=3)
         return True
 

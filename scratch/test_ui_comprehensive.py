@@ -168,15 +168,87 @@ def run_tests():
             const hero3 = document.getElementById('face-desk-hero');
             assert('Yüz 3: Hero Saat/Hava Kartı Var', !!hero3 && hero3.innerHTML.includes('bostan-hero-weather'));
             assert('Yüz 3: Taskbar Gizli', getComputedStyle(document.getElementById('taskbar')).display === 'none');
+            const f3IconSvg = document.querySelector('#dynamic-desktop-icons .desktop-item .item-icon svg');
+            if (f3IconSvg) {
+                const f3Stroke = getComputedStyle(f3IconSvg).stroke;
+                assert('Yüz 3: Masaüstü İkon Çizgisi Koyu (rgb(38, 50, 31))', f3Stroke === 'rgb(38, 50, 31)', `stroke=${f3Stroke}`);
+            }
+            if (window.WindowManager) window.WindowManager.open('win-store');
+            const f3SrcSel = document.querySelector('#win-store .store-source-selector');
+            const f3SrcAct = document.querySelector('#win-store .store-source-btn.active');
+            if (f3SrcSel && f3SrcAct) {
+                const bgSel = getComputedStyle(f3SrcSel).backgroundColor;
+                const bgAct = getComputedStyle(f3SrcAct).backgroundColor;
+                assert('Yüz 3: Mağaza Kaynak Seçici Açık Zeminli', bgSel === 'rgb(229, 225, 208)', `bg=${bgSel}`);
+                assert('Yüz 3: Mağaza Aktif Kaynak Yeşil Vurgulu', bgAct === 'rgb(61, 107, 69)', `bg=${bgAct}`);
+            }
 
             // Yüz 8: Cıvata
             window.FaceManager.setFace('8', false);
             assert('Yüz 8: data-face="8"', document.documentElement.getAttribute('data-face') === '8');
             const top8 = document.getElementById('face-top-panel');
             assert('Yüz 8: Üst Bar Var', !!top8 && top8.children.length > 0);
+            const dock8 = document.getElementById('face-bottom-dock');
+            assert('Yüz 8: Alt Teknik Dock Var', !!dock8 && dock8.children.length > 0);
             const hero8 = document.getElementById('face-desk-hero');
             assert('Yüz 8: Display Saat/Hava Kartı Var', !!hero8 && hero8.innerHTML.includes('civata-hero-weather'));
             assert('Yüz 8: Taskbar Gizli', getComputedStyle(document.getElementById('taskbar')).display === 'none');
+            if (window.XdgDesktopEngine && window.XdgDesktopEngine.layoutDesktopIcons) {
+                window.XdgDesktopEngine.layoutDesktopIcons();
+            }
+            const f8IconSvg = document.querySelector('#dynamic-desktop-icons .desktop-item .item-icon svg');
+            if (f8IconSvg) {
+                const f8Stroke = getComputedStyle(f8IconSvg).stroke;
+                assert('Yüz 8: Masaüstü İkon Çizgisi Koyu (rgb(22, 19, 9))', f8Stroke === 'rgb(22, 19, 9)', `stroke=${f8Stroke}`);
+            }
+            const f8Items = Array.from(document.querySelectorAll('#dynamic-desktop-icons .desktop-item'));
+            const f8Overflow = f8Items.filter(el => el.getBoundingClientRect().bottom > window.innerHeight);
+            assert('Yüz 8: Masaüstü İkonlarında Dikey Taşma Yok', f8Overflow.length === 0, `taşan=${f8Overflow.length}`);
+            const f8SrcSel = document.querySelector('#win-store .store-source-selector');
+            const f8SrcAct = document.querySelector('#win-store .store-source-btn.active');
+            if (f8SrcSel && f8SrcAct) {
+                const bgSel8 = getComputedStyle(f8SrcSel).backgroundColor;
+                const bgAct8 = getComputedStyle(f8SrcAct).backgroundColor;
+                assert('Yüz 8: Mağaza Kaynak Seçici Açık Zeminli', bgSel8 === 'rgb(232, 229, 213)', `bg=${bgSel8}`);
+                assert('Yüz 8: Mağaza Aktif Kaynak Mürekkep Vurgulu', bgAct8 === 'rgb(22, 19, 9)', `bg=${bgAct8}`);
+            }
+            if (window.WindowManager) window.WindowManager.close('win-store');
+
+            // Harici X11 Uygulamalarının (Brave, VLC) Tüm Yüzlerin Dock ve Panellerinde Görünmesi
+            if (window.WindowManager) {
+                window.WindowManager.nativeWindows = [
+                    { id: '0x01800003', title: 'Yeni Sekme - Brave', app_name: 'Brave-browser', wm_class: 'brave-browser.Brave-browser', is_active: true },
+                    { id: '0x02000001', title: 'Ders.mp4 - VLC', app_name: 'vlc', wm_class: 'vlc.Vlc', is_active: false }
+                ];
+                window.WindowManager._tabsSig = '';
+                window.WindowManager.syncTabs();
+
+                for (const fid of ['2', '3', '8']) {
+                    window.FaceManager.setFace(fid, false);
+                    const nativeDockBtns = document.querySelectorAll('#face-bottom-dock .face-dock-native');
+                    const braveStaticBtn = document.querySelector('#face-bottom-dock .face-dock-app[data-app-id="brave"]');
+                    assert(`Yüz ${fid}: Harici uygulamalar (Brave, VLC) alt dock'ta listelenir`, nativeDockBtns.length === 2, `sayı=${nativeDockBtns.length}`);
+                    assert(`Yüz ${fid}: Brave statik dock ikonu da aktif/running işaretlenir`, !!(braveStaticBtn && braveStaticBtn.classList.contains('running') && braveStaticBtn.classList.contains('active')));
+                }
+                const civataPills = document.querySelectorAll('#civata-running-tabs .civata-tab-pill.native-task-tab');
+                assert('Yüz 8: Harici uygulamalar üst çubuk sekme haplarında da görünür', civataPills.length === 2, `sayı=${civataPills.length}`);
+
+                window.WindowManager.nativeWindows = [];
+                window.WindowManager._tabsSig = '';
+                window.WindowManager.syncTabs();
+            }
+
+            // Mağaza 378 Uygulama Kataloğu ve Tümü Görünümü Denetimi
+            if (window.StoreManager && Array.isArray(window.StoreManager.packages)) {
+                assert('Mağaza: Toplam 378 uygulama yüklü', window.StoreManager.packages.length === 378, `sayı=${window.StoreManager.packages.length}`);
+                window.StoreManager.currentCat = 'all';
+                window.StoreManager.currentSource = 'all';
+                window.StoreManager.render('');
+                const cards = document.querySelectorAll('#store-grid .store-card');
+                assert('Mağaza: 378 uygulamanın tamamı kart olarak çizildi', cards.length === 378, `çizilen=${cards.length}`);
+                window.StoreManager.currentCat = 'featured';
+                window.StoreManager.render('');
+            }
 
             // Tekrar Default Yüze Dönüş
             window.FaceManager.setFace('default', false);
@@ -312,12 +384,25 @@ def run_tests():
     url = f"http://127.0.0.1:{test_port}/index.html"
     print(f"Test Sunucusu Açıldı: {url}")
 
-    # Tarayıcıyı bul: CHROME_BIN, chromium, chromium-browser, google-chrome.
+    # Tarayıcıyı bul: CHROME_BIN, chromium, chromium-browser, google-chrome veya Windows Chrome/Edge.
     browser = None
-    for candidate in [os.environ.get("CHROME_BIN", ""), "chromium", "chromium-browser",
-                      "google-chrome", "google-chrome-stable"]:
-        if candidate and shutil.which(candidate):
-            browser = candidate
+    for candidate in [
+        os.environ.get("CHROME_BIN", ""),
+        "chromium",
+        "chromium-browser",
+        "google-chrome",
+        "google-chrome-stable",
+        "msedge",
+        r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+        r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
+        r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
+        r"C:\Program Files\Microsoft\Edge\Application\msedge.exe",
+    ]:
+        if not candidate:
+            continue
+        found = shutil.which(candidate) or (candidate if os.path.isfile(candidate) else None)
+        if found:
+            browser = found
             break
     if not browser:
         print("[BILGI] Headless tarayıcı bulunamadı; arayüz duman testi atlandı.")

@@ -5,7 +5,7 @@ const fs = require('fs');
 const path = require('path');
 
 const src = fs.readFileSync(path.join(__dirname, '..', 'src', 'app.js'), 'utf8');
-const m = src.match(/packages: \[([\s\S]*?)\n    \],\n    tableBody: null,/);
+const m = src.match(/packages: \[([\s\S]*?)\r?\n    \],\r?\n    tableBody: null,/);
 if (!m) {
   console.error('[HATA] packages dizisi bulunamadı');
   process.exit(1);
@@ -25,7 +25,7 @@ const ok = (name, cond, detail = '') => {
 };
 
 const CATS = new Set(['dev', 'media', 'graphics', 'net', 'office', 'sys', 'util']);
-ok('mağaza: kayıt sayısı > 50', packages.length > 50, String(packages.length));
+ok('mağaza: kayıt sayısı >= 378', packages.length >= 378, String(packages.length));
 
 const bad = packages.filter(p => !p.id || !p.name || !p.desc || !p.cat || !p.size);
 ok('mağaza: zorunlu alanlar dolu', bad.length === 0, bad.map(p => p.id).join(','));
@@ -53,6 +53,7 @@ for (const p of packages) {
   } else byId.set(p.id, p);
 }
 ok('mağaza: çift id içerikleri tutarlı', dupContent.length === 0, [...new Set(dupContent)].join(','));
+ok('mağaza: tüm paket id değerleri benzersiz', byId.size === packages.length, `${byId.size}/${packages.length}`);
 
 if (fail.length) {
   console.error(`MAĞAZA VERİ TESTİ: ${fail.length} başarısız`);
