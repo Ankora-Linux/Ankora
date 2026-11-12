@@ -469,6 +469,7 @@ body.theme-cumhuriyet {
   background: var(--surface-flyout, #141724);
 }
 body.theme-light .start-flyout,
+body.is-light-theme .start-flyout,
 body.theme-arctic .start-flyout,
 body.theme-cinar .start-flyout,
 body.theme-meltem .start-flyout {
@@ -1075,221 +1076,269 @@ body.theme-light .desktop-body {
   background-color: #f1f5f9;
 }
 
-body.theme-light .desktop-wallpaper {
+body.theme-light .desktop-wallpaper,
+body.is-light-theme .desktop-wallpaper {
   opacity: 0.12;
   filter: invert(1) brightness(1.2);
 }
 
-body.theme-light .window {
+body.theme-light .window,
+body.theme-arctic .window {
   background: rgba(255, 255, 255, 0.96);
   box-shadow: 0 16px 48px rgba(0, 0, 0, 0.12);
   border-color: rgba(0, 0, 0, 0.12);
 }
 
-body.theme-light .window.active {
+body.theme-light .window.active,
+body.theme-arctic .window.active {
   box-shadow: 0 20px 52px rgba(37, 99, 235, 0.18), 0 0 0 1px rgba(37, 99, 235, 0.45);
   border-color: var(--accent-active, #2563eb);
 }
 
-body.theme-light .window-header {
+body.theme-light .window-header,
+body.theme-arctic .window-header {
   background: #f8fafc;
   border-bottom-color: rgba(0, 0, 0, 0.08);
 }
 
-body.theme-light .window-meta {
+body.theme-light .window-meta,
+body.is-light-theme:not(.theme-civata) .window-meta {
   color: #0f172a;
 }
 
-body.theme-light .ctrl-btn {
+body.theme-light .ctrl-btn,
+body.is-light-theme:not(.theme-civata) .ctrl-btn {
   color: #475569;
 }
 
-body.theme-light .ctrl-btn:hover {
+body.theme-light .ctrl-btn:hover,
+body.is-light-theme:not(.theme-civata) .ctrl-btn:hover {
   background: #e2e8f0;
   color: #0f172a;
 }
 
 /* Hoş Geldiniz Karşılayıcı - Açık Tema Düzeltmeleri */
-body.theme-light .welcome-preview-window {
+body.theme-light .welcome-preview-window,
+body.is-light-theme .welcome-preview-window {
   background: rgba(255, 255, 255, 0.94) !important;
   border-color: rgba(0, 0, 0, 0.1) !important;
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.05) !important;
 }
 
-body.theme-light .welcome-preview-window .window-header {
+body.theme-light .welcome-preview-window .window-header,
+body.is-light-theme .welcome-preview-window .window-header {
   background: rgba(241, 245, 249, 0.9) !important;
   border-bottom-color: rgba(0, 0, 0, 0.08) !important;
 }
 
-body.theme-light .welcome-preview-window #welcome-header-title {
+body.theme-light .welcome-preview-window #welcome-header-title,
+body.is-light-theme .welcome-preview-window #welcome-header-title {
   color: #0f172a !important;
 }
 
-body.theme-light .welcome-preview-window .ctrl-btn.close {
+body.theme-light .welcome-preview-window .ctrl-btn.close,
+body.is-light-theme .welcome-preview-window .ctrl-btn.close {
   color: #64748b !important;
 }
 
-body.theme-light .preview-title {
+body.theme-light .preview-title,
+body.is-light-theme .preview-title {
   color: #0f172a !important;
 }
 
-body.theme-light .preview-subtitle {
+body.theme-light .preview-subtitle,
+body.is-light-theme .preview-subtitle {
   color: #64748b !important;
 }
 
-body.theme-light .preview-section-title {
+body.theme-light .preview-section-title,
+body.is-light-theme .preview-section-title {
   color: #0f172a !important;
 }
 
-body.theme-light .preview-feature-row {
+body.theme-light .preview-feature-row,
+body.is-light-theme .preview-feature-row {
   background: rgba(0, 0, 0, 0.025) !important;
   border-color: rgba(0, 0, 0, 0.06) !important;
 }
 
-body.theme-light .preview-feature-row:hover {
+body.theme-light .preview-feature-row:hover,
+body.is-light-theme .preview-feature-row:hover {
   background: rgba(0, 0, 0, 0.05) !important;
   border-color: rgba(0, 0, 0, 0.1) !important;
 }
 
-body.theme-light .feature-icon-circle {
+body.theme-light .feature-icon-circle,
+body.is-light-theme .feature-icon-circle {
   background: rgba(37, 99, 235, 0.08) !important;
   color: #2563eb !important;
 }
 
-body.theme-light .feature-name {
+body.theme-light .feature-name,
+body.is-light-theme .feature-name {
   color: #0f172a !important;
 }
 
-body.theme-light .feature-desc {
+body.theme-light .feature-desc,
+body.is-light-theme .feature-desc {
   color: #64748b !important;
 }
 
-body.theme-light .preview-action-btn {
+body.theme-light .preview-action-btn,
+body.is-light-theme .preview-action-btn {
   background: rgba(0, 0, 0, 0.05) !important;
   border-color: rgba(0, 0, 0, 0.12) !important;
   color: #0f172a !important;
 }
 
-body.theme-light .preview-action-btn:hover {
+body.theme-light .preview-action-btn:hover,
+body.is-light-theme .preview-action-btn:hover {
   background: #0f172a !important;
   color: #ffffff !important;
 }
 
-body.theme-light .preview-action-btn.highlight {
+body.theme-light .preview-action-btn.highlight,
+body.is-light-theme .preview-action-btn.highlight {
   background: #2563eb !important;
   color: #ffffff !important;
   border-color: #2563eb !important;
 }
 
-body.theme-light .welcome-key-input {
+body.theme-light .welcome-key-input,
+body.is-light-theme .welcome-key-input {
   background: #ffffff !important;
   border-color: rgba(0, 0, 0, 0.15) !important;
   color: #0f172a !important;
 }
 
-body.theme-light .welcome-preview-footer {
+body.theme-light .welcome-preview-footer,
+body.is-light-theme .welcome-preview-footer {
   border-top-color: rgba(0, 0, 0, 0.06) !important;
 }
 
-body.theme-light .check-container-sm {
+body.theme-light .check-container-sm,
+body.is-light-theme .check-container-sm {
   color: #64748b !important;
 }
 
-body.theme-light .btn-text-link {
+body.theme-light .btn-text-link,
+body.is-light-theme .btn-text-link {
   color: #2563eb !important;
 }
 
-body.theme-light .theme-sun-moon-toggle {
+body.theme-light .theme-sun-moon-toggle,
+body.is-light-theme .theme-sun-moon-toggle {
   background: rgba(0, 0, 0, 0.06) !important;
   border-color: rgba(0, 0, 0, 0.12) !important;
 }
 
-body.theme-light .toggle-icon {
+body.theme-light .toggle-icon,
+body.is-light-theme .toggle-icon {
   color: #64748b !important;
 }
 
-body.theme-light .toggle-slider-knob {
+body.theme-light .toggle-slider-knob,
+body.is-light-theme .toggle-slider-knob {
   background: #2563eb !important;
   box-shadow: 0 2px 6px rgba(37, 99, 235, 0.35) !important;
 }
 
 /* Görev Çubuğu - Açık Tema */
-body.theme-light .taskbar {
+body.theme-light .taskbar,
+body.is-light-theme:not(.theme-bostan):not(.theme-civata) .taskbar {
   background: rgba(255, 255, 255, 0.88);
   border-top: 1px solid rgba(0, 0, 0, 0.08);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 -4px 20px rgba(0, 0, 0, 0.05);
 }
 
-body.theme-light .taskbar-pin-btn {
+body.theme-light .taskbar-pin-btn,
+body.is-light-theme:not(.theme-bostan):not(.theme-civata) .taskbar-pin-btn {
   background: rgba(0, 0, 0, 0.035);
   border-color: rgba(0, 0, 0, 0.08);
   color: #334155;
 }
 
-body.theme-light .taskbar-pin-btn:hover {
+body.theme-light .taskbar-pin-btn:hover,
+body.is-light-theme:not(.theme-bostan):not(.theme-civata) .taskbar-pin-btn:hover {
   background: rgba(0, 0, 0, 0.08);
   color: #0f172a;
 }
 
-body.theme-light .task-tab {
+body.theme-light .task-tab,
+body.is-light-theme:not(.theme-bostan):not(.theme-civata) .task-tab {
   background: rgba(0, 0, 0, 0.03);
   color: #475569;
 }
 
-body.theme-light .task-tab:hover {
+body.theme-light .task-tab:hover,
+body.is-light-theme:not(.theme-bostan):not(.theme-civata) .task-tab:hover {
   background: rgba(0, 0, 0, 0.06);
   color: #0f172a;
 }
 
-body.theme-light .task-tab.active {
+body.theme-light .task-tab.active,
+body.is-light-theme:not(.theme-bostan):not(.theme-civata) .task-tab.active {
   background: rgba(0, 0, 0, 0.08);
   border-color: rgba(0, 0, 0, 0.12);
   color: #0f172a;
 }
 
-body.theme-light .tray-clock {
+body.theme-light .tray-clock,
+body.is-light-theme:not(.theme-bostan):not(.theme-civata) .tray-clock {
   color: #0f172a;
 }
 
-body.theme-light .tray-status-island {
+body.theme-light .tray-status-island,
+body.is-light-theme:not(.theme-bostan):not(.theme-civata) .tray-status-island {
   background: rgba(15, 23, 42, 0.04);
   border-color: rgba(15, 23, 42, 0.07);
   color: #0f172a;
 }
 
-body.theme-light .tray-status-island:hover {
+body.theme-light .tray-status-island:hover,
+body.is-light-theme:not(.theme-bostan):not(.theme-civata) .tray-status-island:hover {
   background: rgba(15, 23, 42, 0.08);
   border-color: rgba(15, 23, 42, 0.14);
 }
 
-body.theme-light .tray-island-item {
+body.theme-light .tray-island-item,
+body.is-light-theme:not(.theme-civata) .tray-island-item {
   color: #0f172a;
 }
 
-body.theme-light .battery-pct-text {
+body.theme-light .battery-pct-text,
+body.is-light-theme:not(.theme-civata) .battery-pct-text {
   color: #0f172a;
 }
 
 body.theme-light .start-glyph-logo,
+body.is-light-theme .start-glyph-logo,
 body.theme-light .tray-anchor-logo,
-body.theme-light .preview-anchor-logo {
+body.is-light-theme .tray-anchor-logo,
+body.theme-light .preview-anchor-logo,
+body.is-light-theme .preview-anchor-logo {
   /* Açık zeminde logo okunur kalsın. Eski cyan parlama palet dışındaydı. */
   filter: drop-shadow(0 1px 2px rgba(15, 23, 42, 0.3));
 }
 
 body.theme-light .start-btn,
-body.theme-light .tray-anchor-btn {
+body.is-light-theme:not(.theme-civata) .start-btn,
+body.theme-light .tray-anchor-btn,
+body.is-light-theme:not(.theme-civata) .tray-anchor-btn {
   background: rgba(0, 0, 0, 0.035);
   border-color: rgba(0, 0, 0, 0.08);
 }
 
 body.theme-light .start-btn:hover,
-body.theme-light .tray-anchor-btn:hover {
+body.is-light-theme:not(.theme-civata) .start-btn:hover,
+body.theme-light .tray-anchor-btn:hover,
+body.is-light-theme:not(.theme-civata) .tray-anchor-btn:hover {
   background: rgba(0, 0, 0, 0.08);
 }
 
 /* Başlat menüsü açıkken düğme tek vurgu rengiyle ayrılır. */
-body.theme-light .start-btn.active {
+body.theme-light .start-btn.active,
+body.is-light-theme .start-btn.active {
   background: rgba(37, 99, 235, 0.14);
   border-color: rgba(37, 99, 235, 0.4);
 }
@@ -1298,6 +1347,7 @@ body.theme-light .start-btn.active {
    taban kurallar beyaz ikon rengine sabitlendiği için Arctic /
    Çınar / Meltem'de ikonlar açık zemin üstünde kayboluyordu. */
 body.theme-light .taskbar-pin-btn,
+body.is-light-theme:not(.theme-bostan):not(.theme-civata) .taskbar-pin-btn,
 body.theme-arctic .taskbar-pin-btn,
 body.theme-cinar .taskbar-pin-btn,
 body.theme-meltem .taskbar-pin-btn {
@@ -1305,6 +1355,7 @@ body.theme-meltem .taskbar-pin-btn {
 }
 
 body.theme-light .taskbar-pin-btn:hover,
+body.is-light-theme:not(.theme-bostan):not(.theme-civata) .taskbar-pin-btn:hover,
 body.theme-arctic .taskbar-pin-btn:hover,
 body.theme-cinar .taskbar-pin-btn:hover,
 body.theme-meltem .taskbar-pin-btn:hover {
@@ -1312,6 +1363,7 @@ body.theme-meltem .taskbar-pin-btn:hover {
 }
 
 body.theme-light .taskbar-dynamic-pin,
+body.is-light-theme:not(.theme-civata) .taskbar-dynamic-pin,
 body.theme-arctic .taskbar-dynamic-pin,
 body.theme-cinar .taskbar-dynamic-pin,
 body.theme-meltem .taskbar-dynamic-pin {
@@ -1319,6 +1371,7 @@ body.theme-meltem .taskbar-dynamic-pin {
 }
 
 body.theme-light .tray-clock,
+body.is-light-theme:not(.theme-bostan):not(.theme-civata) .tray-clock,
 body.theme-arctic .tray-clock,
 body.theme-cinar .tray-clock,
 body.theme-meltem .tray-clock {
@@ -1326,6 +1379,7 @@ body.theme-meltem .tray-clock {
 }
 
 body.theme-light .tray-status-island,
+body.is-light-theme:not(.theme-bostan):not(.theme-civata) .tray-status-island,
 body.theme-arctic .tray-status-island,
 body.theme-cinar .tray-status-island,
 body.theme-meltem .tray-status-island {
@@ -1333,6 +1387,7 @@ body.theme-meltem .tray-status-island {
 }
 
 body.theme-light .tray-island-item,
+body.is-light-theme:not(.theme-civata) .tray-island-item,
 body.theme-arctic .tray-island-item,
 body.theme-cinar .tray-island-item,
 body.theme-meltem .tray-island-item {
@@ -1340,6 +1395,7 @@ body.theme-meltem .tray-island-item {
 }
 
 body.theme-light .tray-island-item:hover,
+body.is-light-theme:not(.theme-civata) .tray-island-item:hover,
 body.theme-arctic .tray-island-item:hover,
 body.theme-cinar .tray-island-item:hover,
 body.theme-meltem .tray-island-item:hover {
@@ -1348,6 +1404,7 @@ body.theme-meltem .tray-island-item:hover {
 }
 
 body.theme-light .tray-icon-btn,
+body.is-light-theme:not(.theme-civata) .tray-icon-btn,
 body.theme-arctic .tray-icon-btn,
 body.theme-cinar .tray-icon-btn,
 body.theme-meltem .tray-icon-btn {
@@ -1355,6 +1412,7 @@ body.theme-meltem .tray-icon-btn {
 }
 
 body.theme-light .tray-status-glyph,
+body.is-light-theme:not(.theme-civata) .tray-status-glyph,
 body.theme-arctic .tray-status-glyph,
 body.theme-cinar .tray-status-glyph,
 body.theme-meltem .tray-status-glyph {
@@ -1362,6 +1420,7 @@ body.theme-meltem .tray-status-glyph {
 }
 
 body.theme-light .notif-badge-pill,
+body.is-light-theme:not(.theme-civata) .notif-badge-pill,
 body.theme-arctic .notif-badge-pill,
 body.theme-cinar .notif-badge-pill,
 body.theme-meltem .notif-badge-pill {
@@ -1369,6 +1428,7 @@ body.theme-meltem .notif-badge-pill {
 }
 
 body.theme-light .taskbar-tab-menu,
+body.is-light-theme .taskbar-tab-menu,
 body.theme-arctic .taskbar-tab-menu,
 body.theme-cinar .taskbar-tab-menu,
 body.theme-meltem .taskbar-tab-menu {
@@ -1378,6 +1438,7 @@ body.theme-meltem .taskbar-tab-menu {
 }
 
 body.theme-light .task-tab,
+body.is-light-theme:not(.theme-bostan):not(.theme-civata) .task-tab,
 body.theme-arctic .task-tab,
 body.theme-cinar .task-tab,
 body.theme-meltem .task-tab {
@@ -1386,6 +1447,7 @@ body.theme-meltem .task-tab {
 }
 
 body.theme-light .task-tab:hover,
+body.is-light-theme:not(.theme-bostan):not(.theme-civata) .task-tab:hover,
 body.theme-arctic .task-tab:hover,
 body.theme-cinar .task-tab:hover,
 body.theme-meltem .task-tab:hover {
@@ -1393,6 +1455,7 @@ body.theme-meltem .task-tab:hover {
 }
 
 body.theme-light .task-tab.active,
+body.is-light-theme:not(.theme-bostan):not(.theme-civata) .task-tab.active,
 body.theme-arctic .task-tab.active,
 body.theme-cinar .task-tab.active,
 body.theme-meltem .task-tab.active {
@@ -1402,6 +1465,7 @@ body.theme-meltem .task-tab.active {
 
 /* Başlat menüsü uygulama ikon kutuları: açık temalarda koyu metin gerekir */
 body.theme-light .pinned-app-card,
+body.is-light-theme .pinned-app-card,
 body.theme-arctic .pinned-app-card,
 body.theme-cinar .pinned-app-card,
 body.theme-meltem .pinned-app-card {
@@ -1409,239 +1473,288 @@ body.theme-meltem .pinned-app-card {
 }
 
 /* Başlat Menüsü - Açık Tema */
-body.theme-light .start-flyout {
+body.theme-light .start-flyout,
+body.is-light-theme .start-flyout {
   background: rgba(255, 255, 255, 0.95);
   border-color: rgba(0, 0, 0, 0.12);
   box-shadow: 0 24px 64px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(0, 0, 0, 0.06);
 }
 
-body.theme-light .start-search-box {
+body.theme-light .start-search-box,
+body.is-light-theme .start-search-box {
   background: #f1f5f9;
   border-color: rgba(0, 0, 0, 0.1);
 }
 
-body.theme-light .start-search-input {
+body.theme-light .start-search-input,
+body.is-light-theme .start-search-input {
   background: transparent;
   color: #0f172a;
 }
 
-body.theme-light .search-shortcut-badge {
+body.theme-light .search-shortcut-badge,
+body.is-light-theme .search-shortcut-badge {
   background: rgba(0, 0, 0, 0.05);
   border-color: rgba(0, 0, 0, 0.08);
   color: #64748b;
 }
 
-body.theme-light .start-section-heading {
+body.theme-light .start-section-heading,
+body.is-light-theme .start-section-heading {
   color: #0f172a;
 }
 
-body.theme-light .heading-sub {
+body.theme-light .heading-sub,
+body.is-light-theme .heading-sub {
   color: #64748b;
 }
 
-body.theme-light .pinned-app-card {
+body.theme-light .pinned-app-card,
+body.is-light-theme .pinned-app-card {
   background: rgba(0, 0, 0, 0.02);
 }
 
-body.theme-light .pinned-app-card:hover {
+body.theme-light .pinned-app-card:hover,
+body.is-light-theme .pinned-app-card:hover {
   background: rgba(0, 0, 0, 0.05);
   border-color: rgba(0, 0, 0, 0.08);
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
 }
 
-body.theme-light .pinned-icon-box {
+body.theme-light .pinned-icon-box,
+body.is-light-theme .pinned-icon-box {
   background: #ffffff;
   border-color: rgba(0, 0, 0, 0.1);
   color: #0f172a;
 }
 
-body.theme-light .app-title {
+body.theme-light .app-title,
+body.is-light-theme .app-title {
   color: #0f172a;
 }
 
-body.theme-light .app-desc {
+body.theme-light .app-desc,
+body.is-light-theme .app-desc {
   color: #64748b;
 }
 
-body.theme-light .start-dual-section {
+body.theme-light .start-dual-section,
+body.is-light-theme .start-dual-section {
   background: rgba(0, 0, 0, 0.02);
   border-top-color: rgba(0, 0, 0, 0.06);
 }
 
-body.theme-light .recent-filename {
+body.theme-light .recent-filename,
+body.is-light-theme .recent-filename {
   color: #0f172a;
 }
 
-body.theme-light .recent-doc-row:hover {
+body.theme-light .recent-doc-row:hover,
+body.is-light-theme .recent-doc-row:hover {
   background: rgba(0, 0, 0, 0.04);
 }
 
-body.theme-light .shortcut-action-row {
+body.theme-light .shortcut-action-row,
+body.is-light-theme .shortcut-action-row {
   background: rgba(0, 0, 0, 0.025);
   border-color: rgba(0, 0, 0, 0.06);
   color: #0f172a;
 }
 
-body.theme-light .shortcut-action-row:hover {
+body.theme-light .shortcut-action-row:hover,
+body.is-light-theme .shortcut-action-row:hover {
   background: rgba(0, 0, 0, 0.06);
   border-color: rgba(0, 0, 0, 0.12);
 }
 
-body.theme-light .ayaz-user-footer {
+body.theme-light .ayaz-user-footer,
+body.is-light-theme .ayaz-user-footer {
   background: #f8fafc;
   border-top-color: rgba(0, 0, 0, 0.08);
 }
 
-body.theme-light .profile-name {
+body.theme-light .profile-name,
+body.is-light-theme .profile-name {
   color: #0f172a;
 }
 
-body.theme-light .profile-role {
+body.theme-light .profile-role,
+body.is-light-theme .profile-role {
   color: #64748b;
 }
 
-body.theme-light .btn-power-item {
+body.theme-light .btn-power-item,
+body.is-light-theme .btn-power-item {
   background: rgba(0, 0, 0, 0.04);
   border-color: rgba(0, 0, 0, 0.08);
   color: #334155;
 }
 
-body.theme-light .btn-power-item:hover {
+body.theme-light .btn-power-item:hover,
+body.is-light-theme .btn-power-item:hover {
   background: rgba(0, 0, 0, 0.08);
   color: #0f172a;
 }
 
-body.theme-light .btn-power-item.power-danger:hover {
+body.theme-light .btn-power-item.power-danger:hover,
+body.is-light-theme .btn-power-item.power-danger:hover {
   background: #fee2e2;
   border-color: #fca5a5;
   color: #b91c1c;
 }
 
 /* Mağaza & Tablolar - Açık Tema */
-body.theme-light .store-toolbar {
+body.theme-light .store-toolbar,
+body.is-light-theme .store-toolbar {
   background: #f8fafc;
   color: #475569;
   border-color: rgba(0, 0, 0, 0.08);
 }
 
-body.theme-light .store-card {
+body.theme-light .store-card,
+body.is-light-theme .store-card {
   background: #ffffff;
   border-color: rgba(0, 0, 0, 0.08);
 }
 
-body.theme-light .store-card:hover {
+body.theme-light .store-card:hover,
+body.is-light-theme .store-card:hover {
   border-color: rgba(0, 0, 0, 0.2);
 }
 
-body.theme-light .store-card-icon {
+body.theme-light .store-card-icon,
+body.is-light-theme .store-card-icon {
   background: #f1f5f9;
   border-color: rgba(0, 0, 0, 0.08);
   color: #475569;
 }
 
-body.theme-light .store-card-name {
+body.theme-light .store-card-name,
+body.is-light-theme .store-card-name {
   color: #0f172a;
 }
 
 body.theme-light .store-card-pkg,
-body.theme-light .store-card-meta {
+body.is-light-theme .store-card-pkg,
+body.theme-light .store-card-meta,
+body.is-light-theme .store-card-meta {
   color: #64748b;
 }
 
-body.theme-light .store-card-desc {
+body.theme-light .store-card-desc,
+body.is-light-theme .store-card-desc {
   color: #475569;
 }
 
-body.theme-light .btn-pkg {
+body.theme-light .btn-pkg,
+body.is-light-theme .btn-pkg {
   background: #ffffff;
   border-color: rgba(0, 0, 0, 0.15);
   color: #0f172a;
 }
 
-body.theme-light .btn-pkg:hover {
+body.theme-light .btn-pkg:hover,
+body.is-light-theme .btn-pkg:hover {
   background: #0f172a;
   color: #ffffff;
 }
 
 /* Görev Yöneticisi - Açık Tema */
-body.theme-light .taskmgr-stat-card {
+body.theme-light .taskmgr-stat-card,
+body.is-light-theme .taskmgr-stat-card {
   background: #ffffff;
   border-color: rgba(0, 0, 0, 0.08);
 }
 
-body.theme-light .taskmgr-stat-sub {
+body.theme-light .taskmgr-stat-sub,
+body.is-light-theme .taskmgr-stat-sub {
   color: #64748b;
 }
 
-body.theme-light .taskmgr-badge-val {
+body.theme-light .taskmgr-badge-val,
+body.is-light-theme .taskmgr-badge-val {
   color: #0f172a;
 }
 
-body.theme-light .taskmgr-table th {
+body.theme-light .taskmgr-table th,
+body.is-light-theme .taskmgr-table th {
   background: #f8fafc;
   color: #475569;
   border-color: rgba(0, 0, 0, 0.08);
 }
 
-body.theme-light .taskmgr-table td {
+body.theme-light .taskmgr-table td,
+body.is-light-theme .taskmgr-table td {
   border-color: rgba(0, 0, 0, 0.06);
   color: #0f172a;
 }
 
-body.theme-light .taskmgr-table tr:hover td {
+body.theme-light .taskmgr-table tr:hover td,
+body.is-light-theme .taskmgr-table tr:hover td {
   background: #f1f5f9;
 }
 
 /* Hesap Makinesi - Açık Tema */
-body.theme-light .calc-container {
+body.theme-light .calc-container,
+body.is-light-theme .calc-container {
   background: #f8fafc;
 }
 
-body.theme-light .calc-current {
+body.theme-light .calc-current,
+body.is-light-theme .calc-current {
   color: #0f172a;
 }
 
-body.theme-light .calc-history {
+body.theme-light .calc-history,
+body.is-light-theme .calc-history {
   color: #64748b;
 }
 
-body.theme-light .calc-btn {
+body.theme-light .calc-btn,
+body.is-light-theme .calc-btn {
   background: #ffffff;
   border-color: rgba(0, 0, 0, 0.08);
   color: #0f172a;
 }
 
-body.theme-light .calc-btn:hover {
+body.theme-light .calc-btn:hover,
+body.is-light-theme .calc-btn:hover {
   background: #f1f5f9;
 }
 
-body.theme-light .calc-btn.fn {
+body.theme-light .calc-btn.fn,
+body.is-light-theme .calc-btn.fn {
   background: #f1f5f9;
   color: #475569;
 }
 
-body.theme-light .calc-btn.op {
+body.theme-light .calc-btn.op,
+body.is-light-theme .calc-btn.op {
   background: rgba(37, 99, 235, 0.1);
   color: #2563eb;
 }
 
-body.theme-light .calc-btn.equals {
+body.theme-light .calc-btn.equals,
+body.is-light-theme .calc-btn.equals {
   background: #2563eb;
   color: #ffffff;
 }
 
 /* Not Defteri - Açık Tema */
-body.theme-light .notepad-toolbar {
+body.theme-light .notepad-toolbar,
+body.is-light-theme .notepad-toolbar {
   background: #f8fafc;
   border-bottom-color: rgba(0, 0, 0, 0.08);
 }
 
-body.theme-light .notepad-textarea {
+body.theme-light .notepad-textarea,
+body.is-light-theme .notepad-textarea {
   background: #ffffff;
   color: #0f172a;
 }
 
-body.theme-light .notepad-statusbar {
+body.theme-light .notepad-statusbar,
+body.is-light-theme .notepad-statusbar {
   background: #f8fafc;
   border-top-color: rgba(0, 0, 0, 0.08);
   color: #64748b;
@@ -3615,53 +3728,64 @@ body.is-dragging button {
    Kural: sabit koyu zeminli yüzeyler açık temada açık zemine döner; bilinçli
    koyu kalan tek yüzey terminal ve kod bloklarıdır.
    ============================================================================== */
-body.theme-light .office-text-frame {
+body.theme-light .office-text-frame,
+body.is-light-theme .office-text-frame {
   color: #0f172a;
 }
 
-body.theme-light .files-sidebar {
+body.theme-light .files-sidebar,
+body.is-light-theme .files-sidebar {
   background: #f1f5f9;
   border-right-color: rgba(0, 0, 0, 0.08);
 }
 
-body.theme-light .files-sidebar-item {
+body.theme-light .files-sidebar-item,
+body.is-light-theme .files-sidebar-item {
   color: #475569;
 }
 
-body.theme-light .files-sidebar-item:hover {
+body.theme-light .files-sidebar-item:hover,
+body.is-light-theme .files-sidebar-item:hover {
   background: rgba(0, 0, 0, 0.05);
   color: #0f172a;
 }
 
-body.theme-light .files-content-area {
+body.theme-light .files-content-area,
+body.is-light-theme .files-content-area {
   background: #ffffff;
 }
 
-body.theme-light .files-item-card {
+body.theme-light .files-item-card,
+body.is-light-theme .files-item-card {
   background: rgba(0, 0, 0, 0.02);
   border-color: rgba(0, 0, 0, 0.06);
   color: #0f172a;
 }
 
-body.theme-light .files-item-card:hover {
+body.theme-light .files-item-card:hover,
+body.is-light-theme .files-item-card:hover {
   background: rgba(0, 0, 0, 0.05);
 }
 
-body.theme-light .files-path-bar {
+body.theme-light .files-path-bar,
+body.is-light-theme .files-path-bar {
   background: #f1f5f9;
   border-color: rgba(0, 0, 0, 0.1);
 }
 
-body.theme-light .files-crumb {
+body.theme-light .files-crumb,
+body.is-light-theme .files-crumb {
   color: #475569;
 }
 
-body.theme-light .files-crumb:hover {
+body.theme-light .files-crumb:hover,
+body.is-light-theme .files-crumb:hover {
   background: rgba(0, 0, 0, 0.06);
   color: #0f172a;
 }
 
-body.theme-light .files-crumb-sep {
+body.theme-light .files-crumb-sep,
+body.is-light-theme .files-crumb-sep {
   color: rgba(0, 0, 0, 0.3);
 }
 
@@ -3669,58 +3793,72 @@ body.theme-light .files-crumb-sep {
 
 /* Yüzen menüler açık temada açık zemine döner. */
 body.theme-light .desktop-context-menu,
+body.is-light-theme .desktop-context-menu,
 body.theme-light .shortcut-context-menu,
+body.is-light-theme .shortcut-context-menu,
 body.theme-light .taskbar-tab-menu,
-body.theme-light .snap-layouts-menu {
+body.is-light-theme .taskbar-tab-menu,
+body.theme-light .snap-layouts-menu,
+body.is-light-theme .snap-layouts-menu {
   background: #ffffff !important;
   border-color: rgba(0, 0, 0, 0.12) !important;
   box-shadow: 0 14px 36px rgba(0, 0, 0, 0.16) !important;
   color: #0f172a;
 }
 
-body.theme-light .action-proposal-card {
+body.theme-light .action-proposal-card,
+body.is-light-theme .action-proposal-card {
   background: #f8fafc;
 }
 
-body.theme-light .action-proposal-card strong {
+body.theme-light .action-proposal-card strong,
+body.is-light-theme .action-proposal-card strong {
   color: #0f172a;
 }
 
-body.theme-light .action-proposal-card code {
+body.theme-light .action-proposal-card code,
+body.is-light-theme .action-proposal-card code {
   background: #0f172a;
   color: #a3e635;
 }
 
 /* Terminal bilinçli koyu kalır; araç çubuğu açık zemine uyum sağlar. */
-body.theme-light .term-toolbar {
+body.theme-light .term-toolbar,
+body.is-light-theme .term-toolbar {
   background: #f1f5f9;
 }
 
-body.theme-light .term-chip-btn {
+body.theme-light .term-chip-btn,
+body.is-light-theme .term-chip-btn {
   background: #ffffff;
   border-color: rgba(0, 0, 0, 0.12);
   color: #475569;
 }
 
-body.theme-light .term-chip-btn:hover {
+body.theme-light .term-chip-btn:hover,
+body.is-light-theme .term-chip-btn:hover {
   background: #e2e8f0;
   color: #0f172a;
 }
 
 body.theme-light .term-clear-action-btn,
-body.theme-light .term-action-btn {
+body.is-light-theme .term-clear-action-btn,
+body.theme-light .term-action-btn,
+body.is-light-theme .term-action-btn {
   background: #ffffff;
   border-color: rgba(0, 0, 0, 0.12);
   color: #475569;
 }
 
 /* Açık duvar kağıdında masaüstü etiketleri koyu okunur. */
-body.theme-light .item-name {
+body.theme-light .item-name,
+body.is-light-theme .item-name {
   color: #0f172a;
   text-shadow: 0 1px 2px rgba(255, 255, 255, 0.7);
 }
 
-body.theme-light .desktop-item.file-item .item-name {
+body.theme-light .desktop-item.file-item .item-name,
+body.is-light-theme .desktop-item.file-item .item-name {
   color: #0f172a;
 }
 
@@ -3889,7 +4027,8 @@ body.theme-light .desktop-item.file-item .item-name {
   max-width: 560px;
 }
 
-body.theme-light .ai-entry.user {
+body.theme-light .ai-entry.user,
+body.is-light-theme .ai-entry.user {
   color: #ffffff;
 }
 
@@ -4563,7 +4702,8 @@ body.theme-light .ai-entry.user {
   transform: translateX(28px);
 }
 
-body.theme-light .toggle-slider-knob {
+body.theme-light .toggle-slider-knob,
+body.is-light-theme .toggle-slider-knob {
   transform: translateX(0);
 }
 
@@ -5137,24 +5277,30 @@ body.panel-no-wsdots .taskbar-ws-dots { display: none !important; }
    yüzeylerine sabitlenmişti; theme-light'ta düz beyaz yüzey + koyu metin
    kullanılır, aksi hâlde açık temada okunamayan parlak popover'lar olur. */
 body.theme-light .ayaz-quick-settings-flyout,
-body.theme-light .ayaz-calendar-flyout {
+body.is-light-theme .ayaz-quick-settings-flyout,
+body.theme-light .ayaz-calendar-flyout,
+body.is-light-theme .ayaz-calendar-flyout {
   background: #ffffff;
   border-color: rgba(15, 23, 42, 0.16);
   box-shadow: 0 20px 48px rgba(15, 23, 42, 0.18), 0 0 0 1px rgba(15, 23, 42, 0.06);
 }
-body.theme-light .qs-tile-btn {
+body.theme-light .qs-tile-btn,
+body.is-light-theme .qs-tile-btn {
   background: rgba(15, 23, 42, 0.05);
   border-color: rgba(15, 23, 42, 0.09);
 }
-body.theme-light .qs-tile-btn:hover {
+body.theme-light .qs-tile-btn:hover,
+body.is-light-theme .qs-tile-btn:hover {
   background: rgba(15, 23, 42, 0.09);
   border-color: rgba(15, 23, 42, 0.16);
 }
-body.theme-light .qs-sliders-wrap {
+body.theme-light .qs-sliders-wrap,
+body.is-light-theme .qs-sliders-wrap {
   background: rgba(15, 23, 42, 0.04);
   border-color: rgba(15, 23, 42, 0.07);
 }
-body.theme-light .desktop-context-menu {
+body.theme-light .desktop-context-menu,
+body.is-light-theme .desktop-context-menu {
   background: #ffffff;
   border-color: rgba(15, 23, 42, 0.16);
   box-shadow: 0 14px 36px rgba(15, 23, 42, 0.2), 0 0 0 1px rgba(15, 23, 42, 0.05);
@@ -5841,11 +5987,13 @@ body.theme-light .desktop-context-menu {
     background: var(--glass-flyout, rgba(18, 20, 28, 0.7));
   }
 
-  body.theme-light .taskbar {
+  body.theme-light .taskbar,
+  body.is-light-theme:not(.theme-bostan):not(.theme-civata) .taskbar {
     background: var(--glass-taskbar, rgba(255, 255, 255, 0.66));
   }
 
-  body.theme-light .start-flyout {
+  body.theme-light .start-flyout,
+  body.is-light-theme .start-flyout {
     background: var(--glass-flyout, rgba(255, 255, 255, 0.78));
   }
 
@@ -7249,6 +7397,104 @@ body.is-light-theme .select-mono,
   font-weight: 500;
 }
 
+.wifi-sec-tag {
+  display: inline-block;
+  padding: 2px 7px;
+  font-size: 10px;
+  font-weight: 600;
+  border-radius: 999px;
+  background: rgba(56, 189, 248, 0.14);
+  color: var(--accent, #38bdf8);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+}
+
+.wifi-modal-sheet {
+  max-width: 410px;
+}
+
+.wifi-modal-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-ui);
+}
+
+.wifi-modal-meta strong {
+  font-size: 13px;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wifi-modal-label {
+  display: block;
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+
+.wifi-pass-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.wifi-pass-input {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 10px;
+  border-radius: var(--radius-ui);
+  border: 1px solid var(--border-medium);
+  background: var(--bg-input, rgba(255, 255, 255, 0.06));
+  color: var(--text-primary);
+  font-size: 13px;
+  outline: none;
+}
+
+.wifi-pass-input:focus {
+  border-color: var(--accent, #38bdf8);
+}
+
+body.theme-light .wifi-pass-input,
+body.is-light-theme .wifi-pass-input {
+  background: #ffffff;
+  color: #0f172a;
+  border-color: rgba(15, 23, 42, 0.22);
+}
+
+.wifi-pass-toggle {
+  white-space: nowrap;
+  padding: 8px 10px;
+}
+
+.wifi-modal-error {
+  margin-top: 8px;
+  padding: 7px 10px;
+  border-radius: var(--radius-ui);
+  background: rgba(239, 68, 68, 0.14);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #fca5a5;
+  font-size: 11.5px;
+}
+
+body.theme-light .wifi-modal-error,
+body.is-light-theme .wifi-modal-error {
+  color: #b91c1c;
+}
+
+.wifi-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 14px;
+}
+
 /* Disk Kullanım Kartları */
 .disk-usage-card {
   padding: 12px 14px;
@@ -7797,9 +8043,10 @@ body.glass-high .window.active {
 }
 
 body.theme-light.glass-solid .window,
+body.is-light-theme.glass-solid .window,
 body.theme-cinar.glass-solid .window,
 body.theme-meltem.glass-solid .window {
-  background: #ffffff;
+  background: var(--bg-surface, #ffffff);
   backdrop-filter: none !important;
 }
 
@@ -7812,6 +8059,7 @@ body.theme-meltem.glass-solid .window {
 }
 
 body.theme-light.glass-balanced .window,
+body.is-light-theme.glass-balanced .window,
 body.theme-cinar.glass-balanced .window,
 body.theme-meltem.glass-balanced .window {
   background: rgba(255, 255, 255, 0.94);
@@ -7819,12 +8067,14 @@ body.theme-meltem.glass-balanced .window {
 }
 
 body.theme-light.glass-balanced .window.active,
+body.is-light-theme.glass-balanced .window.active,
 body.theme-cinar.glass-balanced .window.active,
 body.theme-meltem.glass-balanced .window.active {
   backdrop-filter: none !important;
 }
 
 body.theme-light.glass-high .window,
+body.is-light-theme.glass-high .window,
 body.theme-cinar.glass-high .window,
 body.theme-meltem.glass-high .window {
   background: rgba(255, 255, 255, 0.82);
@@ -7832,6 +8082,7 @@ body.theme-meltem.glass-high .window {
 }
 
 body.theme-light.glass-high .window.active,
+body.is-light-theme.glass-high .window.active,
 body.theme-cinar.glass-high .window.active,
 body.theme-meltem.glass-high .window.active {
   backdrop-filter: none !important;
@@ -8128,7 +8379,8 @@ body.has-touch .ws-dot {
 /* ==============================================================================
    TEMA IŞIK MODU KONTRAST DÜZELTMELERİ
    ============================================================================== */
-body.theme-light .ai-entry.user {
+body.theme-light .ai-entry.user,
+body.is-light-theme .ai-entry.user {
   background: #2563eb;
   color: #ffffff;
 }
@@ -8176,7 +8428,8 @@ body.theme-light .ai-entry.user {
   transform: translateX(-50%) translateY(0) scale(1);
 }
 
-body.theme-light .ai-mini-popover {
+body.theme-light .ai-mini-popover,
+body.is-light-theme .ai-mini-popover {
   box-shadow: 0 12px 32px rgba(15, 23, 42, 0.18);
 }
 
@@ -8264,17 +8517,20 @@ body.theme-light .ai-mini-popover {
   transform: translateY(-1px);
 }
 
-body.theme-light .ai-mini-quick-actions {
+body.theme-light .ai-mini-quick-actions,
+body.is-light-theme .ai-mini-quick-actions {
   background: rgba(0, 0, 0, 0.02);
 }
 
-body.theme-light .ai-mini-chip {
+body.theme-light .ai-mini-chip,
+body.is-light-theme .ai-mini-chip {
   background: #f1f5f9;
   border-color: rgba(15, 23, 42, 0.08);
   color: #475569;
 }
 
-body.theme-light .ai-mini-chip:hover {
+body.theme-light .ai-mini-chip:hover,
+body.is-light-theme .ai-mini-chip:hover {
   background: rgba(37, 99, 235, 0.08);
   border-color: rgba(37, 99, 235, 0.3);
   color: #2563eb;
@@ -9544,64 +9800,78 @@ select:focus-visible {
    AÇIK TEMA FLYOUT & POPUP OVERRIDES (LIGHT THEME SUPPORT)
    ============================================================================== */
 body.theme-light .ayaz-quick-settings-flyout,
+body.is-light-theme .ayaz-quick-settings-flyout,
 body.theme-light .ayaz-calendar-flyout,
-body.theme-light .snap-layouts-menu {
+body.is-light-theme .ayaz-calendar-flyout,
+body.theme-light .snap-layouts-menu,
+body.is-light-theme .snap-layouts-menu {
   background: rgba(255, 255, 255, 0.94) !important;
   border-color: rgba(0, 0, 0, 0.12) !important;
   box-shadow: 0 20px 48px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.06) !important;
 }
 
-body.theme-light .qs-tile-btn {
+body.theme-light .qs-tile-btn,
+body.is-light-theme .qs-tile-btn {
   background: rgba(0, 0, 0, 0.04);
   border-color: rgba(0, 0, 0, 0.08);
   color: #0f172a;
 }
 
-body.theme-light .qs-tile-btn:hover {
+body.theme-light .qs-tile-btn:hover,
+body.is-light-theme .qs-tile-btn:hover {
   background: rgba(0, 0, 0, 0.08);
   border-color: rgba(0, 0, 0, 0.14);
 }
 
-body.theme-light .qs-tile-btn.active {
+body.theme-light .qs-tile-btn.active,
+body.is-light-theme .qs-tile-btn.active {
   background: var(--accent-active, #2563eb) !important;
   border-color: var(--accent-active, #2563eb) !important;
   color: #ffffff !important;
 }
 
-body.theme-light .qs-sliders-wrap {
+body.theme-light .qs-sliders-wrap,
+body.is-light-theme .qs-sliders-wrap {
   background: rgba(0, 0, 0, 0.025);
   border-color: rgba(0, 0, 0, 0.06);
 }
 
-body.theme-light .cal-day-num {
+body.theme-light .cal-day-num,
+body.is-light-theme .cal-day-num {
   color: #334155;
 }
 
-body.theme-light .cal-day-num:hover {
+body.theme-light .cal-day-num:hover,
+body.is-light-theme .cal-day-num:hover {
   background: rgba(0, 0, 0, 0.06);
   color: #0f172a;
 }
 
-body.theme-light .cal-day-num.today {
+body.theme-light .cal-day-num.today,
+body.is-light-theme .cal-day-num.today {
   background: var(--accent-active, #2563eb);
   color: #ffffff;
 }
 
-body.theme-light .cal-notif-card {
+body.theme-light .cal-notif-card,
+body.is-light-theme .cal-notif-card {
   background: rgba(0, 0, 0, 0.03);
   border-color: rgba(0, 0, 0, 0.06);
 }
 
-body.theme-light .snap-card {
+body.theme-light .snap-card,
+body.is-light-theme .snap-card {
   background: rgba(0, 0, 0, 0.04);
   border-color: rgba(0, 0, 0, 0.1);
 }
 
-body.theme-light .snap-zone {
+body.theme-light .snap-zone,
+body.is-light-theme .snap-zone {
   background: rgba(0, 0, 0, 0.08);
 }
 
-body.theme-light .snap-zone:hover {
+body.theme-light .snap-zone:hover,
+body.is-light-theme .snap-zone:hover {
   background: var(--accent-active, #2563eb);
 }
 
@@ -9874,23 +10144,27 @@ body.theme-light .snap-zone:hover {
 }
 
 /* Açık tema tarayıcı uyarlamaları */
-body.theme-light .browser-toolbar {
+body.theme-light .browser-toolbar,
+body.is-light-theme .browser-toolbar {
   background: #f8fafc;
   border-bottom-color: rgba(0, 0, 0, 0.08);
 }
 
-body.theme-light .browser-address-bar {
+body.theme-light .browser-address-bar,
+body.is-light-theme .browser-address-bar {
   background: #ffffff;
   border-color: rgba(0, 0, 0, 0.12);
 }
 
-body.theme-light .bookmark-chip {
+body.theme-light .bookmark-chip,
+body.is-light-theme .bookmark-chip {
   background: #f1f5f9;
   border-color: rgba(0, 0, 0, 0.08);
   color: #475569;
 }
 
-body.theme-light .bookmark-chip:hover {
+body.theme-light .bookmark-chip:hover,
+body.is-light-theme .bookmark-chip:hover {
   background: #e2e8f0;
   color: #0f172a;
 }
@@ -10314,40 +10588,49 @@ body.theme-light .bookmark-chip:hover {
 }
 
 /* Açık Tema Uyarlamaları */
-body.theme-light .report-sidebar {
+body.theme-light .report-sidebar,
+body.is-light-theme .report-sidebar {
   background: #f8fafc;
   border-right-color: rgba(0, 0, 0, 0.08);
 }
 
-body.theme-light .report-channel-card {
+body.theme-light .report-channel-card,
+body.is-light-theme .report-channel-card {
   background: #ffffff;
   border-color: rgba(0, 0, 0, 0.08);
 }
 
-body.theme-light .report-channel-card:hover {
+body.theme-light .report-channel-card:hover,
+body.is-light-theme .report-channel-card:hover {
   background: #f1f5f9;
   border-color: rgba(0, 0, 0, 0.15);
 }
 
 body.theme-light .report-select,
+body.is-light-theme .report-select,
 body.theme-light .report-input,
-body.theme-light .report-textarea {
+body.is-light-theme .report-input,
+body.theme-light .report-textarea,
+body.is-light-theme .report-textarea {
   background: #ffffff;
   border-color: rgba(0, 0, 0, 0.12);
   color: #0f172a;
 }
 
-body.theme-light .report-preview-box {
+body.theme-light .report-preview-box,
+body.is-light-theme .report-preview-box {
   background: #f1f5f9;
   border-color: rgba(0, 0, 0, 0.08);
 }
 
-body.theme-light .report-preview-header {
+body.theme-light .report-preview-header,
+body.is-light-theme .report-preview-header {
   background: #e2e8f0;
   border-bottom-color: rgba(0, 0, 0, 0.08);
 }
 
-body.theme-light .ayaz-toast-notification {
+body.theme-light .ayaz-toast-notification,
+body.is-light-theme .ayaz-toast-notification {
   background: #ffffff;
   color: #0f172a;
   border-color: rgba(0, 0, 0, 0.15);
@@ -12313,6 +12596,7 @@ html[data-iconset='nordic'] .ayaz-desktop-shortcut:hover .item-icon {
   }
 }
 body.theme-light .ai-watch-wave .wave-line,
+body.is-light-theme .ai-watch-wave .wave-line,
 body.theme-arctic .ai-watch-wave .wave-line,
 body.theme-cinar .ai-watch-wave .wave-line,
 body.theme-meltem .ai-watch-wave .wave-line {
@@ -12320,6 +12604,7 @@ body.theme-meltem .ai-watch-wave .wave-line {
   filter: drop-shadow(0 0 5px rgba(37, 99, 235, 0.5));
 }
 body.theme-light .ai-watch-wave .wave-glow,
+body.is-light-theme .ai-watch-wave .wave-glow,
 body.theme-arctic .ai-watch-wave .wave-glow,
 body.theme-cinar .ai-watch-wave .wave-glow,
 body.theme-meltem .ai-watch-wave .wave-glow {
@@ -12335,12 +12620,14 @@ body.theme-meltem .ai-watch-wave .wave-glow {
   color: #7dd3fc;
 }
 body.theme-light .taskbar-pin-btn.ai-look-pin,
+body.is-light-theme .taskbar-pin-btn.ai-look-pin,
 body.theme-arctic .taskbar-pin-btn.ai-look-pin,
 body.theme-cinar .taskbar-pin-btn.ai-look-pin,
 body.theme-meltem .taskbar-pin-btn.ai-look-pin {
   color: #0369a1;
 }
 body.theme-light .taskbar-pin-btn.ai-look-pin:hover,
+body.is-light-theme .taskbar-pin-btn.ai-look-pin:hover,
 body.theme-arctic .taskbar-pin-btn.ai-look-pin:hover,
 body.theme-cinar .taskbar-pin-btn.ai-look-pin:hover,
 body.theme-meltem .taskbar-pin-btn.ai-look-pin:hover {
@@ -12529,7 +12816,8 @@ body.theme-meltem .taskbar-pin-btn.ai-look-pin:hover {
   font-size: 11.5px;
   color: var(--text-muted);
 }
-body.theme-light .cal-today-item {
+body.theme-light .cal-today-item,
+body.is-light-theme .cal-today-item {
   background: rgba(0, 0, 0, 0.03);
   border-color: rgba(0, 0, 0, 0.07);
 }
@@ -12933,13 +13221,16 @@ body.theme-light .cal-today-item {
   height: 12px;
 }
 
-body.theme-light .dynamic-island.state-media .di-media-title {
+body.theme-light .dynamic-island.state-media .di-media-title,
+body.is-light-theme .dynamic-island.state-media .di-media-title {
   color: #0f172a;
 }
-body.theme-light .dynamic-island.state-media .di-media-btn {
+body.theme-light .dynamic-island.state-media .di-media-btn,
+body.is-light-theme .dynamic-island.state-media .di-media-btn {
   color: #475569;
 }
-body.theme-light .dynamic-island.state-media .di-media-btn:hover {
+body.theme-light .dynamic-island.state-media .di-media-btn:hover,
+body.is-light-theme .dynamic-island.state-media .di-media-btn:hover {
   color: #0f172a;
   background: rgba(0, 0, 0, 0.06);
 }
@@ -13122,6 +13413,7 @@ body.theme-light .dynamic-island.state-media .di-media-btn:hover {
 
 /* Açık ve Arktik Tema Uyumu */
 body.theme-light .dynamic-island,
+body.is-light-theme .dynamic-island,
 body.theme-arctic .dynamic-island {
   background: rgba(248, 250, 252, 0.94);
   border-color: rgba(15, 23, 42, 0.12);
@@ -13130,22 +13422,26 @@ body.theme-arctic .dynamic-island {
 }
 
 body.theme-light .dynamic-island.state-idle:hover,
+body.is-light-theme .dynamic-island.state-idle:hover,
 body.theme-arctic .dynamic-island.state-idle:hover {
   background: #ffffff;
   border-color: rgba(15, 23, 42, 0.2);
 }
 
 body.theme-light .di-idle-title,
+body.is-light-theme .di-idle-title,
 body.theme-arctic .di-idle-title {
   color: #0f172a;
 }
 
 body.theme-light .di-stat-item,
+body.is-light-theme .di-stat-item,
 body.theme-arctic .di-stat-item {
   color: #64748b;
 }
 
 body.theme-light .dynamic-island.state-expanded,
+body.is-light-theme .dynamic-island.state-expanded,
 body.theme-arctic .dynamic-island.state-expanded {
   background: #ffffff;
   border-color: rgba(15, 23, 42, 0.14);
@@ -13153,11 +13449,13 @@ body.theme-arctic .dynamic-island.state-expanded {
 }
 
 body.theme-light .di-card-title,
+body.is-light-theme .di-card-title,
 body.theme-arctic .di-card-title {
   color: #0f172a;
 }
 
 body.theme-light .di-card-btn,
+body.is-light-theme .di-card-btn,
 body.theme-arctic .di-card-btn {
   background: #f1f5f9;
   border-color: rgba(15, 23, 42, 0.08);
@@ -13165,22 +13463,26 @@ body.theme-arctic .di-card-btn {
 }
 
 body.theme-light .di-card-btn:hover,
+body.is-light-theme .di-card-btn:hover,
 body.theme-arctic .di-card-btn:hover {
   background: #e2e8f0;
 }
 
 body.theme-light .di-toast-text,
+body.is-light-theme .di-toast-text,
 body.theme-arctic .di-toast-text {
   color: #0f172a;
 }
 
 body.theme-light .di-card-footer,
+body.is-light-theme .di-card-footer,
 body.theme-arctic .di-card-footer {
   border-top-color: rgba(15, 23, 42, 0.08);
   color: #64748b;
 }
 
 body.theme-light .di-footer-lock-btn,
+body.is-light-theme .di-footer-lock-btn,
 body.theme-arctic .di-footer-lock-btn {
   background: #f1f5f9;
   border-color: rgba(15, 23, 42, 0.1);
@@ -13425,31 +13727,37 @@ body.is-light-theme .store-spotlight-big-icon {
 }
 
 /* Açık temalarda medya kartı okunabilirliği */
-body.theme-light .mpris-widget-card {
+body.theme-light .mpris-widget-card,
+body.is-light-theme .mpris-widget-card {
   background: rgba(15, 23, 42, 0.04);
   border-color: rgba(15, 23, 42, 0.1);
 }
 
-body.theme-light .mpris-title {
+body.theme-light .mpris-title,
+body.is-light-theme .mpris-title {
   color: var(--text-primary, #0f172a);
 }
 
-body.theme-light .mpris-artist {
+body.theme-light .mpris-artist,
+body.is-light-theme .mpris-artist {
   color: var(--text-muted, #475569);
 }
 
-body.theme-light .mpris-btn {
+body.theme-light .mpris-btn,
+body.is-light-theme .mpris-btn {
   background: rgba(15, 23, 42, 0.05);
   border-color: rgba(15, 23, 42, 0.14);
   color: var(--text-primary, #0f172a);
 }
 
-body.theme-light .mpris-btn:hover {
+body.theme-light .mpris-btn:hover,
+body.is-light-theme .mpris-btn:hover {
   background: rgba(15, 23, 42, 0.12);
   color: var(--text-primary, #0f172a);
 }
 
-body.theme-light .mpris-player-pill {
+body.theme-light .mpris-player-pill,
+body.is-light-theme .mpris-player-pill {
   border-color: rgba(15, 23, 42, 0.2);
   color: var(--text-muted, #475569);
 }

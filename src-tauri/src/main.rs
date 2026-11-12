@@ -475,6 +475,8 @@ pub struct WifiNetwork {
     pub ssid: String,
     pub signal: u8,
     pub active: bool,
+    pub security: String,
+    pub saved: bool,
 }
 
 #[derive(Debug, Serialize, Clone)]
@@ -1218,9 +1220,10 @@ fn install_deb_package_blocking(package_name: String) -> Result<XdgApplication, 
 
     #[cfg(target_os = "linux")]
     {
-        let output = if clean_pkg.ends_with(".deb") {
-            return Err("Güvenlik İlkesi: Yerel .deb paketleri doğrudan kurulamaz; sistem bileşenleri için resmi Ayaz Güncelleyici'yi kullanın.".to_string());
-        } else {
+        if clean_pkg != "fatih-kalem" || !Path::new("/usr/bin/fatih-kalem").exists() {
+            if clean_pkg.ends_with(".deb") {
+                return Err("Güvenlik İlkesi: Yerel .deb paketleri doğrudan kurulamaz; sistem bileşenleri için resmi Ayaz Güncelleyici'yi kullanın.".to_string());
+            }
             // Debian resmi paket adı: Sıkı regex doğrulaması ve bayrak enjeksiyonu koruması (--)
             if !is_valid_deb_package_name(clean_pkg) {
                 return Err("Güvenlik Hatası: Geçersiz Debian paket adı biçimi.".to_string());
@@ -1255,67 +1258,116 @@ fn install_deb_package_blocking(package_name: String) -> Result<XdgApplication, 
                     attempt = run_install();
                 }
             }
-            attempt
-        };
 
-        match output {
-            Ok(res) => {
-                if !res.status.success() {
-                    let err = String::from_utf8_lossy(&res.stderr).trim().to_string();
-                    let out = String::from_utf8_lossy(&res.stdout).trim().to_string();
-                    let mut detail = if err.is_empty() {
-                        out.lines()
-                            .rev()
-                            .take(4)
-                            .collect::<Vec<_>>()
-                            .into_iter()
-                            .rev()
-                            .collect::<Vec<_>>()
-                            .join("\n")
-                    } else {
-                        err.lines()
-                            .rev()
-                            .take(6)
-                            .collect::<Vec<_>>()
-                            .into_iter()
-                            .rev()
-                            .collect::<Vec<_>>()
-                            .join("\n")
-                    };
-                    let detail_l = detail.to_lowercase();
-                    if detail_l.contains("temporary failure")
-                        || detail_l.contains("connection refused")
-                        || detail_l.contains("could not resolve")
-                    {
-                        detail = format!(
-                            " — Ağ bağlantısı yok veya depolara ulaşılamıyor.\n{}",
-                            detail
-                        );
-                    } else if !sudo_available() && pkexec_available() {
-                        detail = format!(
-                            " — Yönetici yetkisi penceresi açılmadıysa tekrar deneyin.\n{}",
-                            detail
-                        );
+            match attempt {
+                Ok(res) => {
+                    if !res.status.success() {
+                        let err = String::from_utf8_lossy(&res.stderr).trim().to_string();
+                        let out = String::from_utf8_lossy(&res.stdout).trim().to_string();
+                        let mut detail = if err.is_empty() {
+                            out.lines()
+                                .rev()
+                                .take(4)
+                                .collect::<Vec<_>>()
+                                .into_iter()
+                                .rev()
+                                .collect::<Vec<_>>()
+                                .join("\n")
+                        } else {
+                            err.lines()
+                                .rev()
+                                .take(6)
+                                .collect::<Vec<_>>()
+                                .into_iter()
+                                .rev()
+                                .collect::<Vec<_>>()
+                                .join("\n")
+                        };
+                        let detail_l = detail.to_lowercase();
+                        if detail_l.contains("temporary failure")
+                            || detail_l.contains("connection refused")
+                            || detail_l.contains("could not resolve")
+                        {
+                            detail = format!(
+                                " — Ağ bağlantısı yok veya depolara ulaşılamıyor.\n{}",
+                                detail
+                            );
+                        } else if !sudo_available() && pkexec_available() {
+                            detail = format!(
+                                " — Yönetici yetkisi penceresi açılmadıysa tekrar deneyin.\n{}",
+                                detail
+                            );
+                        }
+                        return Err(format!("Paket kurulumu başarısız:\n{}", detail));
                     }
-                    return Err(format!("Paket kurulumu başarısız:\n{}", detail));
                 }
+                Err(e) => return Err(format!("apt-get/dpkg çalıştırılamadı: {}", e)),
             }
-            Err(e) => return Err(format!("apt-get/dpkg çalıştırılamadı: {}", e)),
         }
 
-        // Kurulum sonrası XDG dizinini tara ve masaüstü/uygulamalar dizinine yerleştir
+        // dpkg -L ile paketin kurduğu gerçek .desktop veya yürütülebilir dosyayı çöz
+        let dpkg_files: Vec<String> = Command::new("dpkg")
+            .args(["-L", clean_pkg])
+            .output()
+            .ok()
+            .filter(|o| o.status.success())
+            .map(|o| {
+                String::from_utf8_lossy(&o.stdout)
+                    .lines()
+                    .map(|l| l.trim().to_string())
+                    .filter(|l| !l.is_empty())
+                    .collect()
+            })
+            .unwrap_or_default();
+
+        let owned_desktops: Vec<&String> = dpkg_files
+            .iter()
+            .filter(|p| p.starts_with("/usr/share/applications/") && p.ends_with(".desktop"))
+            .collect();
+
+        // Kurulum sonrası XDG dizinini tara ve gerçek .desktop kaydını bul
         let apps = scan_xdg_applications_blocking()?;
-        let final_app = if let Some(mut app) = apps
-            .into_iter()
-            .find(|a| a.id.contains(clean_pkg) || clean_pkg.contains(&a.id))
-        {
+        let found_app = owned_desktops
+            .iter()
+            .find_map(|dp| apps.iter().find(|a| a.desktop_file == **dp).cloned())
+            .or_else(|| {
+                let pkg_l = clean_pkg.to_lowercase();
+                apps.into_iter().find(|a| {
+                    let aid = a.id.to_lowercase();
+                    aid == pkg_l
+                        || aid.ends_with(&format!(".{}", pkg_l))
+                        || aid.contains(&pkg_l)
+                        || pkg_l.contains(&aid)
+                })
+            });
+
+        let final_app = if let Some(mut app) = found_app {
             app.is_installed_by_user = true;
             app
         } else {
+            let owned_bin = dpkg_files
+                .iter()
+                .filter(|p| {
+                    p.starts_with("/usr/bin/")
+                        || p.starts_with("/usr/games/")
+                        || p.starts_with("/bin/")
+                })
+                .find(|p| Path::new(p).file_name().and_then(|s| s.to_str()) == Some(clean_pkg))
+                .or_else(|| {
+                    dpkg_files.iter().find(|p| {
+                        (p.starts_with("/usr/bin/")
+                            || p.starts_with("/usr/games/")
+                            || p.starts_with("/bin/"))
+                            && Path::new(p).is_file()
+                    })
+                })
+                .cloned()
+                .unwrap_or_else(|| clean_pkg.to_string());
+
             XdgApplication {
                 id: clean_pkg.to_string(),
                 name: clean_pkg.to_uppercase(),
-                exec: clean_pkg.to_string(),
+                exec: owned_bin,
                 icon: "application-x-executable".to_string(),
                 comment: format!("{} paketi sisteme kuruldu.", clean_pkg),
                 categories: vec!["Utility".to_string()],
@@ -1331,23 +1383,31 @@ fn install_deb_package_blocking(package_name: String) -> Result<XdgApplication, 
             let _ = fs::create_dir_all(&desktop_dir);
             let _ = fs::create_dir_all(&local_apps_dir);
 
-            // .desktop alanındaki satır sonu, dosyaya yeni anahtar enjekte eder
-            let safe_field = |s: &str| s.replace('\n', " ").replace('\r', " ");
+            let file_stem = if final_app.id.is_empty() {
+                clean_pkg
+            } else {
+                final_app.id.as_str()
+            };
+            let target_desktop = desktop_dir.join(format!("{}.desktop", file_stem));
+            let target_local = local_apps_dir.join(format!("{}.desktop", file_stem));
 
-            let desktop_entry_content = format!(
-                "[Desktop Entry]\nVersion=1.0\nType=Application\nName={}\nComment={}\nExec={}\nIcon={}\nTerminal=false\nCategories={};\nStartupNotify=true\nX-Ayaz-Installed=true\n",
-                safe_field(&final_app.name),
-                safe_field(&final_app.comment),
-                safe_field(&final_app.exec),
-                safe_field(&final_app.icon),
-                safe_field(&final_app.categories.join(";"))
-            );
-
-            let target_desktop = desktop_dir.join(format!("{}.desktop", clean_pkg));
-            let target_local = local_apps_dir.join(format!("{}.desktop", clean_pkg));
-
-            let _ = fs::write(&target_desktop, &desktop_entry_content);
-            let _ = fs::write(&target_local, &desktop_entry_content);
+            if Path::new(&final_app.desktop_file).is_file() {
+                let _ = fs::copy(&final_app.desktop_file, &target_desktop);
+                let _ = fs::copy(&final_app.desktop_file, &target_local);
+            } else {
+                // .desktop alanındaki satır sonu, dosyaya yeni anahtar enjekte eder
+                let safe_field = |s: &str| s.replace('\n', " ").replace('\r', " ");
+                let desktop_entry_content = format!(
+                    "[Desktop Entry]\nVersion=1.0\nType=Application\nName={}\nComment={}\nExec={}\nIcon={}\nTerminal=false\nCategories={};\nStartupNotify=true\nX-Ayaz-Installed=true\n",
+                    safe_field(&final_app.name),
+                    safe_field(&final_app.comment),
+                    safe_field(&final_app.exec),
+                    safe_field(&final_app.icon),
+                    safe_field(&final_app.categories.join(";"))
+                );
+                let _ = fs::write(&target_desktop, &desktop_entry_content);
+                let _ = fs::write(&target_local, &desktop_entry_content);
+            }
 
             #[cfg(unix)]
             {
@@ -2857,13 +2917,10 @@ fn validate_ai_endpoint_url(raw_url: &str) -> Result<String, String> {
 static PENDING_AGENT_ACTION: Mutex<Option<(String, String, Instant)>> = Mutex::new(None);
 
 fn generate_agent_action_token(cmd: &str) -> String {
-    let now = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_nanos();
+    let mut entropy = [0u8; 32];
+    fill_secure_random_bytes(&mut entropy);
     let mut hasher = Sha256::new();
-    hasher.update(now.to_le_bytes());
-    hasher.update(b"ankora-agent-action-token-salt");
+    hasher.update(entropy);
     hasher.update(cmd.as_bytes());
     let token = format!("{:x}", hasher.finalize());
 
@@ -3854,7 +3911,27 @@ fn execute_system_installation_blocking(payload: InstallPayload) -> Result<Strin
                     "/etc/sudoers.d/ankora-updater",
                 ],
             );
-            let upd_entry = format!("{} ALL=(root) NOPASSWD: /usr/local/bin/ayaz-update-helper, /usr/local/bin/ayaz-pkg-helper, /usr/local/bin/ankora-doctor, /bin/true, /usr/bin/true, /sbin/poweroff, /usr/sbin/poweroff, /sbin/reboot, /usr/sbin/reboot, /sbin/shutdown, /usr/sbin/shutdown\n", username);
+            let upd_entry = format!(
+                "{} ALL=(root) NOPASSWD: /usr/local/bin/ayaz-update-helper, \
+                /usr/local/bin/ayaz-pkg-helper install *, \
+                /usr/local/bin/ayaz-pkg-helper remove *, \
+                /usr/local/bin/ayaz-pkg-helper vendor *, \
+                /usr/local/bin/ayaz-pkg-helper mebcert, \
+                /usr/local/bin/ayaz-pkg-helper mebcert-remove, \
+                /usr/local/bin/ayaz-pkg-helper snapshot-create*, \
+                /usr/local/bin/ayaz-pkg-helper snapshot-restore *, \
+                /usr/local/bin/ayaz-pkg-helper snapshot-delete *, \
+                /usr/local/bin/ayaz-pkg-helper set-timezone *, \
+                /usr/local/bin/ayaz-pkg-helper set-keyboard *, \
+                /usr/local/bin/ayaz-pkg-helper set-language *, \
+                /usr/local/bin/ayaz-pkg-helper sync-ntp, \
+                /usr/local/bin/ayaz-pkg-helper drop-caches, \
+                /usr/local/bin/ayaz-pkg-helper usb-flash *, \
+                /usr/local/bin/ayaz-pkg-helper usb-format *, \
+                /usr/local/bin/ankora-doctor, /usr/local/bin/ankora-ollama-install, \
+                /bin/true, /usr/bin/true, /sbin/poweroff, /usr/sbin/poweroff, /sbin/reboot, /usr/sbin/reboot, /sbin/shutdown, /usr/sbin/shutdown\n",
+                username
+            );
             let _ = root_write("/target/etc/sudoers.d/ankora-updater", &upd_entry);
             let _ = root_command("chmod", &["0440", "/target/etc/sudoers.d/ankora-updater"]);
             if inittab_yazildi {
@@ -4070,6 +4147,34 @@ fn execute_system_installation_blocking(payload: InstallPayload) -> Result<Strin
 // ============================================================================
 // 8. GÜVENLİ UYGULAMA BAŞLATICI - GÜVENLİK BULGUSU #4
 // ============================================================================
+fn split_exec_args(input: &str) -> Vec<String> {
+    let mut out = Vec::new();
+    let mut cur = String::new();
+    let mut in_single = false;
+    let mut in_double = false;
+    for ch in input.chars() {
+        if ch == '\'' && !in_double {
+            in_single = !in_single;
+            continue;
+        }
+        if ch == '"' && !in_single {
+            in_double = !in_double;
+            continue;
+        }
+        if ch.is_whitespace() && !in_single && !in_double {
+            if !cur.is_empty() {
+                out.push(std::mem::take(&mut cur));
+            }
+        } else {
+            cur.push(ch);
+        }
+    }
+    if !cur.is_empty() {
+        out.push(cur);
+    }
+    out
+}
+
 #[tauri::command]
 async fn launch_application(exec: String) -> Result<String, String> {
     let clean = exec.trim();
@@ -4091,13 +4196,16 @@ async fn launch_application(exec: String) -> Result<String, String> {
         );
     }
 
-    // 2. Argümanları güvenle ayrıştırma
-    let parts: Vec<&str> = clean.split_whitespace().collect();
+    // 2. Argümanları güvenle ayrıştırma ve .desktop yer tutucularını ayıklama
+    let parts: Vec<String> = split_exec_args(clean)
+        .into_iter()
+        .filter(|t| !matches!(t.as_str(), "%f" | "%F" | "%u" | "%U" | "%i" | "%c" | "%k"))
+        .collect();
     if parts.is_empty() {
         return Err("Çalıştırılacak uygulama tespit edilemedi.".to_string());
     }
 
-    let bin_name = parts[0];
+    let bin_name = parts[0].as_str();
     let args = &parts[1..];
 
     // 3. Dizin geçişi ve kara liste doğrulaması
@@ -4124,10 +4232,10 @@ async fn launch_application(exec: String) -> Result<String, String> {
         if a.contains("://") {
             continue;
         }
-        let arg_bin = Path::new(*a)
+        let arg_bin = Path::new(a.as_str())
             .file_name()
             .and_then(|s| s.to_str())
-            .unwrap_or(*a);
+            .unwrap_or(a.as_str());
         if FORBIDDEN_LAUNCH_BINARIES.contains(&arg_bin) {
             return Err(format!(
                 "Güvenlik İlkesi İhlali: '{}' argüman olarak taşınamaz.",
@@ -4143,6 +4251,7 @@ async fn launch_application(exec: String) -> Result<String, String> {
             "/usr/local/bin/",
             "/usr/games/",
             "/opt/",
+            "/var/lib/flatpak/exports/bin/",
         ];
         if !allowed_prefixes
             .iter()
@@ -4173,14 +4282,38 @@ async fn launch_application(exec: String) -> Result<String, String> {
     #[cfg(target_os = "linux")]
     {
         let dsp = std::env::var("DISPLAY").unwrap_or_else(|_| ":0".to_string());
-        let _ = Command::new(bin_name)
-            .args(args)
-            .env("DISPLAY", dsp)
-            .stdin(Stdio::null())
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .spawn()
-            .map_err(|e| format!("Uygulama başlatılamadı: {}", e))?;
+        const CLI_APPS: &[&str] = &[
+            "htop", "btop", "ncdu", "fastfetch", "neofetch", "screenfetch", "inxi",
+            "iotop", "iftop", "wavemon", "cpupower", "speedtest-cli", "hexedit",
+            "dhex", "mutt", "irssi", "lftp", "chkrootkit", "rkhunter", "powertop",
+            "lsscsi", "dmidecode", "ethtool", "hdparm", "nvme", "aptitude", "nmap",
+        ];
+        if CLI_APPS.contains(&base_bin) {
+            let mut x_args: Vec<String> = vec![
+                "-title".to_string(),
+                base_bin.to_string(),
+                "-e".to_string(),
+                bin_name.to_string(),
+            ];
+            x_args.extend(args.iter().cloned());
+            let _ = Command::new("xterm")
+                .args(&x_args)
+                .env("DISPLAY", dsp)
+                .stdin(Stdio::null())
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .spawn()
+                .map_err(|e| format!("Uygulama başlatılamadı: {}", e))?;
+        } else {
+            let _ = Command::new(bin_name)
+                .args(args)
+                .env("DISPLAY", dsp)
+                .stdin(Stdio::null())
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .spawn()
+                .map_err(|e| format!("Uygulama başlatılamadı: {}", e))?;
+        }
     }
 
     Ok(format!("Uygulama çalıştırıldı: {}", clean))
@@ -5882,64 +6015,164 @@ fn set_radio_state(kind: String, enabled: bool) -> Result<RadioState, String> {
     Err("Ağ yöneticisi bulunamadı: sistemde nmcli veya rfkill yok.".to_string())
 }
 
+fn split_nmcli_terse_fields(line: &str) -> Vec<String> {
+    let mut fields = Vec::new();
+    let mut cur = String::new();
+    let mut chars = line.chars().peekable();
+    while let Some(c) = chars.next() {
+        if c == '\\' {
+            if let Some(&next) = chars.peek() {
+                if next == ':' || next == '\\' {
+                    cur.push(next);
+                    chars.next();
+                    continue;
+                }
+            }
+            cur.push(c);
+        } else if c == ':' {
+            fields.push(cur);
+            cur = String::new();
+        } else {
+            cur.push(c);
+        }
+    }
+    fields.push(cur);
+    fields
+}
+
+fn nmcli_c_output(args: &[&str]) -> Option<String> {
+    let out = Command::new("nmcli")
+        .env("LC_ALL", "C")
+        .args(args)
+        .output()
+        .ok()?;
+    if out.status.success() {
+        Some(String::from_utf8_lossy(&out.stdout).trim_end().to_string())
+    } else {
+        None
+    }
+}
+
 #[tauri::command]
-fn scan_wifi_networks() -> Result<Vec<WifiNetwork>, String> {
+async fn scan_wifi_networks() -> Result<Vec<WifiNetwork>, String> {
+    tauri::async_runtime::spawn_blocking(scan_wifi_networks_blocking)
+        .await
+        .map_err(|e| format!("Kablosuz ağ taraması başarısız: {}", e))?
+}
+
+fn scan_wifi_networks_blocking() -> Result<Vec<WifiNetwork>, String> {
     // Yeniden tarama isteği başarısız olsa bile mevcut liste okunur.
-    let _ = run_capture("nmcli", &["dev", "wifi", "rescan"]);
-    let out = run_capture(
-        "nmcli",
-        &["-t", "-f", "ACTIVE,SSID,SIGNAL", "dev", "wifi", "list"],
-    )
+    let _ = nmcli_c_output(&["dev", "wifi", "rescan"]);
+    let out = nmcli_c_output(&[
+        "-t",
+        "-e",
+        "yes",
+        "-f",
+        "ACTIVE,SSID,SIGNAL,SECURITY",
+        "dev",
+        "wifi",
+        "list",
+    ])
     .ok_or_else(|| "Kablosuz tarama için NetworkManager (nmcli) kurulu olmalı.".to_string())?;
-    let mut networks = Vec::new();
+
+    let mut saved_ssids = std::collections::HashSet::new();
+    if let Some(con_out) = nmcli_c_output(&["-t", "-e", "yes", "-f", "NAME,TYPE", "connection", "show"]) {
+        for line in con_out.lines() {
+            let f = split_nmcli_terse_fields(line);
+            if f.len() >= 2 && f[1] == "802-11-wireless" && !f[0].is_empty() {
+                saved_ssids.insert(f[0].clone());
+            }
+        }
+    }
+
+    let mut networks: Vec<WifiNetwork> = Vec::new();
+    let mut index_by_ssid: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
     for line in out.lines() {
-        let mut parts = line.splitn(3, ':');
-        let active = parts.next().unwrap_or("");
-        // nmcli -t, özel karakterleri ters eğik çizgiyle kaçırır (":" -> "\:").
-        let ssid = parts
-            .next()
-            .unwrap_or("")
-            .replace("\\:", ":")
-            .replace("\\\\", "\\");
-        let signal = parts.next().unwrap_or("").parse::<u8>().unwrap_or(0);
+        let f = split_nmcli_terse_fields(line);
+        if f.len() < 4 {
+            continue;
+        }
+        let active = f[0] == "yes";
+        let ssid = f[1].clone();
         if ssid.is_empty() {
             continue;
         }
+        let signal = f[2].parse::<u8>().unwrap_or(0);
+        let security = if f[3] == "--" {
+            String::new()
+        } else {
+            f[3].clone()
+        };
+        let saved = saved_ssids.contains(&ssid);
+
+        if let Some(&idx) = index_by_ssid.get(&ssid) {
+            let prev = &mut networks[idx];
+            if (active && !prev.active) || (signal > prev.signal && prev.active == active) {
+                prev.signal = signal;
+                prev.active = active;
+                if prev.security.is_empty() && !security.is_empty() {
+                    prev.security = security;
+                }
+            }
+            continue;
+        }
+        index_by_ssid.insert(ssid.clone(), networks.len());
         networks.push(WifiNetwork {
             ssid,
             signal,
-            active: active == "yes",
+            active,
+            security,
+            saved,
         });
     }
     Ok(networks)
 }
 
 #[tauri::command]
-fn wifi_connect(ssid: String, password: Option<String>) -> Result<String, String> {
+async fn wifi_connect(ssid: String, password: Option<String>) -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(move || wifi_connect_blocking(ssid, password))
+        .await
+        .map_err(|e| format!("Wi-Fi bağlantı işlemi tamamlanamadı: {}", e))?
+}
+
+fn wifi_connect_blocking(ssid: String, password: Option<String>) -> Result<String, String> {
     let clean = ssid.trim();
     // SSID tek argüman olarak geçilir (kabuk yok); IEEE sınırı 32 bayttır.
     if clean.is_empty() || clean.len() > 32 {
         return Err("Geçersiz ağ adı (SSID).".to_string());
     }
-    let mut args = vec!["dev", "wifi", "connect", clean];
-    let pass_str;
+    let has_password = password.as_ref().map_or(false, |p| !p.is_empty());
+    let mut args = vec!["--wait", "25", "dev", "wifi", "connect", clean];
     if let Some(ref p) = password {
-        let p_trimmed = p.trim();
-        if !p_trimmed.is_empty() {
-            pass_str = p_trimmed.to_string();
+        if !p.is_empty() {
             args.push("password");
-            args.push(&pass_str);
+            args.push(p.as_str());
         }
     }
-    let out = Command::new("nmcli").args(&args).output().map_err(|_| {
-        "nmcli bulunamadı: kablosuz bağlantı için NetworkManager gerekli.".to_string()
-    })?;
+    let out = Command::new("nmcli")
+        .env("LC_ALL", "C")
+        .args(&args)
+        .output()
+        .map_err(|_| "nmcli bulunamadı: kablosuz bağlantı için NetworkManager gerekli.".to_string())?;
     if out.status.success() {
         return Ok(format!("Bağlanıldı: {}", clean));
     }
     let err = String::from_utf8_lossy(&out.stderr).trim().to_string();
-    if err.contains("Secrets were required") || err.to_lowercase().contains("password") {
-        return Err("Bu ağ için Wi-Fi parolası gerekli veya girilen parola hatalı.".to_string());
+    let low = err.to_lowercase();
+    if low.contains("secrets were required")
+        || low.contains("no-secrets")
+        || low.contains("password")
+        || low.contains("key-mgmt")
+        || low.contains("802-11-wireless-security")
+        || low.contains("authentication")
+    {
+        // Yarım kalmış veya hatalı parolalı profili temizle ki sonraki denemede key-mgmt takılmasın.
+        let _ = nmcli_c_output(&["connection", "delete", "id", clean]);
+        return Err(if has_password {
+            "Girilen Wi-Fi parolası hatalı veya ağ kimlik doğrulamayı reddetti.".to_string()
+        } else {
+            "Bu ağ için Wi-Fi parolası gerekli.".to_string()
+        });
     }
     Err(if err.is_empty() {
         format!("Bağlanılamadı: {}", clean)
@@ -7151,45 +7384,89 @@ fn set_display_scale(percent: Option<f32>) -> Result<String, String> {
     }
 }
 
+fn is_valid_flatpak_app_id(id: &str) -> bool {
+    let t = id.trim();
+    !t.is_empty()
+        && !t.starts_with('-')
+        && t.contains('.')
+        && t.chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '.' || c == '_' || c == '-')
+}
+
 #[tauri::command]
 async fn install_flatpak_app(app_id: String) -> Result<String, String> {
+    let id = app_id.trim().to_string();
+    if !is_valid_flatpak_app_id(&id) {
+        return Err("Geçersiz Flatpak uygulama kimliği.".to_string());
+    }
     #[cfg(target_os = "linux")]
     {
-        let id = app_id.trim();
-        let out = Command::new("flatpak")
-            .args(["install", "-y", "--noninteractive", "flathub", id])
-            .output();
-        match out {
-            Ok(o) if o.status.success() => Ok(format!("{} Flatpak başarıyla kuruldu.", id)),
-            Ok(o) => {
-                let err = String::from_utf8_lossy(&o.stderr);
-                Err(format!("Flatpak kurulum hatası: {}", err))
+        tauri::async_runtime::spawn_blocking(move || {
+            let _ = Command::new("flatpak")
+                .args([
+                    "remote-add",
+                    "--user",
+                    "--if-not-exists",
+                    "flathub",
+                    "https://dl.flathub.org/repo/flathub.flatpakrepo",
+                ])
+                .output();
+            let out = Command::new("flatpak")
+                .args(["install", "--user", "-y", "--noninteractive", "flathub", &id])
+                .output();
+            match out {
+                Ok(o) if o.status.success() => Ok(format!("{} Flatpak başarıyla kuruldu.", id)),
+                Ok(o) => {
+                    let err = String::from_utf8_lossy(&o.stderr).trim().to_string();
+                    let msg = if err.is_empty() {
+                        String::from_utf8_lossy(&o.stdout).trim().to_string()
+                    } else {
+                        err
+                    };
+                    Err(format!("Flatpak kurulum hatası: {}", msg))
+                }
+                Err(e) => Err(format!("Flatpak çalıştırılamadı: {}", e)),
             }
-            Err(e) => Err(format!("Flatpak çalıştırılamadı: {}", e)),
-        }
+        })
+        .await
+        .map_err(|e| format!("Flatpak kurulumu yürütülemedi: {}", e))?
     }
     #[cfg(not(target_os = "linux"))]
     {
-        Ok(format!("{} simüle edildi", app_id))
+        Ok(format!("{} simüle edildi", id))
     }
 }
 
 #[tauri::command]
 async fn remove_flatpak_app(app_id: String) -> Result<String, String> {
+    let id = app_id.trim().to_string();
+    if !is_valid_flatpak_app_id(&id) {
+        return Err("Geçersiz Flatpak uygulama kimliği.".to_string());
+    }
     #[cfg(target_os = "linux")]
     {
-        let id = app_id.trim();
-        let out = Command::new("flatpak")
-            .args(["uninstall", "-y", "--noninteractive", id])
-            .output();
-        match out {
-            Ok(o) if o.status.success() => Ok(format!("{} Flatpak başarıyla kaldırıldı.", id)),
-            Ok(o) => {
-                let err = String::from_utf8_lossy(&o.stderr);
-                Err(format!("Flatpak kaldırma hatası: {}", err))
+        tauri::async_runtime::spawn_blocking(move || {
+            let mut out = Command::new("flatpak")
+                .args(["uninstall", "--user", "-y", "--noninteractive", &id])
+                .output();
+            if let Ok(ref o) = out {
+                if !o.status.success() {
+                    out = Command::new("flatpak")
+                        .args(["uninstall", "-y", "--noninteractive", &id])
+                        .output();
+                }
             }
-            Err(e) => Err(format!("Flatpak çalıştırılamadı: {}", e)),
-        }
+            match out {
+                Ok(o) if o.status.success() => Ok(format!("{} Flatpak başarıyla kaldırıldı.", id)),
+                Ok(o) => {
+                    let err = String::from_utf8_lossy(&o.stderr).trim().to_string();
+                    Err(format!("Flatpak kaldırma hatası: {}", err))
+                }
+                Err(e) => Err(format!("Flatpak çalıştırılamadı: {}", e)),
+            }
+        })
+        .await
+        .map_err(|e| format!("Flatpak kaldırma yürütülemedi: {}", e))?
     }
     #[cfg(not(target_os = "linux"))]
     {
@@ -7207,11 +7484,14 @@ fn list_installed_flatpaks() -> Result<Vec<String>, String> {
         {
             if out.status.success() {
                 let s = String::from_utf8_lossy(&out.stdout);
-                let apps: Vec<String> = s
-                    .lines()
-                    .map(|l| l.trim().to_string())
-                    .filter(|l| !l.is_empty())
-                    .collect();
+                let mut seen = std::collections::HashSet::new();
+                let mut apps = Vec::new();
+                for l in s.lines() {
+                    let t = l.trim();
+                    if !t.is_empty() && seen.insert(t.to_string()) {
+                        apps.push(t.to_string());
+                    }
+                }
                 return Ok(apps);
             }
         }
@@ -10318,5 +10598,38 @@ mod tests {
         assert!(find_icon_file(&["".to_string()]).is_none());
         assert!(find_icon_file(&["/etc/shadow".to_string()]).is_none());
         assert!(find_icon_file(&["kurulu-olmayan-ikon-xyz".to_string()]).is_none());
+    }
+
+    #[test]
+    fn test_split_nmcli_terse_fields() {
+        let row = split_nmcli_terse_fields(r"yes:Ev\:WiFi\\5G:84:WPA2");
+        assert_eq!(row, vec!["yes", r"Ev:WiFi\5G", "84", "WPA2"]);
+        let open_row = split_nmcli_terse_fields("no:Misafir:52:--");
+        assert_eq!(open_row, vec!["no", "Misafir", "52", "--"]);
+    }
+
+    #[test]
+    fn test_split_exec_args_handles_quotes_and_flags() {
+        assert_eq!(
+            split_exec_args("\"/usr/bin/my app\" --flag='hello world' %U"),
+            vec!["/usr/bin/my app", "--flag=hello world", "%U"]
+        );
+        assert_eq!(
+            split_exec_args("  /usr/bin/firefox-esr   --new-window  "),
+            vec!["/usr/bin/firefox-esr", "--new-window"]
+        );
+    }
+
+    #[test]
+    fn test_is_valid_flatpak_app_id() {
+        assert!(is_valid_flatpak_app_id("edu.mit.Scratch"));
+        assert!(is_valid_flatpak_app_id("io.github.cudatext.CudaText-Qt"));
+        assert!(is_valid_flatpak_app_id("com.valvesoftware.Steam"));
+
+        assert!(!is_valid_flatpak_app_id(""));
+        assert!(!is_valid_flatpak_app_id("-rf"));
+        assert!(!is_valid_flatpak_app_id("vlc"));
+        assert!(!is_valid_flatpak_app_id("../foo.Bar"));
+        assert!(!is_valid_flatpak_app_id("com.foo;rm"));
     }
 }

@@ -68,17 +68,17 @@ trap 'rm -rf "$TMP_DIR"' EXIT
 log "[OLLAMA] İndiriliyor: $URL"
 curl -fL --retry 2 --max-time 900 -o "$TMP_DIR/$ASSET" "$URL"
 
-if [ -n "$SUM_URL" ]; then
-    log "[OLLAMA] sha256 özeti doğrulanıyor..."
-    curl -fsSL --max-time 60 -o "$TMP_DIR/sha256sum.txt" "$SUM_URL"
-    EXPECTED="$(grep " ${ASSET}\$" "$TMP_DIR/sha256sum.txt" | awk '{print $1}' | head -n1)"
-    ACTUAL="$(sha256sum "$TMP_DIR/$ASSET" | awk '{print $1}')"
-    if [ -z "$EXPECTED" ] || [ "$EXPECTED" != "$ACTUAL" ]; then
-        echo "[HATA] sha256 doğrulaması başarısız; kurulum durduruldu." >&2
-        exit 1
-    fi
-else
-    log "[UYARI] sha256sum.txt bulunamadı; özet doğrulaması atlandı."
+if [ -z "$SUM_URL" ]; then
+    echo "[HATA] Güvenlik: Ollama sürümünde sha256sum.txt bulunamadı; doğrulamasız kurulum engellendi." >&2
+    exit 1
+fi
+log "[OLLAMA] sha256 özeti doğrulanıyor..."
+curl -fsSL --max-time 60 -o "$TMP_DIR/sha256sum.txt" "$SUM_URL"
+EXPECTED="$(grep " ${ASSET}\$" "$TMP_DIR/sha256sum.txt" | awk '{print $1}' | head -n1)"
+ACTUAL="$(sha256sum "$TMP_DIR/$ASSET" | awk '{print $1}')"
+if [ -z "$EXPECTED" ] || [ "$EXPECTED" != "$ACTUAL" ]; then
+    echo "[HATA] sha256 doğrulaması başarısız; kurulum durduruldu." >&2
+    exit 1
 fi
 
 log "[OLLAMA] Arşiv açılıyor..."

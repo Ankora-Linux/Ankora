@@ -777,7 +777,7 @@
         </div>
         <div class="term-viewport" id="term-viewport">
           <div class="term-logs" id="term-logs">
-            <div class="term-row muted">Ankora Linux 4.6 (Devuan Daedalus) x86_64 - Native Linux Core</div>
+            <div class="term-row muted">Ankora Linux 4.6 "Karayel" (Devuan Daedalus) x86_64 - Native Linux Core</div>
             <div class="term-row muted">Ankora Linux AyazDE Terminali. Yalnızca güvenli listedeki komutlar çalışır; paket kurulumu Yazılım Mağazası üzerinden yapılır.</div>
           </div>
           <div class="term-cmdline">
@@ -1231,7 +1231,7 @@
       <div class="window-header" data-tauri-drag-region>
         <div class="window-meta">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width: 16px; height: 16px;"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-          <span id="settings-header-title">Sistem Ayarları - Ankora Linux 4.6</span>
+          <span id="settings-header-title">Sistem Ayarları - Ankora Linux 4.6 "Karayel"</span>
         </div>
         <div class="window-controls">
           <button class="ctrl-btn min" title="Küçült">−</button>
@@ -2120,7 +2120,7 @@
               <div class="about-hero-card">
                 <img src="logo.svg" alt="Ankora Logo" class="about-hero-logo">
                 <div class="about-hero-text">
-                  <h2>ANKORA LINUX 4.6</h2>
+                  <h2>ANKORA LINUX 4.6 "KARAYEL"</h2>
                   <span class="hero-edition">Ayaz DE Edition • Systemd-Free Kiosk Platform</span>
                   <p>Hafif WebKitGTK ve Rust Tauri çekirdeği ile güçlendirilmiş, Ayaz Masaüstü Ortamı (DE) barındıran bağımsız Devuan GNU/Linux dağıtımı.</p>
                 </div>
@@ -4060,6 +4060,30 @@
           <input type="text" id="open-with-custom-cmd" placeholder="örn: vlc %f" style="flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);border-radius:4px;padding:6px 10px;color:#fff;font-size:12px;">
           <button class="btn-pkg btn-pkg-primary" id="btn-open-with-custom" style="padding:6px 12px;font-size:12px;cursor:pointer;">Çalıştır</button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Wİ-Fİ PAROLA GİRİŞ MODALI -->
+  <div class="modal-backdrop" id="modal-wifi-password" style="display:none;z-index:10000;" role="dialog" aria-modal="true" aria-labelledby="wifi-modal-title">
+    <div class="modal-sheet wifi-modal-sheet">
+      <div class="modal-title" style="display:flex;justify-content:space-between;align-items:center;">
+        <span id="wifi-modal-title">Wi-Fi Ağına Bağlan</span>
+        <button type="button" class="btn-notif-close" id="btn-wifi-modal-close" style="background:none;border:none;color:var(--text-secondary);cursor:pointer;font-size:16px;" aria-label="Kapat">✕</button>
+      </div>
+      <div class="wifi-modal-meta">
+        <strong id="wifi-modal-ssid">Kablosuz Ağ</strong>
+        <span id="wifi-modal-sec" class="wifi-sec-tag">WPA2</span>
+      </div>
+      <label for="wifi-modal-password" class="wifi-modal-label">Ağ Parolası</label>
+      <div class="wifi-pass-row">
+        <input type="password" id="wifi-modal-password" class="wifi-pass-input" placeholder="Wi-Fi parolasını girin..." autocomplete="off" spellcheck="false">
+        <button type="button" id="btn-wifi-toggle-pass" class="btn-pkg-sm wifi-pass-toggle" title="Parolayı göster/gizle">Göster</button>
+      </div>
+      <div id="wifi-modal-error" class="wifi-modal-error" style="display:none;"></div>
+      <div class="wifi-modal-actions">
+        <button type="button" class="btn-pkg-sm" id="btn-wifi-modal-cancel">İptal</button>
+        <button type="button" class="btn-pkg btn-pkg-primary" id="btn-wifi-modal-connect">Bağlan</button>
       </div>
     </div>
   </div>

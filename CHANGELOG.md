@@ -1,7 +1,7 @@
 # Ankora Linux — Sürüm Notları
 
 
-## 4.6.0 (2026-11-10)
+## 4.6.0 "Karayel" (2026-11-12)
 
 ### Sürüm ve Sistem Bilgisi Güncellemesi
 - **4.6.0 Taban Sürümü**: Sistem sürümü resmi olarak 4.6.0'a yükseltildi. Ayarlar, Telemetri, Terminal, Kiosk raporları ve Hakkında pencerelerindeki eski 3.6 ve 3.7 sabit metinleri temizlendi. Canlı telemetri motoru dinamik olarak `/etc/os-release` ve `UpdaterManager` sürümünü yansıtır.

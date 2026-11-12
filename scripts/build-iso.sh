@@ -764,6 +764,9 @@ fi
 if [ -f /etc/init.d/cups ]; then
     update-rc.d cups defaults 2>/dev/null || true
 fi
+if [ -f /etc/init.d/bluetooth ]; then
+    update-rc.d bluetooth defaults 2>/dev/null || true
+fi
 # D-Bus başlamazsa NM de başlamaz; dbus init betiği $network tesisatına
 # bağlantı bile olmadan kendi saatini bekler, bu yüzden düz kademe yeterli.
 
@@ -953,7 +956,7 @@ else
     rm -f "$BDIR/ankora-sistem-rehberi.pdf"
 fi
 cat << 'KIOSKTXT' > "$BDIR/kiosk-ayarlari.txt"
-Ankora Linux 3.5 — Kiosk Yapılandırma Raporu
+Ankora Linux 4.6.0 — Kiosk Yapılandırma Raporu
 =============================================
 
 Taban            : Devuan GNU/Linux 5 (daedalus)
@@ -969,7 +972,7 @@ Bu dosya Ayaz Dosyalar ve Ofis uygulamalarından açılabilir.
 Kiosk kilit ekranı ve widget ayarları Ayarlar penceresinden yönetilir.
 KIOSKTXT
 cat << 'KIOSKMD' > "$BDIR/kiosk-ayarlari.md"
-# Ankora Linux 3.5 — Kiosk Yapılandırma Raporu
+# Ankora Linux 4.6.0 — Kiosk Yapılandırma Raporu
 
 - Taban: Devuan Daedalus (SysVinit, systemd-free)
 - Çekirdek: Linux 6.1 LTS
@@ -1055,7 +1058,7 @@ if [ ! -x "$CHROOT_DIR/usr/bin/ayaz" ]; then
     echo "[BİLGİ] Ayaz DE Kiosk çalışma ortamı ve arayüz bileşenleri entegre ediliyor..."
     cat << 'AYAZ_PY' > "$CHROOT_DIR/usr/bin/ayaz"
 #!/usr/bin/env python3
-import sys, os, subprocess, json, threading, shutil, re, shlex, hmac, gzip, time
+import sys, os, subprocess, json, threading, shutil, re, shlex, hmac, gzip, time, socket, ipaddress, html
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import urllib.parse, urllib.request
 
@@ -1547,6 +1550,7 @@ def execute_ayaz_command(cmd, args):
             tokens = shlex.split(exec_cmd)
         except Exception:
             tokens = exec_cmd.split()
+        tokens = [t for t in tokens if t not in ('%f', '%F', '%u', '%U', '%i', '%c', '%k')]
         if not tokens:
             raise Exception('Geçersiz uygulama komutu')
 
@@ -1564,7 +1568,7 @@ def execute_ayaz_command(cmd, args):
                 raise Exception(f'Güvenlik İlkesi İhlali: {arg_base} komut parametresi olarak kullanılamaz')
 
         if '/' in first_word:
-            allowed_prefixes = ('/usr/bin/', '/bin/', '/usr/local/bin/', '/usr/games/', '/opt/')
+            allowed_prefixes = ('/usr/bin/', '/bin/', '/usr/local/bin/', '/usr/games/', '/opt/', '/var/lib/flatpak/exports/bin/')
             if not any(first_word.startswith(pfx) for pfx in allowed_prefixes):
                 raise Exception('Güvenlik Hatası: Uygulama yolu izin verilen sistem dizinlerinde değil')
             if os.path.exists(first_word):
@@ -1575,7 +1579,12 @@ def execute_ayaz_command(cmd, args):
         env = os.environ.copy()
         if 'DISPLAY' not in env:
             env['DISPLAY'] = ':0'
-        cli_apps = {'htop', 'btop', 'ncdu', 'fastfetch', 'neofetch', 'inxi', 'iotop', 'iftop'}
+        cli_apps = {
+            'htop', 'btop', 'ncdu', 'fastfetch', 'neofetch', 'screenfetch', 'inxi',
+            'iotop', 'iftop', 'wavemon', 'cpupower', 'speedtest-cli', 'hexedit',
+            'dhex', 'mutt', 'irssi', 'lftp', 'chkrootkit', 'rkhunter', 'powertop',
+            'lsscsi', 'dmidecode', 'ethtool', 'hdparm', 'nvme', 'aptitude', 'nmap'
+        }
         if base_name in cli_apps or first_word in cli_apps:
             subprocess.Popen(['xterm', '-title', base_name, '-e'] + tokens, cwd=home_dir, env=env, start_new_session=True)
         else:
@@ -1584,74 +1593,104 @@ def execute_ayaz_command(cmd, args):
 
     elif cmd == 'install_deb_package':
         pkg = args.get('packageName', '').strip()
-        if not pkg or not re.match(r'^[a-zA-Z0-9.+_-]+$', pkg):
+        if not pkg or not re.match(r'^[a-zA-Z0-9][a-zA-Z0-9.+_-]*$', pkg):
             raise Exception('Geçersiz paket adı biçimi')
-        helper = '/usr/local/bin/ayaz-pkg-helper'
-        cmd_args = ['sudo', helper, 'install', pkg] if os.path.exists(helper) else ['sudo', 'apt-get', 'install', '-y', '--no-install-recommends', '--', pkg]
-        # stdin DEVNULL: sudo parola sorarsa veya dpkg conffile sorusu
-        # gelirse arayüz askıda kalmasın, hata anında frontend'e dönsün.
-        try:
-            proc = subprocess.run(
-                cmd_args,
-                stdin=subprocess.DEVNULL,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-                timeout=300
-            )
-        except subprocess.TimeoutExpired:
-            raise Exception(f'Kurulum zaman aşımına uğradı: {pkg} (300 sn)')
-        if proc.returncode != 0:
-            err = (proc.stderr or proc.stdout or '').strip()
-            if not err:
-                err = f'çıkış kodu {proc.returncode}'
-            raise Exception(f'Kurulum başarısız: {err}')
+        if pkg != 'fatih-kalem' or not os.path.exists('/usr/bin/fatih-kalem'):
+            helper = '/usr/local/bin/ayaz-pkg-helper'
+            cmd_args = ['sudo', helper, 'install', pkg] if os.path.exists(helper) else ['sudo', 'apt-get', 'install', '-y', '--no-install-recommends', '--', pkg]
+            # stdin DEVNULL: sudo parola sorarsa veya dpkg conffile sorusu
+            # gelirse arayüz askıda kalmasın, hata anında frontend'e dönsün.
+            try:
+                proc = subprocess.run(
+                    cmd_args,
+                    stdin=subprocess.DEVNULL,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                    timeout=300
+                )
+            except subprocess.TimeoutExpired:
+                raise Exception(f'Kurulum zaman aşımına uğradı: {pkg} (300 sn)')
+            if proc.returncode != 0:
+                err = (proc.stderr or proc.stdout or '').strip()
+                if not err:
+                    err = f'çıkış kodu {proc.returncode}'
+                raise Exception(f'Kurulum başarısız: {err}')
 
-        # Kurulan paketin .desktop girdisi kullanıcı dizinine kopyalanır; Başlat
-        # menüsü ve masaüstü ikonu yeniden başlatma sonrasında da korunur.
-        # Dosya adları paket adıyla birebir örtüşmeyebilir (debian-xterm.desktop,
-        # mate-terminal.desktop); önek ve ek sonu da denenir. Kimlik ve görünen
-        # ad .desktop içinden alınır, yoksa taramanın döndürdüğü kayıtla
-        # eşleşmez ve menüde iki kez görünür.
+        # Kurulan paketin gerçek .desktop girdisi öncelikle dpkg -L ile çözülür;
+        # örneğin gnome-disk-utility -> org.gnome.DiskUtility.desktop veya
+        # obs-studio -> com.obsproject.Studio.desktop gibi adlar birebir örtüşmez.
         app_id = app_name = app_exec = pkg
+        desktop_file_found = ''
         user_app_dir = os.path.expanduser('~/.local/share/applications')
         try:
             os.makedirs(user_app_dir, exist_ok=True)
             sys_dir = '/usr/share/applications'
-            if os.path.isdir(sys_dir):
+            dpkg_files = []
+            try:
+                dp = subprocess.run(['dpkg', '-L', pkg], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, timeout=10)
+                if dp.returncode == 0:
+                    dpkg_files = [l.strip() for l in dp.stdout.splitlines() if l.strip()]
+            except Exception:
+                pass
+            matches = [
+                f for f in dpkg_files
+                if f.startswith('/usr/share/applications/') and f.endswith('.desktop') and os.path.isfile(f)
+            ]
+            if not matches and pkg == 'fatih-kalem' and os.path.isfile('/usr/share/applications/fatih-kalem.desktop'):
+                matches = ['/usr/share/applications/fatih-kalem.desktop']
+            if not matches and os.path.isdir(sys_dir):
                 matches = [
                     os.path.join(sys_dir, fn) for fn in os.listdir(sys_dir)
                     if fn.endswith('.desktop') and (
-                        fn[:-8] == pkg
-                        or fn[:-8].startswith(pkg + '-')
-                        or fn[:-8].endswith('-' + pkg)
+                        fn[:-8].lower() == pkg.lower()
+                        or fn[:-8].lower().startswith(pkg.lower() + '-')
+                        or fn[:-8].lower().endswith('-' + pkg.lower())
+                        or fn[:-8].lower().endswith('.' + pkg.lower())
                     )
                 ]
-                src = sorted(matches, key=len)[0] if matches else None
-                if src:
-                    hidden = False
-                    in_entry = False
-                    with open(src, encoding='utf-8', errors='replace') as fh:
-                        for line in fh:
-                            line = line.strip()
-                            if line.startswith('['):
-                                in_entry = (line == '[Desktop Entry]')
-                            elif in_entry:
-                                if line.startswith('Name='):
-                                    app_name = line.split('=', 1)[1]
-                                elif line.startswith('Exec='):
-                                    parts = line.split('=', 1)[1].split()
-                                    if parts:
-                                        app_exec = parts[0]
-                                elif line.startswith(('Hidden=True', 'NoDisplay=True')):
-                                    hidden = True
-                    if not hidden:
-                        app_id = os.path.basename(src)[:-8]
-                        shutil.copy2(src, os.path.join(user_app_dir, os.path.basename(src)))
+            chosen = None
+            for cand in sorted(matches, key=lambda p: (('-' in os.path.basename(p)) and (pkg not in os.path.basename(p)), len(os.path.basename(p)))):
+                hidden = False
+                c_name = pkg
+                c_exec = pkg
+                in_entry = False
+                with open(cand, encoding='utf-8', errors='replace') as fh:
+                    for line in fh:
+                        line = line.strip()
+                        if line.startswith('['):
+                            in_entry = (line == '[Desktop Entry]')
+                        elif in_entry:
+                            if line.startswith('Name=') and c_name == pkg:
+                                c_name = line.split('=', 1)[1].strip() or pkg
+                            elif line.startswith('Exec='):
+                                raw_ex = line.split('=', 1)[1]
+                                for ph in ('%f', '%F', '%u', '%U', '%i', '%c', '%k'):
+                                    raw_ex = raw_ex.replace(ph, '')
+                                c_exec = raw_ex.strip() or pkg
+                            elif line.startswith(('Hidden=true', 'Hidden=True', 'NoDisplay=true', 'NoDisplay=True')):
+                                hidden = True
+                if not hidden:
+                    chosen = cand
+                    app_name = c_name
+                    app_exec = c_exec
+                    app_id = os.path.basename(cand)[:-8]
+                    desktop_file_found = cand
+                    shutil.copy2(cand, os.path.join(user_app_dir, os.path.basename(cand)))
+                    break
+            if not chosen and dpkg_files:
+                bins = [
+                    f for f in dpkg_files
+                    if f.startswith(('/usr/bin/', '/usr/games/', '/bin/')) and os.path.isfile(f) and os.access(f, os.X_OK)
+                ]
+                if bins:
+                    exact_bin = next((b for b in bins if os.path.basename(b) == pkg), None)
+                    app_exec = exact_bin or sorted(bins, key=lambda p: len(os.path.basename(p)))[0]
         except Exception:
             pass
 
         return {'id': app_id, 'name': app_name, 'exec': app_exec,
+                'desktop_file': desktop_file_found,
                 'cat': 'util', 'is_installed_by_user': True}
 
     elif cmd == 'install_vendor_package':
@@ -1740,17 +1779,24 @@ def execute_ayaz_command(cmd, args):
 
     elif cmd == 'install_local_deb_package':
         f_path = str(args.get('filePath', '')).strip()
-        if not f_path or not os.path.isfile(f_path) or not f_path.lower().ends_with('.deb'):
+        if not f_path or os.path.islink(f_path) or not os.path.isfile(f_path) or not f_path.lower().endswith('.deb'):
             raise Exception('Geçerli bir .deb dosyası belirtilmelidir')
+        real_deb = os.path.realpath(f_path)
         helper = '/usr/local/bin/ayaz-pkg-helper'
-        if os.path.exists(helper):
-            proc = subprocess.run(['sudo', helper, 'install-deb-file', f_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=600)
+        cmd_tail = [helper, 'install-deb-file', real_deb] if os.path.exists(helper) else ['apt-get', 'install', '-y', '--no-install-recommends', '--', real_deb]
+        use_live_sudo = os.path.exists('/etc/sudoers.d/ankora')
+        if os.geteuid() == 0:
+            proc = subprocess.run(cmd_tail, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=600)
+        elif use_live_sudo:
+            proc = subprocess.run(['sudo', '-n'] + cmd_tail, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=600)
+        elif shutil.which('pkexec'):
+            proc = subprocess.run(['pkexec'] + cmd_tail, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=600)
         else:
-            proc = subprocess.run(['sudo', 'apt-get', 'install', '-y', '--no-install-recommends', '--', f_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=600)
+            proc = subprocess.run(['sudo'] + cmd_tail, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=600)
         if proc.returncode != 0:
             err = (proc.stderr or proc.stdout or '').strip()
             raise Exception(f'Kurulum başarısız: {err}')
-        return f'{f_path} başarıyla kuruldu.'
+        return f'{real_deb} başarıyla kuruldu.'
 
     elif cmd == 'install_meb_certificate':
         # MEB okul ağı kök sertifikası: indirme ve doğrulama yalnızca
@@ -2033,48 +2079,122 @@ def execute_ayaz_command(cmd, args):
         raise Exception('Ağ yöneticisi bulunamadı: sistemde nmcli veya rfkill yok.')
 
     elif cmd == 'scan_wifi_networks':
-        _run_capture(['nmcli', 'dev', 'wifi', 'rescan'])
-        out = _run_capture(['nmcli', '-t', '-f', 'ACTIVE,SSID,SIGNAL', 'dev', 'wifi', 'list'])
+        def _split_nmcli_terse(raw_line):
+            out_fields, cur, i = [], [], 0
+            n = len(raw_line)
+            while i < n:
+                ch = raw_line[i]
+                if ch == '\\' and i + 1 < n and raw_line[i + 1] in (':', '\\'):
+                    cur.append(raw_line[i + 1])
+                    i += 2
+                elif ch == ':':
+                    out_fields.append(''.join(cur))
+                    cur = []
+                    i += 1
+                else:
+                    cur.append(ch)
+                    i += 1
+            out_fields.append(''.join(cur))
+            return out_fields
+
+        _nm_env = dict(os.environ, LC_ALL='C')
+        if shutil.which('nmcli'):
+            try:
+                subprocess.run(['nmcli', 'dev', 'wifi', 'rescan'], env=_nm_env,
+                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=10)
+            except Exception:
+                pass
+        try:
+            _wproc = subprocess.run(
+                ['nmcli', '-t', '-e', 'yes', '-f', 'ACTIVE,SSID,SIGNAL,SECURITY', 'dev', 'wifi', 'list'],
+                env=_nm_env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=12
+            )
+            out = _wproc.stdout if _wproc.returncode == 0 else None
+        except Exception:
+            out = None
         if out is None:
             raise Exception('Kablosuz tarama için NetworkManager (nmcli) kurulu olmalı.')
+
+        saved_ssids = set()
+        try:
+            _cproc = subprocess.run(
+                ['nmcli', '-t', '-e', 'yes', '-f', 'NAME,TYPE', 'connection', 'show'],
+                env=_nm_env, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, timeout=8
+            )
+            if _cproc.returncode == 0:
+                for cl in _cproc.stdout.splitlines():
+                    cf = _split_nmcli_terse(cl)
+                    if len(cf) >= 2 and cf[1] == '802-11-wireless' and cf[0]:
+                        saved_ssids.add(cf[0])
+        except Exception:
+            pass
+
         networks = []
+        idx_map = {}
         for line in out.splitlines():
-            parts = line.split(':', 2)
-            if len(parts) < 3:
+            parts = _split_nmcli_terse(line)
+            if len(parts) < 4:
                 continue
-            active, ssid, signal = parts
-            ssid = ssid.replace('\\:', ':').replace('\\\\', '\\')
+            active = (parts[0] == 'yes')
+            ssid = parts[1]
             if not ssid:
                 continue
             try:
-                sig = int(signal)
+                sig = int(parts[2])
             except ValueError:
                 sig = 0
-            networks.append({'ssid': ssid, 'signal': sig, 'active': active == 'yes'})
+            sec = '' if parts[3] == '--' else parts[3]
+            is_saved = ssid in saved_ssids
+            if ssid in idx_map:
+                prev = networks[idx_map[ssid]]
+                if (active and not prev['active']) or (sig > prev['signal'] and prev['active'] == active):
+                    prev['signal'] = sig
+                    prev['active'] = active
+                    if not prev['security'] and sec:
+                        prev['security'] = sec
+                continue
+            idx_map[ssid] = len(networks)
+            networks.append({
+                'ssid': ssid,
+                'signal': sig,
+                'active': active,
+                'security': sec,
+                'saved': is_saved,
+            })
         return networks
 
     elif cmd == 'wifi_connect':
         ssid = str(args.get('ssid', '')).strip()
-        password = str(args.get('password', '')).strip()
+        raw_pw = args.get('password')
+        password = '' if raw_pw is None else str(raw_pw)
         # SSID tek argüman (kabuk yok); IEEE sınırı 32 bayttır.
         if not ssid or len(ssid.encode('utf-8')) > 32:
             raise Exception('Geçersiz ağ adı (SSID).')
-        cmd_args = ['nmcli', 'dev', 'wifi', 'connect', ssid]
+        cmd_args = ['nmcli', '--wait', '25', 'dev', 'wifi', 'connect', ssid]
         if password:
             cmd_args += ['password', password]
+        _nm_env = dict(os.environ, LC_ALL='C')
         try:
             proc = subprocess.run(
-                cmd_args,
+                cmd_args, env=_nm_env,
                 stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                text=True, timeout=45
+                text=True, timeout=35
             )
         except Exception:
             raise Exception('nmcli bulunamadı: kablosuz bağlantı için NetworkManager gerekli.')
         if proc.returncode == 0:
             return f'Bağlanıldı: {ssid}'
         err = (proc.stderr or '').strip()
-        if 'Secrets were required' in err or 'password' in err.lower() or 'no-secrets' in err:
-            raise Exception('Bu ağ için Wi-Fi parolası gerekli veya girilen parola hatalı.')
+        low = err.lower()
+        if any(k in low for k in ('secrets were required', 'no-secrets', 'password', 'key-mgmt', '802-11-wireless-security', 'authentication')):
+            try:
+                subprocess.run(['nmcli', 'connection', 'delete', 'id', ssid],
+                               env=_nm_env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=8)
+            except Exception:
+                pass
+            if password:
+                raise Exception('Girilen Wi-Fi parolası hatalı veya ağ kimlik doğrulamayı reddetti.')
+            raise Exception('Bu ağ için Wi-Fi parolası gerekli.')
         raise Exception(err or f'Bağlanılamadı: {ssid}')
 
     elif cmd == 'get_network_info':
@@ -2444,12 +2564,12 @@ tmpfs /tmp tmpfs defaults,noatime,mode=1777 0 0
             user_exists = subprocess.run(_root_pre + ['chroot', '/target', 'id', username],
                                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0
             if not user_exists:
-                _root(f"chroot /target useradd -m -s /bin/bash -G sudo,audio,video,plugdev,netdev {shlex.quote(username)}")
+                _root(f"chroot /target useradd -m -s /bin/bash -G sudo,audio,video,plugdev,netdev,lp,scanner {shlex.quote(username)}")
             else:
                 _root_makedirs(f"/target/home/{username}")
                 _root(f"cp -rT /target/etc/skel /target/home/{shlex.quote(username)} 2>/dev/null || true", check=False)
                 _root(f"chroot /target chown -R {shlex.quote(username)}:{shlex.quote(username)} /home/{shlex.quote(username)}")
-                _root(f"chroot /target usermod -aG sudo,audio,video,plugdev,netdev {shlex.quote(username)}")
+                _root(f"chroot /target usermod -aG sudo,audio,video,plugdev,netdev,lp,scanner {shlex.quote(username)}")
                 _root(f"chroot /target usermod -U {shlex.quote(username)} 2>/dev/null || true", check=False)
 
             # Parola Belirleme
@@ -2467,17 +2587,36 @@ tmpfs /tmp tmpfs defaults,noatime,mode=1777 0 0
             _root(f"chroot /target usermod -aG sudo {shlex.quote(username)}")
             _root(f"rm -f /target/etc/sudoers.d/ankora")
 
-            # Ayaz güncelleyici ve masaüstü bakım yardımcıları sudoers (sınırlı NOPASSWD)
+            # Ayaz güncelleyici ve masaüstü bakım yardımcıları sudoers (sınırlı NOPASSWD; install-deb-file hariç)
+            _pkg_safe_cmds = (
+                "/usr/local/bin/ayaz-update-helper, "
+                "/usr/local/bin/ayaz-pkg-helper install *, "
+                "/usr/local/bin/ayaz-pkg-helper remove *, "
+                "/usr/local/bin/ayaz-pkg-helper vendor *, "
+                "/usr/local/bin/ayaz-pkg-helper mebcert, "
+                "/usr/local/bin/ayaz-pkg-helper mebcert-remove, "
+                "/usr/local/bin/ayaz-pkg-helper snapshot-create*, "
+                "/usr/local/bin/ayaz-pkg-helper snapshot-restore *, "
+                "/usr/local/bin/ayaz-pkg-helper snapshot-delete *, "
+                "/usr/local/bin/ayaz-pkg-helper set-timezone *, "
+                "/usr/local/bin/ayaz-pkg-helper set-keyboard *, "
+                "/usr/local/bin/ayaz-pkg-helper set-language *, "
+                "/usr/local/bin/ayaz-pkg-helper sync-ntp, "
+                "/usr/local/bin/ayaz-pkg-helper drop-caches, "
+                "/usr/local/bin/ayaz-pkg-helper usb-flash *, "
+                "/usr/local/bin/ayaz-pkg-helper usb-format *, "
+                "/usr/local/bin/ankora-doctor, /usr/local/bin/ankora-ollama-install, "
+                "/bin/true, /usr/bin/true, /sbin/poweroff, /usr/sbin/poweroff, "
+                "/sbin/reboot, /usr/sbin/reboot, /sbin/shutdown, /usr/sbin/shutdown"
+            )
             _root_write('/target/etc/sudoers.d/ankora-updater',
-                        f"{username} ALL=(root) NOPASSWD: "
-                        "/usr/local/bin/ayaz-update-helper, /usr/local/bin/ayaz-pkg-helper, /usr/local/bin/ankora-doctor, /usr/local/bin/ankora-ollama-install, /bin/true, /usr/bin/true, /sbin/poweroff, /usr/sbin/poweroff, /sbin/reboot, /usr/sbin/reboot, /sbin/shutdown, /usr/sbin/shutdown\n"
-                        "%sudo ALL=(root) NOPASSWD: "
-                        "/usr/local/bin/ayaz-update-helper, /usr/local/bin/ayaz-pkg-helper, /usr/local/bin/ankora-doctor, /usr/local/bin/ankora-ollama-install, /bin/true, /usr/bin/true, /sbin/poweroff, /usr/sbin/poweroff, /sbin/reboot, /usr/sbin/reboot, /sbin/shutdown, /usr/sbin/shutdown\n")
+                        f"{username} ALL=(root) NOPASSWD: {_pkg_safe_cmds}\n"
+                        f"%sudo ALL=(root) NOPASSWD: {_pkg_safe_cmds}\n")
             _root("chmod 0440 /target/etc/sudoers.d/ankora-updater")
 
             # Hızlı Paralel Açılış ve ZRAM Swap Servisi Optimizasyonlarını Kurulu Sisteme Aktar
             _root_write('/target/etc/default/rcS',
-                        "# Ankora Linux 3.5 Hızlı Paralel Açılış\nCONCURRENCY=makefile\nUTC=yes\nVERBOSE=no\nFSCKFIX=no\n")
+                        "# Ankora Linux 4.6.0 Hızlı Paralel Açılış\nCONCURRENCY=makefile\nUTC=yes\nVERBOSE=no\nFSCKFIX=no\n")
             _root_write('/target/etc/sysctl.d/99-zram.conf',
                         "vm.swappiness = 100\nvm.vfs_cache_pressure = 150\nvm.watermark_boost_factor = 0\nvm.dirty_background_ratio = 5\nvm.dirty_ratio = 10\n")
             zram_target_script = """#!/bin/sh
@@ -2648,7 +2787,7 @@ exit 0
             _root("umount -l /target/boot/efi 2>/dev/null || true", check=False)
             _root("umount -l /target 2>/dev/null || true", check=False)
 
-        return "Ankora Linux 4.0 başarıyla kuruldu! Sistemi yeniden başlatabilirsiniz."
+        return "Ankora Linux 4.6.0 başarıyla kuruldu! Sistemi yeniden başlatabilirsiniz."
 
     elif cmd == 'get_system_telemetry':
         mem_total = 4096
@@ -3430,20 +3569,30 @@ exit 0
 
     elif cmd == 'install_flatpak_app':
         app_id = str(args.get('app_id', args.get('appId', ''))).strip()
+        if not app_id or app_id.startswith('-') or not re.match(r'^[a-zA-Z0-9._-]+$', app_id) or '.' not in app_id:
+            raise Exception('Geçersiz Flatpak uygulama kimliği')
         if not shutil.which('flatpak'):
             raise Exception('Flatpak kurulu değil')
-        p = subprocess.run(['flatpak', 'install', '-y', '--noninteractive', 'flathub', app_id], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=600)
+        subprocess.run(
+            ['flatpak', 'remote-add', '--user', '--if-not-exists', 'flathub', 'https://dl.flathub.org/repo/flathub.flatpakrepo'],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=60
+        )
+        p = subprocess.run(['flatpak', 'install', '--user', '-y', '--noninteractive', 'flathub', app_id], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=600)
         if p.returncode != 0:
-            raise Exception(p.stderr.strip() or 'Flatpak kurulamadı')
+            raise Exception(p.stderr.strip() or p.stdout.strip() or 'Flatpak kurulamadı')
         return f'{app_id} kuruldu'
 
     elif cmd == 'remove_flatpak_app':
         app_id = str(args.get('app_id', args.get('appId', ''))).strip()
+        if not app_id or app_id.startswith('-') or not re.match(r'^[a-zA-Z0-9._-]+$', app_id) or '.' not in app_id:
+            raise Exception('Geçersiz Flatpak uygulama kimliği')
         if not shutil.which('flatpak'):
             raise Exception('Flatpak kurulu değil')
-        p = subprocess.run(['flatpak', 'uninstall', '-y', '--noninteractive', app_id], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=120)
+        p = subprocess.run(['flatpak', 'uninstall', '--user', '-y', '--noninteractive', app_id], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=120)
         if p.returncode != 0:
-            raise Exception(p.stderr.strip() or 'Flatpak kaldırılamadı')
+            p = subprocess.run(['flatpak', 'uninstall', '-y', '--noninteractive', app_id], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=120)
+        if p.returncode != 0:
+            raise Exception(p.stderr.strip() or p.stdout.strip() or 'Flatpak kaldırılamadı')
         return f'{app_id} kaldırıldı'
 
     elif cmd == 'list_installed_flatpaks':
@@ -3451,7 +3600,7 @@ exit 0
             return []
         try:
             p = subprocess.run(['flatpak', 'list', '--app', '--columns=application'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=10)
-            return [l.strip() for l in p.stdout.splitlines() if l.strip()]
+            return list(dict.fromkeys(l.strip() for l in p.stdout.splitlines() if l.strip()))
         except Exception:
             return []
 
@@ -4274,7 +4423,7 @@ exit 0
         cpu_cores = tele.get('cpu_cores') or 4
         cpu_pct = tele.get('cpu_percent') or 0.0
         uptime_mins = int((tele.get('uptime_seconds') or 0) // 60)
-        os_name = tele.get('os_name') or 'Ankora Linux 3.5'
+        os_name = tele.get('os_name') or 'Ankora Linux 4.6.0'
         kernel = tele.get('kernel') or 'Linux 6.1'
         init_sys = tele.get('init_system') or 'SysVinit'
 
@@ -4303,7 +4452,7 @@ exit 0
 
         tele_ctx = f"[Sistem Özeti: {os_name} | {kernel} | {init_sys} | RAM: {ram_used}/{ram_tot} MB (%{ram_pct}) | CPU: {cpu_cores} çekirdek (%{cpu_pct}) | Disk: {disk_used}/{disk_tot} GB (%{disk_pct})]"
         sys_prompt = (
-            "Sen Ankora Linux 3.5 (Devuan Daedalus, SysVinit) sistem yöneticisi ve tanılama ajanısın. "
+            "Sen Ankora Linux 4.6.0 (Devuan Daedalus, SysVinit) sistem yöneticisi ve tanılama ajanısın. "
             "Kullanıcıya Türkçe, net ve teknik yanıtlar ver. Gerekirse yanıtının sonuna şu formatta onaylı eylem ekle: "
             "<<<ACTION:{\"command\":\"izin_verilen_komut\",\"desc\":\"Açıklama\"}>>>\n" + tele_ctx
         )
@@ -4421,7 +4570,7 @@ exit 0
         elif any(w in p_lower for w in ['disk', 'depolama', 'alan', 'bölüm', 'lsblk', 'durum', 'özet', 'rapor', 'analiz']):
             c_cmd = 'df -h / && free -m'
             return {
-                'reply': f"Ankora Linux 3.5 Canlı Sistem Raporu:\n• Sistem: {os_name} ({init_sys})\n• Çekirdek: {kernel}\n• CPU: {cpu_cores} Çekirdek (Yük: %{cpu_pct})\n• RAM: {ram_used} MB / {ram_tot} MB (%{ram_pct})\n• Disk: {disk_used} GB / {disk_tot} GB (%{disk_pct})\n• Çalışma Süresi: {uptime_mins} dk\n\nAyrıntılı disk ve bellek çıktısı için aşağıdaki komutu onaylayabilirsiniz.",
+                'reply': f"Ankora Linux 4.6.0 Canlı Sistem Raporu:\n• Sistem: {os_name} ({init_sys})\n• Çekirdek: {kernel}\n• CPU: {cpu_cores} Çekirdek (Yük: %{cpu_pct})\n• RAM: {ram_used} MB / {ram_tot} MB (%{ram_pct})\n• Disk: {disk_used} GB / {disk_tot} GB (%{disk_pct})\n• Çalışma Süresi: {uptime_mins} dk\n\nAyrıntılı disk ve bellek çıktısı için aşağıdaki komutu onaylayabilirsiniz.",
                 'has_action': True,
                 'action_command': c_cmd,
                 'action_desc': 'Disk ve bellek doluluk durumunu sorgula',
@@ -5285,7 +5434,7 @@ exit 0
         full = args.get('fullName', '')
         if not uname or not pwd:
             raise Exception('Kullanıcı adı ve parola zorunludur.')
-        _root_run(['useradd', '-m', '-s', '/bin/bash', '-G', 'sudo,audio,video,plugdev,netdev', '-c', full, uname])
+        _root_run(['useradd', '-m', '-s', '/bin/bash', '-G', 'sudo,audio,video,plugdev,netdev,lp,scanner', '-c', full, uname])
         p = subprocess.Popen(['sudo', '-n', 'chpasswd'], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         p.communicate(input=f"{uname}:{pwd}\n".encode('utf-8'))
         return f"'{uname}' kullanıcısı oluşturuldu."
@@ -5365,19 +5514,43 @@ class AyazIpcHandler(BaseHTTPRequestHandler):
         r'169\.254(\.\d+){2}|172\.(1[6-9]|2\d|3[01])(\.\d+){2}|\[?::1\]?)$', re.I)
 
     def _proxy_error(self, code, message):
+        safe_msg = html.escape(str(message), quote=True)
         body = (
             '<!DOCTYPE html><meta charset="utf-8">'
             '<body style="margin:0;background:#181a24;color:#e8eaf2;'
             'font:14px/1.6 system-ui,sans-serif;display:flex;align-items:center;'
             'justify-content:center;height:100vh;text-align:center">'
             '<div><p style="font-size:16px;margin:0 0 8px">Sayfa açılamadı</p>'
-            '<p style="opacity:.72;margin:0">' + message + '</p></div></body>'
+            '<p style="opacity:.72;margin:0">' + safe_msg + '</p></div></body>'
         ).encode('utf-8')
         self.send_response(code)
         self.send_header('Content-Type', 'text/html; charset=utf-8')
         self.send_header('Content-Length', str(len(body)))
         self.end_headers()
         self.wfile.write(body)
+
+    @classmethod
+    def _validate_public_http_url(cls, target_url):
+        parsed = urllib.parse.urlparse(target_url)
+        if parsed.scheme not in ('http', 'https'):
+            raise ValueError('Yalnızca http/https adresleri görüntülenebilir.')
+        host = (parsed.hostname or '').strip()
+        if not host or cls.LOCAL_HOST.match(host):
+            raise ValueError('Yerel ağ adresleri görüntülenemez.')
+        try:
+            infos = socket.getaddrinfo(host, None, proto=socket.IPPROTO_TCP)
+        except OSError:
+            return
+        for _fam, _type, _proto, _canon, sockaddr in infos:
+            ip_raw = sockaddr[0].split('%')[0]
+            try:
+                ip_obj = ipaddress.ip_address(ip_raw)
+            except ValueError:
+                raise ValueError('Geçersiz ağ adresi çözümlendi.')
+            check_ip = getattr(ip_obj, 'ipv4_mapped', None) or ip_obj
+            if (check_ip.is_private or check_ip.is_loopback or check_ip.is_link_local
+                    or check_ip.is_multicast or check_ip.is_reserved or check_ip.is_unspecified):
+                raise ValueError('Yerel veya özel ağ adresine yönlendirme engellendi.')
 
     def _serve_proxy(self):
         try:
@@ -5407,14 +5580,18 @@ class AyazIpcHandler(BaseHTTPRequestHandler):
             _PROXY_REQUEST_TIMES.append(now)
 
         url = (params.get('url') or [''])[0].strip()
-        if not re.match(r'^https?://', url):
-            self._proxy_error(400, 'Yalnızca http/https adresleri görüntülenebilir.')
-            return
-        host = urllib.parse.urlparse(url).hostname or ''
-        if self.LOCAL_HOST.match(host):
-            self._proxy_error(403, 'Yerel ağ adresleri görüntülenemez.')
+        try:
+            self._validate_public_http_url(url)
+        except ValueError as ve:
+            self._proxy_error(403 if 'Yerel' in str(ve) else 400, str(ve))
             return
 
+        class _SafeRedirectHandler(urllib.request.HTTPRedirectHandler):
+            def redirect_request(self_rh, req_inner, fp, code, msg, headers, newurl):
+                AyazIpcHandler._validate_public_http_url(newurl)
+                return super().redirect_request(req_inner, fp, code, msg, headers, newurl)
+
+        opener = urllib.request.build_opener(_SafeRedirectHandler)
         req = urllib.request.Request(url, headers={
             'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/605.1.15 '
                           '(KHTML, like Gecko) Version/16.5 Safari/605.1.15',
@@ -5427,7 +5604,8 @@ class AyazIpcHandler(BaseHTTPRequestHandler):
         last_err = None
         for attempt in range(2):
             try:
-                resp = urllib.request.urlopen(req, timeout=20)
+                resp = opener.open(req, timeout=20)
+                self._validate_public_http_url(resp.geturl())
                 raw = resp.read(4 * 1024 * 1024)
                 final_url = resp.geturl()
                 ctype = resp.headers.get('Content-Type') or 'text/html; charset=utf-8'
@@ -5439,6 +5617,9 @@ class AyazIpcHandler(BaseHTTPRequestHandler):
                 break
             except Exception as e:
                 last_err = e
+                if isinstance(e, ValueError):
+                    self._proxy_error(403, str(e))
+                    return
                 if attempt == 0:
                     time.sleep(0.5)
         if raw is None:
@@ -6088,12 +6269,13 @@ mkdir -p "$CHROOT_DIR/usr/share/ayaz"
 # urlparse okur; Devuan kimliğiyle "Ankora Linux <sürüm>" görünmeli (hata #2).
 if [ -f "$CHROOT_DIR/etc/os-release" ]; then
     sed -i -E '/^(PRETTY_NAME|VERSION)=/d' "$CHROOT_DIR/etc/os-release"
-    sed -i "1aPRETTY_NAME=\"Ankora Linux ${AYAZ_VERSION} (Daedalus)\"\nVERSION=\"${AYAZ_VERSION} (Daedalus)\"\nVERSION_ID=\"${AYAZ_VERSION}\"" "$CHROOT_DIR/etc/os-release"
+    sed -i "1aPRETTY_NAME=\"Ankora Linux ${AYAZ_VERSION} Karayel (Daedalus)\"\nVERSION=\"${AYAZ_VERSION} (Karayel)\"\nVERSION_ID=\"${AYAZ_VERSION}\"" "$CHROOT_DIR/etc/os-release"
 fi
 cat > "$CHROOT_DIR/usr/share/ayaz/manifest.json" <<MANIFEST_JSON
 {
   "product": "Ayaz DE (Ankora Linux)",
   "version": "${AYAZ_VERSION}",
+  "codename": "Karayel",
   "build_date": "${BUILD_DATE}",
   "git_revision": "${GIT_REV}",
   "architecture": "amd64",

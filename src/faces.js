@@ -570,15 +570,45 @@
           dock.appendChild(sep);
         }
 
-        // 1) Sabitlenmiş ek uygulamalar
+        // 1) Sabitlenmiş ek uygulamalar (açık pencerelerle eşleşenler çifte gösterilmez)
+        const matchedWinIds = new Set();
+        const matchedNativeIds = new Set();
+
         extraPins.forEach(pin => {
           const resolved = (window.AppPinManager && window.AppPinManager.resolveApp)
             ? window.AppPinManager.resolveApp(pin)
             : pin;
+          const pinExec = String(resolved.exec || '');
+          const pinIdL = String(resolved.id || '').toLowerCase();
+          const pinExecL = pinExec.toLowerCase();
+
+          let matchedInternal = null;
+          let matchedNative = null;
+          if (pinExec.startsWith('internal:')) {
+            const targetWinId = pinExec.replace('internal:', '');
+            matchedInternal = extraInternalWins.find(w => w.id === targetWinId) || null;
+          } else {
+            matchedNative = nativeWins.find(nw => {
+              const hay = `${nw.app_name || ''} ${nw.wm_class || ''} ${nw.title || ''}`.toLowerCase();
+              return (pinIdL && hay.includes(pinIdL)) || (pinExecL && hay.includes(pinExecL));
+            }) || null;
+          }
+
+          if (matchedInternal) matchedWinIds.add(matchedInternal.id);
+          if (matchedNative) matchedNativeIds.add(matchedNative.id);
+
+          const isRunning = !!(matchedInternal || matchedNative);
+          const isActive = Boolean(
+            (matchedInternal && matchedInternal.classList.contains('active') && !matchedInternal.classList.contains('minimized')) ||
+            (matchedNative && matchedNative.is_active)
+          );
+
           const btn = document.createElement('span');
-          btn.className = 'face-dock-app face-dock-dynamic face-dock-pin';
+          btn.className = `face-dock-app face-dock-dynamic face-dock-pin${isRunning ? ' running' : ''}${isActive ? ' active' : ''}`;
           btn.setAttribute('data-app-id', resolved.id || '');
-          btn.title = resolved.name || resolved.id || 'Uygulama';
+          if (matchedInternal) btn.setAttribute('data-win-id', matchedInternal.id);
+          if (matchedNative) btn.setAttribute('data-native-id', matchedNative.id);
+          btn.title = `${resolved.name || resolved.id || 'Uygulama'}${isRunning ? ' (Açık)' : ''}\nSağ tık: seçenekler`;
           const iconSvg = (window.IconResolver && window.IconResolver.getIconSvg)
             ? window.IconResolver.getIconSvg(resolved)
             : `<span class="face-dock-letter">${String(resolved.name || '?').charAt(0).toUpperCase()}</span>`;
@@ -587,20 +617,60 @@
             window.IconResolver.tagIcon(btn, resolved);
           }
           btn.addEventListener('click', () => {
-            const exec = resolved.exec || '';
-            if (exec.startsWith('internal:')) {
-              this.openApp(exec.replace('internal:', ''));
+            if (matchedInternal) {
+              this.openApp(matchedInternal.id);
+            } else if (matchedNative) {
+              if (matchedNative.is_active) {
+                if (window.TauriBridge) window.TauriBridge.invoke('minimize_native_window', { id: matchedNative.id }).catch(() => {});
+              } else {
+                if (wm && typeof wm.ensureDesktopLayer === 'function') wm.ensureDesktopLayer(false);
+                if (window.TauriBridge) window.TauriBridge.invoke('activate_native_window', { id: matchedNative.id }).catch(() => {});
+              }
+              setTimeout(() => {
+                if (wm && typeof wm.refreshNativeWindows === 'function') wm.refreshNativeWindows(true);
+              }, 250);
+            } else if (pinExec.startsWith('internal:')) {
+              this.openApp(pinExec.replace('internal:', ''));
             } else if (window.XdgDesktopEngine && window.XdgDesktopEngine.launchApp) {
               window.XdgDesktopEngine.launchApp(resolved);
             } else if (window.TauriBridge) {
-              window.TauriBridge.invoke('launch_application', { exec: exec || resolved.id }).catch(() => {});
+              window.TauriBridge.invoke('launch_application', { exec: pinExec || resolved.id }).catch(() => {});
             }
+          });
+          btn.addEventListener('contextmenu', (e) => {
+            if (!wm || typeof wm.showTabMenu !== 'function') return;
+            e.preventDefault();
+            e.stopPropagation();
+            const items = [];
+            if (matchedInternal) {
+              items.push({ label: matchedInternal.classList.contains('minimized') ? 'Geri yükle' : 'Küçült', run: () => this.openApp(matchedInternal.id) });
+              items.push({ label: 'Kapat', danger: true, run: () => wm.close(matchedInternal) });
+            } else if (matchedNative) {
+              items.push({ label: matchedNative.is_active ? 'Küçült' : 'Öne getir', run: () => {
+                if (matchedNative.is_active) {
+                  window.TauriBridge?.invoke('minimize_native_window', { id: matchedNative.id }).catch(() => {});
+                } else {
+                  wm.ensureDesktopLayer?.(false);
+                  window.TauriBridge?.invoke('activate_native_window', { id: matchedNative.id }).catch(() => {});
+                }
+              }});
+              items.push({ label: 'Kapat', danger: true, run: () => window.TauriBridge?.invoke('close_native_window', { id: matchedNative.id }).catch(() => {}) });
+            } else {
+              items.push({ label: 'Aç', run: () => btn.click() });
+            }
+            if (window.AppPinManager && window.AppPinManager.toggleTaskbarPin) {
+              items.push({ label: 'Docktan kaldır', run: () => {
+                window.AppPinManager.toggleTaskbarPin(resolved);
+                this.syncRunningState();
+              }});
+            }
+            wm.showTabMenu(e, items);
           });
           dock.appendChild(btn);
         });
 
-        // 2) Statik dock'ta yer almayan açık iç pencereler (Notlar, Ankora AI, Hesap Makinesi vb.)
-        extraInternalWins.forEach(win => {
+        // 2) Statik ve sabit dock'ta yer almayan açık iç pencereler (Notlar, Ankora AI, Hesap Makinesi vb.)
+        extraInternalWins.filter(w => !matchedWinIds.has(w.id)).forEach(win => {
           const titleSpan = win.querySelector('.window-meta span');
           const title = titleSpan ? titleSpan.textContent.split(/ [—–-] /)[0].trim() : (win.id || 'Pencere');
           const svg = win.querySelector('.window-meta svg');
@@ -633,8 +703,8 @@
           dock.appendChild(btn);
         });
 
-        // 3) Açık harici X11 pencereleri (Brave, VLC, LibreOffice, GIMP vb.)
-        nativeWins.forEach(nw => {
+        // 3) Sabit dock dışı açık harici X11 pencereleri (Brave, VLC, LibreOffice, GIMP vb.)
+        nativeWins.filter(nw => !matchedNativeIds.has(nw.id)).forEach(nw => {
           const rawTitle = nw.title || nw.app_name || 'Uygulama';
           const shortTitle = rawTitle.split(/ [—–-] /).pop().trim().substring(0, 28) || nw.app_name || 'Uygulama';
           const appKey = String(nw.app_name || nw.wm_class || shortTitle).toLowerCase();

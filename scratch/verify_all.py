@@ -97,7 +97,7 @@ def main():
     try:
         app_js = (ROOT / "src/app.js").read_text(encoding="utf-8")
         for needle, label in (
-            ("org.scratch.Scratch", "mağaza: Scratch"),
+            ("edu.mit.Scratch", "mağaza: Scratch"),
             ("meb-cert", "mağaza: MEB sertifikası"),
             ("gcompris", "mağaza: GCompris (okul)"),
             ("tuxmath", "mağaza: TuxMath (okul)"),

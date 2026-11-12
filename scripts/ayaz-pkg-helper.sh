@@ -567,16 +567,27 @@ case "$ACTION" in
     install)
         # Sadece resmi depolardan güvenli kurulum (asla --allow-unauthenticated kabul edilmez).
         # Canlı ISO'da imaj küçültme için paket listeleri silinir; paket görünmüyorsa
-        # bir kez "apt-get update" ile tazelenip kurulum yeniden denenir.
+        # veya indeks eskidiyse apt-get update ile tazelenip yeniden denenir.
         if ! /usr/bin/apt-cache show "$PKG" >/dev/null 2>&1; then
             /usr/bin/apt-get update -qq || true
         fi
-        exec /usr/bin/apt-get install -y --no-install-recommends -- "$PKG"
+        if ! /usr/bin/apt-get install -y --no-install-recommends -- "$PKG"; then
+            /usr/bin/apt-get update -qq || true
+            exec /usr/bin/apt-get install -y --no-install-recommends -- "$PKG"
+        fi
         ;;
     install-deb-file)
-        DEB_FILE="$PKG"
-        if [[ ! -f "$DEB_FILE" ]]; then
-            echo "[HATA] Belirtilen .deb dosyası bulunamadı: $DEB_FILE" >&2
+        if [[ -n "${SUDO_USER:-}" && -z "${PKEXEC_UID:-}" && ! -f /etc/sudoers.d/ankora ]]; then
+            echo "[HATA] Güvenlik: Kurulu sistemde yerel .deb kurulumu etkileşimli yetki (pkexec) gerektirir." >&2
+            exit 6
+        fi
+        if [[ -L "$PKG" ]]; then
+            echo "[HATA] Güvenlik: Sembolik bağ üzerinden .deb kurulumu kabul edilmez." >&2
+            exit 6
+        fi
+        DEB_FILE="$(/usr/bin/readlink -f -- "$PKG" 2>/dev/null || true)"
+        if [[ -z "$DEB_FILE" || ! -f "$DEB_FILE" || "${DEB_FILE,,}" != *.deb ]]; then
+            echo "[HATA] Belirtilen .deb dosyası bulunamadı veya geçersiz: $PKG" >&2
             exit 2
         fi
         if ! /usr/bin/dpkg-deb -I "$DEB_FILE" >/dev/null 2>&1; then

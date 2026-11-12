@@ -311,6 +311,9 @@
   transform: translateX(-50%);
   display: flex;
   gap: 10px;
+  max-width: calc(100vw - 24px);
+  overflow-x: auto;
+  scrollbar-width: none;
   background: #1c1e23;
   border: 1px solid #2e3138;
   border-radius: 12px;
@@ -322,6 +325,7 @@
 [data-face="2"] .face-dock-app {
   width: 46px;
   height: 46px;
+  flex-shrink: 0;
   border-radius: 8px;
   background: #22242b;
   border: 1px solid #2e3138;
@@ -563,6 +567,9 @@
   transform: translateX(-50%);
   display: flex;
   gap: 8px;
+  max-width: calc(100vw - 24px);
+  overflow-x: auto;
+  scrollbar-width: none;
   background: #faf8ef;
   border: 1px solid #e4e0cf;
   border-radius: 16px;
@@ -574,6 +581,7 @@
 [data-face="3"] .face-dock-app {
   width: 44px;
   height: 44px;
+  flex-shrink: 0;
   border-radius: 11px;
   background: #d7dfc2;
   display: grid;
@@ -773,6 +781,9 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  max-width: calc(100vw - 24px);
+  overflow-x: auto;
+  scrollbar-width: none;
   background: #fcfcf9;
   border: 2px solid #161309;
   border-radius: 12px;
@@ -784,6 +795,7 @@
 [data-face="8"] .face-dock-app {
   width: 42px;
   height: 42px;
+  flex-shrink: 0;
   border-radius: 8px;
   background: #f4f2e6;
   border: 1.5px solid #161309;
@@ -1404,24 +1416,33 @@ body.theme-light .ctx-submenu-list,
 }
 
 /* 7. Açık Temalarda Dock ve Panel Uyumu */
-body.is-light-theme [data-face="2"] .face-dock-app,
-body.theme-light [data-face="2"] .face-dock-app,
-body.theme-arctic [data-face="2"] .face-dock-app,
-body.theme-cinar [data-face="2"] .face-dock-app,
-body.theme-meltem [data-face="2"] .face-dock-app {
+body.is-light-theme[data-face="2"] .face-dock-app,
+body.theme-light[data-face="2"] .face-dock-app,
+body.theme-arctic[data-face="2"] .face-dock-app,
+body.theme-cinar[data-face="2"] .face-dock-app,
+body.theme-meltem[data-face="2"] .face-dock-app {
   background: rgba(255, 255, 255, 0.9);
   border-color: rgba(0, 0, 0, 0.14);
   color: #1e293b;
 }
 
-body.is-light-theme [data-face="2"] #face-top-panel,
-body.theme-light [data-face="2"] #face-top-panel,
-body.theme-arctic [data-face="2"] #face-top-panel,
-body.theme-cinar [data-face="2"] #face-top-panel,
-body.theme-meltem [data-face="2"] #face-top-panel {
+body.is-light-theme[data-face="2"] #face-bottom-dock {
+  background: rgba(255, 255, 255, 0.92);
+  border-color: rgba(0, 0, 0, 0.14);
+}
+
+body.is-light-theme[data-face="2"] #face-top-panel,
+body.theme-light[data-face="2"] #face-top-panel,
+body.theme-arctic[data-face="2"] #face-top-panel,
+body.theme-cinar[data-face="2"] #face-top-panel,
+body.theme-meltem[data-face="2"] #face-top-panel {
   background: rgba(255, 255, 255, 0.95);
   border-bottom: 1px solid rgba(0, 0, 0, 0.1);
   color: #0f172a;
+}
+
+body.is-light-theme[data-face="2"] .face-tray-group svg {
+  stroke: #0f172a;
 }
 
 body.is-light-theme .face-clock-capsule,
