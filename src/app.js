@@ -9132,33 +9132,32 @@
     // birlikte uygulanır (kullanıcı "bütün sistemin teması değişsin" isteği).
     // 'ankora_theme_fullsystem' kaydı ile kapatılabilir.
     THEME_BUNDLES: {
-      'theme-dark':      { wallpaper: 'wallpaper-nordic.svg',        iconset: 'nordic',   accent: '#2563eb' },
-      'theme-light':     { wallpaper: 'wallpaper-aurora.svg',        iconset: 'outline',  accent: '#059669' },
-      'theme-midnight':  { wallpaper: 'wallpaper-obsidian.svg',      iconset: 'ink',      accent: '#7c3aed' },
-      'theme-nord':      { wallpaper: 'wallpaper-zenith.svg',        iconset: 'nordic',   accent: '#ffffff' },
-      'theme-evergreen': { wallpaper: 'wallpaper-topo.svg',          iconset: 'emerald',  accent: '#059669' },
-      'theme-ember':     { wallpaper: 'wallpaper-matrix.svg',        iconset: 'sunset',   accent: '#ea580c' },
-      'theme-arctic':    { wallpaper: 'wallpaper-abstract-lines.svg',iconset: 'pastel',   accent: '#059669' },
-      'theme-cinar':     { wallpaper: 'wallpaper-cinar.svg',         iconset: 'outline',  accent: '#3f6b45' },
-      'theme-meltem':    { wallpaper: 'wallpaper-meltem.svg',        iconset: 'outline',  accent: '#0d7a8c' },
-      'theme-kor':       { wallpaper: 'wallpaper-kor.svg',           iconset: 'sunset',   accent: '#e08a3c' },
-      'theme-dem':       { wallpaper: 'wallpaper-dem.svg',           iconset: 'monokrom', accent: '#d64545' },
-      'theme-bogaz':     { wallpaper: 'wallpaper-bogaz.svg',         iconset: 'ink',      accent: '#c9a24b' },
-      'theme-ayna':      { wallpaper: 'wallpaper-ayna.svg',          iconset: 'monokrom', accent: '#06b6d4' },
-      'theme-cumhuriyet':{ wallpaper: 'wallpaper-cumhuriyet.svg',    iconset: 'monokrom', accent: '#e23744' },
-      // Studio ekleyi: masaüstü yönlerinden gelen 10 kompozisyon paketi.
-      // Duvar kağıtları, özel SVG'ler pişene kadar mevcut kurulumbil
-      // kağıtlarla eşlenir (aynı sıcaklıkta olanlarla).
-      'theme-matbaa':    { wallpaper: 'wallpaper-aurora.svg',        iconset: 'outline',  accent: '#b4462a' },
-      'theme-bakir':     { wallpaper: 'wallpaper-obsidian.svg',      iconset: 'monokrom', accent: '#d1794f' },
-      'theme-bostan':    { wallpaper: 'wallpaper-cinar.svg',         iconset: 'outline',  accent: '#3d6b45' },
-      'theme-hat':       { wallpaper: 'wallpaper-bogaz.svg',         iconset: 'ink',      accent: '#c9a24e' },
-      'theme-konsol':    { wallpaper: 'wallpaper-meltem.svg',        iconset: 'monokrom', accent: '#186a3f' },
-      'theme-kesit':     { wallpaper: 'wallpaper-abstract-lines.svg',iconset: 'monokrom', accent: '#b08c00' },
-      'theme-fener':     { wallpaper: 'wallpaper-kor.svg',           iconset: 'sunset',   accent: '#e0553a' },
-      'theme-civata':    { wallpaper: 'wallpaper.svg',               iconset: 'monokrom', accent: '#6d7d0f' },
-      'theme-mina':      { wallpaper: 'wallpaper-topo.svg',          iconset: 'emerald',  accent: '#e8674a' },
-      'theme-meridyen':  { wallpaper: 'wallpaper-nordic.svg',        iconset: 'nordic',   accent: '#2244d8' }
+      'theme-dark':      { wallpaper: 'wallpaper-kobalt.jpg',       iconset: 'nordic',   accent: '#2563eb' },
+      'theme-light':     { wallpaper: 'wallpaper-karli-safak.jpg',  iconset: 'outline',  accent: '#059669' },
+      'theme-midnight':  { wallpaper: 'wallpaper-kozmik.jpg',       iconset: 'ink',      accent: '#7c3aed' },
+      'theme-nord':      { wallpaper: 'wallpaper-gece-yolu.jpg',    iconset: 'nordic',   accent: '#ffffff' },
+      'theme-evergreen': { wallpaper: 'wallpaper-gece-yolu.jpg',    iconset: 'emerald',  accent: '#059669' },
+      'theme-ember':     { wallpaper: 'wallpaper-kozmik.jpg',       iconset: 'sunset',   accent: '#ea580c' },
+      'theme-arctic':    { wallpaper: 'wallpaper-karli-safak.jpg',  iconset: 'pastel',   accent: '#059669' },
+      'theme-cinar':     { wallpaper: 'wallpaper-karli-safak.jpg',  iconset: 'outline',  accent: '#3f6b45' },
+      'theme-meltem':    { wallpaper: 'wallpaper-karli-safak.jpg',  iconset: 'outline',  accent: '#0d7a8c' },
+      'theme-kor':       { wallpaper: 'wallpaper-gece-yolu.jpg',    iconset: 'sunset',   accent: '#e08a3c' },
+      'theme-dem':       { wallpaper: 'wallpaper-kozmik.jpg',       iconset: 'monokrom', accent: '#d64545' },
+      'theme-bogaz':     { wallpaper: 'wallpaper-gece-yolu.jpg',    iconset: 'ink',      accent: '#c9a24b' },
+      'theme-ayna':      { wallpaper: 'wallpaper-kobalt.jpg',       iconset: 'monokrom', accent: '#06b6d4' },
+      'theme-cumhuriyet':{ wallpaper: 'wallpaper-kozmik.jpg',       iconset: 'monokrom', accent: '#e23744' },
+      // Studio ekleri: 10 kompozisyon teması da kendi tonuna göre yeni varsayılan
+      // duvar kağıtlarıyla eşlenir; kullanıcı Ayarlar'dan istediğini seçebilir.
+      'theme-matbaa':    { wallpaper: 'wallpaper-karli-safak.jpg',  iconset: 'outline',  accent: '#b4462a' },
+      'theme-bakir':     { wallpaper: 'wallpaper-kozmik.jpg',       iconset: 'monokrom', accent: '#d1794f' },
+      'theme-bostan':    { wallpaper: 'wallpaper-karli-safak.jpg',  iconset: 'outline',  accent: '#3d6b45' },
+      'theme-hat':       { wallpaper: 'wallpaper-gece-yolu.jpg',    iconset: 'ink',      accent: '#c9a24e' },
+      'theme-konsol':    { wallpaper: 'wallpaper-karli-safak.jpg',  iconset: 'monokrom', accent: '#186a3f' },
+      'theme-kesit':     { wallpaper: 'wallpaper-karli-safak.jpg',  iconset: 'monokrom', accent: '#b08c00' },
+      'theme-fener':     { wallpaper: 'wallpaper-gece-yolu.jpg',    iconset: 'sunset',   accent: '#e0553a' },
+      'theme-civata':    { wallpaper: 'wallpaper-karli-safak.jpg',  iconset: 'monokrom', accent: '#6d7d0f' },
+      'theme-mina':      { wallpaper: 'wallpaper-gece-yolu.jpg',    iconset: 'emerald',  accent: '#e8674a' },
+      'theme-meridyen':  { wallpaper: 'wallpaper-kobalt.jpg',       iconset: 'nordic',   accent: '#2244d8' }
     },
 
     isFullSystemTheme() {
@@ -9166,7 +9165,7 @@
       return SafeStorage.getItem('ankora_theme_fullsystem') !== 'false';
     },
     currentAccent: '#2563eb',
-    currentWallpaper: 'wallpaper-nordic.svg',
+    currentWallpaper: 'wallpaper-kobalt.jpg',
     currentRadius: '6px',
     currentGlass: 'solid',
     currentTaskbarAlign: 'left',
@@ -9177,7 +9176,7 @@
       // 1. Kaydedilmiş tercihleri yükle
       const savedTheme = SafeStorage.getItem('ankora_theme_mode') || 'theme-dark';
       const savedAccent = SafeStorage.getItem('ankora_accent_color') || '#2563eb';
-      const savedWp = SafeStorage.getItem('ankora_wallpaper') || 'wallpaper-nordic.svg';
+      const savedWp = SafeStorage.getItem('ankora_wallpaper') || 'wallpaper-kobalt.jpg';
       const savedRadius = SafeStorage.getItem('ankora_corner_radius') || '6px';
       const savedGlass = SafeStorage.getItem('ankora_window_glass') || 'solid';
       const savedAlign = SafeStorage.getItem('ankora_taskbar_align') || 'center';
@@ -9309,11 +9308,6 @@
         }
         if (bundle.wallpaper) {
           this.setWallpaper(bundle.wallpaper);
-          // X kök penceresi + ~/.config/ankora/wallpaper kalıcı kaydı:
-          // dosya adı gönderilir; Rust /usr/share/ayaz altından çözer.
-          TauriBridge.invoke('set_desktop_wallpaper', { filePath: bundle.wallpaper })
-            .then(() => Terminal.log(`[TEMA] Sistem duvar kağıdı pakete göre değişti: ${bundle.wallpaper}`, 'success'))
-            .catch(() => {});
         }
         Terminal.log(`[TEMA] Tüm sistem teması paketi uygulandı: ${themeName} (simge: ${bundle.iconset}, kağıt: ${bundle.wallpaper})`, 'success');
       }
@@ -9353,6 +9347,7 @@
       this.currentWallpaper = cleanWp;
       const elWp = document.getElementById('desktop-wallpaper');
       if (elWp && cleanWp) {
+        elWp.classList.toggle('is-svg-wp', cleanWp.toLowerCase().endsWith('.svg'));
         elWp.style.backgroundImage = `url("${encodeURI(cleanWp)}")`;
       }
 
@@ -9362,6 +9357,7 @@
 
       if (persist) {
         SafeStorage.setItem('ankora_wallpaper', cleanWp);
+        TauriBridge.invoke('set_desktop_wallpaper', { filePath: cleanWp }).catch(() => {});
         Terminal.log(`[DUVAR KAĞIDI] Arka plan güncellendi: ${cleanWp}`, 'cmd');
       }
     },

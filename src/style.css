@@ -1076,8 +1076,8 @@ body.theme-light .desktop-body {
   background-color: #f1f5f9;
 }
 
-body.theme-light .desktop-wallpaper,
-body.is-light-theme .desktop-wallpaper {
+body.theme-light .desktop-wallpaper.is-svg-wp,
+body.is-light-theme .desktop-wallpaper.is-svg-wp {
   opacity: 0.12;
   filter: invert(1) brightness(1.2);
 }
@@ -1802,7 +1802,7 @@ html, body {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background-image: url("wallpaper-nordic.svg");
+  background-image: url("wallpaper-kobalt.jpg");
   background-size: cover;
   background-position: center center;
   background-repeat: no-repeat;
