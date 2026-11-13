@@ -61,7 +61,8 @@ if [ -n "$DEB_FILE" ] && [ -f "$DEB_FILE" ]; then
     echo "[3b/4] Paket bağımlılıkları:"
     dpkg-deb -f "$DEB_FILE" Depends || true
     cp -v "$DEB_FILE" dist/ayaz-de-latest-amd64.deb
-    echo "[4/4] Çıktı: dist/ayaz-de-latest-amd64.deb"
+    (cd dist && sha256sum ayaz-de-latest-amd64.deb > ayaz-de-latest-amd64.deb.sha256)
+    echo "[4/4] Çıktı: dist/ayaz-de-latest-amd64.deb (+ .sha256)"
     echo "Tebrikler! .deb paketi ISO derleme adımına hazır."
 else
     echo "[HATA] .deb paketi bulunamadı! Lütfen derleme loglarını inceleyin."

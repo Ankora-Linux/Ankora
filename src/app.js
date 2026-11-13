@@ -3704,7 +3704,7 @@
       { id: 'timeshift', name: 'Timeshift Sistem Yedekleme & Anlık Görüntü', deb: 'timeshift', desc: 'Sistem kararsızlığına karşı tek tıkla geri dönüş ve kurtarma noktası oluşturucu', cat: 'sys', size: '15 MB', installed: false },
       { id: 'steam', name: 'Steam Dijital Oyun Platformu', flatpak: 'com.valvesoftware.Steam', desc: 'Valve resmi Linux oyun mağazası, Proton ve topluluk kütüphanesi', cat: 'util', size: '350 MB', installed: false },
       { id: 'wine', name: 'Wine Windows Uyumluluk Katmanı', deb: 'wine', desc: 'Windows programlarını ve oyunlarını emülasyonsuz yerel hızda çalıştırma', cat: 'util', size: '140 MB', installed: false },
-      { id: 'neofetch', name: 'Neofetch Sistem Bilgi Kartı', deb: 'neofetch', desc: 'Terminal açılışında dağıtım logosu ve donanım özetini gösteren klasik araç', cat: 'sys', size: '1 MB', installed: false },
+      { id: 'fastfetch', name: 'Fastfetch Sistem Bilgi Kartı', deb: 'fastfetch', desc: 'Terminal açılışında dağıtım logosu ve donanım özetini gösteren modern hızlı araç', cat: 'sys', size: '2 MB', installed: false },
       { id: 'antigravity', name: 'Antigravity Yapay Zekâ IDE', deb: 'antigravity', vendor: 'antigravity', desc: 'Google’ın ajan öncesi dönem için tasarladığı ajan destekli kod editörü', cat: 'dev', size: '420 MB', installed: false },
       { id: 'opencode-desktop', name: 'OpenCode Masaüstü (AI Kod Ajanı)', deb: '', extUrl: 'https://opencode.ai', desc: 'Terminal, masaüstü ve IDE eklentisi olarak çalışan açık kaynak yapay zekâ kod ajanı', cat: 'dev', size: 'Site', installed: false },
 
@@ -3712,7 +3712,7 @@
       { id: 'fatih-kalem', name: 'Fatih Kalem 2 (Akıllı Tahta)', deb: 'fatih-kalem', desc: 'Etkileşimli tahtalar için ekran kalemi; ekrandaki her şeyin üzerine çizim, ders notu ve vurgu yapma aracı', cat: 'office', school: true, size: '2 MB', featured: true, installed: false },
       { id: 'meb-cert', name: 'MEB Okul Ağı Sertifikası', action: 'meb-cert', desc: 'Okul internetindeki güvenlik uyarılarını bitirir; resmi MEB adresinden indirip sistem ve tarayıcı güven deposuna kurar', cat: 'net', school: true, size: '1 MB', featured: true, installed: false },
       { id: 'scratch', name: 'Scratch 3 (Güncel Sürüm)', flatpak: 'edu.mit.Scratch', desc: 'Blok tabanlı kodlama ile oyun ve animasyon yapmayı öğreten güncel Scratch masaüstü sürümü', cat: 'dev', school: true, size: '180 MB', featured: true, installed: false },
-      { id: 'gcompris', name: 'GCompris Eğitim Paketi', deb: 'gcompris', desc: '2-10 yaş için 100ü aşkın eğitsel etkinlik: okuma, matematik, fen ve bilgisayar kullanımı', cat: 'util', school: true, size: '95 MB', featured: true, installed: false },
+      { id: 'gcompris', name: 'GCompris Eğitim Paketi', deb: 'gcompris-qt', desc: '2-10 yaş için 100ü aşkın eğitsel etkinlik: okuma, matematik, fen ve bilgisayar kullanımı', cat: 'util', school: true, size: '95 MB', featured: true, installed: false },
       { id: 'tuxmath', name: 'TuxMath Matematik Oyunu', deb: 'tuxmath', desc: 'Dört işlemi arcade oyunuyla öğreten eğlenceli matematik alıştırması', cat: 'util', school: true, size: '18 MB', installed: false },
       { id: 'stellarium', name: 'Stellarium planetaryumu', deb: 'stellarium', desc: 'Fen ve astronomi dersleri için gerçek zamanlı gökyüzü ve gezegen simülasyonu', cat: 'graphics', school: true, size: '110 MB', installed: false },
       { id: 'geogebra', name: 'GeoGebra Matematik', flatpak: 'org.geogebra.GeoGebra', desc: 'Geometri, cebir ve grafik çizimleri için ders standardı etkileşimli matematik aracı', cat: 'office', school: true, size: '120 MB', installed: false },
@@ -3756,7 +3756,7 @@
       { id: 'iperf3', name: 'iPerf3 Bant Genişliği Testi', deb: 'iperf3', desc: 'Ağ verimini ve maksimum TCP/UDP bant genişliğini ölçen araç', cat: 'net', size: '2 MB', installed: false },
       { id: 'whois', name: 'Whois Sorgulayıcı', deb: 'whois', desc: 'Alan adı ve IP bloğu tescil kayıtlarını RFC standardında sorgulama', cat: 'net', size: '1 MB', installed: false },
       { id: 'mtr-tiny', name: 'MTR Ağ Tanı Aracı', deb: 'mtr-tiny', desc: 'Ping ve traceroute yeteneklerini tek raporda birleştiren teşhis aracı', cat: 'net', size: '2 MB', installed: false },
-      { id: 'dnsutils', name: 'DNS Araçları (Dig / Nslookup)', deb: 'dnsutils', desc: 'Alan adı sunucusu kayıtlarını ayrıntılı sorgulama ve test kiti', cat: 'net', size: '4 MB', installed: false },
+      { id: 'dnsutils', name: 'DNS Araçları (Dig / Nslookup)', deb: 'bind9-dnsutils', desc: 'Alan adı sunucusu kayıtlarını ayrıntılı sorgulama ve test kiti', cat: 'net', size: '4 MB', installed: false },
       { id: 'openssh-client', name: 'OpenSSH Güvenli Kabuk İstemcisi', deb: 'openssh-client', desc: 'Uzak sunuculara şifreli terminal erişimi ve tünelleme', cat: 'net', size: '8 MB', installed: false },
 
       // 5. OFİS & ÜRETKENLİK (OFFICE)
@@ -3801,7 +3801,7 @@
       { id: 'ripgrep', name: 'Ripgrep Hızlı Metin Tarayıcı (rg)', deb: 'ripgrep', desc: 'Büyük kod depolarında saniyeler içinde regex arayan Rust tabanlı araç', cat: 'util', size: '6 MB', installed: false },
       { id: 'bat', name: 'Bat Renkli Cat Alternatifi', deb: 'bat', desc: 'Git entegrasyonlu ve sözdizimi renklendirmeli dosya okuyucu', cat: 'util', size: '5 MB', installed: false },
       { id: 'fd-find', name: 'FD Hızlı Dosya Arama', deb: 'fd-find', desc: 'Find komutuna kıyasla kat kat hızlı ve kullanıcı dostu arama aracı', cat: 'util', size: '3 MB', installed: false },
-      { id: 'midnight-commander', name: 'Midnight Commander (MC)', deb: 'midnight-commander', desc: 'Klasik Norton Commander tarzı çift panelli konsol dosya yöneticisi', cat: 'util', size: '10 MB', installed: false },
+      { id: 'midnight-commander', name: 'Midnight Commander (MC)', deb: 'mc', desc: 'Klasik Norton Commander tarzı çift panelli konsol dosya yöneticisi', cat: 'util', size: '10 MB', installed: false },
       { id: 'ranger', name: 'Ranger Konsol Dosya Yöneticisi', deb: 'ranger', desc: 'Vim tuş takımı ve önizleme panellerine sahip terminal dosya tarayıcısı', cat: 'util', size: '6 MB', installed: false },
 
       // 8. KATEGORİ GENİŞLETMESİ — mağaza kapsamı genişletildi (oyun, ses, disk, güvenlik, iletişim)
@@ -3829,7 +3829,7 @@
       // 8e. İLETİŞİM & GÜNLÜK İŞLER
       { id: 'flatpak-signal', name: 'Signal Private Messenger', flatpak: 'org.signal.Signal', desc: 'Uçtan uca şifreli, gizlilik odaklı mesajlaşma uygulaması', cat: 'net', size: '160 MB', installed: false },
       { id: 'evolution', name: 'Evolution E-Posta & Ajanda', deb: 'evolution', desc: 'E-posta, takvim, görev ve kişi yönetiminin tamamını içeren istemci', cat: 'office', size: '110 MB', installed: false },
-      { id: 'anki', name: 'Anki Bilgi Kartları (Öğrenme)', deb: 'anki', desc: 'Aralıklı tekrar yöntemiyle kelime ve ders çalışma aracı', cat: 'office', size: '90 MB', installed: false },
+      { id: 'anki', name: 'Anki Bilgi Kartları (Öğrenme)', flatpak: 'net.ankiweb.Anki', desc: 'Aralıklı tekrar yöntemiyle kelime ve ders çalışma aracı', cat: 'office', size: '140 MB', installed: false },
       { id: 'ghostwriter', name: 'ghostwriter Odaklanmış Metin Düzenleyici', deb: 'ghostwriter', desc: 'Markdown için bölümsüz, odaklanmış yazma ortamı', cat: 'office', size: '8 MB', installed: false },
 
       // 8f. GELİŞTİRME & GRAFİK
@@ -3858,7 +3858,7 @@
       { id: 'gsmartcontrol', name: 'GSmartControl Disk Taraması', deb: 'gsmartcontrol', desc: 'Disk S.M.A.R.T. değerlerini grafik arayüzden inceleme aracı', cat: 'sys', size: '6 MB', installed: false },
       { id: 'testdisk', name: 'TestDisk & PhotoRec Veri Kurtarma', deb: 'testdisk', desc: 'Silinmiş bölümleri onarır, kaybolan dosyaları kurtarır', cat: 'sys', size: '6 MB', installed: false },
       { id: 'clonezilla', name: 'Clonezilla Disk Klonlama', deb: 'clonezilla', desc: 'Bütün diski ya da bölümleri imaj hâlinde klonlama aracı', cat: 'sys', size: '230 MB', installed: false },
-      { id: 'gpa', name: 'GPA Şifreleme & GPG Yöneticisi', deb: 'gpa', desc: 'Dosya, e-posta ve dijital imzalar için GNU Privacy Guard grafiksel şifreleme aracı', cat: 'sys', size: '6 MB', installed: false },
+      { id: 'seahorse', name: 'Seahorse GPG & Anahtar Yöneticisi', deb: 'seahorse', desc: 'Dosya, e-posta, SSH ve PGP anahtarları için grafiksel şifreleme aracı', cat: 'sys', size: '6 MB', installed: false },
       { id: 'cryptsetup', name: 'Cryptsetup LUKS Araçları', deb: 'cryptsetup', desc: 'LUKS şifreli bölümleri oluşturma ve açma araç seti', cat: 'sys', size: '8 MB', installed: false },
       { id: 'borgbackup', name: 'BorgBackup Dedüp Yedek', deb: 'borgbackup', desc: 'Dedüpülasyonlu, şifreli, sıkıştırılmış yedekleme çözümü', cat: 'sys', size: '9 MB', installed: false },
       { id: 'duplicity', name: 'Duplicity Şifreli Yedek', deb: 'duplicity', desc: 'Şifreli artımlı yedeği uzak sunuculara yedekleme aracı', cat: 'sys', size: '7 MB', installed: false },
@@ -3868,7 +3868,7 @@
       { id: 'gajim', name: 'Gajim XMPP Sohbet', deb: 'gajim', desc: 'Açık standart XMPP mesajlaşma istemcisine modern arayüz', cat: 'net', size: '16 MB', installed: false },
       { id: 'hexchat', name: 'HexChat IRC İstemcisi', deb: 'hexchat', desc: 'Kanal favorileri ve eklentilerle zengin klasik IRC istemcisi', cat: 'net', size: '12 MB', installed: false },
       { id: 'mumble', name: 'Mumble Düşük Gecikmeli Sesli', deb: 'mumble', desc: 'Oyun toplulukları için düşük gecikmeli sesli konuşma yazılımı', cat: 'net', size: '14 MB', installed: false },
-      { id: 'linphone', name: 'Linphone VoIP & Görüntülü', deb: 'linphone', desc: 'SIP temelli ücretsiz arama ve görüntülü konuşma istemcisi', cat: 'net', size: '50 MB', installed: false },
+      { id: 'twinkle', name: 'Twinkle VoIP & SIP Telefon', deb: 'twinkle', desc: 'SIP protokolü üzerinden ücretsiz sesli arama ve iletişim istemcisi', cat: 'net', size: '18 MB', installed: false },
       { id: 'syncthing', name: 'Syncthing Cihazlar Arası Eşitleme', deb: 'syncthing', desc: 'Web arayüzlü, sunucusuz sürekli dosya senkronizasyonu', cat: 'net', size: '30 MB', installed: false },
       { id: 'weechat', name: 'WeeChat Modüler Sohbet', deb: 'weechat', desc: 'Eklenti sistemi güçlendirmesine açık terminal sohbeti', cat: 'net', size: '7 MB', installed: false },
 
@@ -3916,7 +3916,7 @@
       { id: 'shellcheck', name: 'ShellCheck Betik Analizcisi', deb: 'shellcheck', desc: 'Bash ve sh betikleri için statik hata ve güvenlik denetleyicisi', cat: 'dev', size: '15 MB', installed: false },
       { id: 'cmake', name: 'CMake Derleme Yöneticisi', deb: 'cmake', desc: 'C/C++ projeleri için endüstri standardı çapraz derleme sistemi', cat: 'dev', size: '32 MB', installed: false },
       { id: 'ninja-build', name: 'Ninja Derleme Motoru', deb: 'ninja-build', desc: 'Hıza odaklanmış küçük ve ultra hızlı kaynak kod derleme sistemi', cat: 'dev', size: '2 MB', installed: false },
-      { id: 'flatpak-dbeaver', name: 'DBeaver Evrensel DB Yöneticisi', flatpak: 'org.jkiss.DBeaverCE', desc: 'MySQL, PostgreSQL, SQLite ve Oracle destekli gelişmiş SQL editörü', cat: 'dev', size: '130 MB', installed: false },
+      { id: 'flatpak-dbeaver', name: 'DBeaver Evrensel DB Yöneticisi', flatpak: 'io.dbeaver.DBeaverCommunity', desc: 'MySQL, PostgreSQL, SQLite ve Oracle destekli gelişmiş SQL editörü', cat: 'dev', size: '130 MB', installed: false },
       { id: 'flatpak-postman', name: 'Postman API Geliştirme', flatpak: 'com.getpostman.Postman', desc: 'REST, GraphQL ve WebSocket API tasarım ve test platformu', cat: 'dev', size: '160 MB', installed: false },
       { id: 'flatpak-godot', name: 'Godot Oyun Motoru', flatpak: 'org.godotengine.Godot', desc: 'Hafif, güçlü ve açık kaynaklı 2B/3B profesyonel oyun geliştirme motoru', cat: 'dev', size: '85 MB', installed: false },
       { id: 'abiword', name: 'AbiWord Kelime İşlemci', deb: 'abiword', desc: 'Sistem kaynaklarını yormayan hafif ve verimli metin belgesi editörü', cat: 'office', size: '14 MB', installed: false },
@@ -3930,7 +3930,7 @@
       { id: 'rednotebook', name: 'RedNotebook Günlük & Ajanda', deb: 'rednotebook', desc: 'Takvim navigasyonlu, etiketli ve arama destekli kişisel günlük', cat: 'office', size: '8 MB', installed: false },
       { id: 'zim', name: 'Zim Masaüstü Wiki', deb: 'zim', desc: 'Notlar, yapılacaklar ve belgeler için yerel bağlantılı masaüstü wiki', cat: 'office', size: '6 MB', installed: false },
       { id: 'basket', name: 'BasKet Not Pedleri', deb: 'basket', desc: 'Fikirler, resimler, bağlantılar ve görevler için sepet düzenleyici', cat: 'office', size: '12 MB', installed: false },
-      { id: 'speedcrunch', name: 'SpeedCrunch Bilimsel Hesap', deb: 'speedcrunch', desc: '50 basamak hassasiyetli, otomatik tamamlamalı modern hesap makinesi', cat: 'office', size: '5 MB', installed: false },
+      { id: 'speedcrunch', name: 'SpeedCrunch Bilimsel Hesap', flatpak: 'org.speedcrunch.SpeedCrunch', desc: '50 basamak hassasiyetli, otomatik tamamlamalı modern hesap makinesi', cat: 'office', size: '45 MB', installed: false },
       { id: 'qalculate-gtk', name: 'Qalculate! Çok Yönlü Hesaplayıcı', deb: 'qalculate-gtk', desc: 'Birim dönüşümleri, para birimleri ve denklem çözme motoru', cat: 'office', size: '8 MB', installed: false },
       { id: 'flatpak-joplin', name: 'Joplin Şifreli Not Defteri', flatpak: 'net.cozic.joplin_desktop', desc: 'Uçtan uca şifreli, bulut eşitlemeli Markdown not alma uygulaması', cat: 'office', size: '140 MB', installed: false },
       { id: 'flatpak-zotero', name: 'Zotero Akademik Kaynakça', flatpak: 'org.zotero.Zotero', desc: 'Araştırma makaleleri, alıntılar ve akademik kaynak kütüphanesi', cat: 'office', size: '120 MB', installed: false },
@@ -3950,7 +3950,7 @@
       { id: 'sayonara', name: 'Sayonara Hızlı Müzik Çalar', deb: 'sayonara', desc: 'Düşük bellek tüketimli, kütüphane ve dinamik çalma listeli modern müzik çalar', cat: 'media', size: '16 MB', installed: false },
       { id: 'flatpak-vlc', name: 'VLC Media Player Sandboxed', flatpak: 'org.videolan.VLC', desc: 'Flathub izole ortamında çalışan tüm formatları destekleyen medya oynatıcı', cat: 'media', size: '95 MB', installed: false },
       { id: 'pinta', name: 'Pinta Çizim Editörü', flatpak: 'com.github.PintaProject.Pinta', desc: 'Paint.NET benzeri katmanlı, efektli ve basit kullanımlı çizim yazılımı', cat: 'graphics', size: '65 MB', installed: false },
-      { id: 'synfigstudio', name: 'Synfig 2B Animasyon', deb: 'synfigstudio', desc: 'Film kalitesinde 2B vektörel animasyon ve karakter kuklası oluşturma', cat: 'graphics', size: '42 MB', installed: false },
+      { id: 'synfigstudio', name: 'Synfig 2B Animasyon', flatpak: 'org.synfig.SynfigStudio', desc: 'Film kalitesinde 2B vektörel animasyon ve karakter kuklası oluşturma', cat: 'graphics', size: '160 MB', installed: false },
       { id: 'openscad', name: 'OpenSCAD Katı 3B CAD', deb: 'openscad', desc: 'Kod yazarak 3 boyutlu CAD modelleri ve 3D yazıcı tasarımları üretme', cat: 'graphics', size: '25 MB', installed: false },
       { id: 'librecad', name: 'LibreCAD 2B Mühendislik Çizimi', deb: 'librecad', desc: 'Mimari ve mekanik projeler için hassas 2B teknik CAD çizim aracı', cat: 'graphics', size: '32 MB', installed: false },
       { id: 'sweethome3d', name: 'Sweet Home 3D Ev Tasarımı', deb: 'sweethome3d', desc: 'Ev planı çizimi, mobilya yerleşimi ve 3 boyutlu iç mekan gezintisi', cat: 'graphics', size: '55 MB', installed: false },
@@ -3993,11 +3993,11 @@
       // 11. KAPSAM GENİŞLETMESİ III: OKUL, ROBOTİK, YAZICI/TARAYICI VE UZMANLIK PAKETLERİ (100)
       // 11a. OKUL, FEN, DİL & ROBOTİK (16)
       { id: 'thonny', name: 'Thonny Python IDE (Eğitim)', deb: 'thonny', desc: 'Öğrenciler ve öğretmenler için adım adım değişken izlemeli Python geliştirme ortamı', cat: 'dev', school: true, size: '24 MB', installed: false },
-      { id: 'mu-editor', name: 'Mu Kod Editörü (Python & Micro:bit)', deb: 'mu-editor', desc: 'Okullarda Python, Pygame Zero ve BBC micro:bit programlama için sade editör', cat: 'dev', school: true, size: '38 MB', installed: false },
+      { id: 'idle', name: 'IDLE Python Eğitim IDE', deb: 'idle', desc: 'Okullarda Python programlamaya giriş için sade, etkileşimli kabuk ve betik editörü', cat: 'dev', school: true, size: '12 MB', installed: false },
       { id: 'arduino', name: 'Arduino IDE Robotik Kodlama', deb: 'arduino', desc: 'Arduino mikrodenetleyici kartlarını programlama ve seri port izleme ortamı', cat: 'dev', school: true, size: '145 MB', installed: false },
       { id: 'fritzing', name: 'Fritzing Elektronik Devre Tasarımı', deb: 'fritzing', desc: 'Breadboard devre şeması kurma, sensör bağlantısı ve PCB baskı devre çizim aracı', cat: 'dev', school: true, size: '78 MB', installed: false },
       { id: 'kicad', name: 'KiCad Elektronik Şema & PCB Stüdyosu', deb: 'kicad', desc: 'Çok katmanlı elektronik devre şeması, 3B bileşen görüntüleme ve PCB tasarım paketi', cat: 'dev', school: true, size: '380 MB', installed: false },
-      { id: 'oregano', name: 'Oregano Elektronik Devre Simülatörü', deb: 'oregano', desc: 'Şematik devre çizimi ve ngspice tabanlı elektronik sinyal simülasyonu', cat: 'dev', school: true, size: '14 MB', installed: false },
+      { id: 'logisim', name: 'Logisim Mantık Devresi Simülatörü', deb: 'logisim', desc: 'Okullar ve mühendislik dersleri için görsel dijital devre tasarımı ve simülasyon aracı', cat: 'dev', school: true, size: '14 MB', installed: false },
       { id: 'gperiodic', name: 'GPeriodic Kimya Element Tablosu', deb: 'gperiodic', desc: 'Atom ağırlıkları, erime noktaları ve elektron dizilimleriyle hafif periyodik cetvel', cat: 'office', school: true, size: '2 MB', installed: false },
       { id: 'kanagram', name: 'Kanagram Kelime Bulmaca Oyunu', deb: 'kanagram', desc: 'Harfleri karışık verilen kelimeleri çözerek kelime dağarcığını geliştiren eğitim oyunu', cat: 'util', school: true, size: '9 MB', installed: false },
       { id: 'khangman', name: 'KHangMan Kelime Tahmin Oyunu', deb: 'khangman', desc: 'Kategorilere ayrılmış sözcüklerle dil ve imla pratiği sağlayan sınıf oyunu', cat: 'util', school: true, size: '8 MB', installed: false },
