@@ -57,12 +57,13 @@
     "windows": [
       {
         "title": "Ayaz — Ankora Linux",
-        "fullscreen": true,
+        "fullscreen": false,
+        "maximized": true,
         "decorations": false,
         "resizable": false,
         "transparent": false,
         "alwaysOnTop": false,
-        "skipTaskbar": false,
+        "skipTaskbar": true,
         "center": true,
         "width": 1920,
         "height": 1080

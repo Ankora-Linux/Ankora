@@ -80,9 +80,12 @@
       execute_system_installation: 30 * 60 * 1000,
       install_deb_package: 15 * 60 * 1000,
       install_vendor_package: 15 * 60 * 1000,
+      install_local_deb_package: 15 * 60 * 1000,
       remove_deb_package: 5 * 60 * 1000,
       download_and_apply_de_update: 30 * 60 * 1000,
-      apt_update_clean: 10 * 60 * 1000
+      apt_update_clean: 10 * 60 * 1000,
+      system_update_apt: 15 * 60 * 1000,
+      execute_desktop_program: 60 * 1000
     },
 
     init() {
@@ -717,13 +720,21 @@
     init() {
       this.windows = Array.from(document.querySelectorAll('.window'));
       this.tabsContainer = document.getElementById('running-tabs');
-      setInterval(() => this.refreshNativeWindows(), 1500);
+      setInterval(() => this.refreshNativeWindows(), 2500);
       this.refreshNativeWindows();
 
       const wp = document.getElementById('desktop-wallpaper');
       if (wp) {
         wp.addEventListener('click', () => {
           this.checkAllMinimizedOrClosed();
+        });
+      }
+      const tb = document.getElementById('taskbar');
+      if (tb) {
+        tb.addEventListener('mousedown', (e) => {
+          if (!e.target.closest('.task-tab') && !e.target.closest('#start-btn')) {
+            this.checkAllMinimizedOrClosed();
+          }
         });
       }
 
@@ -1457,7 +1468,10 @@
           TauriBridge.invoke('close_native_window', { id: nw.id }).catch(() => {});
           refresh(400);
         };
-        tab.addEventListener('click', () => (nw.is_active ? minimize() : activate()));
+        tab.addEventListener('click', () => {
+          if (nw.is_active && !this._isLayerAbove) minimize();
+          else activate();
+        });
         tab.addEventListener('auxclick', (e) => { if (e.button === 1) { e.preventDefault(); close(); } });
         tab.addEventListener('contextmenu', (e) => {
           e.preventDefault();
@@ -2002,7 +2016,11 @@
       // her kayıt (terminalden kurulan) başlat menüsüne ve masaüstüne eklenir.
       this.rescanXdgApps(true);
       if (!this._scanTimer) {
-        this._scanTimer = setInterval(() => this.rescanXdgApps(false), 45000);
+        this._scanTimer = setInterval(() => {
+          if (!document.hidden && !(window.LockManager && window.LockManager.isLocked)) {
+            this.rescanXdgApps(false);
+          }
+        }, 120000);
       }
     },
 
@@ -2076,6 +2094,18 @@
         });
 
         SafeStorage.setItem('ankora_xdg_seen_ids', JSON.stringify(Array.from(seen)));
+        // Sistemdeki gerçek XDG (/usr/share/applications) ile senkronize et:
+        // Kaldırılan harici paketleri otomatik temizle (yerleşik iç pencereler korunur).
+        const activeIds = new Set(apps.map(a => a && a.id).filter(Boolean));
+        const beforeLen = this.installedApps.length;
+        this.installedApps = this.installedApps.filter(a => {
+          if (!a) return false;
+          if (a.targetWindow || (a.exec && String(a.exec).startsWith('internal:'))) return true;
+          if (a.isBuiltin) return true;
+          return activeIds.has(a.id);
+        });
+        if (this.installedApps.length !== beforeLen) changed = true;
+
         if (changed) {
           SafeStorage.setItem('ankora_xdg_apps', JSON.stringify(this.installedApps));
           this.renderToDesktop();
@@ -2529,16 +2559,31 @@
         const deskIcon = item.querySelector('.item-icon');
         if (deskIcon) IconResolver.tagIcon(deskIcon, app);
 
-        // Tek tık: Odak / Seçim
+        // Tek tık: Seç ve sürükleme yoksa doğrudan başlat (çift tıkla çakışmayı önleyen 600ms koruma)
+        let _downX = 0, _downY = 0;
+        item.addEventListener('pointerdown', (e) => {
+          _downX = e.clientX;
+          _downY = e.clientY;
+        }, { passive: true });
+
         item.addEventListener('click', (e) => {
           e.stopPropagation();
           document.querySelectorAll('.desktop-item').forEach(el => el.classList.remove('selected'));
           item.classList.add('selected');
+          if (e.button !== 0 || e.ctrlKey || e.shiftKey) return;
+          if (Math.hypot(e.clientX - _downX, e.clientY - _downY) > 8) return;
+          const now = Date.now();
+          if (item._lastLaunchAt && now - item._lastLaunchAt < 650) return;
+          item._lastLaunchAt = now;
+          this.launchApp(app);
         });
 
-        // Çift tık: Akıllı Başlatma (CLI -> Terminal, GUI -> launch_application)
+        // Çift tık: Akıllı Başlatma (debounced; tek tık zaten başlattıysa tekrar etmez)
         item.addEventListener('dblclick', async (e) => {
           e.stopPropagation();
+          const now = Date.now();
+          if (item._lastLaunchAt && now - item._lastLaunchAt < 650) return;
+          item._lastLaunchAt = now;
           this.launchApp(app);
         });
 
@@ -3164,6 +3209,10 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
           <span>Uygulamayı Başlat</span>
         </div>
+        <div class="ctx-item" data-action="run-program">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"></path><path d="M12 5l7 7-7 7"></path></svg>
+          <span>Program olarak çalıştır</span>
+        </div>
         <div class="ctx-item" data-action="term">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
           <span>Terminalde Aç</span>
@@ -3174,7 +3223,7 @@
         </div>
         <div class="ctx-item" data-action="pin-toggle">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 17v5M9 3h6l1 7 3 3h-4l-1 4h-4l-1-4H5l3-3z"></path></svg>
-          <span>${(typeof AppPinManager !== 'undefined' && AppPinManager.isPinnedMenu(app.id)) ? 'Başlat Menüsünden Kaldır' : 'Başlat Menüsüne Sabitle'}</span>
+          <span>${(app._pinned || (typeof AppPinManager !== 'undefined' && AppPinManager.isPinnedMenu(app.id))) ? 'Sabitlemeden Kaldır' : 'Başlat Menüsüne Sabitle'}</span>
         </div>
         <div class="ctx-item" data-action="taskbar-toggle">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="17" width="18" height="4" rx="1"></rect><rect x="5" y="10" width="14" height="4" rx="1"></rect></svg>
@@ -3213,8 +3262,13 @@
         btn.addEventListener('click', () => {
           const act = btn.getAttribute('data-action');
           closeMenu();
-          if (act === 'launch') {
-            this.launchApp(app);
+          if (act === 'launch' || act === 'run-program') {
+            if (act === 'run-program' && app.desktopFile && String(app.desktopFile).endsWith('.desktop') && !app.targetWindow) {
+              const rawExec = String(app.exec || app.id || '').trim();
+              TauriBridge.invoke('launch_application', { exec: rawExec }).catch(() => this.launchApp(app));
+            } else {
+              this.launchApp(app);
+            }
           } else if (act === 'term') {
             WindowManager.open('win-terminal');
             Terminal.runCommand(app.exec || app.id);
@@ -3361,13 +3415,27 @@
             </div>
             <span class="item-name">${escapeHtml(it.name)}</span>
           `;
+          let _fDownX = 0, _fDownY = 0;
+          el.addEventListener('pointerdown', (e) => {
+            _fDownX = e.clientX;
+            _fDownY = e.clientY;
+          }, { passive: true });
           el.addEventListener('click', (e) => {
             e.stopPropagation();
             document.querySelectorAll('.desktop-item').forEach(x => x.classList.remove('selected'));
             el.classList.add('selected');
+            if (e.button !== 0 || e.ctrlKey || e.shiftKey) return;
+            if (Math.hypot(e.clientX - _fDownX, e.clientY - _fDownY) > 8) return;
+            const now = Date.now();
+            if (el._lastOpenAt && now - el._lastOpenAt < 650) return;
+            el._lastOpenAt = now;
+            this.openItem(it);
           });
           el.addEventListener('dblclick', (e) => {
             e.stopPropagation();
+            const now = Date.now();
+            if (el._lastOpenAt && now - el._lastOpenAt < 650) return;
+            el._lastOpenAt = now;
             this.openItem(it);
           });
           el.addEventListener('keydown', (e) => {
@@ -3468,6 +3536,9 @@
           <div class="ctx-item" data-act="open">
             <span>Aç</span>
           </div>
+          <div class="ctx-item" data-act="run-program">
+            <span>Program olarak çalıştır</span>
+          </div>
           <div class="ctx-item" data-act="reveal">
             <span>Dosya Yöneticisinde Göster</span>
           </div>
@@ -3508,6 +3579,10 @@
           if (!act || !target) return;
           if (act === 'open') {
             DesktopFiles.openItem(target);
+          } else if (act === 'run-program') {
+            TauriBridge.invoke('execute_desktop_program', { path: target.path })
+              .then((msg) => ReportManager?.showToast(msg || 'Program olarak çalıştırıldı.'))
+              .catch((err) => ReportManager?.showToast(`Çalıştırılamadı: ${err.message || err}`, 'error'));
           } else if (act === 'reveal') {
             const dirPath = target.is_dir
               ? target.path
@@ -7183,11 +7258,81 @@
       // 2. Yapılandırma Paneli (Drawer) Açma/Kapama
       const btnToggleConfig = document.getElementById('btn-toggle-ai-config');
       const drawer = document.getElementById('ai-config-drawer');
+      const aiWin = document.getElementById('win-ai');
       if (btnToggleConfig && drawer) {
         btnToggleConfig.addEventListener('click', () => {
           drawer.classList.toggle('open');
         });
       }
+
+      // Antigravity Workspace Kenar Çubuğu & Composer Kontrolleri
+      const btnSidebarToggle = document.getElementById('btn-ai-sidebar-toggle');
+      if (btnSidebarToggle && aiWin) {
+        btnSidebarToggle.addEventListener('click', () => {
+          aiWin.classList.toggle('sidebar-collapsed');
+        });
+      }
+      const btnNewChat = document.getElementById('btn-ai-new-chat');
+      const btnClearRef = document.getElementById('btn-ai-clear-chat');
+      if (btnNewChat && btnClearRef) {
+        btnNewChat.addEventListener('click', () => btnClearRef.click());
+      }
+      const btnSidebarSettings = document.getElementById('btn-ai-sidebar-settings');
+      if (btnSidebarSettings && drawer) {
+        btnSidebarSettings.addEventListener('click', () => {
+          drawer.classList.toggle('open');
+        });
+      }
+      const btnComposerModel = document.getElementById('btn-ai-composer-model');
+      if (btnComposerModel && drawer) {
+        btnComposerModel.addEventListener('click', () => {
+          drawer.classList.add('open');
+          const secConn = document.getElementById('ai-sec-connection');
+          if (secConn) secConn.open = true;
+        });
+      }
+      const btnComposerPlus = document.getElementById('btn-ai-composer-plus');
+      const quickRow = document.getElementById('ai-quick-row');
+      if (btnComposerPlus && quickRow) {
+        btnComposerPlus.addEventListener('click', () => {
+          quickRow.hidden = !quickRow.hidden;
+        });
+      }
+      const toggleWatchFromUi = () => {
+        this.watchScreen = !this.watchScreen;
+        SafeStorage.setItem('ankora_ai_watch', this.watchScreen ? '1' : '0');
+        if (screenToggle) screenToggle.checked = this.watchScreen;
+        if (typeof window.syncAiMiniWatch === 'function') window.syncAiMiniWatch();
+      };
+      const btnSidebarWatch = document.getElementById('btn-ai-sidebar-watch');
+      if (btnSidebarWatch) btnSidebarWatch.addEventListener('click', toggleWatchFromUi);
+      const btnComposerWatch = document.getElementById('btn-ai-composer-watch');
+      if (btnComposerWatch) btnComposerWatch.addEventListener('click', toggleWatchFromUi);
+
+      const modeOrder = ['sysadmin', 'doctor', 'developer', 'general'];
+      const applyMode = (nextMode) => {
+        if (!modeOrder.includes(nextMode)) return;
+        this.mode = nextMode;
+        SafeStorage.setItem('ankora_ai_mode', this.mode);
+        if (modeSelect) modeSelect.value = this.mode;
+        this.updateBadges();
+      };
+      document.querySelectorAll('#ai-ag-sidebar [data-ai-mode]').forEach(btn => {
+        btn.addEventListener('click', () => applyMode(btn.getAttribute('data-ai-mode')));
+      });
+      const btnComposerMode = document.getElementById('btn-ai-composer-mode');
+      if (btnComposerMode) {
+        btnComposerMode.addEventListener('click', () => {
+          const idx = modeOrder.indexOf(this.mode);
+          applyMode(modeOrder[(idx + 1) % modeOrder.length]);
+        });
+      }
+      document.querySelectorAll('#ai-ag-sidebar [data-ai-prompt]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const p = btn.getAttribute('data-ai-prompt');
+          if (p) this.handleQuery(p);
+        });
+      });
 
       // 3. API Anahtarı Göster / Gizle Toggle Butonu
       const btnToggleKey = document.getElementById('btn-toggle-key-view');
@@ -7325,12 +7470,37 @@
         general: 'Genel Sistem Asistanı'
       };
 
-      if (badgeProv) badgeProv.textContent = provMap[this.provider] || this.provider.toUpperCase();
+      const modeShortMap = {
+        sysadmin: 'Sistem Teftiş',
+        doctor: 'Doktor',
+        developer: 'Geliştirici',
+        general: 'Genel'
+      };
+
+      const provLabel = provMap[this.provider] || String(this.provider || 'ollama').toUpperCase();
+      if (badgeProv) badgeProv.textContent = provLabel;
       const miniStatus = document.getElementById('ai-mini-status');
-      if (miniStatus) miniStatus.textContent = provMap[this.provider] || this.provider.toUpperCase();
+      if (miniStatus) miniStatus.textContent = provLabel;
       if (badgeMode) {
         badgeMode.innerHTML = `<svg class="btn-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:12px;height:12px;display:inline-block;vertical-align:-1px;margin-right:4px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>${escapeHtml(modeMap[this.mode] || this.mode)}`;
       }
+      const compModelLbl = document.getElementById('ai-composer-model-label');
+      if (compModelLbl) {
+        compModelLbl.textContent = this.model ? `${provLabel.split(' ')[0]} · ${this.model}` : provLabel;
+      }
+      const miniModelLbl = document.getElementById('ai-mini-model-label');
+      if (miniModelLbl) {
+        miniModelLbl.textContent = this.model ? `${provLabel.split(' ')[0]} · ${this.model}` : provLabel;
+      }
+      const compModeLbl = document.getElementById('ai-composer-mode-label');
+      if (compModeLbl) compModeLbl.textContent = modeShortMap[this.mode] || this.mode;
+      const miniModeLbl = document.getElementById('ai-mini-mode-label');
+      if (miniModeLbl) miniModeLbl.textContent = modeShortMap[this.mode] || this.mode;
+
+      document.querySelectorAll('#ai-ag-sidebar [data-ai-mode]').forEach(el => {
+        el.classList.toggle('active', el.getAttribute('data-ai-mode') === this.mode);
+      });
+
       if (modeSelect && modeSelect.value !== this.mode) {
         modeSelect.value = this.mode;
       }
@@ -7338,6 +7508,25 @@
         ind.textContent = 'Bağlı / Hazır';
         ind.className = 'status-pill online';
       }
+    },
+
+    appendFormattedInline(container, text) {
+      const tokens = String(text ?? '').split(/(`[^`\n]+`|\*\*[^*\n]+\*\*)/g);
+      tokens.forEach(tok => {
+        if (!tok) return;
+        if (tok.startsWith('`') && tok.endsWith('`') && tok.length > 2) {
+          const code = document.createElement('code');
+          code.className = 'ai-inline-code';
+          code.textContent = tok.slice(1, -1);
+          container.appendChild(code);
+        } else if (tok.startsWith('**') && tok.endsWith('**') && tok.length > 4) {
+          const strong = document.createElement('strong');
+          strong.textContent = tok.slice(2, -2);
+          container.appendChild(strong);
+        } else {
+          container.appendChild(document.createTextNode(tok));
+        }
+      });
     },
 
     submit() {
@@ -7403,7 +7592,7 @@
 
       body.appendChild(header);
 
-      // Güvenli kod bloğu ayrıştırma (yalnız textContent kullanılır, XSS riski sıfır)
+      // Güvenli kod bloğu ayrıştırma (yalnız DOM düğümleri ve textContent kullanılır, XSS riski sıfır)
       const segments = rawText.split(/```([\s\S]*?)```/g);
       for (let i = 0; i < segments.length; i++) {
         const seg = segments[i];
@@ -7416,7 +7605,11 @@
         } else {
           const p = document.createElement('p');
           p.style.whiteSpace = 'pre-wrap';
-          p.textContent = seg.trim();
+          if (role === 'user') {
+            p.textContent = seg.trim();
+          } else {
+            this.appendFormattedInline(p, seg.trim());
+          }
           body.appendChild(p);
         }
       }
@@ -7440,7 +7633,11 @@
       }
       const el = document.createElement('div');
       el.className = `ai-mini-entry ${role === 'user' ? 'm-user' : 'm-bot'}`;
-      el.textContent = String(text ?? '');
+      if (role === 'user') {
+        el.textContent = String(text ?? '');
+      } else {
+        this.appendFormattedInline(el, String(text ?? ''));
+      }
       this.miniFeed.appendChild(el);
       this.miniFeed.scrollTop = this.miniFeed.scrollHeight;
     },
@@ -10689,8 +10886,17 @@
       startFlyout.classList.toggle('open', isOpen);
       if (startBtn) startBtn.classList.toggle('active', isOpen);
       try {
-        TauriBridge.invoke('set_desktop_layer', { above: isOpen }).catch(() => {});
+        if (typeof WindowManager !== 'undefined') {
+          if (isOpen) WindowManager.ensureDesktopLayer(true);
+          else WindowManager.checkAllMinimizedOrClosed();
+        } else {
+          TauriBridge.invoke('set_desktop_layer', { above: isOpen }).catch(() => {});
+        }
       } catch (e) {}
+      if (!isOpen) {
+        const drawer = document.getElementById('start-all-apps-drawer');
+        if (drawer) drawer.hidden = true;
+      }
       if (startSearch) {
         // Menü her açılışta temiz başlar: önceki sorgu alttaki bölümleri gizli
         // bırakmasın.
@@ -10857,7 +11063,27 @@
       superDownAt = 0;
     });
 
-    // 1. Sabitlenmiş Uygulamalar (Pinned Apps Grid)
+    // 1. Sabitlenmiş Uygulamalar (Pinned Apps Grid) + "Sabitlemeden Kaldır" bağlam menüsü
+    const STATIC_UNPIN_KEY = 'ankora_unpinned_static_cards';
+    const readHiddenStaticPins = () => {
+      try {
+        const arr = JSON.parse(SafeStorage.getItem(STATIC_UNPIN_KEY) || '[]');
+        return Array.isArray(arr) ? arr : [];
+      } catch (e) { return []; }
+    };
+    const writeHiddenStaticPins = (arr) => {
+      SafeStorage.setItem(STATIC_UNPIN_KEY, JSON.stringify(arr));
+    };
+    const cardPinKey = (card) => card.getAttribute('data-open') || card.getAttribute('data-launch') || (card.querySelector('.app-title')?.textContent || '').trim();
+    const syncStaticPinnedVisibility = () => {
+      const hiddenSet = new Set(readHiddenStaticPins());
+      document.querySelectorAll('#start-pinned-grid > .pinned-app-card').forEach(card => {
+        const key = cardPinKey(card);
+        card.style.display = hiddenSet.has(key) ? 'none' : '';
+      });
+    };
+    syncStaticPinnedVisibility();
+
     document.querySelectorAll('.pinned-app-card').forEach(card => {
       card.addEventListener('click', () => {
         const launch = card.getAttribute('data-launch');
@@ -10870,6 +11096,50 @@
           WindowManager.open(target);
         }
         toggleStart(false);
+      });
+
+      card.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        let menu = document.getElementById('start-pin-ctx-menu');
+        if (!menu) {
+          menu = document.createElement('div');
+          menu.id = 'start-pin-ctx-menu';
+          menu.className = 'desktop-context-menu';
+          document.body.appendChild(menu);
+        }
+        const launch = card.getAttribute('data-launch');
+        const target = card.getAttribute('data-open');
+        const key = cardPinKey(card);
+        menu.innerHTML = `
+          <div class="ctx-item" data-act="open"><span>Aç / Başlat</span></div>
+          <div class="ctx-item ctx-danger" data-act="unpin"><span>Sabitlemeden Kaldır</span></div>
+        `;
+        menu.style.left = `${Math.min(e.clientX, window.innerWidth - 210)}px`;
+        menu.style.top = `${Math.min(e.clientY, window.innerHeight - 100)}px`;
+        menu.classList.add('open');
+        const closeMenu = () => {
+          menu.classList.remove('open');
+          document.removeEventListener('click', closeMenu);
+        };
+        setTimeout(() => document.addEventListener('click', closeMenu), 10);
+        menu.querySelectorAll('.ctx-item').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const act = btn.getAttribute('data-act');
+            closeMenu();
+            if (act === 'open') {
+              if (launch) TauriBridge.invoke('launch_application', { exec: launch }).catch(() => {});
+              else if (target) WindowManager.open(target);
+              toggleStart(false);
+            } else if (act === 'unpin' && key) {
+              const hidden = readHiddenStaticPins();
+              if (!hidden.includes(key)) hidden.push(key);
+              writeHiddenStaticPins(hidden);
+              syncStaticPinnedVisibility();
+              ReportManager?.showToast('Uygulama sabitlemeden kaldırıldı.');
+            }
+          });
+        });
       });
     });
 
@@ -10892,7 +11162,7 @@
           WindowManager.open(target);
         } else if (action === 'quick-clean') {
           WindowManager.open('win-terminal');
-          Terminal.runCommand('apt-get clean && rm -rf /tmp/*');
+          Terminal.runCommand('apt-get clean');
         }
         toggleStart(false);
       });
@@ -11098,9 +11368,77 @@
 
     const btnShowAllApps = document.getElementById('btn-show-all-apps');
     if (btnShowAllApps) {
-      btnShowAllApps.addEventListener('click', () => {
-        WindowManager.open('win-store');
-        toggleStart(false);
+      btnShowAllApps.addEventListener('click', async () => {
+        const drawer = document.getElementById('start-all-apps-drawer');
+        if (!drawer) {
+          WindowManager.open('win-store');
+          toggleStart(false);
+          return;
+        }
+        const opening = drawer.hidden;
+        if (!opening) {
+          drawer.hidden = true;
+          btnShowAllApps.textContent = 'Tümü >';
+          return;
+        }
+        btnShowAllApps.textContent = 'Kapat ▾';
+        drawer.hidden = false;
+        if (typeof XdgDesktopEngine !== 'undefined' && XdgDesktopEngine.rescanXdgApps) {
+          await XdgDesktopEngine.rescanXdgApps(false).catch(() => {});
+        }
+        const apps = ((typeof XdgDesktopEngine !== 'undefined' && Array.isArray(XdgDesktopEngine.installedApps))
+          ? XdgDesktopEngine.installedApps
+          : []).slice().sort((a, b) => String(a.name || a.id).localeCompare(String(b.name || b.id), 'tr'));
+        const hiddenStatic = readHiddenStaticPins();
+        drawer.innerHTML = `
+          <div class="start-all-apps-hdr">
+            <span>Sistemdeki Uygulamalar (/usr/share/applications · ${apps.length})</span>
+            <div style="display:flex;gap:8px;align-items:center;">
+              ${hiddenStatic.length ? '<button type="button" class="btn-all-apps" id="btn-reset-static-pins" style="font-size:10.5px;">Sabitleri Sıfırla</button>' : ''}
+              <button type="button" class="btn-all-apps" id="btn-all-open-store" style="font-size:10.5px;">Mağaza</button>
+            </div>
+          </div>
+          <div class="start-all-apps-grid" id="start-all-apps-grid"></div>
+        `;
+        const grid = drawer.querySelector('#start-all-apps-grid');
+        apps.forEach(app => {
+          const row = document.createElement('button');
+          row.type = 'button';
+          row.className = 'start-all-app-row';
+          row.title = `${app.name || app.id}${app.desktopFile ? '\n' + app.desktopFile : ''}\nSağ tık: sabitle / kaldır`;
+          const iconHtml = (typeof IconResolver !== 'undefined' && IconResolver.getIconSvg)
+            ? IconResolver.getIconSvg(app)
+            : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="3"/></svg>';
+          row.innerHTML = `<span class="start-all-app-ico">${iconHtml}</span><span class="start-all-app-name">${escapeHtml(app.name || app.id)}</span>`;
+          const ico = row.querySelector('.start-all-app-ico');
+          if (ico && typeof IconResolver !== 'undefined' && IconResolver.tagIcon) IconResolver.tagIcon(ico, app);
+          row.addEventListener('click', () => {
+            if (typeof XdgDesktopEngine !== 'undefined' && XdgDesktopEngine.launchApp) XdgDesktopEngine.launchApp(app);
+            else TauriBridge.invoke('launch_application', { exec: app.exec || app.id }).catch(() => {});
+            toggleStart(false);
+          });
+          row.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (typeof XdgDesktopEngine !== 'undefined' && XdgDesktopEngine.showShortcutContextMenu) {
+              XdgDesktopEngine.showShortcutContextMenu(e, app);
+            }
+          });
+          grid.appendChild(row);
+        });
+        if (typeof IconResolver !== 'undefined' && IconResolver.upgradeScope) {
+          IconResolver.upgradeScope(grid);
+        }
+        drawer.querySelector('#btn-all-open-store')?.addEventListener('click', () => {
+          WindowManager.open('win-store');
+          toggleStart(false);
+        });
+        drawer.querySelector('#btn-reset-static-pins')?.addEventListener('click', () => {
+          writeHiddenStaticPins([]);
+          syncStaticPinnedVisibility();
+          ReportManager?.showToast('Sabitlenen uygulamalar geri yüklendi.');
+          btnShowAllApps.click();
+        });
       });
     }
 
@@ -11175,8 +11513,17 @@
         btn.classList.toggle('active', AIAgent.watchScreen);
         btn.setAttribute('aria-pressed', AIAgent.watchScreen ? 'true' : 'false');
       }
+      const winWatchBtn = document.getElementById('btn-ai-composer-watch');
+      if (winWatchBtn) {
+        winWatchBtn.classList.toggle('active', AIAgent.watchScreen);
+        winWatchBtn.setAttribute('aria-pressed', AIAgent.watchScreen ? 'true' : 'false');
+      }
+      const sideWatchBtn = document.getElementById('btn-ai-sidebar-watch');
+      if (sideWatchBtn) {
+        sideWatchBtn.classList.toggle('watching', AIAgent.watchScreen);
+      }
       const status = document.getElementById('ai-mini-status');
-      if (status) status.textContent = AIAgent.watchScreen ? 'Hazır · Ekranda İzliyor' : 'Hazır';
+      if (status) status.textContent = AIAgent.watchScreen ? 'İzliyor' : 'Hazır';
       window.setAiWatchWave(AIAgent.watchScreen);
     };
 
@@ -11241,6 +11588,35 @@
         btnMiniExpand.addEventListener('click', () => {
           window.toggleAiMiniChat(false);
           WindowManager.open('win-ai');
+        });
+      }
+
+      const btnMiniPlus = document.getElementById('btn-ai-mini-plus');
+      const miniQuick = document.getElementById('ai-mini-quick-actions');
+      if (btnMiniPlus && miniQuick) {
+        btnMiniPlus.addEventListener('click', () => {
+          miniQuick.hidden = !miniQuick.hidden;
+        });
+      }
+
+      const btnMiniModel = document.getElementById('ai-mini-model-pill');
+      if (btnMiniModel) {
+        btnMiniModel.addEventListener('click', () => {
+          window.toggleAiMiniChat(false);
+          WindowManager.open('win-ai');
+          const drawer = document.getElementById('ai-config-drawer');
+          if (drawer) drawer.classList.add('open');
+        });
+      }
+
+      const btnMiniMode = document.getElementById('ai-mini-mode-pill');
+      if (btnMiniMode) {
+        btnMiniMode.addEventListener('click', () => {
+          const modes = ['sysadmin', 'doctor', 'developer', 'general'];
+          const idx = modes.indexOf(AIAgent.mode);
+          AIAgent.mode = modes[(idx + 1) % modes.length];
+          SafeStorage.setItem('ankora_ai_mode', AIAgent.mode);
+          AIAgent.updateBadges();
         });
       }
 
@@ -11914,11 +12290,11 @@
       const frag = document.createDocumentFragment();
       apps.forEach(app => {
         const row = document.createElement('div');
-        row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:8px 10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:8px;';
+        row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--bg-surface, rgba(128,128,128,0.08));border:1px solid var(--border-subtle, rgba(128,128,128,0.2));border-radius:8px;';
 
         const nameCell = document.createElement('div');
         nameCell.style.cssText = 'flex:1;min-width:0;';
-        nameCell.innerHTML = `<div style="font-size:12.5px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(app.name)}</div>
+        nameCell.innerHTML = `<div style="font-size:12.5px;font-weight:600;color:var(--text-primary, inherit);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(app.name)}</div>
           <div style="font-size:10.5px;color:var(--text-muted,#64748b);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(app.exec || app.id)}</div>`;
 
         const btnMenu = document.createElement('button');
@@ -14186,8 +14562,12 @@
       });
 
 
-      // Canlı sistem telemetrisi (hafif, 4 saniyede bir)
-      setInterval(() => this.updateTelemetry(), 4000);
+      // Canlı sistem telemetrisi (düşük RAM/CPU için gizliyken duraklar, 6 saniyede bir)
+      setInterval(() => {
+        if (!document.hidden && !(window.LockManager && window.LockManager.isLocked)) {
+          this.updateTelemetry();
+        }
+      }, 6000);
       this.updateTelemetry();
     },
 
@@ -16449,6 +16829,20 @@
     },
 
     confirmPower(action) {
+      // Başlat menüsü, hızlı ayarlar, takvim, AI mini balon ve bağlam menülerini otomatik kapat
+      try {
+        if (typeof window.toggleStartMenu === 'function') window.toggleStartMenu(false);
+        else document.getElementById('start-flyout')?.classList.remove('open');
+        document.getElementById('start-btn')?.classList.remove('active');
+        document.getElementById('quick-settings-popover')?.classList.remove('open');
+        document.getElementById('calendar-flyout')?.classList.remove('open');
+        document.getElementById('ai-mini-popover')?.classList.remove('open');
+        document.querySelectorAll('.desktop-context-menu.open, .taskbar-tab-menu.open').forEach(m => m.classList.remove('open'));
+        if (typeof WindowManager !== 'undefined' && WindowManager.ensureDesktopLayer) {
+          WindowManager.ensureDesktopLayer(true);
+        }
+      } catch (e) {}
+
       const modal = document.getElementById('modal-power-dialog');
       if (modal) {
         modal.classList.add('open');
@@ -16463,6 +16857,9 @@
       if (modal) {
         modal.classList.remove('open');
         modal.setAttribute('aria-hidden', 'true');
+      }
+      if (typeof WindowManager !== 'undefined' && typeof WindowManager.checkAllMinimizedOrClosed === 'function') {
+        WindowManager.checkAllMinimizedOrClosed();
       }
     },
 
@@ -16538,7 +16935,7 @@
       });
 
       this.pollClipboard();
-      setInterval(() => this.pollClipboard(), 3000);
+      setInterval(() => this.pollClipboard(), 5000);
     },
 
     save() {
@@ -16634,7 +17031,7 @@
 
     init() {
       this.pollDrives(true);
-      this._timer = setInterval(() => this.pollDrives(false), 4000);
+      this._timer = setInterval(() => this.pollDrives(false), 7000);
     },
 
     async pollDrives(isFirst) {
@@ -16754,9 +17151,11 @@
         }
       });
 
-      // İlk bildirim çekme ve düzenli yoklama (4.5 sn)
+      // İlk bildirim çekme ve düzenli yoklama (6 sn, sekme gizliyken atlanır)
       this.poll();
-      this.pollInterval = setInterval(() => this.poll(), 4500);
+      this.pollInterval = setInterval(() => {
+        if (!document.hidden && !(window.LockManager && window.LockManager.isLocked)) this.poll();
+      }, 6000);
 
       // Oturum başlangıcı bildirimi: çekmecede hiç kayıt yoksa kullanıcı
       // merkezin çalıştığını göremez; her oturumda kısa bir bilgi düşürülür.
@@ -17718,9 +18117,13 @@
 
       this.update();
       if (this.pollTimer) clearInterval(this.pollTimer);
-      this.pollTimer = setInterval(() => this.update(), 3000);
+      this.pollTimer = setInterval(() => {
+        if (!document.hidden && !(window.LockManager && window.LockManager.isLocked)) this.update();
+      }, 5000);
       if (this.tickTimer) clearInterval(this.tickTimer);
-      this.tickTimer = setInterval(() => this.paintProgress(), 1000);
+      this.tickTimer = setInterval(() => {
+        if (!document.hidden && this.isPlaying()) this.paintProgress();
+      }, 1000);
     },
 
     isPlaying() {

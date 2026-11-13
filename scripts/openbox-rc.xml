@@ -328,6 +328,18 @@
       <focus>yes</focus>
       <layer>above</layer>
     </application>
+
+    <!-- Harici Tarayıcılar (Brave vb.): İlk açılışta tam ekran ve odaklanmış başlar -->
+    <application class="*Brave*" name="*brave*">
+      <maximized>yes</maximized>
+      <focus>yes</focus>
+      <layer>normal</layer>
+    </application>
+    <application class="*brave*">
+      <maximized>yes</maximized>
+      <focus>yes</focus>
+      <layer>normal</layer>
+    </application>
   </applications>
 
 </openbox_config>

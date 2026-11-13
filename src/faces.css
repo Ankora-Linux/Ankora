@@ -861,7 +861,19 @@
   font: 600 11px var(--font-sans);
   cursor: pointer;
   white-space: nowrap;
+  overflow: hidden;
   transition: color 0.12s ease, background-color 0.12s ease, border-color 0.12s ease;
+}
+
+[data-face="8"] .civata-tab-pill svg,
+[data-face="8"] .civata-tab-pill img,
+[data-face="8"] .civata-tab-pill .real-app-icon {
+  width: 13px !important;
+  height: 13px !important;
+  max-width: 13px !important;
+  max-height: 13px !important;
+  object-fit: contain;
+  flex-shrink: 0;
 }
 
 [data-face="8"] .civata-tab-pill:hover {
@@ -1895,4 +1907,259 @@ body.theme-meltem .face-ws-btn.active {
   background: #161309;
   border-color: #161309;
   color: #fcfcf9;
+}
+
+/* ==========================================================================
+   YÜZ 2 (BAKIR), YÜZ 3 (BOSTAN) VE YÜZ 8 (CIVATA) TAM KONTRAST & MENÜ UYUMU
+   ========================================================================== */
+[data-face="2"] .face-dock-app img,
+[data-face="2"] .face-dock-app .real-app-icon,
+[data-face="3"] .face-dock-app img,
+[data-face="3"] .face-dock-app .real-app-icon,
+[data-face="8"] .face-dock-app img,
+[data-face="8"] .face-dock-app .real-app-icon {
+  width: 22px !important;
+  height: 22px !important;
+  max-width: 22px !important;
+  max-height: 22px !important;
+  object-fit: contain;
+  border-radius: 5px;
+}
+
+/* Yüz 2 · Bakır: açık/koyu tema sınıfı fark etmeksizin sıcak kemik/grafit kontrastı */
+[data-face="2"] .start-flyout {
+  background: rgba(24, 26, 32, 0.98) !important;
+  border-color: #353841 !important;
+  color: #e9e4da !important;
+}
+[data-face="2"] .start-flyout .start-search-box {
+  background: #141519 !important;
+  border-color: #353841 !important;
+}
+[data-face="2"] .start-flyout .start-search-input {
+  color: #e9e4da !important;
+}
+[data-face="2"] .start-flyout .start-section-heading,
+[data-face="2"] .start-flyout .app-title,
+[data-face="2"] .start-flyout .pinned-app-name,
+[data-face="2"] .start-flyout .recent-filename,
+[data-face="2"] .start-flyout .profile-name {
+  color: #e9e4da !important;
+}
+[data-face="2"] .start-flyout .app-desc,
+[data-face="2"] .start-flyout .heading-sub,
+[data-face="2"] .start-flyout .recent-filetime,
+[data-face="2"] .start-flyout .profile-role {
+  color: #a49e92 !important;
+}
+[data-face="2"] .start-flyout .pinned-app-card,
+[data-face="2"] .start-flyout .shortcut-action-row,
+[data-face="2"] .start-flyout .btn-power-item {
+  background: #1f2127 !important;
+  border-color: #2e3138 !important;
+  color: #e9e4da !important;
+}
+[data-face="2"] .start-flyout .pinned-app-card:hover,
+[data-face="2"] .start-flyout .shortcut-action-row:hover {
+  background: #282b33 !important;
+  border-color: #d1794f !important;
+}
+[data-face="2"] .start-flyout .pinned-icon-box {
+  background: #282b33 !important;
+  border-color: #383c46 !important;
+  color: #e9e4da !important;
+}
+[data-face="2"] .start-flyout .ayaz-user-footer,
+[data-face="2"] .start-flyout .start-dual-section {
+  background: #17191f !important;
+  border-color: #2e3138 !important;
+}
+[data-face="2"] .settings-sidebar,
+[data-face="2"] .files-sidebar,
+[data-face="2"] .store-sidebar {
+  background: #16181d !important;
+  border-right: 1px solid #2e3138 !important;
+  color: #a49e92 !important;
+}
+[data-face="2"] .settings-card-group,
+[data-face="2"] .preview-feature-row,
+[data-face="2"] .store-card {
+  background: #22252b !important;
+  border-color: #343842 !important;
+  color: #e9e4da !important;
+}
+[data-face="2"] .card-group-title,
+[data-face="2"] .pane-header h3,
+[data-face="2"] .feature-name,
+[data-face="2"] .store-card-name,
+[data-face="2"] .window-view label,
+[data-face="2"] .window-view h2,
+[data-face="2"] .window-view h3,
+[data-face="2"] .window-view h4 {
+  color: #e9e4da !important;
+}
+[data-face="2"] .pane-header p,
+[data-face="2"] .feature-desc,
+[data-face="2"] .store-card-desc,
+[data-face="2"] .store-card-pkg {
+  color: #a49e92 !important;
+}
+[data-face="2"] .window-view input,
+[data-face="2"] .window-view select,
+[data-face="2"] .window-view textarea {
+  background: #141519 !important;
+  border-color: #353841 !important;
+  color: #e9e4da !important;
+}
+[data-face="2"] .desktop-context-menu,
+[data-face="2"] .taskbar-tab-menu,
+[data-face="2"] #quick-settings-popover,
+[data-face="2"] #calendar-flyout,
+[data-face="2"] .power-modal-card {
+  background: #1b1d23 !important;
+  border-color: #353841 !important;
+  color: #e9e4da !important;
+}
+[data-face="2"] .desktop-context-menu .ctx-item,
+[data-face="2"] .power-modal-title,
+[data-face="2"] .power-modal-item {
+  color: #e9e4da !important;
+}
+
+/* Yüz 3 · Bostan ve Yüz 8 · Cıvata: iç metinler, kartlar, menüler ve formlarda tam kontrast */
+[data-face="3"] .start-flyout,
+[data-face="8"] .start-flyout {
+  color: inherit !important;
+}
+[data-face="3"] .start-flyout {
+  background: rgba(250, 248, 239, 0.98) !important;
+  border-color: #d8d5c3 !important;
+  color: #26321f !important;
+}
+[data-face="8"] .start-flyout {
+  background: #fcfcf9 !important;
+  border: 2px solid #161309 !important;
+  color: #161309 !important;
+}
+[data-face="3"] .start-flyout .start-search-box,
+[data-face="8"] .start-flyout .start-search-box {
+  background: rgba(0, 0, 0, 0.04) !important;
+  border-color: rgba(0, 0, 0, 0.14) !important;
+}
+[data-face="3"] .start-flyout .start-search-input,
+[data-face="3"] .start-flyout .start-section-heading,
+[data-face="3"] .start-flyout .app-title,
+[data-face="3"] .start-flyout .pinned-app-name,
+[data-face="3"] .start-flyout .recent-filename,
+[data-face="3"] .start-flyout .profile-name,
+[data-face="3"] .start-flyout .btn-all-apps,
+[data-face="3"] .window-view h2,
+[data-face="3"] .window-view h3,
+[data-face="3"] .window-view h4,
+[data-face="3"] .window-view label,
+[data-face="3"] .store-card-name {
+  color: #26321f !important;
+}
+[data-face="8"] .start-flyout .start-search-input,
+[data-face="8"] .start-flyout .start-section-heading,
+[data-face="8"] .start-flyout .app-title,
+[data-face="8"] .start-flyout .pinned-app-name,
+[data-face="8"] .start-flyout .recent-filename,
+[data-face="8"] .start-flyout .profile-name,
+[data-face="8"] .start-flyout .btn-all-apps,
+[data-face="8"] .window-view h2,
+[data-face="8"] .window-view h3,
+[data-face="8"] .window-view h4,
+[data-face="8"] .window-view label,
+[data-face="8"] .store-card-name {
+  color: #161309 !important;
+}
+[data-face="3"] .start-flyout .app-desc,
+[data-face="3"] .start-flyout .heading-sub,
+[data-face="3"] .start-flyout .recent-filetime,
+[data-face="3"] .start-flyout .profile-role,
+[data-face="3"] .store-card-desc,
+[data-face="3"] .store-card-pkg {
+  color: #5c6852 !important;
+}
+[data-face="8"] .start-flyout .app-desc,
+[data-face="8"] .start-flyout .heading-sub,
+[data-face="8"] .start-flyout .recent-filetime,
+[data-face="8"] .start-flyout .profile-role,
+[data-face="8"] .store-card-desc,
+[data-face="8"] .store-card-pkg {
+  color: #5d5946 !important;
+}
+[data-face="3"] .start-flyout .pinned-app-card,
+[data-face="3"] .start-flyout .shortcut-action-row,
+[data-face="3"] .start-flyout .btn-power-item,
+[data-face="3"] .store-card {
+  background: #f3f1e5 !important;
+  border-color: #d8d5c3 !important;
+  color: #26321f !important;
+}
+[data-face="8"] .start-flyout .pinned-app-card,
+[data-face="8"] .start-flyout .shortcut-action-row,
+[data-face="8"] .start-flyout .btn-power-item,
+[data-face="8"] .store-card {
+  background: #f5f3e8 !important;
+  border: 1.5px solid #161309 !important;
+  color: #161309 !important;
+}
+[data-face="3"] .start-flyout .ayaz-user-footer,
+[data-face="3"] .start-flyout .start-dual-section {
+  background: #ecead9 !important;
+  border-color: #d8d5c3 !important;
+}
+[data-face="8"] .start-flyout .ayaz-user-footer,
+[data-face="8"] .start-flyout .start-dual-section {
+  background: #eeecde !important;
+  border-color: #d8d4be !important;
+}
+[data-face="3"] .window-view input,
+[data-face="3"] .window-view select,
+[data-face="3"] .window-view textarea,
+[data-face="3"] .window-view .btn-secondary {
+  background: #ffffff !important;
+  border: 1px solid #c9d2b1 !important;
+  color: #26321f !important;
+}
+[data-face="8"] .window-view input,
+[data-face="8"] .window-view select,
+[data-face="8"] .window-view textarea,
+[data-face="8"] .window-view .btn-secondary {
+  background: #ffffff !important;
+  border: 1.5px solid #161309 !important;
+  color: #161309 !important;
+}
+[data-face="3"] #quick-settings-popover,
+[data-face="3"] #calendar-flyout,
+[data-face="3"] .power-modal-card,
+[data-face="3"] .taskbar-tab-menu {
+  background: #faf8ef !important;
+  border: 1px solid #c9d2b1 !important;
+  color: #26321f !important;
+}
+[data-face="8"] #quick-settings-popover,
+[data-face="8"] #calendar-flyout,
+[data-face="8"] .power-modal-card,
+[data-face="8"] .taskbar-tab-menu {
+  background: #fcfcf9 !important;
+  border: 2px solid #161309 !important;
+  color: #161309 !important;
+}
+[data-face="3"] .power-modal-item,
+[data-face="3"] .power-modal-title,
+[data-face="3"] .power-modal-desc,
+[data-face="3"] .taskbar-tab-menu button,
+[data-face="8"] .power-modal-item,
+[data-face="8"] .power-modal-title,
+[data-face="8"] .power-modal-desc,
+[data-face="8"] .taskbar-tab-menu button {
+  color: inherit !important;
+}
+[data-face="3"] .power-modal-item,
+[data-face="8"] .power-modal-item {
+  background: rgba(0, 0, 0, 0.04) !important;
+  border-color: rgba(0, 0, 0, 0.14) !important;
 }

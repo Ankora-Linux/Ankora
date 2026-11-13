@@ -2160,7 +2160,7 @@ fn root_command(prog: &str, args: &[&str]) -> std::io::Result<std::process::Outp
             || err_str.contains("yetki")
             || direct.status.code() == Some(1)
             || direct.status.code() == Some(126));
-    if permission_denied && pkexec_available() && polkit_agent_running() {
+    if permission_denied && pkexec_available() && (polkit_agent_running() || std::env::var("DISPLAY").is_ok()) {
         let elevated = Command::new("pkexec")
             .arg(prog)
             .args(args)
@@ -4197,12 +4197,39 @@ async fn launch_application(exec: String) -> Result<String, String> {
     }
 
     // 2. Argümanları güvenle ayrıştırma ve .desktop yer tutucularını ayıklama
-    let parts: Vec<String> = split_exec_args(clean)
+    let mut parts: Vec<String> = split_exec_args(clean)
         .into_iter()
         .filter(|t| !matches!(t.as_str(), "%f" | "%F" | "%u" | "%U" | "%i" | "%c" | "%k"))
         .collect();
+    while parts.len() >= 2
+        && Path::new(&parts[0])
+            .file_name()
+            .and_then(|s| s.to_str())
+            == Some("env")
+    {
+        parts.remove(0);
+        while !parts.is_empty()
+            && parts[0].contains('=')
+            && !parts[0].starts_with('/')
+            && !parts[0].starts_with('-')
+        {
+            parts.remove(0);
+        }
+    }
     if parts.is_empty() {
         return Err("Çalıştırılacak uygulama tespit edilemedi.".to_string());
+    }
+
+    let raw_base = Path::new(parts[0].as_str())
+        .file_name()
+        .and_then(|s| s.to_str())
+        .unwrap_or("");
+    if (raw_base == "brave-browser" || raw_base == "brave-browser-stable")
+        && !parts.iter().any(|p| p == "--start-maximized")
+    {
+        parts.push("--start-maximized".to_string());
+        parts.push("--no-first-run".to_string());
+        parts.push("--no-default-browser-check".to_string());
     }
 
     let bin_name = parts[0].as_str();
@@ -4226,10 +4253,10 @@ async fn launch_application(exec: String) -> Result<String, String> {
     }
 
     // 3b. Argümanlarda geçen ikili adlar da kara listeye tabidir.
-    // `xterm -e /bin/sh` gibi zincirlerin önü burada kesilir. URL içeren
-    // argümanlar atlanır; `https://site/init` yanlış pozitif üretmesin.
+    // `xterm -e /bin/sh` gibi zincirlerin önü burada kesilir. URL veya --flag
+    // argümanları atlanır.
     for a in args {
-        if a.contains("://") {
+        if a.contains("://") || a.starts_with('-') {
             continue;
         }
         let arg_bin = Path::new(a.as_str())
@@ -5549,6 +5576,108 @@ async fn write_text_file(path: String, content: String) -> Result<String, String
 }
 
 #[tauri::command]
+async fn execute_desktop_program(path: String) -> Result<String, String> {
+    let clean = path.trim();
+    if clean.is_empty() || clean.contains('\0') {
+        return Err("Geçersiz dosya yolu.".to_string());
+    }
+    if let Ok(meta) = fs::symlink_metadata(clean) {
+        if meta.file_type().is_symlink() {
+            return Err("Güvenlik Hatası: Sembolik bağ üzerinden çalıştırma engellendi.".to_string());
+        }
+    }
+    let real_path = fs::canonicalize(clean)
+        .map_err(|_| "Çalıştırılacak dosya bulunamadı.".to_string())?;
+    let home = std::env::var("HOME").unwrap_or_else(|_| "/home/ankora".to_string());
+    let real_home = fs::canonicalize(&home).unwrap_or_else(|_| PathBuf::from(&home));
+    if !real_path.starts_with(&real_home) || !real_path.is_file() {
+        return Err("Güvenlik Hatası: Yalnızca kullanıcı klasöründeki dosyalar program olarak çalıştırılabilir.".to_string());
+    }
+    let lower = real_path.to_string_lossy().to_lowercase();
+    if lower.ends_with(".deb") {
+        return Ok(format!(
+            "DEB paketi tespit edildi: {}. Lütfen Ankora Mağaza üzerinden kurun.",
+            real_path.display()
+        ));
+    }
+    if lower.ends_with(".desktop") {
+        let content = fs::read_to_string(&real_path).map_err(|e| e.to_string())?;
+        let mut exec_cmd = String::new();
+        let mut term_flag = false;
+        let mut in_entry = false;
+        for line in content.lines() {
+            let s = line.trim();
+            if s.starts_with('[') {
+                in_entry = s == "[Desktop Entry]";
+            } else if in_entry {
+                if s.starts_with("Exec=") && exec_cmd.is_empty() {
+                    exec_cmd = s.split_once('=').map(|x| x.1.trim().to_string()).unwrap_or_default();
+                } else if s.starts_with("Terminal=") {
+                    term_flag = s.split_once('=').map(|x| x.1.trim().eq_ignore_ascii_case("true")).unwrap_or(false);
+                }
+            }
+        }
+        if exec_cmd.is_empty() {
+            return Err(".desktop dosyasında Exec komutu bulunamadı.".to_string());
+        }
+        if !term_flag {
+            return launch_application(exec_cmd).await;
+        }
+        #[cfg(target_os = "linux")]
+        {
+            let parts: Vec<String> = split_exec_args(&exec_cmd)
+                .into_iter()
+                .filter(|t| !matches!(t.as_str(), "%f" | "%F" | "%u" | "%U" | "%i" | "%c" | "%k"))
+                .collect();
+            if let Some((bin, rest)) = parts.split_first() {
+                let dsp = std::env::var("DISPLAY").unwrap_or_else(|_| ":0".to_string());
+                let title = real_path.file_name().and_then(|s| s.to_str()).unwrap_or("Program");
+                let mut x_args = vec!["-title".to_string(), title.to_string(), "-e".to_string(), bin.clone()];
+                x_args.extend(rest.iter().cloned());
+                let _ = Command::new("xterm").args(&x_args).env("DISPLAY", &dsp).spawn();
+                return Ok(format!("Program çalıştırıldı: {}", title));
+            }
+        }
+    }
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        if let Ok(meta) = fs::metadata(&real_path) {
+            let mode = meta.permissions().mode();
+            if (mode & 0o111) == 0 {
+                let mut perms = meta.permissions();
+                perms.set_mode(mode | 0o755);
+                let _ = fs::set_permissions(&real_path, perms);
+            }
+        }
+    }
+    #[cfg(target_os = "linux")]
+    {
+        let dsp = std::env::var("DISPLAY").unwrap_or_else(|_| ":0".to_string());
+        let parent = real_path.parent().unwrap_or(&real_home);
+        let name = real_path.file_name().and_then(|s| s.to_str()).unwrap_or("Program");
+        if lower.ends_with(".sh") || lower.ends_with(".py") || lower.ends_with(".pl") || lower.ends_with(".rb") {
+            let _ = Command::new("xterm")
+                .args(["-hold", "-title", name, "-e", &real_path.to_string_lossy()])
+                .current_dir(parent)
+                .env("DISPLAY", &dsp)
+                .spawn()
+                .map_err(|e| e.to_string())?;
+        } else {
+            let _ = Command::new(&real_path)
+                .current_dir(parent)
+                .env("DISPLAY", &dsp)
+                .spawn()
+                .map_err(|e| e.to_string())?;
+        }
+    }
+    Ok(format!(
+        "Program olarak çalıştırıldı: {}",
+        real_path.file_name().and_then(|s| s.to_str()).unwrap_or(clean)
+    ))
+}
+
+#[tauri::command]
 async fn open_path(path: String) -> Result<String, String> {
     let clean = path.trim();
     if clean.is_empty() || !Path::new(clean).exists() {
@@ -6369,11 +6498,18 @@ fn get_native_windows() -> Result<Vec<NativeWindowInfo>, String> {
 
             let lower_class = wm_class.to_lowercase();
             let lower_title = title.to_lowercase();
+            let has_exact_desktop = lower_class
+                .split(|c: char| c == '.' || c.is_whitespace())
+                .any(|part| part == "desktop" || part == "desktop_window");
             if lower_class.contains("ayaz")
                 || lower_class.contains("openbox")
-                || lower_class.contains("desktop")
                 || lower_class.contains("trayer")
                 || lower_class.contains("dunst")
+                || lower_class.contains("xfdesktop")
+                || lower_class.contains("nautilus-desktop")
+                || lower_class.contains("nemo-desktop")
+                || lower_class.contains("pcmanfm-desktop")
+                || has_exact_desktop
                 || lower_title.contains("ayaz — ankora")
                 || title == "Desktop"
             {
@@ -6404,7 +6540,20 @@ fn get_native_windows() -> Result<Vec<NativeWindowInfo>, String> {
 fn activate_native_window(id: String) -> Result<(), String> {
     #[cfg(target_os = "linux")]
     {
-        let _ = Command::new("wmctrl").args(["-i", "-a", id.trim()]).spawn();
+        let clean = id.trim();
+        let _ = Command::new("wmctrl")
+            .args(["-r", "Ayaz — Ankora", "-b", "remove,above"])
+            .output();
+        let _ = Command::new("wmctrl")
+            .args(["-r", "Ayaz — Ankora", "-b", "add,below"])
+            .output();
+        let _ = Command::new("wmctrl")
+            .args(["-i", "-r", clean, "-b", "remove,hidden"])
+            .output();
+        let _ = Command::new("wmctrl")
+            .args(["-i", "-r", clean, "-b", "remove,shaded"])
+            .output();
+        let _ = Command::new("wmctrl").args(["-i", "-a", clean]).output();
     }
     Ok(())
 }
@@ -9255,16 +9404,26 @@ fn system_user_remove(username: String) -> Result<String, String> {
 async fn system_update_apt(do_upgrade: Option<bool>) -> Result<String, String> {
     tauri::async_runtime::spawn_blocking(move || {
         let mut combined = String::new();
-        let out = root_command("apt-get", &["update"])
-            .map_err(|e| format!("apt-get update çalıştırılamadı: {}", e))?;
+        let helper = "/usr/local/bin/ayaz-pkg-helper";
+        let use_helper = Path::new(helper).exists();
+        let out = if use_helper {
+            root_command(helper, &["apt-update"])
+        } else {
+            root_command("apt-get", &["update"])
+        }
+        .map_err(|e| format!("apt-get update çalıştırılamadı: {}", e))?;
         combined.push_str(&String::from_utf8_lossy(&out.stdout));
         combined.push_str(&String::from_utf8_lossy(&out.stderr));
         if !out.status.success() {
             return Err(combined.trim().to_string());
         }
         if do_upgrade.unwrap_or(false) {
-            let up = root_command("apt-get", &["upgrade", "-y", "--no-install-recommends"])
-                .map_err(|e| format!("apt-get upgrade çalıştırılamadı: {}", e))?;
+            let up = if use_helper {
+                root_command(helper, &["apt-upgrade"])
+            } else {
+                root_command("apt-get", &["upgrade", "-y", "--no-install-recommends"])
+            }
+            .map_err(|e| format!("apt-get upgrade çalıştırılamadı: {}", e))?;
             combined.push_str(&String::from_utf8_lossy(&up.stdout));
             combined.push_str(&String::from_utf8_lossy(&up.stderr));
             if !up.status.success() {
@@ -10270,6 +10429,7 @@ fn main() {
             set_volume,
             optimize_system_memory,
             launch_application,
+            execute_desktop_program,
             check_first_run,
             set_first_run_completed,
             set_system_keyboard,

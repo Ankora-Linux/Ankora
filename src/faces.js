@@ -451,7 +451,7 @@
       });
 
       if (braveNative && window.TauriBridge) {
-        if (braveNative.is_active) {
+        if (braveNative.is_active && !(wm && wm._isLayerAbove)) {
           window.TauriBridge.invoke('minimize_native_window', { id: braveNative.id }).catch(() => {});
         } else {
           if (wm && typeof wm.ensureDesktopLayer === 'function') wm.ensureDesktopLayer(false);
@@ -620,7 +620,7 @@
             if (matchedInternal) {
               this.openApp(matchedInternal.id);
             } else if (matchedNative) {
-              if (matchedNative.is_active) {
+              if (matchedNative.is_active && !(wm && wm._isLayerAbove)) {
                 if (window.TauriBridge) window.TauriBridge.invoke('minimize_native_window', { id: matchedNative.id }).catch(() => {});
               } else {
                 if (wm && typeof wm.ensureDesktopLayer === 'function') wm.ensureDesktopLayer(false);

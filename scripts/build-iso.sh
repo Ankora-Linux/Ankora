@@ -1154,30 +1154,106 @@ def _run_capture(cmd_args):
     return proc.stdout
 
 def _root_run(cmd_args, stdin_text=None, timeout=30):
-    """root gerektiren komutu ya doğrudan ya da `sudo -n` ile çalıştırır.
-
-    Canlı sistemde ankora için parolasız sudo tanımlıdır; sudo yoksa ya da
-    parola gerekiyorsa beklemeden net bir Türkçe hata döner."""
+    """root gerektiren komutu doğrudan, parolasız `sudo -n` ile veya gerekirse
+    GUI parola penceresi (`pkexec` / lxpolkit) üzerinden çalıştırır."""
+    run_list = list(cmd_args)
     if os.geteuid() == 0:
-        run_args = list(cmd_args)
-    elif shutil.which('sudo'):
-        run_args = ['sudo', '-n'] + list(cmd_args)
+        attempts = [run_list]
     else:
-        raise Exception('Bu ayar için yönetici (root) yetkisi gerekiyor: sudo kurulu değil.')
-    try:
-        proc = subprocess.run(
-            run_args, input=stdin_text, stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE, text=True, timeout=timeout
-        )
-    except subprocess.TimeoutExpired:
-        raise Exception(f'Komut zaman aşımına uğradı ({timeout} sn)')
-    except Exception as e:
-        raise Exception(f'Komut çalıştırılamadı: {e}')
-    if proc.returncode != 0:
+        attempts = []
+        if shutil.which('sudo'):
+            attempts.append(['sudo', '-n'] + run_list)
+        if shutil.which('pkexec') and (os.environ.get('DISPLAY') or os.environ.get('WAYLAND_DISPLAY')):
+            attempts.append(['pkexec'] + run_list)
+        if not attempts:
+            raise Exception('Bu ayar için yönetici (root) yetkisi gerekiyor: sudo/pkexec kurulu değil.')
+
+    last_proc = None
+    env = os.environ.copy()
+    if 'DISPLAY' not in env:
+        env['DISPLAY'] = ':0'
+    for idx, run_args in enumerate(attempts):
+        try:
+            proc = subprocess.run(
+                run_args, input=stdin_text, stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE, text=True, timeout=timeout, env=env
+            )
+        except subprocess.TimeoutExpired:
+            raise Exception(f'Komut zaman aşımına uğradı ({timeout} sn)')
+        except Exception as e:
+            if idx + 1 < len(attempts):
+                continue
+            raise Exception(f'Komut çalıştırılamadı: {e}')
+        last_proc = proc
+        if proc.returncode == 0:
+            return proc
         err = (proc.stderr or proc.stdout or '').strip()
-        if any(t in err for t in ('password is required', 'a terminal is required', 'no tty present')):
-            raise Exception('Bu ayar için yönetici (root) yetkisi gerekiyor: sudo parola soruyor.')
-    return proc
+        need_auth = any(t in err.lower() for t in (
+            'password is required', 'a terminal is required', 'no tty present',
+            'not allowed to execute', 'yetkisi gerekiyor', 'may not run sudo'
+        ))
+        if need_auth and idx + 1 < len(attempts):
+            continue
+        if need_auth:
+            raise Exception('Bu işlem için yönetici (root) yetkisi gerekiyor: parola doğrulaması iptal edildi veya yetki yok.')
+        return proc
+    return last_proc
+
+def _pkg_helper_run(cmd_args, timeout=900):
+    """Uzun süren paket/güncelleme işlemlerini süreç grubuyla ve pkexec destekli çalıştırır.
+    Zaman aşımı olursa alt apt/dpkg süreçlerini yetim bırakmadan sonlandırır."""
+    import signal
+    run_list = list(cmd_args)
+    if os.geteuid() == 0:
+        attempts = [run_list]
+    else:
+        attempts = []
+        if shutil.which('sudo'):
+            attempts.append(['sudo', '-n'] + run_list)
+        if shutil.which('pkexec') and (os.environ.get('DISPLAY') or os.environ.get('WAYLAND_DISPLAY')):
+            attempts.append(['pkexec'] + run_list)
+        if not attempts:
+            raise Exception('Yönetici yetkisi aracı (sudo/pkexec) bulunamadı.')
+
+    env = os.environ.copy()
+    if 'DISPLAY' not in env:
+        env['DISPLAY'] = ':0'
+    env['DEBIAN_FRONTEND'] = 'noninteractive'
+
+    for idx, run_args in enumerate(attempts):
+        proc = subprocess.Popen(
+            run_args,
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            env=env,
+            start_new_session=True,
+        )
+        try:
+            stdout, stderr = proc.communicate(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            try:
+                os.killpg(proc.pid, signal.SIGTERM)
+                proc.wait(timeout=5)
+            except Exception:
+                try:
+                    os.killpg(proc.pid, signal.SIGKILL)
+                except Exception:
+                    pass
+            raise Exception(f'İşlem zaman aşımına uğradı ({timeout} sn)')
+        res = subprocess.CompletedProcess(run_args, proc.returncode, stdout, stderr)
+        if res.returncode == 0:
+            return res
+        err = (stderr or stdout or '').strip()
+        need_auth = any(t in err.lower() for t in (
+            'password is required', 'a terminal is required', 'no tty present',
+            'not allowed to execute', 'may not run sudo'
+        ))
+        if need_auth and idx + 1 < len(attempts):
+            continue
+        return res
+    raise Exception('Yönetici yetkisi alınamadı')
 
 def _snap_helper_json(action, arg):
     """Kurtarma noktası yazımları root-owned ayaz-pkg-helper üzerinden
@@ -1551,6 +1627,12 @@ def execute_ayaz_command(cmd, args):
         except Exception:
             tokens = exec_cmd.split()
         tokens = [t for t in tokens if t not in ('%f', '%F', '%u', '%U', '%i', '%c', '%k')]
+        # Standart XDG .desktop Exec="env VAR=VAL /usr/bin/app" satırlarındaki güvenli ortam
+        # değişkeni ön eklerini temizle; gereksiz "Güvenlik İlkesi İhlali: env" hatasını önle.
+        while len(tokens) >= 2 and os.path.basename(tokens[0]) == 'env':
+            tokens.pop(0)
+            while tokens and '=' in tokens[0] and not tokens[0].startswith(('/', '-')):
+                tokens.pop(0)
         if not tokens:
             raise Exception('Geçersiz uygulama komutu')
 
@@ -1559,9 +1641,9 @@ def execute_ayaz_command(cmd, args):
         if base_name in FORBIDDEN_BINS:
             raise Exception(f'Güvenlik İlkesi İhlali: {base_name} doğrudan başlatılamaz')
 
-        # H2: Argümanlarda geçen ikili adları da denetle
+        # H2: Argümanlarda geçen ikili adlar da denetle (yalnız executable token pozisyonları veya çıplak adlar)
         for arg in tokens[1:]:
-            if '://' in arg:
+            if '://' in arg or arg.startswith('-'):
                 continue
             arg_base = os.path.basename(arg)
             if arg_base in FORBIDDEN_BINS:
@@ -1575,6 +1657,9 @@ def execute_ayaz_command(cmd, args):
                 real_bin = os.path.realpath(first_word)
                 if os.path.basename(real_bin) in FORBIDDEN_BINS:
                     raise Exception('Güvenlik İlkesi İhlali: Program kısayolu izin verilmeyen bir sistem aracına işaret ediyor')
+
+        if base_name in ('brave-browser', 'brave-browser-stable') and '--start-maximized' not in tokens:
+            tokens = tokens + ['--start-maximized', '--no-first-run', '--no-default-browser-check']
 
         env = os.environ.copy()
         if 'DISPLAY' not in env:
@@ -1593,24 +1678,13 @@ def execute_ayaz_command(cmd, args):
 
     elif cmd == 'install_deb_package':
         pkg = args.get('packageName', '').strip()
+        skip_apt = bool(args.get('_skip_apt', False))
         if not pkg or not re.match(r'^[a-zA-Z0-9][a-zA-Z0-9.+_-]*$', pkg):
             raise Exception('Geçersiz paket adı biçimi')
-        if pkg != 'fatih-kalem' or not os.path.exists('/usr/bin/fatih-kalem'):
+        if not skip_apt and (pkg != 'fatih-kalem' or not os.path.exists('/usr/bin/fatih-kalem')):
             helper = '/usr/local/bin/ayaz-pkg-helper'
-            cmd_args = ['sudo', helper, 'install', pkg] if os.path.exists(helper) else ['sudo', 'apt-get', 'install', '-y', '--no-install-recommends', '--', pkg]
-            # stdin DEVNULL: sudo parola sorarsa veya dpkg conffile sorusu
-            # gelirse arayüz askıda kalmasın, hata anında frontend'e dönsün.
-            try:
-                proc = subprocess.run(
-                    cmd_args,
-                    stdin=subprocess.DEVNULL,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                    text=True,
-                    timeout=300
-                )
-            except subprocess.TimeoutExpired:
-                raise Exception(f'Kurulum zaman aşımına uğradı: {pkg} (300 sn)')
+            cmd_args = [helper, 'install', pkg] if os.path.exists(helper) else ['apt-get', 'install', '-y', '--no-install-recommends', '--', pkg]
+            proc = _pkg_helper_run(cmd_args, timeout=900)
             if proc.returncode != 0:
                 err = (proc.stderr or proc.stdout or '').strip()
                 if not err:
@@ -1706,26 +1780,18 @@ def execute_ayaz_command(cmd, args):
         helper = '/usr/local/bin/ayaz-pkg-helper'
         if not os.path.exists(helper):
             raise Exception('Güvenlik: ayaz-pkg-helper bulunamadı; vendor kurulumu yapılamaz')
-        try:
-            proc = subprocess.run(
-                ['sudo', helper, 'vendor', vendor],
-                stdin=subprocess.DEVNULL,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-                timeout=600
-            )
-        except subprocess.TimeoutExpired:
-            raise Exception(f'Kurulum zaman aşımına uğradı: {vendor} (600 sn)')
+        proc = _pkg_helper_run([helper, 'vendor', vendor], timeout=900)
         if proc.returncode != 0:
             err = (proc.stderr or proc.stdout or '').strip()
             if not err:
                 err = f'çıkış kodu {proc.returncode}'
             raise Exception(f'Kurulum başarısız: {err}')
-        # Depo eklendikten sonraki paket kurulumu ve .desktop yerleşimi normal
-        # kurulum akışının kendisiyle yapılır (apt ikinci çağrıda boştur).
+        # ayaz-pkg-helper vendor zaten paketi kurdu; kuruluysa apt tekrar çağrılmaz.
+        dpkg_ok = subprocess.run(['dpkg-query', '-W', '-f=${Status}', vendor_pkgs[vendor]],
+                                 stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+        already = (dpkg_ok.returncode == 0 and 'install ok installed' in (dpkg_ok.stdout or ''))
         return execute_ayaz_command('install_deb_package',
-                                    {'packageName': vendor_pkgs[vendor]})
+                                    {'packageName': vendor_pkgs[vendor], '_skip_apt': already})
 
     elif cmd == 'inspect_package_file':
         f_path = str(args.get('filePath', '')).strip()
@@ -1804,17 +1870,7 @@ def execute_ayaz_command(cmd, args):
         helper = '/usr/local/bin/ayaz-pkg-helper'
         if not os.path.exists(helper):
             raise Exception('Güvenlik: ayaz-pkg-helper bulunamadı; MEB sertifikası kurulamaz')
-        try:
-            proc = subprocess.run(
-                ['sudo', helper, 'mebcert'],
-                stdin=subprocess.DEVNULL,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-                timeout=180
-            )
-        except subprocess.TimeoutExpired:
-            raise Exception('MEB sertifika kurulumu zaman aşımına uğradı (180 sn)')
+        proc = _pkg_helper_run([helper, 'mebcert'], timeout=180)
         if proc.returncode != 0:
             err = (proc.stderr or proc.stdout or '').strip()
             if not err:
@@ -1828,17 +1884,7 @@ def execute_ayaz_command(cmd, args):
         helper = '/usr/local/bin/ayaz-pkg-helper'
         if not os.path.exists(helper):
             raise Exception('Güvenlik: ayaz-pkg-helper bulunamadı; MEB sertifikası kaldırılamaz')
-        try:
-            proc = subprocess.run(
-                ['sudo', helper, 'mebcert-remove'],
-                stdin=subprocess.DEVNULL,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-                timeout=180
-            )
-        except subprocess.TimeoutExpired:
-            raise Exception('MEB sertifika kaldırma zaman aşımına uğradı (180 sn)')
+        proc = _pkg_helper_run([helper, 'mebcert-remove'], timeout=180)
         if proc.returncode != 0:
             err = (proc.stderr or proc.stdout or '').strip()
             if not err:
@@ -1942,20 +1988,8 @@ def execute_ayaz_command(cmd, args):
         if not pkg or not re.match(r'^[a-zA-Z0-9.+_-]+$', pkg):
             raise Exception('Geçersiz paket adı biçimi')
         helper = '/usr/local/bin/ayaz-pkg-helper'
-        cmd_args = ['sudo', helper, 'remove', pkg] if os.path.exists(helper) else ['sudo', 'apt-get', 'remove', '-y', '--', pkg]
-        try:
-            proc = subprocess.run(
-                cmd_args,
-                stdin=subprocess.DEVNULL,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-                timeout=120
-            )
-        except subprocess.TimeoutExpired:
-            raise Exception(f'Kaldırma zaman aşımına uğradı: {pkg} (120 sn)')
-        # Daha önce returncode'a bakılmadan "kaldırıldı" dönülüyordu; arayüz
-        # paket silinmemişken başarı görüyordu.
+        cmd_args = [helper, 'remove', pkg] if os.path.exists(helper) else ['apt-get', 'remove', '-y', '--', pkg]
+        proc = _pkg_helper_run(cmd_args, timeout=300)
         if proc.returncode != 0:
             err = (proc.stderr or proc.stdout or '').strip()
             if not err:
@@ -2590,6 +2624,8 @@ tmpfs /tmp tmpfs defaults,noatime,mode=1777 0 0
             # Ayaz güncelleyici ve masaüstü bakım yardımcıları sudoers (sınırlı NOPASSWD; install-deb-file hariç)
             _pkg_safe_cmds = (
                 "/usr/local/bin/ayaz-update-helper, "
+                "/usr/local/bin/ayaz-pkg-helper apt-update, "
+                "/usr/local/bin/ayaz-pkg-helper apt-upgrade, "
                 "/usr/local/bin/ayaz-pkg-helper install *, "
                 "/usr/local/bin/ayaz-pkg-helper remove *, "
                 "/usr/local/bin/ayaz-pkg-helper vendor *, "
@@ -2971,6 +3007,54 @@ exit 0
             raise Exception('Güvenlik Hatası: Çalıştırılabilir dosyalar buradan açılamaz')
         subprocess.Popen(['xdg-open', target_path], env=env, start_new_session=True)
         return f"Açıldı: {target_path}"
+
+    elif cmd == 'execute_desktop_program':
+        target_path = os.path.realpath(str(args.get('path', '')).strip())
+        home_real = os.path.realpath(home_dir)
+        if not target_path or not target_path.startswith(home_real + os.sep) or not os.path.isfile(target_path):
+            raise Exception('Güvenlik Hatası: Yalnızca kullanıcı klasöründeki dosyalar program olarak çalıştırılabilir')
+        if os.path.islink(str(args.get('path', '')).strip()):
+            raise Exception('Güvenlik Hatası: Sembolik bağ üzerinden çalıştırma engellendi')
+        low = target_path.lower()
+        if low.endswith('.desktop'):
+            exec_cmd = ''
+            term_flag = False
+            in_entry = False
+            with open(target_path, encoding='utf-8', errors='replace') as fh:
+                for line in fh:
+                    s = line.strip()
+                    if s.startswith('['):
+                        in_entry = (s == '[Desktop Entry]')
+                    elif in_entry:
+                        if s.startswith('Exec=') and not exec_cmd:
+                            exec_cmd = s.split('=', 1)[1].strip()
+                        elif s.startswith('Terminal='):
+                            term_flag = s.split('=', 1)[1].strip().lower() == 'true'
+            if not exec_cmd:
+                raise Exception('.desktop dosyasında Exec komutu bulunamadı')
+            if term_flag:
+                toks = [t for t in shlex.split(exec_cmd) if t not in ('%f', '%F', '%u', '%U', '%i', '%c', '%k')]
+                if not toks:
+                    raise Exception('Geçersiz Exec komutu')
+                env = os.environ.copy()
+                env.setdefault('DISPLAY', ':0')
+                subprocess.Popen(['xterm', '-title', os.path.basename(target_path), '-e'] + toks,
+                                 cwd=os.path.dirname(target_path), env=env, start_new_session=True)
+                return f'Program çalıştırıldı: {os.path.basename(target_path)}'
+            return execute_ayaz_command('launch_application', {'exec': exec_cmd})
+        if low.endswith('.deb'):
+            return f"DEB paketi tespit edildi: {target_path}. Lütfen Ankora Mağaza üzerinden kurun."
+        st_mode = os.stat(target_path).st_mode
+        if not (st_mode & 0o111):
+            os.chmod(target_path, st_mode | 0o755)
+        env = os.environ.copy()
+        env.setdefault('DISPLAY', ':0')
+        if low.endswith(('.sh', '.py', '.pl', '.rb')):
+            subprocess.Popen(['xterm', '-hold', '-title', os.path.basename(target_path), '-e', target_path],
+                             cwd=os.path.dirname(target_path), env=env, start_new_session=True)
+        else:
+            subprocess.Popen([target_path], cwd=os.path.dirname(target_path), env=env, start_new_session=True)
+        return f'Program olarak çalıştırıldı: {os.path.basename(target_path)}'
 
     elif cmd == 'open_url':
         url = str(args.get('url', '')).strip()
@@ -3418,8 +3502,9 @@ exit 0
             wm_class = parts[2].strip()
             title = parts[4].strip() if len(parts) >= 5 else parts[3].strip()
             lower_class = wm_class.lower()
-            lower_title = title.lower()
-            if any(k in lower_class for k in ['ayaz', 'openbox', 'desktop', 'trayer', 'dunst']) or 'ayaz — ankora' in lower_title or title == 'Desktop':
+            lower_title = title.to_lowercase() if hasattr(title, 'to_lowercase') else title.lower()
+            _cls_parts = set(re.split(r'[.\s]+', lower_class))
+            if any(k in lower_class for k in ('ayaz', 'openbox', 'trayer', 'dunst', 'xfdesktop', 'nautilus-desktop', 'nemo-desktop', 'pcmanfm-desktop')) or 'desktop' in _cls_parts or 'ayaz — ankora' in lower_title or title == 'Desktop':
                 continue
             app_name = wm_class.split('.')[-1] if '.' in wm_class else wm_class
             try:
@@ -3438,7 +3523,11 @@ exit 0
     elif cmd == 'activate_native_window':
         win_id = str(args.get('id', '')).strip()
         if win_id and shutil.which('wmctrl'):
-            subprocess.run(['wmctrl', '-i', '-a', win_id], timeout=3)
+            subprocess.run(['wmctrl', '-r', 'Ayaz — Ankora', '-b', 'remove,above'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=3)
+            subprocess.run(['wmctrl', '-r', 'Ayaz — Ankora', '-b', 'add,below'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=3)
+            subprocess.run(['wmctrl', '-i', '-r', win_id, '-b', 'remove,hidden'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=3)
+            subprocess.run(['wmctrl', '-i', '-r', win_id, '-b', 'remove,shaded'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=3)
+            subprocess.run(['wmctrl', '-i', '-a', win_id], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=3)
         return True
 
     elif cmd == 'close_native_window':
@@ -5448,12 +5537,20 @@ exit 0
 
     elif cmd == 'system_update_apt':
         do_up = bool(args.get('upgrade', args.get('doUpgrade', False)))
-        proc = _root_run(['apt-get', 'update'], timeout=300)
-        out = (proc.stdout or '') + (proc.stderr or '')
+        helper = '/usr/local/bin/ayaz-pkg-helper'
+        cmd1 = [helper, 'apt-update'] if os.path.exists(helper) else ['apt-get', 'update']
+        proc = _pkg_helper_run(cmd1, timeout=300)
+        out = ((proc.stdout or '') + '\n' + (proc.stderr or '')).strip()
+        if proc.returncode != 0:
+            raise Exception(out or f'Depo listesi güncellenemedi (çıkış kodu {proc.returncode})')
         if do_up:
-            proc2 = _root_run(['apt-get', 'upgrade', '-y', '--no-install-recommends'], timeout=1200)
-            out += '\n' + (proc2.stdout or '') + (proc2.stderr or '')
-        return out.strip()
+            cmd2 = [helper, 'apt-upgrade'] if os.path.exists(helper) else ['apt-get', 'upgrade', '-y', '--no-install-recommends']
+            proc2 = _pkg_helper_run(cmd2, timeout=900)
+            out2 = ((proc2.stdout or '') + '\n' + (proc2.stderr or '')).strip()
+            if proc2.returncode != 0:
+                raise Exception(out2 or f'Sistem yükseltme başarısız oldu (çıkış kodu {proc2.returncode})')
+            out = (out + '\n' + out2).strip()
+        return out
 
     elif cmd == 'mark_notifications_read':
         return True
@@ -5782,12 +5879,18 @@ class AyazDesktop(Gtk.Window):
             pass
         self.connect("destroy", self.on_destroy)
         
+        self.set_decorated(False)
+        self.set_skip_taskbar_hint(True)
+        self.set_skip_pager_hint(True)
+        self.set_keep_below(True)
         screen = Gdk.Screen.get_default()
         if screen:
-            self.set_default_size(screen.get_width(), screen.get_height())
+            w, h = screen.get_width(), screen.get_height()
+            self.set_default_size(w, h)
+            self.resize(w, h)
+        self.move(0, 0)
         self.maximize()
-        self.fullscreen()
-        
+
         settings = WebKit2.Settings()
         settings.set_enable_javascript(True)
         if IS_VM:
@@ -5807,7 +5910,8 @@ class AyazDesktop(Gtk.Window):
         settings.set_enable_media_stream(False)
         settings.set_enable_mediasource(False)
         settings.set_enable_webaudio(False)
-        
+        settings.set_enable_dns_prefetching(False)
+
         self.webview = WebKit2.WebView.new_with_settings(settings)
         try:
             rgba = Gdk.RGBA()
@@ -5818,6 +5922,8 @@ class AyazDesktop(Gtk.Window):
         try:
             ctx = self.webview.get_context()
             ctx.set_cache_model(WebKit2.CacheModel.DOCUMENT_VIEWER)
+            if hasattr(WebKit2, 'ProcessModel') and hasattr(ctx, 'set_process_model'):
+                ctx.set_process_model(WebKit2.ProcessModel.SHARED_SECONDARY_PROCESS)
         except Exception:
             pass
 

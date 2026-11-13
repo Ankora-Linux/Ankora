@@ -491,6 +491,16 @@ helper_usb_format() {
     echo "$target_dev başarıyla ${fs_type^^} olarak biçimlendirildi."
 }
 
+helper_apt_update() {
+    DEBIAN_FRONTEND=noninteractive dpkg --configure -a >/dev/null 2>&1 || true
+    /usr/bin/apt-get update
+}
+
+helper_apt_upgrade() {
+    DEBIAN_FRONTEND=noninteractive dpkg --configure -a >/dev/null 2>&1 || true
+    DEBIAN_FRONTEND=noninteractive /usr/bin/apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade -y --no-install-recommends
+}
+
 # ---------------------------------------------------------------------
 # EYLEM YÖNLENDİRİCİSİ (ACTION DISPATCHER)
 # ---------------------------------------------------------------------
@@ -538,6 +548,14 @@ case "$ACTION" in
         helper_usb_format "$PKG" "${3:-vfat}" "${4:-ANKORA}"
         exit $?
         ;;
+    apt-update)
+        helper_apt_update
+        exit $?
+        ;;
+    apt-upgrade)
+        helper_apt_upgrade
+        exit $?
+        ;;
 esac
 
 if [[ -z "$PKG" ]]; then
@@ -568,12 +586,14 @@ case "$ACTION" in
         # Sadece resmi depolardan güvenli kurulum (asla --allow-unauthenticated kabul edilmez).
         # Canlı ISO'da imaj küçültme için paket listeleri silinir; paket görünmüyorsa
         # veya indeks eskidiyse apt-get update ile tazelenip yeniden denenir.
+        export DEBIAN_FRONTEND=noninteractive
+        /usr/bin/dpkg --configure -a >/dev/null 2>&1 || true
         if ! /usr/bin/apt-cache show "$PKG" >/dev/null 2>&1; then
             /usr/bin/apt-get update -qq || true
         fi
-        if ! /usr/bin/apt-get install -y --no-install-recommends -- "$PKG"; then
+        if ! /usr/bin/apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" install -y --no-install-recommends -- "$PKG"; then
             /usr/bin/apt-get update -qq || true
-            exec /usr/bin/apt-get install -y --no-install-recommends -- "$PKG"
+            exec /usr/bin/apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" install -y --no-install-recommends -- "$PKG"
         fi
         ;;
     install-deb-file)
