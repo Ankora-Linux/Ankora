@@ -10,6 +10,7 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::sync::Mutex;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
+use tauri::Emitter;
 use url::Url;
 
 // ============================================================================
@@ -2153,22 +2154,26 @@ fn root_command(prog: &str, args: &[&str]) -> std::io::Result<std::process::Outp
     // penceresi kullanıcıdan istenir.
     let direct = Command::new(prog).args(args).output()?;
     let err_str = String::from_utf8_lossy(&direct.stderr).to_lowercase();
+    let code = direct.status.code();
     let permission_denied = !direct.status.success()
         && (err_str.contains("permission denied")
             || err_str.contains("erişim engellendi")
             || err_str.contains("izin reddedildi")
             || err_str.contains("yetki")
-            || direct.status.code() == Some(1)
-            || direct.status.code() == Some(126));
+            || err_str.contains("superuser")
+            || err_str.contains("are you root")
+            || err_str.contains("failed to open")
+            || err_str.contains("could not open lock file")
+            || matches!(code, Some(1 | 2 | 6 | 23 | 100 | 126)));
     if permission_denied && pkexec_available() && (polkit_agent_running() || std::env::var("DISPLAY").is_ok()) {
         let elevated = Command::new("pkexec")
             .arg(prog)
             .args(args)
             .stdin(Stdio::null())
             .output();
-        if let Ok(pk) = &elevated {
-            if pk.status.success() {
-                return elevated;
+        if let Ok(pk) = elevated {
+            if pk.status.success() || !pk.stderr.is_empty() {
+                return Ok(pk);
             }
         }
     }
@@ -2935,7 +2940,7 @@ fn build_local_ai_diagnostic_response(prompt: &str, mode: &str) -> AiResponse {
     let p_lower = prompt.to_lowercase();
     let tele = collect_system_telemetry().unwrap_or(SystemTelemetry {
         os_name: format!("Ankora Linux {}", env!("CARGO_PKG_VERSION")),
-        kernel: "Linux 6.1 (Devuan Daedalus)".to_string(),
+        kernel: "Linux 6.12 (Devuan Excalibur)".to_string(),
         init_system: "SysVinit (systemd-free)".to_string(),
         memory_used_mb: 512,
         memory_total_mb: 8192,
@@ -3162,19 +3167,19 @@ async fn query_local_ai(
             t.os_name, t.kernel, t.init_system, t.memory_used_mb, t.memory_total_mb, t.cpu_cores, t.cpu_percent, t.disk_used_gb, t.disk_total_gb
         )
     } else {
-        format!("[Sistem Özeti: Ankora Linux {} | Devuan Daedalus | SysVinit]", env!("CARGO_PKG_VERSION"))
+        format!("[Sistem Özeti: Ankora Linux {} | Devuan Excalibur | SysVinit]", env!("CARGO_PKG_VERSION"))
     };
 
     let base_sys_prompt = match mode.as_str() {
         "doctor" => {
-            "Sen Ankora Linux (Devuan Daedalus, SysVinit) Sistem Doktoru ve arıza giderme uzmanısın. \
+            "Sen Ankora Linux (Devuan Excalibur, SysVinit) Sistem Doktoru ve arıza giderme uzmanısın. \
             Kırık paketler, ZRAM takas alanı, disk doluluğu, X11/Openbox/WebKitGTK oturumu ve ağ sorunlarını teşhis et. \
             Eğer bir komut yürütülmesi gerekiyorsa yanıtının sonuna tam olarak şu formatta bir eylem etiketi ekle: \
             <<<ACTION:{\"command\":\"izin_verilen_komut\",\"desc\":\"Eylemin açıklaması\"}>>> \
             İzin verilen komutlar: /usr/local/bin/ankora-doctor, apt-get clean && rm -rf /tmp/*, df -h / && free -m, free -h, lscpu, lsblk, ps aux, top -b -n 1, uptime, sync."
         }
         "developer" => {
-            "Sen Ankora Linux (Devuan Daedalus) sistem geliştirici ve terminal asistanısın. \
+            "Sen Ankora Linux (Devuan Excalibur) sistem geliştirici ve terminal asistanısın. \
             Bash betikleri, Debian derleme, Rust/C geliştirme ve paket araçları konusunda teknik rehberlik sağla. \
             Eğer bir komut yürütülmesi gerekiyorsa yanıtının sonuna tam olarak şu formatta bir eylem etiketi ekle: \
             <<<ACTION:{\"command\":\"izin_verilen_komut\",\"desc\":\"Eylemin açıklaması\"}>>> \
@@ -3187,7 +3192,7 @@ async fn query_local_ai(
             <<<ACTION:{\"command\":\"izin_verilen_komut\",\"desc\":\"Eylemin açıklaması\"}>>>"
         }
         _ => {
-            "Sen Ankora Linux (Devuan Daedalus) işletim sisteminin yerel sistem yöneticisi ve teftiş ajanısın. \
+            "Sen Ankora Linux (Devuan Excalibur) işletim sisteminin yerel sistem yöneticisi ve teftiş ajanısın. \
             Kullanıcıya teknik, kısa ve profesyonel yanıtlar ver. \
             Eğer kullanıcının talebi sistemde bir bakım, telemetre sorgusu veya temizlik gerektiriyorsa, \
             yanıtının sonuna tam olarak şu formatta bir eylem etiketi ekle: \
@@ -3913,6 +3918,8 @@ fn execute_system_installation_blocking(payload: InstallPayload) -> Result<Strin
             );
             let upd_entry = format!(
                 "{} ALL=(root) NOPASSWD: /usr/local/bin/ayaz-update-helper, \
+                /usr/local/bin/ayaz-pkg-helper apt-update, \
+                /usr/local/bin/ayaz-pkg-helper apt-upgrade, \
                 /usr/local/bin/ayaz-pkg-helper install *, \
                 /usr/local/bin/ayaz-pkg-helper remove *, \
                 /usr/local/bin/ayaz-pkg-helper vendor *, \
@@ -4445,7 +4452,7 @@ fn collect_system_telemetry() -> Result<SystemTelemetry, String> {
         }
 
         // 3. Dağıtım / İşletim Sistemi (/etc/os-release)
-        let mut os_name = "Devuan GNU/Linux 5 (daedalus)".to_string();
+        let mut os_name = "Devuan GNU/Linux 6 (excalibur)".to_string();
         if let Ok(os_rel) = fs::read_to_string("/etc/os-release") {
             for line in os_rel.lines() {
                 if line.starts_with("PRETTY_NAME=") {
@@ -4925,6 +4932,8 @@ struct GitHubAsset {
     name: String,
     browser_download_url: String,
     size: u64,
+    #[serde(default)]
+    digest: Option<String>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -4964,36 +4973,75 @@ pub fn is_newer_version(remote: &str, current: &str) -> bool {
     parse_semver(remote) > parse_semver(current)
 }
 
+fn extract_sha256_from_digest(digest: Option<&str>) -> Option<String> {
+    let raw = digest?.trim();
+    let hex = raw
+        .strip_prefix("sha256:")
+        .or_else(|| raw.strip_prefix("SHA256:"))
+        .unwrap_or(raw)
+        .trim();
+    if hex.len() == 64 && hex.chars().all(|c| c.is_ascii_hexdigit()) {
+        Some(hex.to_lowercase())
+    } else {
+        None
+    }
+}
+
 fn process_github_release(release: GitHubRelease, current_ver: &str) -> UpdateReleaseInfo {
     let latest_tag = release.tag_name.trim();
     let has_update = is_newer_version(latest_tag, current_ver);
 
     let mut deb_url = None;
     let mut deb_size = 0u64;
-    let mut sha256_url = None;
+    let mut deb_is_ayaz = false;
+    let mut deb_digest = None;
+    let mut deb_sha256_url = None;
+    let mut generic_sha256_url = None;
     let mut expected_sha256 = None;
 
     if let Some(assets) = release.assets {
         for asset in assets {
             let lower_name = asset.name.to_lowercase();
             if lower_name.ends_with(".deb") {
-                deb_url = Some(asset.browser_download_url);
-                deb_size = asset.size;
-            } else if lower_name.ends_with(".sha256")
-                || lower_name.ends_with(".sha256sum")
-                || lower_name == "sha256sums"
+                let is_ayaz = lower_name.contains("ayaz-de");
+                if deb_url.is_none() || (is_ayaz && !deb_is_ayaz) {
+                    deb_digest = extract_sha256_from_digest(asset.digest.as_deref());
+                    deb_url = Some(asset.browser_download_url);
+                    deb_size = asset.size;
+                    deb_is_ayaz = is_ayaz;
+                }
+            } else if lower_name.ends_with(".deb.sha256")
+                || lower_name.ends_with(".deb.sha256sum")
+                || (lower_name.contains("ayaz-de")
+                    && (lower_name.ends_with(".sha256") || lower_name.ends_with(".sha256sum")))
             {
-                sha256_url = Some(asset.browser_download_url);
+                deb_sha256_url = Some(asset.browser_download_url);
+            } else if lower_name == "sha256sums" || lower_name == "sha256sums.txt" {
+                generic_sha256_url = Some(asset.browser_download_url);
             }
         }
     }
 
-    if let Some(ref body) = release.body {
-        for word in body.split_whitespace() {
-            let clean = word.trim_matches(|c: char| !c.is_ascii_alphanumeric());
-            if clean.len() == 64 && clean.chars().all(|c| c.is_ascii_hexdigit()) {
-                expected_sha256 = Some(clean.to_lowercase());
-                break;
+    let sha256_url = deb_sha256_url.or(generic_sha256_url);
+    expected_sha256 = deb_digest;
+
+    if expected_sha256.is_none() {
+        if let Some(ref body) = release.body {
+            for line in body.lines() {
+                let lower_line = line.to_lowercase();
+                if lower_line.contains(".iso") && !lower_line.contains(".deb") {
+                    continue;
+                }
+                for word in line.split_whitespace() {
+                    let clean = word.trim_matches(|c: char| !c.is_ascii_alphanumeric());
+                    if clean.len() == 64 && clean.chars().all(|c| c.is_ascii_hexdigit()) {
+                        expected_sha256 = Some(clean.to_lowercase());
+                        break;
+                    }
+                }
+                if expected_sha256.is_some() {
+                    break;
+                }
             }
         }
     }
@@ -5237,13 +5285,20 @@ async fn download_and_apply_de_update(
                 if let Ok(resp) = client.get(s_url).send().await {
                     if resp.status().is_success() {
                         if let Ok(txt) = resp.text().await {
-                            for word in txt.split_whitespace() {
-                                let c = word.trim_matches(|ch: char| !ch.is_ascii_alphanumeric());
-                                if c.len() == 64 && c.chars().all(|ch| ch.is_ascii_hexdigit()) {
-                                    target_sha256 = Some(c.to_lowercase());
-                                    break;
+                            let find_hex = |s: &str| -> Option<String> {
+                                for word in s.split_whitespace() {
+                                    let c = word.trim_matches(|ch: char| !ch.is_ascii_alphanumeric());
+                                    if c.len() == 64 && c.chars().all(|ch| ch.is_ascii_hexdigit()) {
+                                        return Some(c.to_lowercase());
+                                    }
                                 }
-                            }
+                                None
+                            };
+                            let matched_line = txt.lines().find(|l| {
+                                let ll = l.to_lowercase();
+                                ll.contains(".deb") && !ll.contains(".iso")
+                            });
+                            target_sha256 = matched_line.and_then(&find_hex).or_else(|| find_hex(&txt));
                         }
                     }
                 }
@@ -5306,22 +5361,21 @@ async fn download_and_apply_de_update(
         let helper_str = helper_path.to_string_lossy().to_string();
         let stage_src = tmp_deb.to_string_lossy().to_string();
         let stage_sha = computed_sha256.to_lowercase();
-        let stage_status = Command::new("sudo")
-            .args([
-                "-n",
-                helper_str.as_str(),
-                "--stage",
-                stage_src.as_str(),
-                stage_sha.as_str(),
-            ])
-            .status();
+        let stage_out = root_command(
+            helper_str.as_str(),
+            &["--stage", stage_src.as_str(), stage_sha.as_str()],
+        );
         let _ = fs::remove_dir_all(&tmp_dir);
-        match stage_status {
-            Ok(status) if status.success() => {}
-            Ok(status) => {
+        match stage_out {
+            Ok(o) if o.status.success() => {}
+            Ok(o) => {
+                let err = String::from_utf8_lossy(&o.stderr).trim().to_string();
+                let out = String::from_utf8_lossy(&o.stdout).trim().to_string();
+                let detail = if err.is_empty() { out } else { err };
                 return Err(format!(
-                    "Güncelleme paketi güvenli staging dizinine alınamadı (Çıkış Kodu: {}).",
-                    status.code().unwrap_or(-1)
+                    "Güncelleme paketi güvenli staging dizinine alınamadı (Çıkış Kodu: {}){}",
+                    o.status.code().unwrap_or(-1),
+                    if detail.is_empty() { String::new() } else { format!(": {}", detail) }
                 ));
             }
             Err(e) => {
@@ -5351,23 +5405,23 @@ async fn download_and_apply_de_update(
 
         // Yardımcıya beklenen sürüm de iletilir: kurulum sonunda kurulu
         // sürüm bu değerle doğrulanır, uyuşmazlıkta geri alma tetiklenir.
-        let mut helper_args: Vec<String> =
-            vec!["/usr/local/bin/ayaz-update-helper".to_string(), deb_str];
+        let mut helper_args_owned: Vec<String> = vec![deb_str];
         if let Some(ref ev) = expected_version {
             let ev = ev.trim();
             if !ev.is_empty() {
-                helper_args.push(ev.to_string());
+                helper_args_owned.push(ev.to_string());
             }
         }
+        let helper_arg_refs: Vec<&str> = helper_args_owned.iter().map(|s| s.as_str()).collect();
 
-        let install_status = if helper_path.exists() {
-            Command::new("sudo").arg("-n").args(&helper_args).status()
+        let install_out = if helper_path.exists() {
+            root_command("/usr/local/bin/ayaz-update-helper", &helper_arg_refs)
         } else {
             return Err("Güvenlik İlkesi İhlali: /usr/local/bin/ayaz-update-helper bulunamadı. Güncelleme yalnızca doğrulanmış yardımcı üzerinden kurulabilir.".to_string());
         };
 
-        match install_status {
-            Ok(status) if status.success() => {
+        match install_out {
+            Ok(o) if o.status.success() => {
                 let _ = window.emit("update-progress", UpdateProgressPayload {
                     percent: 100,
                     stage: "completed".to_string(),
@@ -5375,10 +5429,16 @@ async fn download_and_apply_de_update(
                 });
                 Ok("Ayaz DE başarıyla güncellendi.".to_string())
             }
-            Ok(status) => Err(format!(
-                "Kurulum başarısız oldu (Çıkış Kodu: {}).",
-                status.code().unwrap_or(-1)
-            )),
+            Ok(o) => {
+                let err = String::from_utf8_lossy(&o.stderr).trim().to_string();
+                let out = String::from_utf8_lossy(&o.stdout).trim().to_string();
+                let detail = if err.is_empty() { out } else { err };
+                Err(format!(
+                    "Kurulum başarısız oldu (Çıkış Kodu: {}){}",
+                    o.status.code().unwrap_or(-1),
+                    if detail.is_empty() { String::new() } else { format!(": {}", detail) }
+                ))
+            }
             Err(e) => Err(format!("Kurulum yardımcısı çalıştırılamadı: {}", e)),
         }
     }
@@ -10393,6 +10453,7 @@ fn main() {
         Err(_) => std::env::set_var("PATH", sys_path),
     }
     tauri::Builder::default()
+        .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .invoke_handler(tauri::generate_handler![
             drag_window,
             scan_xdg_applications,
@@ -10546,33 +10607,37 @@ fn main() {
             // devrede olduğu için çift yakalamayı önlemek amacıyla atlanır.
             #[cfg(target_os = "linux")]
             {
-                use tauri::{GlobalShortcutManager, Manager};
-                let handle = app.handle();
-                let main_window = handle.get_window("main");
-                let mut shortcut_manager = handle.global_shortcut_manager();
-                let _ = shortcut_manager.register("Print", move || {
-                    if let Some(win) = &main_window {
-                        if let Ok(focused) = win.is_focused() {
-                            if focused {
+                use tauri::Manager;
+                use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
+                if let Ok(shortcut) = "PrintScreen".parse::<Shortcut>() {
+                    let _ = app.global_shortcut().on_shortcut(
+                        shortcut,
+                        |app_handle, _shortcut, event| {
+                            if event.state() != ShortcutState::Pressed {
                                 return;
                             }
-                        }
-                    }
-                    std::thread::spawn(|| {
-                        if let Ok(res) = take_screenshot_core(
-                            Some("fullscreen".to_string()),
-                            Some(0),
-                            Some(true),
-                            Some(true),
-                        ) {
-                            let _ = Command::new("notify-send")
-                                .args(["-a", "AyazDE", "-i", "camera"])
-                                .arg("Ekran görüntüsü kaydedildi")
-                                .arg(res.file_path)
-                                .output();
-                        }
-                    });
-                });
+                            if let Some(win) = app_handle.get_webview_window("main") {
+                                if let Ok(true) = win.is_focused() {
+                                    return;
+                                }
+                            }
+                            std::thread::spawn(|| {
+                                if let Ok(res) = take_screenshot_core(
+                                    Some("fullscreen".to_string()),
+                                    Some(0),
+                                    Some(true),
+                                    Some(true),
+                                ) {
+                                    let _ = Command::new("notify-send")
+                                        .args(["-a", "AyazDE", "-i", "camera"])
+                                        .arg("Ekran görüntüsü kaydedildi")
+                                        .arg(res.file_path)
+                                        .output();
+                                }
+                            });
+                        },
+                    );
+                }
             }
             Ok(())
         })

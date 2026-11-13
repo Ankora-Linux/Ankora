@@ -162,12 +162,12 @@ if ! : > "$AYAZ_LOG" 2>/dev/null; then
     AYAZ_LOG=/dev/null
 fi
 
-# WebKitGTK on kontrolu: Python koprusu WebKit2 4.0, yoksa 4.1 typelib'i ister.
+# WebKitGTK on kontrolu: Python koprusu WebKit2 4.1 (libsoup3), yoksa 4.0 typelib'i ister.
 # Eksikse sessiz siyah ekran yerine loga okunur bir satir yazilir.
 if command -v python3 >/dev/null 2>&1; then
-    if ! python3 -c "import gi; gi.require_version('WebKit2','4.0')" 2>/dev/null \
-       && ! python3 -c "import gi; gi.require_version('WebKit2','4.1')" 2>/dev/null; then
-        printf '[Ayaz] UYARI: WebKit2 typelib (4.0/4.1) bulunamadi; arayuz acilamayabilir.\n' >>"$AYAZ_LOG"
+    if ! python3 -c "import gi; gi.require_version('WebKit2','4.1')" 2>/dev/null \
+       && ! python3 -c "import gi; gi.require_version('WebKit2','4.0')" 2>/dev/null; then
+        printf '[Ayaz] UYARI: WebKit2 typelib (4.1/4.0) bulunamadi; arayuz acilamayabilir.\n' >>"$AYAZ_LOG"
     fi
 fi
 

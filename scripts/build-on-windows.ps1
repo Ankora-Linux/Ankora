@@ -1,6 +1,6 @@
-# ==============================================================================
+﻿# ==============================================================================
 # Ankora Linux 3.3 (Ayaz DE) - Windows Canlı ISO Derleme Otomasyonu
-# Bu betik Windows ortamından Devuan Daedalus tabanlı canlı ISO imajını
+# Bu betik Windows ortamından Devuan 6 Excalibur tabanlı canlı ISO imajını
 # WSL2, VirtualBox veya GitHub Actions entegrasyonuyla güvenle derler.
 # ==============================================================================
 
@@ -11,7 +11,7 @@ Clear-Host
 Write-Host "======================================================================" -ForegroundColor Cyan
 Write-Host "     ANKORA LINUX 3.3 (AYAZ DE) - WINDOWS CANLI ISO DERLEYİCİ          " -ForegroundColor Yellow
 Write-Host "======================================================================" -ForegroundColor Cyan
-Write-Host "Hedef Dağıtım : Devuan GNU/Linux 5 (Daedalus) SysVinit Core" -ForegroundColor White
+Write-Host "Hedef Dağıtım : Devuan GNU/Linux 6 (Excalibur) SysVinit Core" -ForegroundColor White
 Write-Host "Masaüstü      : Ayaz DE v3.3.0 (Kiosk GUI)" -ForegroundColor White
 Write-Host "Çıktı Kalıbı  : dist\ankora-linux-3.3-ayaz-amd64.iso (UEFI + BIOS Hibrit)" -ForegroundColor White
 Write-Host "======================================================================" -ForegroundColor Cyan
@@ -78,12 +78,14 @@ apt-get install -y --no-install-recommends \
     debootstrap squashfs-tools xorriso isolinux syslinux-common syslinux-efi \
     grub-pc-bin grub-efi-amd64-bin mtools dosfstools wget gpgv
 
-# Debootstrap Devuan Daedalus profilini tanımla
-if [ ! -f /usr/share/debootstrap/scripts/daedalus ]; then
-    if [ -f /usr/share/debootstrap/scripts/bookworm ]; then
-        ln -sf bookworm /usr/share/debootstrap/scripts/daedalus
+# Debootstrap Devuan Excalibur profilini tanımla
+if [ ! -f /usr/share/debootstrap/scripts/excalibur ]; then
+    if [ -f /usr/share/debootstrap/scripts/trixie ]; then
+        ln -sf trixie /usr/share/debootstrap/scripts/excalibur
+    elif [ -f /usr/share/debootstrap/scripts/bookworm ]; then
+        ln -sf bookworm /usr/share/debootstrap/scripts/excalibur
     else
-        ln -sf sid /usr/share/debootstrap/scripts/daedalus
+        ln -sf sid /usr/share/debootstrap/scripts/excalibur
     fi
 fi
 

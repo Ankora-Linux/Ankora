@@ -1,7 +1,7 @@
 #!/bin/bash
 # ==============================================================================
 # Ayaz Paket Yöneticisi Yardımcısı (Ayaz Package Helper)
-# Ankora Linux (Devuan Daedalus SysVinit) Güvenli Paket İşlem Betiği
+# Ankora Linux (Devuan 6 Excalibur SysVinit) Güvenli Paket İşlem Betiği
 # ==============================================================================
 set -euo pipefail
 
@@ -49,6 +49,7 @@ need_curl() {
 
 vendor_brave() {
     need_net_tools
+    rm -f /etc/apt/sources.list.d/brave-browser-release.list
     curl -fsSLo /usr/share/keyrings/brave-browser-archive-keyring.gpg \
         https://brave-browser-apt-release.s3.brave.com/brave-browser-archive-keyring.gpg
     curl -fsSLo /etc/apt/sources.list.d/brave-browser-release.sources \

@@ -1,6 +1,6 @@
 name: Ankora Linux Canlı ISO Derleme (Live ISO Build)
 
-# Ayaz DE (Devuan Daedalus SysVinit) canlı ISO imajını (.iso) ve iç Debian
+# Ayaz DE (Devuan 6 Excalibur SysVinit) canlı ISO imajını (.iso) ve iç Debian
 # paketini (.deb) bulutta otomatik olarak derler. ISO dosya adı derleyiciden
 # dinamik okunur; sürüm sabit kodlanmaz (3.3/3.4 çakışması düzeltildi).
 # Manuel tetikleme: Actions -> Run workflow. Otomatik: v* etiketi push'u.
@@ -24,7 +24,7 @@ permissions:
 jobs:
   build-iso:
     name: Ankora Linux Hibrit Live ISO Derle
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 90
 
     steps:
@@ -43,13 +43,12 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version: 22
-          cache: npm
 
       - name: Gerekli Paketleri Kur (Tauri + ISO Oluşturucu Araçları)
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            libwebkit2gtk-4.0-dev \
+            libwebkit2gtk-4.1-dev \
             build-essential \
             curl \
             wget \
@@ -70,7 +69,7 @@ jobs:
             dosfstools
 
       - name: Tauri CLI Kur
-        run: cargo install tauri-cli --version "^1.5"
+        run: cargo install tauri-cli --version "^2"
 
       - name: Sürüm Doğrulama (tauri.conf.json = VERSION)
         run: |
@@ -83,8 +82,8 @@ jobs:
           fi
           echo "ankora_version=$VER_CONF" >> "$GITHUB_ENV"
 
-      - name: NPM Bağımlılıklarını Kur (deterministik)
-        run: npm ci
+      - name: NPM Bağımlılıklarını Kur
+        run: npm install --no-audit --no-fund
 
       - name: Güvenlik ve Bütünlük Denetimi (DevSecOps SAST & Verification)
         run: |

@@ -142,8 +142,11 @@
     async invoke(cmd, args = {}) {
       // 1. Rust Tauri Native (derlenmiş Tauri binary içinde çalışıyorsa)
       //    Bu köprü varsa hata gerçek bir hatadır: yutulmaz, çağırana iletilir.
-      if (typeof window !== 'undefined' && window.__TAURI__ && window.__TAURI__.invoke) {
-        return await window.__TAURI__.invoke(cmd, args);
+      const tauriInvoke = (typeof window !== 'undefined' && window.__TAURI__)
+        ? (window.__TAURI__.core?.invoke || window.__TAURI__.invoke)
+        : null;
+      if (tauriInvoke) {
+        return await tauriInvoke(cmd, args);
       }
 
       // 2. WebKit2GTK MessageHandler Native IPC (yerel process içi çağrı)
@@ -274,8 +277,8 @@
 
         case 'get_system_telemetry':
           return {
-            os_name: 'Devuan GNU/Linux 5 (daedalus)',
-            kernel: 'Linux 6.1.0-22-amd64 (Tauri Native)',
+            os_name: 'Devuan GNU/Linux 6 (excalibur)',
+            kernel: 'Linux 6.12.0-amd64 (Tauri Native)',
             init_system: 'SysVinit (systemd-free)',
             memory_used_mb: 110,
             memory_total_mb: 8192,
@@ -322,7 +325,7 @@
             has_update: false,
             current_version: '4.6.0',
             latest_version: '4.6.0',
-            release_name: 'Ayaz DE v4.6.0 (Daedalus / Son Kararlı Sürüm)',
+            release_name: 'Ayaz DE v4.6.0 (Excalibur / Son Kararlı Sürüm)',
             release_notes: '## Ayaz DE v4.6.0\n- Ankora Linux için geliştirilen minimalist masaüstü ortamı.\n- SysVinit uyumlu Kiosk tasarımı.\n- Güvenlik duvarı ve yerel AI ajan entegrasyonu.',
             download_url: null,
             published_at: new Date().toISOString(),
@@ -359,7 +362,7 @@
             };
           }
           return {
-            reply: 'Ankora AI Yerel Teşhis Motoru (v4.6) aktif.\n• Çekirdek: Linux 6.1 LTS (Devuan Daedalus)\n• İnit: SysVinit (PID 1)\nSistem doktoru, bellek/disk analizi, süreç denetimi veya ZRAM sorguları için hızlı etiketleri kullanabilir ya da API Ayarları üzerinden bulut anahtarı bağlayabilirsiniz.',
+            reply: 'Ankora AI Yerel Teşhis Motoru (v4.6) aktif.\n• Çekirdek: Linux 6.12 LTS (Devuan 6 Excalibur)\n• İnit: SysVinit (PID 1)\nSistem doktoru, bellek/disk analizi, süreç denetimi veya ZRAM sorguları için hızlı etiketleri kullanabilir ya da API Ayarları üzerinden bulut anahtarı bağlayabilirsiniz.',
             has_action: false,
             action_command: null,
             action_desc: null,
@@ -3695,13 +3698,13 @@
       { id: 'btop', name: 'Btop Zengin Donanım Monitörü', deb: 'btop', desc: 'Modern görsel grafiklerle donanım yükünü gösteren monitör', cat: 'sys', size: '6 MB', installed: false },
       { id: 'git', name: 'Git Kaynak Kod Sürüm Kontrolü', deb: 'git', desc: 'Yazılım geliştiriciler için endüstri standardı kod versiyon kontrol sistemi', cat: 'dev', size: '36 MB', installed: false },
       { id: 'python3', name: 'Python 3 Programlama Dili', deb: 'python3', desc: 'Modern yapay zeka, veri analitiği ve otomasyon dili', cat: 'dev', size: '16 MB', installed: false },
-      { id: 'p7zip-full', name: '7-Zip Yüksek Sıkıştırmalı Arşivleyici', deb: 'p7zip-full', desc: 'ZIP, 7z, TAR ve RAR arşivlerini açma ve sıkıştırma aracı', cat: 'util', size: '5 MB', installed: false },
+      { id: 'p7zip-full', name: '7-Zip Yüksek Sıkıştırmalı Arşivleyici', deb: '7zip', desc: 'ZIP, 7z, TAR ve RAR arşivlerini açma ve sıkıştırma aracı', cat: 'util', size: '5 MB', installed: false },
       { id: 'brave', name: 'Brave Hızlı & Gizli Tarayıcı', deb: 'brave-browser', vendor: 'brave', desc: 'Reklam ve izleyici engelleyicisi yerleşik; resmî deposundan kurulur', cat: 'net', size: '150 MB', featured: true, installed: false },
       { id: 'helium', name: 'Helium Hafif Web Tarayıcı', deb: 'helium-bin', vendor: 'helium', desc: 'ungoogle-chromium temelli, gizlilik odaklı hafif masaüstü tarayıcısı', cat: 'net', size: '130 MB', installed: false },
       { id: 'timeshift', name: 'Timeshift Sistem Yedekleme & Anlık Görüntü', deb: 'timeshift', desc: 'Sistem kararsızlığına karşı tek tıkla geri dönüş ve kurtarma noktası oluşturucu', cat: 'sys', size: '15 MB', installed: false },
       { id: 'steam', name: 'Steam Dijital Oyun Platformu', flatpak: 'com.valvesoftware.Steam', desc: 'Valve resmi Linux oyun mağazası, Proton ve topluluk kütüphanesi', cat: 'util', size: '350 MB', installed: false },
       { id: 'wine', name: 'Wine Windows Uyumluluk Katmanı', deb: 'wine', desc: 'Windows programlarını ve oyunlarını emülasyonsuz yerel hızda çalıştırma', cat: 'util', size: '140 MB', installed: false },
-      { id: 'neofetch', name: 'Neofetch Sistem Bilgi Kartı', deb: 'neofetch', desc: 'Terminal açılışında dağıtım logosu ve donanım özetini gösteren klasik araç', cat: 'sys', size: '1 MB', installed: false },
+      { id: 'fastfetch', name: 'Fastfetch Sistem Bilgi Kartı', deb: 'fastfetch', desc: 'Terminal açılışında dağıtım logosu ve donanım özetini gösteren modern hızlı araç', cat: 'sys', size: '2 MB', installed: false },
       { id: 'antigravity', name: 'Antigravity Yapay Zekâ IDE', deb: 'antigravity', vendor: 'antigravity', desc: 'Google’ın ajan öncesi dönem için tasarladığı ajan destekli kod editörü', cat: 'dev', size: '420 MB', installed: false },
       { id: 'opencode-desktop', name: 'OpenCode Masaüstü (AI Kod Ajanı)', deb: '', extUrl: 'https://opencode.ai', desc: 'Terminal, masaüstü ve IDE eklentisi olarak çalışan açık kaynak yapay zekâ kod ajanı', cat: 'dev', size: 'Site', installed: false },
 
@@ -3709,7 +3712,7 @@
       { id: 'fatih-kalem', name: 'Fatih Kalem 2 (Akıllı Tahta)', deb: 'fatih-kalem', desc: 'Etkileşimli tahtalar için ekran kalemi; ekrandaki her şeyin üzerine çizim, ders notu ve vurgu yapma aracı', cat: 'office', school: true, size: '2 MB', featured: true, installed: false },
       { id: 'meb-cert', name: 'MEB Okul Ağı Sertifikası', action: 'meb-cert', desc: 'Okul internetindeki güvenlik uyarılarını bitirir; resmi MEB adresinden indirip sistem ve tarayıcı güven deposuna kurar', cat: 'net', school: true, size: '1 MB', featured: true, installed: false },
       { id: 'scratch', name: 'Scratch 3 (Güncel Sürüm)', flatpak: 'edu.mit.Scratch', desc: 'Blok tabanlı kodlama ile oyun ve animasyon yapmayı öğreten güncel Scratch masaüstü sürümü', cat: 'dev', school: true, size: '180 MB', featured: true, installed: false },
-      { id: 'gcompris', name: 'GCompris Eğitim Paketi', deb: 'gcompris', desc: '2-10 yaş için 100ü aşkın eğitsel etkinlik: okuma, matematik, fen ve bilgisayar kullanımı', cat: 'util', school: true, size: '95 MB', featured: true, installed: false },
+      { id: 'gcompris', name: 'GCompris Eğitim Paketi', deb: 'gcompris-qt', desc: '2-10 yaş için 100ü aşkın eğitsel etkinlik: okuma, matematik, fen ve bilgisayar kullanımı', cat: 'util', school: true, size: '95 MB', featured: true, installed: false },
       { id: 'tuxmath', name: 'TuxMath Matematik Oyunu', deb: 'tuxmath', desc: 'Dört işlemi arcade oyunuyla öğreten eğlenceli matematik alıştırması', cat: 'util', school: true, size: '18 MB', installed: false },
       { id: 'stellarium', name: 'Stellarium planetaryumu', deb: 'stellarium', desc: 'Fen ve astronomi dersleri için gerçek zamanlı gökyüzü ve gezegen simülasyonu', cat: 'graphics', school: true, size: '110 MB', installed: false },
       { id: 'geogebra', name: 'GeoGebra Matematik', flatpak: 'org.geogebra.GeoGebra', desc: 'Geometri, cebir ve grafik çizimleri için ders standardı etkileşimli matematik aracı', cat: 'office', school: true, size: '120 MB', installed: false },
@@ -3753,7 +3756,7 @@
       { id: 'iperf3', name: 'iPerf3 Bant Genişliği Testi', deb: 'iperf3', desc: 'Ağ verimini ve maksimum TCP/UDP bant genişliğini ölçen araç', cat: 'net', size: '2 MB', installed: false },
       { id: 'whois', name: 'Whois Sorgulayıcı', deb: 'whois', desc: 'Alan adı ve IP bloğu tescil kayıtlarını RFC standardında sorgulama', cat: 'net', size: '1 MB', installed: false },
       { id: 'mtr-tiny', name: 'MTR Ağ Tanı Aracı', deb: 'mtr-tiny', desc: 'Ping ve traceroute yeteneklerini tek raporda birleştiren teşhis aracı', cat: 'net', size: '2 MB', installed: false },
-      { id: 'dnsutils', name: 'DNS Araçları (Dig / Nslookup)', deb: 'dnsutils', desc: 'Alan adı sunucusu kayıtlarını ayrıntılı sorgulama ve test kiti', cat: 'net', size: '4 MB', installed: false },
+      { id: 'dnsutils', name: 'DNS Araçları (Dig / Nslookup)', deb: 'bind9-dnsutils', desc: 'Alan adı sunucusu kayıtlarını ayrıntılı sorgulama ve test kiti', cat: 'net', size: '4 MB', installed: false },
       { id: 'openssh-client', name: 'OpenSSH Güvenli Kabuk İstemcisi', deb: 'openssh-client', desc: 'Uzak sunuculara şifreli terminal erişimi ve tünelleme', cat: 'net', size: '8 MB', installed: false },
 
       // 5. OFİS & ÜRETKENLİK (OFFICE)
@@ -3798,7 +3801,7 @@
       { id: 'ripgrep', name: 'Ripgrep Hızlı Metin Tarayıcı (rg)', deb: 'ripgrep', desc: 'Büyük kod depolarında saniyeler içinde regex arayan Rust tabanlı araç', cat: 'util', size: '6 MB', installed: false },
       { id: 'bat', name: 'Bat Renkli Cat Alternatifi', deb: 'bat', desc: 'Git entegrasyonlu ve sözdizimi renklendirmeli dosya okuyucu', cat: 'util', size: '5 MB', installed: false },
       { id: 'fd-find', name: 'FD Hızlı Dosya Arama', deb: 'fd-find', desc: 'Find komutuna kıyasla kat kat hızlı ve kullanıcı dostu arama aracı', cat: 'util', size: '3 MB', installed: false },
-      { id: 'midnight-commander', name: 'Midnight Commander (MC)', deb: 'midnight-commander', desc: 'Klasik Norton Commander tarzı çift panelli konsol dosya yöneticisi', cat: 'util', size: '10 MB', installed: false },
+      { id: 'midnight-commander', name: 'Midnight Commander (MC)', deb: 'mc', desc: 'Klasik Norton Commander tarzı çift panelli konsol dosya yöneticisi', cat: 'util', size: '10 MB', installed: false },
       { id: 'ranger', name: 'Ranger Konsol Dosya Yöneticisi', deb: 'ranger', desc: 'Vim tuş takımı ve önizleme panellerine sahip terminal dosya tarayıcısı', cat: 'util', size: '6 MB', installed: false },
 
       // 8. KATEGORİ GENİŞLETMESİ — mağaza kapsamı genişletildi (oyun, ses, disk, güvenlik, iletişim)
@@ -3826,7 +3829,7 @@
       // 8e. İLETİŞİM & GÜNLÜK İŞLER
       { id: 'flatpak-signal', name: 'Signal Private Messenger', flatpak: 'org.signal.Signal', desc: 'Uçtan uca şifreli, gizlilik odaklı mesajlaşma uygulaması', cat: 'net', size: '160 MB', installed: false },
       { id: 'evolution', name: 'Evolution E-Posta & Ajanda', deb: 'evolution', desc: 'E-posta, takvim, görev ve kişi yönetiminin tamamını içeren istemci', cat: 'office', size: '110 MB', installed: false },
-      { id: 'anki', name: 'Anki Bilgi Kartları (Öğrenme)', deb: 'anki', desc: 'Aralıklı tekrar yöntemiyle kelime ve ders çalışma aracı', cat: 'office', size: '90 MB', installed: false },
+      { id: 'anki', name: 'Anki Bilgi Kartları (Öğrenme)', flatpak: 'net.ankiweb.Anki', desc: 'Aralıklı tekrar yöntemiyle kelime ve ders çalışma aracı', cat: 'office', size: '140 MB', installed: false },
       { id: 'ghostwriter', name: 'ghostwriter Odaklanmış Metin Düzenleyici', deb: 'ghostwriter', desc: 'Markdown için bölümsüz, odaklanmış yazma ortamı', cat: 'office', size: '8 MB', installed: false },
 
       // 8f. GELİŞTİRME & GRAFİK
@@ -3855,7 +3858,7 @@
       { id: 'gsmartcontrol', name: 'GSmartControl Disk Taraması', deb: 'gsmartcontrol', desc: 'Disk S.M.A.R.T. değerlerini grafik arayüzden inceleme aracı', cat: 'sys', size: '6 MB', installed: false },
       { id: 'testdisk', name: 'TestDisk & PhotoRec Veri Kurtarma', deb: 'testdisk', desc: 'Silinmiş bölümleri onarır, kaybolan dosyaları kurtarır', cat: 'sys', size: '6 MB', installed: false },
       { id: 'clonezilla', name: 'Clonezilla Disk Klonlama', deb: 'clonezilla', desc: 'Bütün diski ya da bölümleri imaj hâlinde klonlama aracı', cat: 'sys', size: '230 MB', installed: false },
-      { id: 'gpa', name: 'GPA Şifreleme & GPG Yöneticisi', deb: 'gpa', desc: 'Dosya, e-posta ve dijital imzalar için GNU Privacy Guard grafiksel şifreleme aracı', cat: 'sys', size: '6 MB', installed: false },
+      { id: 'seahorse', name: 'Seahorse GPG & Anahtar Yöneticisi', deb: 'seahorse', desc: 'Dosya, e-posta, SSH ve PGP anahtarları için grafiksel şifreleme aracı', cat: 'sys', size: '6 MB', installed: false },
       { id: 'cryptsetup', name: 'Cryptsetup LUKS Araçları', deb: 'cryptsetup', desc: 'LUKS şifreli bölümleri oluşturma ve açma araç seti', cat: 'sys', size: '8 MB', installed: false },
       { id: 'borgbackup', name: 'BorgBackup Dedüp Yedek', deb: 'borgbackup', desc: 'Dedüpülasyonlu, şifreli, sıkıştırılmış yedekleme çözümü', cat: 'sys', size: '9 MB', installed: false },
       { id: 'duplicity', name: 'Duplicity Şifreli Yedek', deb: 'duplicity', desc: 'Şifreli artımlı yedeği uzak sunuculara yedekleme aracı', cat: 'sys', size: '7 MB', installed: false },
@@ -3865,7 +3868,7 @@
       { id: 'gajim', name: 'Gajim XMPP Sohbet', deb: 'gajim', desc: 'Açık standart XMPP mesajlaşma istemcisine modern arayüz', cat: 'net', size: '16 MB', installed: false },
       { id: 'hexchat', name: 'HexChat IRC İstemcisi', deb: 'hexchat', desc: 'Kanal favorileri ve eklentilerle zengin klasik IRC istemcisi', cat: 'net', size: '12 MB', installed: false },
       { id: 'mumble', name: 'Mumble Düşük Gecikmeli Sesli', deb: 'mumble', desc: 'Oyun toplulukları için düşük gecikmeli sesli konuşma yazılımı', cat: 'net', size: '14 MB', installed: false },
-      { id: 'linphone', name: 'Linphone VoIP & Görüntülü', deb: 'linphone', desc: 'SIP temelli ücretsiz arama ve görüntülü konuşma istemcisi', cat: 'net', size: '50 MB', installed: false },
+      { id: 'twinkle', name: 'Twinkle VoIP & SIP Telefon', deb: 'twinkle', desc: 'SIP protokolü üzerinden ücretsiz sesli arama ve iletişim istemcisi', cat: 'net', size: '18 MB', installed: false },
       { id: 'syncthing', name: 'Syncthing Cihazlar Arası Eşitleme', deb: 'syncthing', desc: 'Web arayüzlü, sunucusuz sürekli dosya senkronizasyonu', cat: 'net', size: '30 MB', installed: false },
       { id: 'weechat', name: 'WeeChat Modüler Sohbet', deb: 'weechat', desc: 'Eklenti sistemi güçlendirmesine açık terminal sohbeti', cat: 'net', size: '7 MB', installed: false },
 
@@ -3913,7 +3916,7 @@
       { id: 'shellcheck', name: 'ShellCheck Betik Analizcisi', deb: 'shellcheck', desc: 'Bash ve sh betikleri için statik hata ve güvenlik denetleyicisi', cat: 'dev', size: '15 MB', installed: false },
       { id: 'cmake', name: 'CMake Derleme Yöneticisi', deb: 'cmake', desc: 'C/C++ projeleri için endüstri standardı çapraz derleme sistemi', cat: 'dev', size: '32 MB', installed: false },
       { id: 'ninja-build', name: 'Ninja Derleme Motoru', deb: 'ninja-build', desc: 'Hıza odaklanmış küçük ve ultra hızlı kaynak kod derleme sistemi', cat: 'dev', size: '2 MB', installed: false },
-      { id: 'flatpak-dbeaver', name: 'DBeaver Evrensel DB Yöneticisi', flatpak: 'org.jkiss.DBeaverCE', desc: 'MySQL, PostgreSQL, SQLite ve Oracle destekli gelişmiş SQL editörü', cat: 'dev', size: '130 MB', installed: false },
+      { id: 'flatpak-dbeaver', name: 'DBeaver Evrensel DB Yöneticisi', flatpak: 'io.dbeaver.DBeaverCommunity', desc: 'MySQL, PostgreSQL, SQLite ve Oracle destekli gelişmiş SQL editörü', cat: 'dev', size: '130 MB', installed: false },
       { id: 'flatpak-postman', name: 'Postman API Geliştirme', flatpak: 'com.getpostman.Postman', desc: 'REST, GraphQL ve WebSocket API tasarım ve test platformu', cat: 'dev', size: '160 MB', installed: false },
       { id: 'flatpak-godot', name: 'Godot Oyun Motoru', flatpak: 'org.godotengine.Godot', desc: 'Hafif, güçlü ve açık kaynaklı 2B/3B profesyonel oyun geliştirme motoru', cat: 'dev', size: '85 MB', installed: false },
       { id: 'abiword', name: 'AbiWord Kelime İşlemci', deb: 'abiword', desc: 'Sistem kaynaklarını yormayan hafif ve verimli metin belgesi editörü', cat: 'office', size: '14 MB', installed: false },
@@ -3927,7 +3930,7 @@
       { id: 'rednotebook', name: 'RedNotebook Günlük & Ajanda', deb: 'rednotebook', desc: 'Takvim navigasyonlu, etiketli ve arama destekli kişisel günlük', cat: 'office', size: '8 MB', installed: false },
       { id: 'zim', name: 'Zim Masaüstü Wiki', deb: 'zim', desc: 'Notlar, yapılacaklar ve belgeler için yerel bağlantılı masaüstü wiki', cat: 'office', size: '6 MB', installed: false },
       { id: 'basket', name: 'BasKet Not Pedleri', deb: 'basket', desc: 'Fikirler, resimler, bağlantılar ve görevler için sepet düzenleyici', cat: 'office', size: '12 MB', installed: false },
-      { id: 'speedcrunch', name: 'SpeedCrunch Bilimsel Hesap', deb: 'speedcrunch', desc: '50 basamak hassasiyetli, otomatik tamamlamalı modern hesap makinesi', cat: 'office', size: '5 MB', installed: false },
+      { id: 'speedcrunch', name: 'SpeedCrunch Bilimsel Hesap', flatpak: 'org.speedcrunch.SpeedCrunch', desc: '50 basamak hassasiyetli, otomatik tamamlamalı modern hesap makinesi', cat: 'office', size: '45 MB', installed: false },
       { id: 'qalculate-gtk', name: 'Qalculate! Çok Yönlü Hesaplayıcı', deb: 'qalculate-gtk', desc: 'Birim dönüşümleri, para birimleri ve denklem çözme motoru', cat: 'office', size: '8 MB', installed: false },
       { id: 'flatpak-joplin', name: 'Joplin Şifreli Not Defteri', flatpak: 'net.cozic.joplin_desktop', desc: 'Uçtan uca şifreli, bulut eşitlemeli Markdown not alma uygulaması', cat: 'office', size: '140 MB', installed: false },
       { id: 'flatpak-zotero', name: 'Zotero Akademik Kaynakça', flatpak: 'org.zotero.Zotero', desc: 'Araştırma makaleleri, alıntılar ve akademik kaynak kütüphanesi', cat: 'office', size: '120 MB', installed: false },
@@ -3947,7 +3950,7 @@
       { id: 'sayonara', name: 'Sayonara Hızlı Müzik Çalar', deb: 'sayonara', desc: 'Düşük bellek tüketimli, kütüphane ve dinamik çalma listeli modern müzik çalar', cat: 'media', size: '16 MB', installed: false },
       { id: 'flatpak-vlc', name: 'VLC Media Player Sandboxed', flatpak: 'org.videolan.VLC', desc: 'Flathub izole ortamında çalışan tüm formatları destekleyen medya oynatıcı', cat: 'media', size: '95 MB', installed: false },
       { id: 'pinta', name: 'Pinta Çizim Editörü', flatpak: 'com.github.PintaProject.Pinta', desc: 'Paint.NET benzeri katmanlı, efektli ve basit kullanımlı çizim yazılımı', cat: 'graphics', size: '65 MB', installed: false },
-      { id: 'synfigstudio', name: 'Synfig 2B Animasyon', deb: 'synfigstudio', desc: 'Film kalitesinde 2B vektörel animasyon ve karakter kuklası oluşturma', cat: 'graphics', size: '42 MB', installed: false },
+      { id: 'synfigstudio', name: 'Synfig 2B Animasyon', flatpak: 'org.synfig.SynfigStudio', desc: 'Film kalitesinde 2B vektörel animasyon ve karakter kuklası oluşturma', cat: 'graphics', size: '160 MB', installed: false },
       { id: 'openscad', name: 'OpenSCAD Katı 3B CAD', deb: 'openscad', desc: 'Kod yazarak 3 boyutlu CAD modelleri ve 3D yazıcı tasarımları üretme', cat: 'graphics', size: '25 MB', installed: false },
       { id: 'librecad', name: 'LibreCAD 2B Mühendislik Çizimi', deb: 'librecad', desc: 'Mimari ve mekanik projeler için hassas 2B teknik CAD çizim aracı', cat: 'graphics', size: '32 MB', installed: false },
       { id: 'sweethome3d', name: 'Sweet Home 3D Ev Tasarımı', deb: 'sweethome3d', desc: 'Ev planı çizimi, mobilya yerleşimi ve 3 boyutlu iç mekan gezintisi', cat: 'graphics', size: '55 MB', installed: false },
@@ -3990,11 +3993,11 @@
       // 11. KAPSAM GENİŞLETMESİ III: OKUL, ROBOTİK, YAZICI/TARAYICI VE UZMANLIK PAKETLERİ (100)
       // 11a. OKUL, FEN, DİL & ROBOTİK (16)
       { id: 'thonny', name: 'Thonny Python IDE (Eğitim)', deb: 'thonny', desc: 'Öğrenciler ve öğretmenler için adım adım değişken izlemeli Python geliştirme ortamı', cat: 'dev', school: true, size: '24 MB', installed: false },
-      { id: 'mu-editor', name: 'Mu Kod Editörü (Python & Micro:bit)', deb: 'mu-editor', desc: 'Okullarda Python, Pygame Zero ve BBC micro:bit programlama için sade editör', cat: 'dev', school: true, size: '38 MB', installed: false },
+      { id: 'idle', name: 'IDLE Python Eğitim IDE', deb: 'idle', desc: 'Okullarda Python programlamaya giriş için sade, etkileşimli kabuk ve betik editörü', cat: 'dev', school: true, size: '12 MB', installed: false },
       { id: 'arduino', name: 'Arduino IDE Robotik Kodlama', deb: 'arduino', desc: 'Arduino mikrodenetleyici kartlarını programlama ve seri port izleme ortamı', cat: 'dev', school: true, size: '145 MB', installed: false },
       { id: 'fritzing', name: 'Fritzing Elektronik Devre Tasarımı', deb: 'fritzing', desc: 'Breadboard devre şeması kurma, sensör bağlantısı ve PCB baskı devre çizim aracı', cat: 'dev', school: true, size: '78 MB', installed: false },
       { id: 'kicad', name: 'KiCad Elektronik Şema & PCB Stüdyosu', deb: 'kicad', desc: 'Çok katmanlı elektronik devre şeması, 3B bileşen görüntüleme ve PCB tasarım paketi', cat: 'dev', school: true, size: '380 MB', installed: false },
-      { id: 'oregano', name: 'Oregano Elektronik Devre Simülatörü', deb: 'oregano', desc: 'Şematik devre çizimi ve ngspice tabanlı elektronik sinyal simülasyonu', cat: 'dev', school: true, size: '14 MB', installed: false },
+      { id: 'logisim', name: 'Logisim Mantık Devresi Simülatörü', deb: 'logisim', desc: 'Okullar ve mühendislik dersleri için görsel dijital devre tasarımı ve simülasyon aracı', cat: 'dev', school: true, size: '14 MB', installed: false },
       { id: 'gperiodic', name: 'GPeriodic Kimya Element Tablosu', deb: 'gperiodic', desc: 'Atom ağırlıkları, erime noktaları ve elektron dizilimleriyle hafif periyodik cetvel', cat: 'office', school: true, size: '2 MB', installed: false },
       { id: 'kanagram', name: 'Kanagram Kelime Bulmaca Oyunu', deb: 'kanagram', desc: 'Harfleri karışık verilen kelimeleri çözerek kelime dağarcığını geliştiren eğitim oyunu', cat: 'util', school: true, size: '9 MB', installed: false },
       { id: 'khangman', name: 'KHangMan Kelime Tahmin Oyunu', deb: 'khangman', desc: 'Kategorilere ayrılmış sözcüklerle dil ve imla pratiği sağlayan sınıf oyunu', cat: 'util', school: true, size: '8 MB', installed: false },
@@ -4450,7 +4453,7 @@
       }
       if (nameEl) nameEl.textContent = pkg.name;
       if (leadEl) leadEl.textContent = pkg.desc;
-      if (descEl) descEl.textContent = `${pkg.name}, Ankora Linux Daedalus ortamı için optimize edilmiş güvenilir bir yazılımdır. ${pkg.desc}. Ayaz Masaüstü Ortamı (Ayaz DE) ile pürüzsüz entegrasyon sunar.`;
+      if (descEl) descEl.textContent = `${pkg.name}, Ankora Linux Excalibur ortamı için optimize edilmiş güvenilir bir yazılımdır. ${pkg.desc}. Ayaz Masaüstü Ortamı (Ayaz DE) ile pürüzsüz entegrasyon sunar.`;
       if (sourceEl) sourceEl.textContent = isFlatpak ? 'FLATHUB' : (pkg.action === 'meb-cert' ? 'SİSTEM' : 'APT DEPOSU');
       if (catEl) catEl.textContent = (pkg.cat || 'UYGULAMA').toUpperCase();
       if (sizeEl) sizeEl.textContent = pkg.size || 'Hafif';
@@ -6665,7 +6668,7 @@
         file_name: 'kiosk-ayarlari.md',
         file_type: 'text',
         file_size: 1420,
-        content: `# Ankora Linux 4.6 Kiosk Yapılandırma Raporu\n\n- Taban: Devuan Daedalus (SysVinit)\n- Çekirdek: Linux 6.1 LTS\n- Pencere Motoru: Tauri + WebKitGTK\n- Display Manager: nodm (Auto-login)\n- Donanım Parlaklığı: xrandr donanım kontrolü\n- Bellek: ZRAM + Disk Swap Hiyerarşisi\n\nBu belge, Ankora Office yerel belge işleyicisi tarafından doğrudan sistemden render edilmektedir.`
+        content: `# Ankora Linux 4.6 Kiosk Yapılandırma Raporu\n\n- Taban: Devuan 6 Excalibur (SysVinit)\n- Çekirdek: Linux 6.12 LTS\n- Pencere Motoru: Tauri 2 + WebKitGTK 4.1\n- Display Manager: nodm (Auto-login)\n- Donanım Parlaklığı: xrandr donanım kontrolü\n- Bellek: ZRAM + Disk Swap Hiyerarşisi\n\nBu belge, Ankora Office yerel belge işleyicisi tarafından doğrudan sistemden render edilmektedir.`
       };
       this.renderDocument(doc);
     },
@@ -6738,7 +6741,7 @@
           file_name: name,
           file_type: 'text',
           file_size: 4096,
-          content: `# Ankora Linux 4.6 - Sürüm Notları (Daedalus)\n\n- Taban: Devuan GNU/Linux 5.0 (Daedalus)\n- İnit Sistemi: SysVinit (systemd-free, ultra-lightweight)\n- Arayüz: Tauri 1.5 + Monokrom Minimalist DE\n- Çekirdek: Linux 6.1.0-22-amd64\n\nSistem kararlılığı ve minimum RAM tüketimi garanti edilmektedir.`
+          content: `# Ankora Linux 4.6 - Sürüm Notları (Excalibur)\n\n- Taban: Devuan GNU/Linux 6 (Excalibur)\n- İnit Sistemi: SysVinit (systemd-free, ultra-lightweight)\n- Arayüz: Tauri 2 (WebKitGTK 4.1) + Monokrom Minimalist DE\n- Çekirdek: Linux 6.12 LTS\n\nSistem kararlılığı ve minimum RAM tüketimi garanti edilmektedir.`
         });
       }
     }
@@ -7783,8 +7786,8 @@
           `*Not: Görev listene yeni bir iş eklemek için "görev ekle: [iş adı]" yazabilirsin.*`;
       } else if (q.includes('durum') || q.includes('sistem') || q.includes('bellek') || q.includes('ram') || q.includes('cpu')) {
         reply = `⚡ **Canlı Sistem Durumu & Telemetri:**\n\n` +
-          `• **İşletim Sistemi:** Ankora Linux 4.6.0 "Karayel" (Devuan Daedalus amd64)\n` +
-          `• **Masaüstü Ortamı:** Ayaz DE (Minimalist Tauri & WebKitGTK)\n` +
+          `• **İşletim Sistemi:** Ankora Linux 4.6.0 "Karayel" (Devuan 6 Excalibur amd64)\n` +
+          `• **Masaüstü Ortamı:** Ayaz DE (Minimalist Tauri 2 & WebKitGTK 4.1)\n` +
           `• **İnit & Hizmet Sistemi:** SysVinit (Düşük kaynak tüketimli)\n` +
           `• **Çekirdek:** Linux LTS x86_64\n` +
           `• **Güvenlik & İzolasyon:** Unprivileged sandbox, yerel anahtar kasası\n\n` +
@@ -7931,8 +7934,8 @@
         const sysPromptBase = this.mode === 'developer'
           ? 'Sen Ankora Linux 4.6 ortamında çalışan kıdemli bir Rust, Linux ve Tauri geliştiricisisin.'
           : (this.mode === 'doctor'
-            ? 'Sen Ankora Sistem Doktorusun. Devuan Daedalus (SysVinit) üzerinde bellek, disk, ZRAM, süreç ve güvenlik sorunlarını teşhis edip çözüm sunarsın.'
-            : 'Sen Ankora Linux 4.6 (Daedalus / SysVinit) sistem yöneticisi ve yapay zeka asistanısın. Kullanıcıya Türkçe, net ve teknik olarak kusursuz yanıtlar ver.');
+            ? 'Sen Ankora Sistem Doktorusun. Devuan 6 Excalibur (SysVinit) üzerinde bellek, disk, ZRAM, süreç ve güvenlik sorunlarını teşhis edip çözüm sunarsın.'
+            : 'Sen Ankora Linux 4.6 (Devuan 6 Excalibur / SysVinit) sistem yöneticisi ve yapay zeka asistanısın. Kullanıcıya Türkçe, net ve teknik olarak kusursuz yanıtlar ver.');
         const fullSysPrompt = `${sysPromptBase}\n${teleContext}\n${shotB64 ? '[Kullanıcı güncel bir ekran karesi paylaştı; soruyu görüntüyle birlikte değerlendir.]' : ''}\n${linkContext}\nEğer güvenli bir tanı komutu önermek istersen yanıtın sonuna <<<ACTION:komut|açıklama>>> ekle (Yalnızca: df -h /, free -h, uname -a, uptime, swapon --show, ip -br addr, lscpu, lsblk, ps aux, /usr/local/bin/ankora-doctor).`;
 
         try {
@@ -9129,33 +9132,32 @@
     // birlikte uygulanır (kullanıcı "bütün sistemin teması değişsin" isteği).
     // 'ankora_theme_fullsystem' kaydı ile kapatılabilir.
     THEME_BUNDLES: {
-      'theme-dark':      { wallpaper: 'wallpaper-nordic.svg',        iconset: 'nordic',   accent: '#2563eb' },
-      'theme-light':     { wallpaper: 'wallpaper-aurora.svg',        iconset: 'outline',  accent: '#059669' },
-      'theme-midnight':  { wallpaper: 'wallpaper-obsidian.svg',      iconset: 'ink',      accent: '#7c3aed' },
-      'theme-nord':      { wallpaper: 'wallpaper-zenith.svg',        iconset: 'nordic',   accent: '#ffffff' },
-      'theme-evergreen': { wallpaper: 'wallpaper-topo.svg',          iconset: 'emerald',  accent: '#059669' },
-      'theme-ember':     { wallpaper: 'wallpaper-matrix.svg',        iconset: 'sunset',   accent: '#ea580c' },
-      'theme-arctic':    { wallpaper: 'wallpaper-abstract-lines.svg',iconset: 'pastel',   accent: '#059669' },
-      'theme-cinar':     { wallpaper: 'wallpaper-cinar.svg',         iconset: 'outline',  accent: '#3f6b45' },
-      'theme-meltem':    { wallpaper: 'wallpaper-meltem.svg',        iconset: 'outline',  accent: '#0d7a8c' },
-      'theme-kor':       { wallpaper: 'wallpaper-kor.svg',           iconset: 'sunset',   accent: '#e08a3c' },
-      'theme-dem':       { wallpaper: 'wallpaper-dem.svg',           iconset: 'monokrom', accent: '#d64545' },
-      'theme-bogaz':     { wallpaper: 'wallpaper-bogaz.svg',         iconset: 'ink',      accent: '#c9a24b' },
-      'theme-ayna':      { wallpaper: 'wallpaper-ayna.svg',          iconset: 'monokrom', accent: '#06b6d4' },
-      'theme-cumhuriyet':{ wallpaper: 'wallpaper-cumhuriyet.svg',    iconset: 'monokrom', accent: '#e23744' },
-      // Studio ekleyi: masaüstü yönlerinden gelen 10 kompozisyon paketi.
-      // Duvar kağıtları, özel SVG'ler pişene kadar mevcut kurulumbil
-      // kağıtlarla eşlenir (aynı sıcaklıkta olanlarla).
-      'theme-matbaa':    { wallpaper: 'wallpaper-aurora.svg',        iconset: 'outline',  accent: '#b4462a' },
-      'theme-bakir':     { wallpaper: 'wallpaper-obsidian.svg',      iconset: 'monokrom', accent: '#d1794f' },
-      'theme-bostan':    { wallpaper: 'wallpaper-cinar.svg',         iconset: 'outline',  accent: '#3d6b45' },
-      'theme-hat':       { wallpaper: 'wallpaper-bogaz.svg',         iconset: 'ink',      accent: '#c9a24e' },
-      'theme-konsol':    { wallpaper: 'wallpaper-meltem.svg',        iconset: 'monokrom', accent: '#186a3f' },
-      'theme-kesit':     { wallpaper: 'wallpaper-abstract-lines.svg',iconset: 'monokrom', accent: '#b08c00' },
-      'theme-fener':     { wallpaper: 'wallpaper-kor.svg',           iconset: 'sunset',   accent: '#e0553a' },
-      'theme-civata':    { wallpaper: 'wallpaper.svg',               iconset: 'monokrom', accent: '#6d7d0f' },
-      'theme-mina':      { wallpaper: 'wallpaper-topo.svg',          iconset: 'emerald',  accent: '#e8674a' },
-      'theme-meridyen':  { wallpaper: 'wallpaper-nordic.svg',        iconset: 'nordic',   accent: '#2244d8' }
+      'theme-dark':      { wallpaper: 'wallpaper-kobalt.jpg',       iconset: 'nordic',   accent: '#2563eb' },
+      'theme-light':     { wallpaper: 'wallpaper-karli-safak.jpg',  iconset: 'outline',  accent: '#059669' },
+      'theme-midnight':  { wallpaper: 'wallpaper-kozmik.jpg',       iconset: 'ink',      accent: '#7c3aed' },
+      'theme-nord':      { wallpaper: 'wallpaper-gece-yolu.jpg',    iconset: 'nordic',   accent: '#ffffff' },
+      'theme-evergreen': { wallpaper: 'wallpaper-gece-yolu.jpg',    iconset: 'emerald',  accent: '#059669' },
+      'theme-ember':     { wallpaper: 'wallpaper-kozmik.jpg',       iconset: 'sunset',   accent: '#ea580c' },
+      'theme-arctic':    { wallpaper: 'wallpaper-karli-safak.jpg',  iconset: 'pastel',   accent: '#059669' },
+      'theme-cinar':     { wallpaper: 'wallpaper-karli-safak.jpg',  iconset: 'outline',  accent: '#3f6b45' },
+      'theme-meltem':    { wallpaper: 'wallpaper-karli-safak.jpg',  iconset: 'outline',  accent: '#0d7a8c' },
+      'theme-kor':       { wallpaper: 'wallpaper-gece-yolu.jpg',    iconset: 'sunset',   accent: '#e08a3c' },
+      'theme-dem':       { wallpaper: 'wallpaper-kozmik.jpg',       iconset: 'monokrom', accent: '#d64545' },
+      'theme-bogaz':     { wallpaper: 'wallpaper-gece-yolu.jpg',    iconset: 'ink',      accent: '#c9a24b' },
+      'theme-ayna':      { wallpaper: 'wallpaper-kobalt.jpg',       iconset: 'monokrom', accent: '#06b6d4' },
+      'theme-cumhuriyet':{ wallpaper: 'wallpaper-kozmik.jpg',       iconset: 'monokrom', accent: '#e23744' },
+      // Studio ekleri: 10 kompozisyon teması da kendi tonuna göre yeni varsayılan
+      // duvar kağıtlarıyla eşlenir; kullanıcı Ayarlar'dan istediğini seçebilir.
+      'theme-matbaa':    { wallpaper: 'wallpaper-karli-safak.jpg',  iconset: 'outline',  accent: '#b4462a' },
+      'theme-bakir':     { wallpaper: 'wallpaper-kozmik.jpg',       iconset: 'monokrom', accent: '#d1794f' },
+      'theme-bostan':    { wallpaper: 'wallpaper-karli-safak.jpg',  iconset: 'outline',  accent: '#3d6b45' },
+      'theme-hat':       { wallpaper: 'wallpaper-gece-yolu.jpg',    iconset: 'ink',      accent: '#c9a24e' },
+      'theme-konsol':    { wallpaper: 'wallpaper-karli-safak.jpg',  iconset: 'monokrom', accent: '#186a3f' },
+      'theme-kesit':     { wallpaper: 'wallpaper-karli-safak.jpg',  iconset: 'monokrom', accent: '#b08c00' },
+      'theme-fener':     { wallpaper: 'wallpaper-gece-yolu.jpg',    iconset: 'sunset',   accent: '#e0553a' },
+      'theme-civata':    { wallpaper: 'wallpaper-karli-safak.jpg',  iconset: 'monokrom', accent: '#6d7d0f' },
+      'theme-mina':      { wallpaper: 'wallpaper-gece-yolu.jpg',    iconset: 'emerald',  accent: '#e8674a' },
+      'theme-meridyen':  { wallpaper: 'wallpaper-kobalt.jpg',       iconset: 'nordic',   accent: '#2244d8' }
     },
 
     isFullSystemTheme() {
@@ -9163,7 +9165,7 @@
       return SafeStorage.getItem('ankora_theme_fullsystem') !== 'false';
     },
     currentAccent: '#2563eb',
-    currentWallpaper: 'wallpaper-nordic.svg',
+    currentWallpaper: 'wallpaper-kobalt.jpg',
     currentRadius: '6px',
     currentGlass: 'solid',
     currentTaskbarAlign: 'left',
@@ -9174,7 +9176,7 @@
       // 1. Kaydedilmiş tercihleri yükle
       const savedTheme = SafeStorage.getItem('ankora_theme_mode') || 'theme-dark';
       const savedAccent = SafeStorage.getItem('ankora_accent_color') || '#2563eb';
-      const savedWp = SafeStorage.getItem('ankora_wallpaper') || 'wallpaper-nordic.svg';
+      const savedWp = SafeStorage.getItem('ankora_wallpaper') || 'wallpaper-kobalt.jpg';
       const savedRadius = SafeStorage.getItem('ankora_corner_radius') || '6px';
       const savedGlass = SafeStorage.getItem('ankora_window_glass') || 'solid';
       const savedAlign = SafeStorage.getItem('ankora_taskbar_align') || 'center';
@@ -9306,11 +9308,6 @@
         }
         if (bundle.wallpaper) {
           this.setWallpaper(bundle.wallpaper);
-          // X kök penceresi + ~/.config/ankora/wallpaper kalıcı kaydı:
-          // dosya adı gönderilir; Rust /usr/share/ayaz altından çözer.
-          TauriBridge.invoke('set_desktop_wallpaper', { filePath: bundle.wallpaper })
-            .then(() => Terminal.log(`[TEMA] Sistem duvar kağıdı pakete göre değişti: ${bundle.wallpaper}`, 'success'))
-            .catch(() => {});
         }
         Terminal.log(`[TEMA] Tüm sistem teması paketi uygulandı: ${themeName} (simge: ${bundle.iconset}, kağıt: ${bundle.wallpaper})`, 'success');
       }
@@ -9350,6 +9347,7 @@
       this.currentWallpaper = cleanWp;
       const elWp = document.getElementById('desktop-wallpaper');
       if (elWp && cleanWp) {
+        elWp.classList.toggle('is-svg-wp', cleanWp.toLowerCase().endsWith('.svg'));
         elWp.style.backgroundImage = `url("${encodeURI(cleanWp)}")`;
       }
 
@@ -9359,6 +9357,7 @@
 
       if (persist) {
         SafeStorage.setItem('ankora_wallpaper', cleanWp);
+        TauriBridge.invoke('set_desktop_wallpaper', { filePath: cleanWp }).catch(() => {});
         Terminal.log(`[DUVAR KAĞIDI] Arka plan güncellendi: ${cleanWp}`, 'cmd');
       }
     },
@@ -14880,8 +14879,8 @@
 
       // Standart Devuan Kiosk Telemetri Fallback
       this.telemetry = {
-        os_name: 'Devuan GNU/Linux 5 (daedalus)',
-        kernel: 'Linux 6.1.0-22-amd64',
+        os_name: 'Devuan GNU/Linux 6 (excalibur)',
+        kernel: 'Linux 6.12.0-amd64',
         init_system: 'SysVinit (systemd-free)',
         memory_used_mb: 1140,
         memory_total_mb: 8192,

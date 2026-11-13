@@ -1,7 +1,7 @@
 #!/bin/bash
 # ==============================================================================
 # Ankora Linux Sistem Doktoru & Hızlı Onarım Aracı (Ankora Doctor)
-# Devuan GNU/Linux 5 (Daedalus) SysVinit 3.06
+# Devuan GNU/Linux 6 (Excalibur) SysVinit
 # ==============================================================================
 set -euo pipefail
 

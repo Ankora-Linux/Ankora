@@ -78,7 +78,8 @@ def main():
     try:
         html_text = (ROOT / "src/index.html").read_text(encoding="utf-8")
         conf = json.loads((ROOT / "src-tauri/tauri.conf.json").read_text(encoding="utf-8"))
-        conf_csp = conf["tauri"]["security"]["csp"]
+        conf_sec = (conf.get("app") or conf.get("tauri") or {}).get("security") or {}
+        conf_csp = conf_sec["csp"]
         check("CSP eşitliği (html == tauri.conf)", conf_csp in html_text,
               "" if conf_csp in html_text else "tauri.conf CSP'si index.html içinde bulunamadı")
     except Exception as e:
