@@ -3502,8 +3502,8 @@ exit 0
             wm_class = parts[2].strip()
             title = parts[4].strip() if len(parts) >= 5 else parts[3].strip()
             lower_class = wm_class.lower()
-            lower_title = title.to_lowercase() if hasattr(title, 'to_lowercase') else title.lower()
-            _cls_parts = set(re.split(r'[.\s]+', lower_class))
+            lower_title = title.lower()
+            _cls_parts = set(lower_class.replace('.', ' ').split())
             if any(k in lower_class for k in ('ayaz', 'openbox', 'trayer', 'dunst', 'xfdesktop', 'nautilus-desktop', 'nemo-desktop', 'pcmanfm-desktop')) or 'desktop' in _cls_parts or 'ayaz — ankora' in lower_title or title == 'Desktop':
                 continue
             app_name = wm_class.split('.')[-1] if '.' in wm_class else wm_class
