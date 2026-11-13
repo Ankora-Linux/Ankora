@@ -1,6 +1,6 @@
 #!/bin/bash
 # ==============================================================================
-# Ankora Linux 3.5 (Daedalus) — Canlı (Live) ISO Derleme Betiği
+# Ankora Linux 4.6 (Excalibur) — Canlı (Live) ISO Derleme Betiği
 # Masaüstü Ortamı: Ayaz DE (Tauri + WebKitGTK + SysVinit Core)
 # Mimari: x86_64 (UEFI + BIOS Hibrit Boot)
 # ==============================================================================
@@ -13,7 +13,7 @@ WORK_DIR="/var/tmp/ankora-iso-build"
 CHROOT_DIR="$WORK_DIR/chroot"
 IMAGE_DIR="$WORK_DIR/image"
 DEVUAN_MIRROR="http://deb.devuan.org/merged"
-DEVUAN_SUITE="daedalus"
+DEVUAN_SUITE="excalibur"
 
 # Tek sürüm kaynağı: src-tauri/tauri.conf.json (devrik: VERSION).
 # ISO adı ve GRUB menü başlıkları bu sürümden türetilir; sabit "3.5"
@@ -31,7 +31,7 @@ echo
 echo "======================================================================"
 echo "   ANKORA LINUX $AYAZ_VERSION (AYAZ DE) CANLI ISO DERLEME SİSTEMİ      "
 echo "======================================================================"
-echo "Sürüm: $AYAZ_VERSION (Daedalus / SysVinit Core)"
+echo "Sürüm: $AYAZ_VERSION (Excalibur / SysVinit Core)"
 echo "Çıktı Hedefi: $ROOT_DIR/dist/$ISO_NAME"
 echo "======================================================================"
 
@@ -60,38 +60,40 @@ fi
 # Devuan suite betiğini debootstrap için tanımla (Debian host üzerinde eksikse ekle)
 if [ ! -f "/usr/share/debootstrap/scripts/$DEVUAN_SUITE" ]; then
     echo "[BİLGİ] Debootstrap için $DEVUAN_SUITE profili oluşturuluyor..."
-    if [ -f "/usr/share/debootstrap/scripts/bookworm" ]; then
+    if [ -f "/usr/share/debootstrap/scripts/trixie" ]; then
+        ln -sf trixie "/usr/share/debootstrap/scripts/$DEVUAN_SUITE"
+    elif [ -f "/usr/share/debootstrap/scripts/bookworm" ]; then
         ln -sf bookworm "/usr/share/debootstrap/scripts/$DEVUAN_SUITE"
     else
         ln -sf sid "/usr/share/debootstrap/scripts/$DEVUAN_SUITE"
     fi
 fi
 
-# Devuan GPG resmi anahtarlık denetimi
+# Devuan GPG resmi anahtarlık denetimi (Excalibur anahtarları için güncel paket öncelikli)
 LOCAL_KEYRING="$ROOT_DIR/third_party/devuan-keyring/gpg/devuan-archive-keyring.gpg"
 LOCAL_DEB="$ROOT_DIR/third_party/devuan-keyring/devuan-keyring_2022.09.04_all.deb"
 
 if [ ! -f /usr/share/keyrings/devuan-archive-keyring.gpg ] && [ ! -f /etc/apt/trusted.gpg.d/devuan-archive-keyring.gpg ]; then
-    if [ -f "$LOCAL_DEB" ]; then
+    echo "[BİLGİ] Devuan resmi GPG anahtarlığı (devuan-keyring Excalibur) indiriliyor..."
+    wget -qO /tmp/devuan-keyring.deb https://pkgmaster.devuan.org/devuan/pool/main/d/devuan-keyring/devuan-keyring_2026.01.13_all.deb 2>/dev/null \
+        || wget -qO /tmp/devuan-keyring.deb https://pkgmaster.devuan.org/devuan/pool/main/d/devuan-keyring/devuan-keyring_2025.08.09_all.deb 2>/dev/null \
+        || true
+    if [ -f /tmp/devuan-keyring.deb ] && [ -s /tmp/devuan-keyring.deb ]; then
+        dpkg -i /tmp/devuan-keyring.deb 2>/dev/null || apt-get install -f -y 2>/dev/null || true
+        rm -f /tmp/devuan-keyring.deb
+    elif [ -f "$LOCAL_DEB" ]; then
         echo "[BİLGİ] Yerel Devuan anahtarlık paketi kuruluyor ($LOCAL_DEB)..."
         dpkg -i "$LOCAL_DEB" 2>/dev/null || true
-    elif [ ! -f "$LOCAL_KEYRING" ]; then
-        echo "[BİLGİ] Devuan resmi GPG anahtarlığı (devuan-keyring) aranıyor..."
-        wget -qO /tmp/devuan-keyring.deb https://pkgmaster.devuan.org/devuan/pool/main/d/devuan-keyring/devuan-keyring_2022.09.04_all.deb 2>/dev/null || true
-        if [ -f /tmp/devuan-keyring.deb ] && [ -s /tmp/devuan-keyring.deb ]; then
-            dpkg -i /tmp/devuan-keyring.deb 2>/dev/null || apt-get install -f -y 2>/dev/null || true
-            rm -f /tmp/devuan-keyring.deb
-        fi
     fi
 fi
 
 KEYRING_ARGS=()
-if [ -f "$LOCAL_KEYRING" ]; then
-    KEYRING_ARGS=("--keyring=$LOCAL_KEYRING")
-elif [ -f /usr/share/keyrings/devuan-archive-keyring.gpg ]; then
+if [ -f /usr/share/keyrings/devuan-archive-keyring.gpg ]; then
     KEYRING_ARGS=("--keyring=/usr/share/keyrings/devuan-archive-keyring.gpg")
 elif [ -f /etc/apt/trusted.gpg.d/devuan-archive-keyring.gpg ]; then
     KEYRING_ARGS=("--keyring=/etc/apt/trusted.gpg.d/devuan-archive-keyring.gpg")
+elif [ -f "$LOCAL_KEYRING" ]; then
+    KEYRING_ARGS=("--keyring=$LOCAL_KEYRING")
 else
     # Anahtarlıksız kurulum imzasız taban sistem demektir; sessizce geçilmez.
     echo "[HATA] Devuan GPG anahtarlığı bulunamadı:" >&2
@@ -125,8 +127,8 @@ mkdir -p "$WORK_DIR"
 find "$WORK_DIR" -mindepth 1 -maxdepth 1 -exec rm -rf {} + 2>/dev/null || true
 mkdir -p "$CHROOT_DIR" "$IMAGE_DIR/live" "$IMAGE_DIR/boot/grub" "$ROOT_DIR/dist"
 
-# 4. Debootstrap ile Temel Devuan Daedalus Sisteminin İndirilmesi
-echo "[2/8] Devuan Daedalus SysVinit temel tabanı kuruluyor (debootstrap)..."
+# 4. Debootstrap ile Temel Devuan Excalibur Sisteminin İndirilmesi
+echo "[2/8] Devuan Excalibur SysVinit temel tabanı kuruluyor (debootstrap)..."
 debootstrap --arch=amd64 \
     --variant=minbase \
     "${KEYRING_ARGS[@]}" \
@@ -137,7 +139,7 @@ debootstrap --arch=amd64 \
 mkdir -p "$CHROOT_DIR/etc/apt/trusted.gpg.d" "$CHROOT_DIR/usr/share/keyrings"
 cp -f /usr/share/keyrings/devuan* "$CHROOT_DIR/etc/apt/trusted.gpg.d/" 2>/dev/null || true
 cp -f /usr/share/keyrings/devuan* "$CHROOT_DIR/usr/share/keyrings/" 2>/dev/null || true
-if [ -d "$ROOT_DIR/third_party/devuan-keyring/gpg" ]; then
+if ! ls "$CHROOT_DIR/usr/share/keyrings/"devuan*.gpg >/dev/null 2>&1 && [ -d "$ROOT_DIR/third_party/devuan-keyring/gpg" ]; then
     cp -f "$ROOT_DIR/third_party/devuan-keyring/gpg/"devuan* "$CHROOT_DIR/etc/apt/trusted.gpg.d/" 2>/dev/null || true
     cp -f "$ROOT_DIR/third_party/devuan-keyring/gpg/"devuan* "$CHROOT_DIR/usr/share/keyrings/" 2>/dev/null || true
 fi
@@ -225,9 +227,9 @@ apt_update_retry() {
 
 # Depo kaynakları
 cat << 'SOURCES' > /etc/apt/sources.list
-deb http://deb.devuan.org/merged daedalus main contrib non-free non-free-firmware
-deb http://deb.devuan.org/merged daedalus-security main contrib non-free non-free-firmware
-deb http://deb.devuan.org/merged daedalus-updates main contrib non-free non-free-firmware
+deb http://deb.devuan.org/merged excalibur main contrib non-free non-free-firmware
+deb http://deb.devuan.org/merged excalibur-security main contrib non-free non-free-firmware
+deb http://deb.devuan.org/merged excalibur-updates main contrib non-free non-free-firmware
 SOURCES
 
 # trusted=yes imza denetimini tamamen kapatıyordu. Anahtarlık yukarıda
@@ -380,9 +382,8 @@ df -h / || true
 # FARZ 3: WebKitGTK, ses ve kiosk bileşenleri + Kurulum Araçları + Brave
 # -----------------------------------------------------------------------
 apt-get install -y --no-install-recommends \
-    libwebkit2gtk-4.0-37 \
-    libjavascriptcoregtk-4.0-18 \
     libwebkit2gtk-4.1-0 \
+    libjavascriptcoregtk-4.1-0 \
     libjavascriptcoregtk-4.1-0 \
     libgtk-3-0 \
     libayatana-appindicator3-1 \
@@ -390,7 +391,6 @@ apt-get install -y --no-install-recommends \
     python3-gi \
     python3-gi-cairo \
     python3-cairo \
-    gir1.2-webkit2-4.0 \
     gir1.2-webkit2-4.1 \
     gir1.2-gtk-3.0 \
     bubblewrap \
@@ -402,7 +402,8 @@ apt-get install -y --no-install-recommends \
     network-manager \
     bluez \
     udisks2 \
-    policykit-1 \
+    polkitd \
+    pkexec \
     fonts-inter \
     fonts-noto-core \
     fonts-noto-color-emoji \
@@ -450,12 +451,11 @@ apt-get install -y --no-install-recommends \
     mesa-utils \
     zram-tools \
     lxpolkit \
-    policykit-1-gnome \
     xsettingsd \
     trayer \
     playerctl \
     ntfs-3g \
-    p7zip-full \
+    7zip \
     zip \
     unzip \
     gvfs \
@@ -512,10 +512,10 @@ echo "[BİLGİ] Brave kuruldu ve varsayılan tarayıcı yapıldı: $(dpkg-query 
 
 # -----------------------------------------------------------------------
 # GÜVENLİK: DSA sınıfı çekirdek/paket yamaları — debootstrap tabanı
-# daedalus-security'deki son sürümlere çekilir; ISO bayat çekirdekle
-# çıkmaz (ör. DSA-6528-1 sonrası 6.1.187-1).
+# excalibur-security'deki son sürümlere çekilir; ISO bayat çekirdekle
+# çıkmaz (ör. güncel Linux 6.12 LTS güvenlik yamaları).
 # -----------------------------------------------------------------------
-echo "[GÜVENLİK] Güvenlik güncellemeleri uygulanıyor (daedalus-security)..."
+echo "[GÜVENLİK] Güvenlik güncellemeleri uygulanıyor (excalibur-security)..."
 apt-get update -qq
 apt-get -y dist-upgrade
 echo "[GÜVENLİK] linux-image-amd64 = $(dpkg-query -W -f='${Version}' linux-image-amd64 2>/dev/null || echo ?)"
@@ -914,9 +914,9 @@ update-initramfs -u -k all
 
 # Canlı imaj için resmi kaynak listesi
 cat << 'SOURCES' > /etc/apt/sources.list
-deb http://deb.devuan.org/merged daedalus main contrib non-free non-free-firmware
-deb http://deb.devuan.org/merged daedalus-security main contrib non-free non-free-firmware
-deb http://deb.devuan.org/merged daedalus-updates main contrib non-free non-free-firmware
+deb http://deb.devuan.org/merged excalibur main contrib non-free non-free-firmware
+deb http://deb.devuan.org/merged excalibur-security main contrib non-free non-free-firmware
+deb http://deb.devuan.org/merged excalibur-updates main contrib non-free non-free-firmware
 SOURCES
 
 # Son temizlik
@@ -959,11 +959,11 @@ cat << 'KIOSKTXT' > "$BDIR/kiosk-ayarlari.txt"
 Ankora Linux 4.6.0 — Kiosk Yapılandırma Raporu
 =============================================
 
-Taban            : Devuan GNU/Linux 5 (daedalus)
+Taban            : Devuan GNU/Linux 6 (excalibur)
 Init sistemi     : SysVinit (systemd yok)
-Çekirdek         : Linux 6.1 LTS
+Çekirdek         : Linux 6.12 LTS
 Masaüstü         : Ayaz DE (Ayaz — Ankora Linux)
-Pencere motoru   : Tauri 1.5 + WebKitGTK
+Pencere motoru   : Tauri 2 + WebKitGTK 4.1
 Otomatik giriş   : tty1 getty --autologin ankora → startx
 Ekran düzeltmesi : Yalnızca çözünürlük çok düşükse xrandr -s 1280x800
 Paket yöneticisi : Yazılım Mağazası (apt tabanlı)
@@ -974,9 +974,9 @@ KIOSKTXT
 cat << 'KIOSKMD' > "$BDIR/kiosk-ayarlari.md"
 # Ankora Linux 4.6.0 — Kiosk Yapılandırma Raporu
 
-- Taban: Devuan Daedalus (SysVinit, systemd-free)
-- Çekirdek: Linux 6.1 LTS
-- Pencere motoru: Tauri + WebKitGTK
+- Taban: Devuan 6 Excalibur (SysVinit, systemd-free)
+- Çekirdek: Linux 6.12 LTS
+- Pencere motoru: Tauri 2 + WebKitGTK 4.1
 - Otomatik giriş: tty1 getty --autologin ankora → startx
 - Ekran: xrandr donanım kontrolü, yalnız düşük çözünürlükte düzeltme
 - Bellek: ZRAM + disk swap hiyerarşisi
@@ -1095,9 +1095,9 @@ os.environ['PATH'] = _SBIN_PATH + os.pathsep + os.environ.get('PATH', '')
 import gi
 gi.require_version('Gtk', '3.0')
 try:
-    gi.require_version('WebKit2', '4.0')
-except ValueError:
     gi.require_version('WebKit2', '4.1')
+except ValueError:
+    gi.require_version('WebKit2', '4.0')
 from gi.repository import Gtk, WebKit2, Gdk, GLib
 
 PORT = 49152
@@ -2850,7 +2850,7 @@ exit 0
         except Exception:
             pass
 
-        kernel = 'Linux 6.1.0-22-amd64'
+        kernel = 'Linux 6.12.0-amd64'
         try:
             with open('/proc/version', 'r') as f:
                 kernel = ' '.join(f.read().split()[:3])
@@ -2860,7 +2860,7 @@ exit 0
         bat = _battery_state()
         du = _disk_usage()
         return {
-            'os_name': 'Devuan GNU/Linux 5 (daedalus)',
+            'os_name': 'Devuan GNU/Linux 6 (excalibur)',
             'kernel': kernel,
             'init_system': 'SysVinit (systemd-free)',
             'memory_used_mb': mem_used,
@@ -4513,7 +4513,7 @@ exit 0
         cpu_pct = tele.get('cpu_percent') or 0.0
         uptime_mins = int((tele.get('uptime_seconds') or 0) // 60)
         os_name = tele.get('os_name') or 'Ankora Linux 4.6.0'
-        kernel = tele.get('kernel') or 'Linux 6.1'
+        kernel = tele.get('kernel') or 'Linux 6.12'
         init_sys = tele.get('init_system') or 'SysVinit'
 
         def _parse_action(text):
@@ -4541,7 +4541,7 @@ exit 0
 
         tele_ctx = f"[Sistem Özeti: {os_name} | {kernel} | {init_sys} | RAM: {ram_used}/{ram_tot} MB (%{ram_pct}) | CPU: {cpu_cores} çekirdek (%{cpu_pct}) | Disk: {disk_used}/{disk_tot} GB (%{disk_pct})]"
         sys_prompt = (
-            "Sen Ankora Linux 4.6.0 (Devuan Daedalus, SysVinit) sistem yöneticisi ve tanılama ajanısın. "
+            "Sen Ankora Linux 4.6.0 (Devuan 6 Excalibur, SysVinit) sistem yöneticisi ve tanılama ajanısın. "
             "Kullanıcıya Türkçe, net ve teknik yanıtlar ver. Gerekirse yanıtının sonuna şu formatta onaylı eylem ekle: "
             "<<<ACTION:{\"command\":\"izin_verilen_komut\",\"desc\":\"Açıklama\"}>>>\n" + tele_ctx
         )
@@ -6375,7 +6375,7 @@ mkdir -p "$CHROOT_DIR/usr/share/ayaz"
 # urlparse okur; Devuan kimliğiyle "Ankora Linux <sürüm>" görünmeli (hata #2).
 if [ -f "$CHROOT_DIR/etc/os-release" ]; then
     sed -i -E '/^(PRETTY_NAME|VERSION)=/d' "$CHROOT_DIR/etc/os-release"
-    sed -i "1aPRETTY_NAME=\"Ankora Linux ${AYAZ_VERSION} Karayel (Daedalus)\"\nVERSION=\"${AYAZ_VERSION} (Karayel)\"\nVERSION_ID=\"${AYAZ_VERSION}\"" "$CHROOT_DIR/etc/os-release"
+    sed -i "1aPRETTY_NAME=\"Ankora Linux ${AYAZ_VERSION} Karayel (Excalibur)\"\nVERSION=\"${AYAZ_VERSION} (Karayel)\"\nVERSION_ID=\"${AYAZ_VERSION}\"" "$CHROOT_DIR/etc/os-release"
 fi
 cat > "$CHROOT_DIR/usr/share/ayaz/manifest.json" <<MANIFEST_JSON
 {
@@ -6385,7 +6385,7 @@ cat > "$CHROOT_DIR/usr/share/ayaz/manifest.json" <<MANIFEST_JSON
   "build_date": "${BUILD_DATE}",
   "git_revision": "${GIT_REV}",
   "architecture": "amd64",
-  "base": "Devuan GNU/Linux (Daedalus)",
+  "base": "Devuan GNU/Linux 6 (Excalibur)",
   "init_system": "SysVinit",
   "image_type": "hybrid live ISO"
 }

@@ -2,7 +2,7 @@
 # Ankora Ayaz DE update helper permissions
 # GÜVENLIK: Yalnızca belirli güncelleme yardımcılarına sınırlı NOPASSWD erişimi
 # /tmp yerine güvenli staging dizini kullanılır (/var/cache/ayaz-updates/)
-# Güç komutları usr-merge yolunun iki varyantıyla verilir (Devuan Daedalus'ta
+# Güç komutları usr-merge yolunun iki varyantıyla verilir (Devuan 6 Excalibur'da
 # /sbin, /usr/sbin'a sembolik bağdır; kurulu sistemlerde ikisi de uygulanır).
 # Not: install-deb-file yetkisiz NOPASSWD listesinden bilerek hariç tutulur;
 # yerel .deb kurulumu kurulu sistemlerde pkexec (parola onayı) gerektirir.

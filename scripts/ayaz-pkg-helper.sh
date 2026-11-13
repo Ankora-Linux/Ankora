@@ -1,7 +1,7 @@
 #!/bin/bash
 # ==============================================================================
 # Ayaz Paket Yöneticisi Yardımcısı (Ayaz Package Helper)
-# Ankora Linux (Devuan Daedalus SysVinit) Güvenli Paket İşlem Betiği
+# Ankora Linux (Devuan 6 Excalibur SysVinit) Güvenli Paket İşlem Betiği
 # ==============================================================================
 set -euo pipefail
 

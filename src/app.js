@@ -142,8 +142,11 @@
     async invoke(cmd, args = {}) {
       // 1. Rust Tauri Native (derlenmiş Tauri binary içinde çalışıyorsa)
       //    Bu köprü varsa hata gerçek bir hatadır: yutulmaz, çağırana iletilir.
-      if (typeof window !== 'undefined' && window.__TAURI__ && window.__TAURI__.invoke) {
-        return await window.__TAURI__.invoke(cmd, args);
+      const tauriInvoke = (typeof window !== 'undefined' && window.__TAURI__)
+        ? (window.__TAURI__.core?.invoke || window.__TAURI__.invoke)
+        : null;
+      if (tauriInvoke) {
+        return await tauriInvoke(cmd, args);
       }
 
       // 2. WebKit2GTK MessageHandler Native IPC (yerel process içi çağrı)
@@ -274,8 +277,8 @@
 
         case 'get_system_telemetry':
           return {
-            os_name: 'Devuan GNU/Linux 5 (daedalus)',
-            kernel: 'Linux 6.1.0-22-amd64 (Tauri Native)',
+            os_name: 'Devuan GNU/Linux 6 (excalibur)',
+            kernel: 'Linux 6.12.0-amd64 (Tauri Native)',
             init_system: 'SysVinit (systemd-free)',
             memory_used_mb: 110,
             memory_total_mb: 8192,
@@ -322,7 +325,7 @@
             has_update: false,
             current_version: '4.6.0',
             latest_version: '4.6.0',
-            release_name: 'Ayaz DE v4.6.0 (Daedalus / Son Kararlı Sürüm)',
+            release_name: 'Ayaz DE v4.6.0 (Excalibur / Son Kararlı Sürüm)',
             release_notes: '## Ayaz DE v4.6.0\n- Ankora Linux için geliştirilen minimalist masaüstü ortamı.\n- SysVinit uyumlu Kiosk tasarımı.\n- Güvenlik duvarı ve yerel AI ajan entegrasyonu.',
             download_url: null,
             published_at: new Date().toISOString(),
@@ -359,7 +362,7 @@
             };
           }
           return {
-            reply: 'Ankora AI Yerel Teşhis Motoru (v4.6) aktif.\n• Çekirdek: Linux 6.1 LTS (Devuan Daedalus)\n• İnit: SysVinit (PID 1)\nSistem doktoru, bellek/disk analizi, süreç denetimi veya ZRAM sorguları için hızlı etiketleri kullanabilir ya da API Ayarları üzerinden bulut anahtarı bağlayabilirsiniz.',
+            reply: 'Ankora AI Yerel Teşhis Motoru (v4.6) aktif.\n• Çekirdek: Linux 6.12 LTS (Devuan 6 Excalibur)\n• İnit: SysVinit (PID 1)\nSistem doktoru, bellek/disk analizi, süreç denetimi veya ZRAM sorguları için hızlı etiketleri kullanabilir ya da API Ayarları üzerinden bulut anahtarı bağlayabilirsiniz.',
             has_action: false,
             action_command: null,
             action_desc: null,
@@ -3695,7 +3698,7 @@
       { id: 'btop', name: 'Btop Zengin Donanım Monitörü', deb: 'btop', desc: 'Modern görsel grafiklerle donanım yükünü gösteren monitör', cat: 'sys', size: '6 MB', installed: false },
       { id: 'git', name: 'Git Kaynak Kod Sürüm Kontrolü', deb: 'git', desc: 'Yazılım geliştiriciler için endüstri standardı kod versiyon kontrol sistemi', cat: 'dev', size: '36 MB', installed: false },
       { id: 'python3', name: 'Python 3 Programlama Dili', deb: 'python3', desc: 'Modern yapay zeka, veri analitiği ve otomasyon dili', cat: 'dev', size: '16 MB', installed: false },
-      { id: 'p7zip-full', name: '7-Zip Yüksek Sıkıştırmalı Arşivleyici', deb: 'p7zip-full', desc: 'ZIP, 7z, TAR ve RAR arşivlerini açma ve sıkıştırma aracı', cat: 'util', size: '5 MB', installed: false },
+      { id: 'p7zip-full', name: '7-Zip Yüksek Sıkıştırmalı Arşivleyici', deb: '7zip', desc: 'ZIP, 7z, TAR ve RAR arşivlerini açma ve sıkıştırma aracı', cat: 'util', size: '5 MB', installed: false },
       { id: 'brave', name: 'Brave Hızlı & Gizli Tarayıcı', deb: 'brave-browser', vendor: 'brave', desc: 'Reklam ve izleyici engelleyicisi yerleşik; resmî deposundan kurulur', cat: 'net', size: '150 MB', featured: true, installed: false },
       { id: 'helium', name: 'Helium Hafif Web Tarayıcı', deb: 'helium-bin', vendor: 'helium', desc: 'ungoogle-chromium temelli, gizlilik odaklı hafif masaüstü tarayıcısı', cat: 'net', size: '130 MB', installed: false },
       { id: 'timeshift', name: 'Timeshift Sistem Yedekleme & Anlık Görüntü', deb: 'timeshift', desc: 'Sistem kararsızlığına karşı tek tıkla geri dönüş ve kurtarma noktası oluşturucu', cat: 'sys', size: '15 MB', installed: false },
@@ -4450,7 +4453,7 @@
       }
       if (nameEl) nameEl.textContent = pkg.name;
       if (leadEl) leadEl.textContent = pkg.desc;
-      if (descEl) descEl.textContent = `${pkg.name}, Ankora Linux Daedalus ortamı için optimize edilmiş güvenilir bir yazılımdır. ${pkg.desc}. Ayaz Masaüstü Ortamı (Ayaz DE) ile pürüzsüz entegrasyon sunar.`;
+      if (descEl) descEl.textContent = `${pkg.name}, Ankora Linux Excalibur ortamı için optimize edilmiş güvenilir bir yazılımdır. ${pkg.desc}. Ayaz Masaüstü Ortamı (Ayaz DE) ile pürüzsüz entegrasyon sunar.`;
       if (sourceEl) sourceEl.textContent = isFlatpak ? 'FLATHUB' : (pkg.action === 'meb-cert' ? 'SİSTEM' : 'APT DEPOSU');
       if (catEl) catEl.textContent = (pkg.cat || 'UYGULAMA').toUpperCase();
       if (sizeEl) sizeEl.textContent = pkg.size || 'Hafif';
@@ -6665,7 +6668,7 @@
         file_name: 'kiosk-ayarlari.md',
         file_type: 'text',
         file_size: 1420,
-        content: `# Ankora Linux 4.6 Kiosk Yapılandırma Raporu\n\n- Taban: Devuan Daedalus (SysVinit)\n- Çekirdek: Linux 6.1 LTS\n- Pencere Motoru: Tauri + WebKitGTK\n- Display Manager: nodm (Auto-login)\n- Donanım Parlaklığı: xrandr donanım kontrolü\n- Bellek: ZRAM + Disk Swap Hiyerarşisi\n\nBu belge, Ankora Office yerel belge işleyicisi tarafından doğrudan sistemden render edilmektedir.`
+        content: `# Ankora Linux 4.6 Kiosk Yapılandırma Raporu\n\n- Taban: Devuan 6 Excalibur (SysVinit)\n- Çekirdek: Linux 6.12 LTS\n- Pencere Motoru: Tauri 2 + WebKitGTK 4.1\n- Display Manager: nodm (Auto-login)\n- Donanım Parlaklığı: xrandr donanım kontrolü\n- Bellek: ZRAM + Disk Swap Hiyerarşisi\n\nBu belge, Ankora Office yerel belge işleyicisi tarafından doğrudan sistemden render edilmektedir.`
       };
       this.renderDocument(doc);
     },
@@ -6738,7 +6741,7 @@
           file_name: name,
           file_type: 'text',
           file_size: 4096,
-          content: `# Ankora Linux 4.6 - Sürüm Notları (Daedalus)\n\n- Taban: Devuan GNU/Linux 5.0 (Daedalus)\n- İnit Sistemi: SysVinit (systemd-free, ultra-lightweight)\n- Arayüz: Tauri 1.5 + Monokrom Minimalist DE\n- Çekirdek: Linux 6.1.0-22-amd64\n\nSistem kararlılığı ve minimum RAM tüketimi garanti edilmektedir.`
+          content: `# Ankora Linux 4.6 - Sürüm Notları (Excalibur)\n\n- Taban: Devuan GNU/Linux 6 (Excalibur)\n- İnit Sistemi: SysVinit (systemd-free, ultra-lightweight)\n- Arayüz: Tauri 2 (WebKitGTK 4.1) + Monokrom Minimalist DE\n- Çekirdek: Linux 6.12 LTS\n\nSistem kararlılığı ve minimum RAM tüketimi garanti edilmektedir.`
         });
       }
     }
@@ -7783,8 +7786,8 @@
           `*Not: Görev listene yeni bir iş eklemek için "görev ekle: [iş adı]" yazabilirsin.*`;
       } else if (q.includes('durum') || q.includes('sistem') || q.includes('bellek') || q.includes('ram') || q.includes('cpu')) {
         reply = `⚡ **Canlı Sistem Durumu & Telemetri:**\n\n` +
-          `• **İşletim Sistemi:** Ankora Linux 4.6.0 "Karayel" (Devuan Daedalus amd64)\n` +
-          `• **Masaüstü Ortamı:** Ayaz DE (Minimalist Tauri & WebKitGTK)\n` +
+          `• **İşletim Sistemi:** Ankora Linux 4.6.0 "Karayel" (Devuan 6 Excalibur amd64)\n` +
+          `• **Masaüstü Ortamı:** Ayaz DE (Minimalist Tauri 2 & WebKitGTK 4.1)\n` +
           `• **İnit & Hizmet Sistemi:** SysVinit (Düşük kaynak tüketimli)\n` +
           `• **Çekirdek:** Linux LTS x86_64\n` +
           `• **Güvenlik & İzolasyon:** Unprivileged sandbox, yerel anahtar kasası\n\n` +
@@ -7931,8 +7934,8 @@
         const sysPromptBase = this.mode === 'developer'
           ? 'Sen Ankora Linux 4.6 ortamında çalışan kıdemli bir Rust, Linux ve Tauri geliştiricisisin.'
           : (this.mode === 'doctor'
-            ? 'Sen Ankora Sistem Doktorusun. Devuan Daedalus (SysVinit) üzerinde bellek, disk, ZRAM, süreç ve güvenlik sorunlarını teşhis edip çözüm sunarsın.'
-            : 'Sen Ankora Linux 4.6 (Daedalus / SysVinit) sistem yöneticisi ve yapay zeka asistanısın. Kullanıcıya Türkçe, net ve teknik olarak kusursuz yanıtlar ver.');
+            ? 'Sen Ankora Sistem Doktorusun. Devuan 6 Excalibur (SysVinit) üzerinde bellek, disk, ZRAM, süreç ve güvenlik sorunlarını teşhis edip çözüm sunarsın.'
+            : 'Sen Ankora Linux 4.6 (Devuan 6 Excalibur / SysVinit) sistem yöneticisi ve yapay zeka asistanısın. Kullanıcıya Türkçe, net ve teknik olarak kusursuz yanıtlar ver.');
         const fullSysPrompt = `${sysPromptBase}\n${teleContext}\n${shotB64 ? '[Kullanıcı güncel bir ekran karesi paylaştı; soruyu görüntüyle birlikte değerlendir.]' : ''}\n${linkContext}\nEğer güvenli bir tanı komutu önermek istersen yanıtın sonuna <<<ACTION:komut|açıklama>>> ekle (Yalnızca: df -h /, free -h, uname -a, uptime, swapon --show, ip -br addr, lscpu, lsblk, ps aux, /usr/local/bin/ankora-doctor).`;
 
         try {
@@ -14880,8 +14883,8 @@
 
       // Standart Devuan Kiosk Telemetri Fallback
       this.telemetry = {
-        os_name: 'Devuan GNU/Linux 5 (daedalus)',
-        kernel: 'Linux 6.1.0-22-amd64',
+        os_name: 'Devuan GNU/Linux 6 (excalibur)',
+        kernel: 'Linux 6.12.0-amd64',
         init_system: 'SysVinit (systemd-free)',
         memory_used_mb: 1140,
         memory_total_mb: 8192,

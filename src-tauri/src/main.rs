@@ -10,6 +10,7 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::sync::Mutex;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
+use tauri::Emitter;
 use url::Url;
 
 // ============================================================================
@@ -2935,7 +2936,7 @@ fn build_local_ai_diagnostic_response(prompt: &str, mode: &str) -> AiResponse {
     let p_lower = prompt.to_lowercase();
     let tele = collect_system_telemetry().unwrap_or(SystemTelemetry {
         os_name: format!("Ankora Linux {}", env!("CARGO_PKG_VERSION")),
-        kernel: "Linux 6.1 (Devuan Daedalus)".to_string(),
+        kernel: "Linux 6.12 (Devuan Excalibur)".to_string(),
         init_system: "SysVinit (systemd-free)".to_string(),
         memory_used_mb: 512,
         memory_total_mb: 8192,
@@ -3162,19 +3163,19 @@ async fn query_local_ai(
             t.os_name, t.kernel, t.init_system, t.memory_used_mb, t.memory_total_mb, t.cpu_cores, t.cpu_percent, t.disk_used_gb, t.disk_total_gb
         )
     } else {
-        format!("[Sistem Özeti: Ankora Linux {} | Devuan Daedalus | SysVinit]", env!("CARGO_PKG_VERSION"))
+        format!("[Sistem Özeti: Ankora Linux {} | Devuan Excalibur | SysVinit]", env!("CARGO_PKG_VERSION"))
     };
 
     let base_sys_prompt = match mode.as_str() {
         "doctor" => {
-            "Sen Ankora Linux (Devuan Daedalus, SysVinit) Sistem Doktoru ve arıza giderme uzmanısın. \
+            "Sen Ankora Linux (Devuan Excalibur, SysVinit) Sistem Doktoru ve arıza giderme uzmanısın. \
             Kırık paketler, ZRAM takas alanı, disk doluluğu, X11/Openbox/WebKitGTK oturumu ve ağ sorunlarını teşhis et. \
             Eğer bir komut yürütülmesi gerekiyorsa yanıtının sonuna tam olarak şu formatta bir eylem etiketi ekle: \
             <<<ACTION:{\"command\":\"izin_verilen_komut\",\"desc\":\"Eylemin açıklaması\"}>>> \
             İzin verilen komutlar: /usr/local/bin/ankora-doctor, apt-get clean && rm -rf /tmp/*, df -h / && free -m, free -h, lscpu, lsblk, ps aux, top -b -n 1, uptime, sync."
         }
         "developer" => {
-            "Sen Ankora Linux (Devuan Daedalus) sistem geliştirici ve terminal asistanısın. \
+            "Sen Ankora Linux (Devuan Excalibur) sistem geliştirici ve terminal asistanısın. \
             Bash betikleri, Debian derleme, Rust/C geliştirme ve paket araçları konusunda teknik rehberlik sağla. \
             Eğer bir komut yürütülmesi gerekiyorsa yanıtının sonuna tam olarak şu formatta bir eylem etiketi ekle: \
             <<<ACTION:{\"command\":\"izin_verilen_komut\",\"desc\":\"Eylemin açıklaması\"}>>> \
@@ -3187,7 +3188,7 @@ async fn query_local_ai(
             <<<ACTION:{\"command\":\"izin_verilen_komut\",\"desc\":\"Eylemin açıklaması\"}>>>"
         }
         _ => {
-            "Sen Ankora Linux (Devuan Daedalus) işletim sisteminin yerel sistem yöneticisi ve teftiş ajanısın. \
+            "Sen Ankora Linux (Devuan Excalibur) işletim sisteminin yerel sistem yöneticisi ve teftiş ajanısın. \
             Kullanıcıya teknik, kısa ve profesyonel yanıtlar ver. \
             Eğer kullanıcının talebi sistemde bir bakım, telemetre sorgusu veya temizlik gerektiriyorsa, \
             yanıtının sonuna tam olarak şu formatta bir eylem etiketi ekle: \
@@ -4445,7 +4446,7 @@ fn collect_system_telemetry() -> Result<SystemTelemetry, String> {
         }
 
         // 3. Dağıtım / İşletim Sistemi (/etc/os-release)
-        let mut os_name = "Devuan GNU/Linux 5 (daedalus)".to_string();
+        let mut os_name = "Devuan GNU/Linux 6 (excalibur)".to_string();
         if let Ok(os_rel) = fs::read_to_string("/etc/os-release") {
             for line in os_rel.lines() {
                 if line.starts_with("PRETTY_NAME=") {
@@ -10393,6 +10394,7 @@ fn main() {
         Err(_) => std::env::set_var("PATH", sys_path),
     }
     tauri::Builder::default()
+        .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .invoke_handler(tauri::generate_handler![
             drag_window,
             scan_xdg_applications,
@@ -10546,33 +10548,37 @@ fn main() {
             // devrede olduğu için çift yakalamayı önlemek amacıyla atlanır.
             #[cfg(target_os = "linux")]
             {
-                use tauri::{GlobalShortcutManager, Manager};
-                let handle = app.handle();
-                let main_window = handle.get_window("main");
-                let mut shortcut_manager = handle.global_shortcut_manager();
-                let _ = shortcut_manager.register("Print", move || {
-                    if let Some(win) = &main_window {
-                        if let Ok(focused) = win.is_focused() {
-                            if focused {
+                use tauri::Manager;
+                use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
+                if let Ok(shortcut) = "PrintScreen".parse::<Shortcut>() {
+                    let _ = app.global_shortcut().on_shortcut(
+                        shortcut,
+                        |app_handle, _shortcut, event| {
+                            if event.state() != ShortcutState::Pressed {
                                 return;
                             }
-                        }
-                    }
-                    std::thread::spawn(|| {
-                        if let Ok(res) = take_screenshot_core(
-                            Some("fullscreen".to_string()),
-                            Some(0),
-                            Some(true),
-                            Some(true),
-                        ) {
-                            let _ = Command::new("notify-send")
-                                .args(["-a", "AyazDE", "-i", "camera"])
-                                .arg("Ekran görüntüsü kaydedildi")
-                                .arg(res.file_path)
-                                .output();
-                        }
-                    });
-                });
+                            if let Some(win) = app_handle.get_webview_window("main") {
+                                if let Ok(true) = win.is_focused() {
+                                    return;
+                                }
+                            }
+                            std::thread::spawn(|| {
+                                if let Ok(res) = take_screenshot_core(
+                                    Some("fullscreen".to_string()),
+                                    Some(0),
+                                    Some(true),
+                                    Some(true),
+                                ) {
+                                    let _ = Command::new("notify-send")
+                                        .args(["-a", "AyazDE", "-i", "camera"])
+                                        .arg("Ekran görüntüsü kaydedildi")
+                                        .arg(res.file_path)
+                                        .output();
+                                }
+                            });
+                        },
+                    );
+                }
             }
             Ok(())
         })

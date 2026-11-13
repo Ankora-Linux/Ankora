@@ -1,61 +1,21 @@
 {
-  "$schema": "https://raw.githubusercontent.com/tauri-apps/tauri/tauri-v1/tooling/cli/schema.json",
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Ayaz DE",
+  "version": "4.6.0",
+  "identifier": "org.ankora.ayaz",
   "build": {
     "beforeBuildCommand": "",
     "beforeDevCommand": "",
-    "devPath": "../src",
-    "distDir": "../src",
-    "withGlobalTauri": true
+    "frontendDist": "../src"
   },
-  "package": {
-    "productName": "Ayaz DE",
-    "version": "4.6.0"
-  },
-  "tauri": {
-    "allowlist": {
-      "all": false,
-      "window": {
-        "all": false,
-        "startDragging": true,
-        "close": true,
-        "minimize": true,
-        "maximize": true,
-        "unmaximize": true,
-        "show": true,
-        "hide": true
-      },
-      "shell": {
-        "all": false,
-        "open": false
-      }
-    },
-    "bundle": {
-      "active": true,
-      "category": "Utility",
-      "copyright": "2026 Ankora Linux Project",
-      "deb": {
-        "depends": [
-          "libwebkit2gtk-4.0-37 | libwebkit2gtk-4.1-0",
-          "libgtk-3-0",
-          "libayatana-appindicator3-1",
-          "libnss3-tools",
-          "plymouth",
-          "openbox",
-          "wmctrl",
-          "xdotool"
-        ]
-      },
-      "icon": [
-        "icons/icon.png"
-      ],
-      "identifier": "org.ankora.ayaz",
-      "targets": ["deb", "appimage"]
-    },
+  "app": {
+    "withGlobalTauri": true,
     "security": {
       "csp": "default-src 'self' file: data:; script-src 'self' file:; style-src 'self' file: 'unsafe-inline'; img-src 'self' file: data: blob: https:; font-src 'self' file: data:; connect-src 'self' file: https: http://127.0.0.1:49152 http://127.0.0.1:11434 https://generativelanguage.googleapis.com https://api.groq.com https://api.openai.com https://openrouter.ai https://api.github.com; frame-src 'self' file: data: blob: https: http://127.0.0.1:49152; object-src 'none'; base-uri 'self'; form-action 'self'"
     },
     "windows": [
       {
+        "label": "main",
         "title": "Ayaz — Ankora Linux",
         "fullscreen": false,
         "maximized": true,
@@ -69,5 +29,28 @@
         "height": 1080
       }
     ]
+  },
+  "bundle": {
+    "active": true,
+    "category": "Utility",
+    "copyright": "2026 Ankora Linux Project",
+    "icon": [
+      "icons/icon.png"
+    ],
+    "targets": ["deb", "appimage"],
+    "linux": {
+      "deb": {
+        "depends": [
+          "libwebkit2gtk-4.1-0",
+          "libgtk-3-0",
+          "libayatana-appindicator3-1",
+          "libnss3-tools",
+          "plymouth",
+          "openbox",
+          "wmctrl",
+          "xdotool"
+        ]
+      }
+    }
   }
 }

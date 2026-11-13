@@ -1,7 +1,7 @@
 #!/bin/bash
 # ==============================================================================
 # Ayaz DE Güncelleme Yardımcısı (Ayaz Desktop Update Helper)
-# Ankora Linux (Devuan Daedalus SysVinit) Güvenli Kurulum Scripti
+# Ankora Linux (Devuan 6 Excalibur SysVinit) Güvenli Kurulum Scripti
 # Depo: https://github.com/Ankora-Linux/Ayaz
 # ==============================================================================
 # GÜVENLİK DÜZELTMELERİ:
