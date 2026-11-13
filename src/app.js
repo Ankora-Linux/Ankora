@@ -18000,7 +18000,7 @@
                       FileManager.loadDirectory(f.path);
                     }
                   } else {
-                    TauriBridge.invoke('launch_application', { exec: `xdg-open "${f.path}"` })
+                    TauriBridge.invoke('open_path', { path: f.path })
                       .catch(() => {
                         WindowManager.open('win-files');
                         const dir = f.path.substring(0, f.path.lastIndexOf('/'));

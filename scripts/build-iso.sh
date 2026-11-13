@@ -1478,7 +1478,7 @@ _SENSITIVE_PATTERNS = [
     "/etc/shadow", "/etc/gshadow", "/etc/sudoers", "/etc/master.passwd",
     "/etc/security", "/root/.ssh", ".ssh/", "id_rsa", "id_ed25519",
     "id_ecdsa", "id_dsa", "/proc/kcore", "/sys/", "/dev/", "/var/log/auth",
-    "ai_creds.json", "lock.hash"
+    "ai_creds.json", "lock.hash", "credentials.dat", ".vault_secret"
 ]
 _ALLOWED_CAT_FILES = {
     "/etc/os-release", "/etc/issue", "/proc/version", "/proc/meminfo", "/proc/cpuinfo"
@@ -1573,9 +1573,16 @@ def execute_ayaz_command(cmd, args):
                     return f"[GÜVENLİK İHLALİ] Hassas sistem yoluna erişim engellendi: {pat}"
 
             if bin_name in ("cat", "head", "tail", "grep", "wc"):
+                home_real = os.path.realpath(home_dir)
                 for arg in parts[1:]:
-                    if arg.startswith('/'):
-                        if arg not in _ALLOWED_CAT_FILES and not arg.startswith(home_dir):
+                    if arg.startswith('-'):
+                        continue
+                    if '..' in arg or arg.startswith('~') or any(c in arg for c in ('*', '?', '[')):
+                        if not arg.startswith(home_real + '/'):
+                            return f"[GÜVENLİK İHLALİ] '{arg}' yolu güvenlik politikası gereği engellendi."
+                    cand = os.path.realpath(os.path.join(TERM_CWD, arg)) if not arg.startswith('/') else os.path.realpath(arg)
+                    if arg.startswith('/') or (os.path.exists(cand) and not cand.startswith(home_real + '/') and cand != home_real):
+                        if arg not in _ALLOWED_CAT_FILES and cand not in _ALLOWED_CAT_FILES and not (cand.startswith(home_real + '/') or cand == home_real):
                             return f"[GÜVENLİK İHLALİ] '{arg}' yolu izin verilen okuma listesinde yer almıyor."
 
         # Whitelist denetiminden geçen komut için güvenli bash çalıştırma
@@ -2019,10 +2026,18 @@ def execute_ayaz_command(cmd, args):
         return 'Sistem yeniden başlatılıyor...'
 
     elif cmd == 'system_suspend':
+        suspended = False
         if os.path.exists('/usr/local/bin/ayaz-pkg-helper'):
-            _root_run(['/usr/local/bin/ayaz-pkg-helper', 'suspend'])
-        elif os.path.exists('/bin/loginctl'):
-            subprocess.run(['loginctl', 'suspend'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            try:
+                p = _root_run(['/usr/local/bin/ayaz-pkg-helper', 'suspend'])
+                suspended = (p is not None and p.returncode == 0)
+            except Exception:
+                suspended = False
+        if not suspended:
+            if shutil.which('loginctl'):
+                subprocess.run(['loginctl', 'suspend'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            elif shutil.which('pm-suspend'):
+                subprocess.run(['pm-suspend'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         return 'Sistem askıya alınıyor...'
 
     elif cmd == 'system_logout':
@@ -2638,10 +2653,11 @@ tmpfs /tmp tmpfs defaults,noatime,mode=1777 0 0
                 "/usr/local/bin/ayaz-pkg-helper set-language *, "
                 "/usr/local/bin/ayaz-pkg-helper sync-ntp, "
                 "/usr/local/bin/ayaz-pkg-helper drop-caches, "
+                "/usr/local/bin/ayaz-pkg-helper suspend, "
                 "/usr/local/bin/ayaz-pkg-helper usb-flash *, "
                 "/usr/local/bin/ayaz-pkg-helper usb-format *, "
                 "/usr/local/bin/ankora-doctor, /usr/local/bin/ankora-ollama-install, "
-                "/bin/true, /usr/bin/true, /sbin/poweroff, /usr/sbin/poweroff, "
+                "/sbin/poweroff, /usr/sbin/poweroff, "
                 "/sbin/reboot, /usr/sbin/reboot, /sbin/shutdown, /usr/sbin/shutdown"
             )
             _root_write('/target/etc/sudoers.d/ankora-updater',
@@ -3032,9 +3048,18 @@ exit 0
             if not exec_cmd:
                 raise Exception('.desktop dosyasında Exec komutu bulunamadı')
             if term_flag:
+                if any(c in exec_cmd for c in ';|&`$><\\\n\r()'):
+                    raise Exception('Güvenlik Hatası: .desktop Exec komutunda yasaklı kabuk karakteri')
                 toks = [t for t in shlex.split(exec_cmd) if t not in ('%f', '%F', '%u', '%U', '%i', '%c', '%k')]
                 if not toks:
                     raise Exception('Geçersiz Exec komutu')
+                base_bin = os.path.basename(toks[0])
+                if '..' in toks[0] or base_bin in _FORBIDDEN_BINARIES:
+                    raise Exception(f"Güvenlik İlkesi İhlali: '{base_bin}' komutu .desktop üzerinden başlatılamaz")
+                low_exec = exec_cmd.lower()
+                for pat in _SENSITIVE_PATTERNS:
+                    if pat.lower() in low_exec:
+                        raise Exception(f"Güvenlik İlkesi İhlali: Hassas yola erişim engellendi ({pat})")
                 env = os.environ.copy()
                 env.setdefault('DISPLAY', ':0')
                 subprocess.Popen(['xterm', '-title', os.path.basename(target_path), '-e'] + toks,
@@ -3748,20 +3773,25 @@ exit 0
 
     elif cmd == 'restore_trash_item':
         file_name = str(args.get('fileName', args.get('file_name', ''))).strip()
+        if not file_name or '/' in file_name or '\\' in file_name or file_name in ('.', '..') or '\0' in file_name:
+            raise Exception('Güvenlik Hatası: Geçersiz çöp dosyası adı.')
         trash_dir = os.path.join(home_dir, '.local/share/Trash')
         file_p = os.path.join(trash_dir, 'files', file_name)
         info_p = os.path.join(trash_dir, 'info', f"{file_name}.trashinfo")
         if not os.path.exists(file_p):
             raise Exception('Geri yüklenecek dosya bulunamadı')
-        target_dest = os.path.join(home_dir, 'Masaüstü', file_name)
+        home_real = os.path.realpath(home_dir)
+        target_dest = os.path.join(home_real, 'Masaüstü', file_name)
         if os.path.exists(info_p):
             try:
                 with open(info_p, 'r', encoding='utf-8') as f:
                     for line in f:
                         if line.startswith('Path='):
                             orig = line.strip().split('=', 1)[1]
-                            if os.path.exists(os.path.dirname(orig)):
-                                target_dest = orig
+                            if '..' not in orig.split('/') and not '\0' in orig:
+                                parent_real = os.path.realpath(os.path.dirname(orig))
+                                if parent_real.startswith(home_real + '/') or parent_real == home_real or parent_real.startswith('/tmp/'):
+                                    target_dest = os.path.join(parent_real, os.path.basename(orig) or file_name)
                             break
             except Exception:
                 pass
@@ -4773,9 +4803,9 @@ exit 0
     elif cmd == 'download_and_apply_de_update':
         download_url = args.get('downloadUrl', args.get('download_url'))
         if not download_url:
-            return 'Güncelleme paketi URL adresi belirtilmedi.'
+            raise Exception('Güncelleme paketi URL adresi belirtilmedi.')
         if not str(download_url).startswith('https://github.com/Ankora-Linux/'):
-            return 'Güvenlik İlkesi İhlali: İndirme bağlantısı resmi Ankora-Linux deposuna ait değil.'
+            raise Exception('Güvenlik İlkesi İhlali: İndirme bağlantısı resmi Ankora-Linux deposuna ait değil.')
 
         expected_sha256 = args.get('expectedSha256', args.get('expected_sha256'))
         sha256_url = args.get('sha256Url', args.get('sha256_url'))
@@ -4804,38 +4834,31 @@ exit 0
                     pass
 
             if not expected_sha256:
-                if os.path.exists(tmp_path):
-                    os.unlink(tmp_path)
-                return 'Güvenlik İlkesi İhlali: Güncelleme paketi için geçerli bir SHA-256 doğrulama özeti bulunamadı.'
+                raise Exception('Güvenlik İlkesi İhlali: Güncelleme paketi için geçerli bir SHA-256 doğrulama özeti bulunamadı.')
 
             if computed_sha256 != str(expected_sha256).strip().lower():
-                if os.path.exists(tmp_path):
-                    os.unlink(tmp_path)
-                return 'Güvenlik İlkesi İhlali: SHA-256 doğrulama başarısız! Paket bozulmuş veya değiştirilmiş olabilir.'
+                raise Exception('Güvenlik İlkesi İhlali: SHA-256 doğrulama başarısız! Paket bozulmuş veya değiştirilmiş olabilir.')
 
             helper = '/usr/local/bin/ayaz-update-helper'
-            if os.path.exists(helper):
-                stage_proc = subprocess.run(['sudo', '-n', helper, '--stage', tmp_path, computed_sha256],
-                                            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-                if os.path.exists(tmp_path):
-                    os.unlink(tmp_path)
-                if stage_proc.returncode != 0:
-                    return f'Güncelleme hazırlık hatası: {stage_proc.stderr or stage_proc.stdout}'
+            if not os.path.exists(helper):
+                raise Exception('Güvenlik İlkesi İhlali: /usr/local/bin/ayaz-update-helper bulunamadı.')
 
-                proc = subprocess.run(['sudo', '-n', helper],
-                                      stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-                if proc.returncode == 0:
-                    return 'Ayaz DE başarıyla güncellendi!'
-                else:
-                    return f'Güncelleme yardımcısı hata verdi: {proc.stderr or proc.stdout}'
-            else:
-                if os.path.exists(tmp_path):
-                    os.unlink(tmp_path)
-                return 'Güvenlik İlkesi İhlali: /usr/local/bin/ayaz-update-helper bulunamadı.'
-        except Exception as e:
+            stage_proc = _root_run([helper, '--stage', tmp_path, computed_sha256], timeout=120)
             if os.path.exists(tmp_path):
                 os.unlink(tmp_path)
-            return f'Güncelleme uygulanamadı: {e}'
+            if stage_proc is None or stage_proc.returncode != 0:
+                err_txt = (stage_proc.stderr or stage_proc.stdout) if stage_proc else 'stage failed'
+                raise Exception(f'Güncelleme hazırlık hatası: {err_txt}')
+
+            proc = _root_run([helper], timeout=300)
+            if proc is not None and proc.returncode == 0:
+                return 'Ayaz DE başarıyla güncellendi!'
+            err_txt = (proc.stderr or proc.stdout) if proc else 'helper failed'
+            raise Exception(f'Güncelleme yardımcısı hata verdi: {err_txt}')
+        except Exception:
+            if os.path.exists(tmp_path):
+                os.unlink(tmp_path)
+            raise
     elif cmd == 'restart_desktop_process':
         subprocess.Popen(['pkill', '-x', 'ayaz'])
         return True
@@ -5432,10 +5455,11 @@ exit 0
 
     elif cmd == 'set_file_permissions':
         path = args.get('path', '')
-        mode = str(args.get('mode', ''))
-        if not path or not os.path.exists(path) or not mode.isdigit():
-            raise Exception('Geçersiz dosya yolu veya izin.')
-        os.chmod(path, int(mode, 8))
+        mode = str(args.get('mode', '')).strip()
+        safe_p = is_safe_user_path(path, write=True)
+        if not os.path.exists(safe_p) or not re.fullmatch(r'[0-7]{3}', mode):
+            raise Exception('Geçersiz dosya yolu veya izin kümesi (örn: 755).')
+        os.chmod(safe_p, int(mode, 8))
         return 'İzinler güncellendi.'
 
     elif cmd == 'set_file_executable':
@@ -5522,9 +5546,13 @@ exit 0
         full = args.get('fullName', '')
         if not uname or not pwd:
             raise Exception('Kullanıcı adı ve parola zorunludur.')
-        _root_run(['useradd', '-m', '-s', '/bin/bash', '-G', 'sudo,audio,video,plugdev,netdev,lp,scanner', '-c', full, uname])
-        p = subprocess.Popen(['sudo', '-n', 'chpasswd'], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        p.communicate(input=f"{uname}:{pwd}\n".encode('utf-8'))
+        u_proc = _root_run(['useradd', '-m', '-s', '/bin/bash', '-G', 'sudo,audio,video,plugdev,netdev,lp,scanner', '-c', full, uname])
+        if u_proc is None or u_proc.returncode != 0:
+            err = ((u_proc.stderr or u_proc.stdout) if u_proc else '').strip()
+            raise Exception(err or f"'{uname}' kullanıcısı oluşturulamadı.")
+        p_proc = _root_run(['chpasswd'], stdin_text=f"{uname}:{pwd}\n")
+        if p_proc is None or p_proc.returncode != 0:
+            raise Exception('Kullanıcı oluşturuldu ancak parola ayarlanamadı.')
         return f"'{uname}' kullanıcısı oluşturuldu."
 
     elif cmd == 'system_user_remove':
@@ -6232,6 +6260,7 @@ chmod 0755 "$CHROOT_DIR/usr/local/bin/ankora-ollama-install" || true
 chown root:root "$CHROOT_DIR/usr/local/bin/ankora-ollama-install" 2>/dev/null || true
 
 cp "$ROOT_DIR/scripts/ankora-updater-sudoers" "$CHROOT_DIR/etc/sudoers.d/ankora-updater" || true
+sed -i 's/\r$//' "$CHROOT_DIR/etc/sudoers.d/ankora-updater" 2>/dev/null || true
 chmod 0440 "$CHROOT_DIR/etc/sudoers.d/ankora-updater" || true
 chown root:root "$CHROOT_DIR/etc/sudoers.d/ankora-updater" 2>/dev/null || true
 
@@ -6259,6 +6288,7 @@ for f in \
     "$CHROOT_DIR/usr/local/bin/ayaz-update-helper" \
     "$CHROOT_DIR/usr/local/bin/ayaz-pkg-helper" \
     "$CHROOT_DIR/usr/local/bin/ankora-doctor" \
+    "$CHROOT_DIR/usr/local/bin/ankora-ollama-install" \
     "$CHROOT_DIR/usr/bin/ayaz-ctl" \
     "$CHROOT_DIR/usr/bin/ayaz-session" \
     "$CHROOT_DIR/usr/share/applications/ayaz.desktop" \

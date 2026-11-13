@@ -198,7 +198,7 @@
 }
 
 [data-face="2"] .desktop-wallpaper {
-  background: radial-gradient(140% 100% at 50% 0%, #1b1d22 0 55%, #101114 100%) !important;
+  background-color: #141519;
 }
 
 [data-face="2"] .desktop-widgets {
@@ -211,7 +211,13 @@
   left: 120px;
   top: 48px;
   font: 400 11.5px var(--font-face-mono, "IBM Plex Mono", monospace);
-  color: #565a63;
+  color: #d6d0c4;
+  background: rgba(20, 21, 25, 0.62);
+  backdrop-filter: blur(6px);
+  padding: 3px 9px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
   z-index: 5;
   pointer-events: none;
   letter-spacing: 0.2px;
@@ -436,9 +442,7 @@
 }
 
 [data-face="3"] .desktop-wallpaper {
-  background: radial-gradient(130% 100% at 75% 10%, #d7dfc2 0 38%, transparent 66%),
-              radial-gradient(110% 90% at 12% 85%, #eef2e0 0 40%, transparent 70%),
-              #e6ebd8 !important;
+  background-color: #e6ebd8;
 }
 
 [data-face="3"] .desktop-widgets {
@@ -502,6 +506,12 @@
   pointer-events: auto;
   display: flex;
   flex-direction: column;
+  background: rgba(250, 248, 239, 0.78);
+  backdrop-filter: blur(10px);
+  padding: 14px 20px;
+  border-radius: 16px;
+  border: 1px solid rgba(228, 224, 207, 0.9);
+  box-shadow: 0 8px 24px rgba(38, 50, 31, 0.14);
 }
 
 [data-face="3"] .bostan-hero-time {
@@ -554,7 +564,7 @@
 
 [data-face="3"] .desktop-item .item-name {
   color: #26321f !important;
-  text-shadow: none !important;
+  text-shadow: 0 1px 3px rgba(250, 248, 239, 0.95), 0 0 8px rgba(250, 248, 239, 0.85) !important;
   font-size: 12px !important;
   font-weight: 500 !important;
 }
@@ -680,7 +690,7 @@
 }
 
 [data-face="8"] .desktop-wallpaper {
-  background: #fcfcf9 !important;
+  background-color: #fcfcf9;
 }
 
 [data-face="8"] .desktop-widgets {
@@ -735,6 +745,12 @@
   display: flex;
   flex-direction: column;
   pointer-events: none;
+  background: rgba(252, 252, 249, 0.84);
+  backdrop-filter: blur(10px);
+  padding: 14px 18px;
+  border-radius: 14px;
+  border: 2px solid #161309;
+  box-shadow: 4px 4px 0 #161309;
 }
 
 [data-face="8"] .civata-hero-time {
@@ -939,7 +955,7 @@
 
 [data-face="8"] .desktop-item .item-name {
   color: #161309 !important;
-  text-shadow: none !important;
+  text-shadow: 0 1px 3px rgba(252, 252, 249, 0.95), 0 0 8px rgba(252, 252, 249, 0.85) !important;
   font-family: var(--font-sans) !important;
   font-weight: 600 !important;
 }
@@ -1044,7 +1060,7 @@ html[data-face="3"][data-iconset] .desktop-item .item-icon svg {
 html[data-face="8"][data-iconset] .desktop-item .item-icon svg {
   stroke: #161309 !important;
   color: #161309 !important;
-  filter: none !important;
+  filter: drop-shadow(0 1px 3px rgba(252, 252, 249, 0.92)) !important;
 }
 
 [data-face="8"] .desktop-grid .desktop-item .item-icon img,

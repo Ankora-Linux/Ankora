@@ -96,8 +96,8 @@ meb_inject_nss() {
 
     # Eski "MEB" kaydı kalmışsa (süresi dolmuş/eski dosya) temizle.
     certutil -d "sql:$db" -D -n "MEB" >/dev/null 2>&1 || true
-    local add_ok=1
-    certutil -d "sql:$db" -A -t "C,," -n "MEB" -i "$cert" >/dev/null 2>&1 || add_ok=0
+    local add_ok=0
+    certutil -d "sql:$db" -A -t "C,," -n "MEB" -i "$cert" >/dev/null 2>&1 || add_ok=1
 
     # DB kök olarak oluşturulduysa sahipliği her durumda kullanıcıya bırak;
     # aksi hâlde tarayıcı veritabanını açamaz.
@@ -144,7 +144,7 @@ meb_install_cert() {
     fi
 
     # DER gelirse PEM'e çevir; zaten PEM ise aynen kalır.
-    if ! head -c 10 "$cert_file" | grep -q "BEGIN CERT"; then
+    if ! head -n 2 "$cert_file" | grep -q "BEGIN CERT"; then
         if openssl x509 -inform DER -in "$cert_file" -out "$workdir/meb.pem" 2>/dev/null; then
             cert_file="$workdir/meb.pem"
         fi
@@ -417,6 +417,21 @@ helper_drop_caches() {
     echo "OK"
 }
 
+helper_suspend() {
+    if command -v loginctl >/dev/null 2>&1 && loginctl suspend >/dev/null 2>&1; then
+        return 0
+    fi
+    if command -v pm-suspend >/dev/null 2>&1 && pm-suspend >/dev/null 2>&1; then
+        return 0
+    fi
+    if [[ -w /sys/power/state ]]; then
+        printf 'mem' > /sys/power/state
+        return $?
+    fi
+    echo "[HATA] Askıya alma aracı (loginctl/pm-suspend) kullanılamıyor." >&2
+    return 1
+}
+
 validate_usb_block_device() {
     local dev="${1:-}"
     if [[ -z "$dev" || ! "$dev" =~ ^/dev/(sd[a-z]+|vd[a-z]+|nvme[0-9]+n[0-9]+|mmcblk[0-9]+)$ ]]; then
@@ -428,13 +443,17 @@ validate_usb_block_device() {
         return 2
     fi
     local mnt src
-    for mnt in / /boot /boot/efi /home /etc /run/live/medium /lib/live/mount/medium; do
+    for mnt in / /boot /boot/efi /home /var /usr /etc /run/live/medium /lib/live/mount/medium; do
         src="$(findmnt -n -o SOURCE "$mnt" 2>/dev/null || true)"
         if [[ -n "$src" && "$src" == "$dev"* ]]; then
             echo "[HATA] Kritik Güvenlik Uyarısı: Sistem veya canlı önyükleme diski ($dev) üzerine yazma engellendi!" >&2
             return 3
         fi
     done
+    if grep -q "^${dev}" /proc/swaps 2>/dev/null; then
+        echo "[HATA] Kritik Güvenlik Uyarısı: Aktif takas alanı (swap) içeren disk ($dev) üzerine yazma engellendi!" >&2
+        return 3
+    fi
     return 0
 }
 
@@ -445,6 +464,25 @@ helper_usb_flash() {
         echo "[HATA] Geçerli bir ISO dosyası bulunamadı: '$iso_path'" >&2
         return 2
     fi
+    local real_iso
+    real_iso="$(/usr/bin/readlink -f -- "$iso_path" 2>/dev/null || true)"
+    if [[ -z "$real_iso" || ! -f "$real_iso" ]]; then
+        echo "[HATA] ISO dosya yolu doğrulanamadı: '$iso_path'" >&2
+        return 2
+    fi
+    case "${real_iso,,}" in
+        *.iso|*.img) ;;
+        *)
+            echo "[HATA] Güvenlik: Yalnızca .iso veya .img kalıp dosyaları yazdırılabilir." >&2
+            return 2
+            ;;
+    esac
+    case "$real_iso" in
+        /etc/*|/boot/*|/root/*|/var/*|/usr/*|/bin/*|/sbin/*|/lib/*|/proc/*|/sys/*|/dev/*)
+            echo "[HATA] Güvenlik İlkesi İhlali: Sistem dizinindeki dosya ISO olarak yazdırılamaz." >&2
+            return 3
+            ;;
+    esac
     validate_usb_block_device "$target_dev" || return $?
     umount -f "$target_dev" 2>/dev/null || true
     while read -r dev _; do
@@ -452,7 +490,7 @@ helper_usb_flash() {
             umount -f "$dev" 2>/dev/null || true
         fi
     done < /proc/mounts
-    dd "if=$iso_path" "of=$target_dev" bs=4M status=none conv=fsync
+    dd "if=$real_iso" "of=$target_dev" bs=4M status=none conv=fsync
     sync
     echo "ISO başarıyla yazdırıldı: $target_dev"
 }
@@ -539,6 +577,10 @@ case "$ACTION" in
         ;;
     drop-caches)
         helper_drop_caches
+        exit $?
+        ;;
+    suspend)
+        helper_suspend
         exit $?
         ;;
     usb-flash)

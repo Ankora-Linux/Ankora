@@ -165,10 +165,11 @@
 
     updateWeatherHero() {
       const wx = this.getLiveWeatherSnippet();
+      const safeCity = String(wx.city || 'Ankara').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
       const bW = document.querySelector('.bostan-hero-weather');
-      if (bW) bW.innerHTML = `${wx.city}'da <b>${wx.temp}°</b>, güncel hava durumu · serin esinti`;
+      if (bW) bW.innerHTML = `${safeCity}'da <b>${wx.temp}°</b>, güncel hava durumu · serin esinti`;
       const cW = document.querySelector('.civata-hero-weather');
-      if (cW) cW.innerHTML = `${wx.city} <b>${wx.temp}°</b>, güncel hava durumu`;
+      if (cW) cW.innerHTML = `${safeCity} <b>${wx.temp}°</b>, güncel hava durumu`;
     },
 
     ensureMediaBar(topPanel) {
@@ -347,12 +348,13 @@
 
       // 2. Sağ Üst Dev Serif Saat & Hava Durumu
       const bostanWx = this.getLiveWeatherSnippet();
+      const bostanCity = String(bostanWx.city || 'Ankara').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
       hero.innerHTML = `
         <div class="bostan-hero-time">
           <span class="bostan-live-time"></span><small class="bostan-live-day"></small>
         </div>
         <p class="bostan-hero-weather">
-          ${bostanWx.city}'da <b>${bostanWx.temp}°</b>, açık akşam · serin esinti
+          ${bostanCity}'da <b>${bostanWx.temp}°</b>, açık akşam · serin esinti
         </p>
       `;
 
@@ -405,13 +407,14 @@
 
       // 2. Sol Dev Display Saat & Hava Durumu
       const civataWx = this.getLiveWeatherSnippet();
+      const civataCity = String(civataWx.city || 'Ankara').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
       hero.innerHTML = `
         <div class="civata-hero-time">
           <span class="civata-live-time"></span>
           <small class="civata-live-sub"></small>
         </div>
         <p class="civata-hero-weather">
-          ${civataWx.city} <b>${civataWx.temp}°</b>, açık akşam · bu gece 6°
+          ${civataCity} <b>${civataWx.temp}°</b>, açık akşam · bu gece 6°
         </p>
       `;
 

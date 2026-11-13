@@ -112,6 +112,9 @@ case "$1" in
       echo "ollama zaten çalışıyor"
       exit 0
     fi
+    touch "$LOGFILE"
+    chown ollama:ollama "$LOGFILE" 2>/dev/null || true
+    chmod 0640 "$LOGFILE" 2>/dev/null || true
     OLLAMA_HOST=127.0.0.1:11434 OLLAMA_MODELS=/usr/share/ollama/.ollama/models \
       start-stop-daemon --start --background --quiet --make-pidfile --pidfile "$PIDFILE" \
       --chuid ollama:ollama --exec /usr/bin/env -- \

@@ -203,6 +203,8 @@ const SENSITIVE_FILE_PATTERNS: &[&str] = &[
     // Kasada tutulan kimlik bilgileri ve kilit dosyası
     "ai_creds.json",
     "lock.hash",
+    "credentials.dat",
+    ".vault_secret",
 ];
 
 /// İzin verilen klavye haritaları
@@ -812,23 +814,27 @@ fn delete_ai_credential(provider: String) -> Result<(), String> {
 // ----------------------------------------------------------------------------
 fn get_lock_hash_path() -> PathBuf {
     let var_path = PathBuf::from("/var/lib/ankora/lock.hash");
-    let var_dir = Path::new("/var/lib/ankora");
+    let cfg_path = get_ankora_config_dir().join("lock.hash");
     if var_path.exists() {
         return var_path;
     }
-    // /var/lib/ankora mevcutsa sistem seviyesinde korumalı konumu tercih et
+    if cfg_path.exists() {
+        return cfg_path;
+    }
+    let var_dir = Path::new("/var/lib/ankora");
     if var_dir.is_dir() {
-        #[cfg(unix)]
+        let probe = var_dir.join(format!(".lock_probe_{}", std::process::id()));
+        if fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&probe)
+            .is_ok()
         {
-            use std::os::unix::fs::PermissionsExt;
-            if let Ok(meta) = var_dir.metadata() {
-                if meta.permissions().mode() & 0o222 != 0 {
-                    return var_path;
-                }
-            }
+            let _ = fs::remove_file(&probe);
+            return var_path;
         }
     }
-    get_ankora_config_dir().join("lock.hash")
+    cfg_path
 }
 
 static LOCK_ATTEMPTS: Mutex<(u32, Option<Instant>)> = Mutex::new((0, None));
@@ -2202,7 +2208,39 @@ fn root_write(path: &str, data: &str) -> Result<(), String> {
         }
         Ok(())
     } else {
-        fs::write(path, data).map_err(|e| e.to_string())
+        match fs::write(path, data) {
+            Ok(()) => Ok(()),
+            Err(orig_err) => {
+                if orig_err.kind() == std::io::ErrorKind::PermissionDenied
+                    && pkexec_available()
+                    && (polkit_agent_running() || std::env::var("DISPLAY").is_ok())
+                {
+                    let mut child = Command::new("pkexec")
+                        .args(["tee", path])
+                        .stdin(Stdio::piped())
+                        .stdout(Stdio::null())
+                        .stderr(Stdio::piped())
+                        .spawn()
+                        .map_err(|_| orig_err.to_string())?;
+                    if let Some(mut stdin) = child.stdin.take() {
+                        stdin
+                            .write_all(data.as_bytes())
+                            .map_err(|e| e.to_string())?;
+                    }
+                    let out = child.wait_with_output().map_err(|e| e.to_string())?;
+                    if out.status.success() {
+                        return Ok(());
+                    }
+                    let pk_err = String::from_utf8_lossy(&out.stderr).trim().to_string();
+                    return Err(if pk_err.is_empty() {
+                        orig_err.to_string()
+                    } else {
+                        pk_err
+                    });
+                }
+                Err(orig_err.to_string())
+            }
+        }
     }
 }
 
@@ -2259,14 +2297,35 @@ fn is_terminal_command_permitted(command: &str) -> Result<(), String> {
 
     // 5. 'cat', 'head', 'tail', 'grep', 'wc' gibi dosya okuma araçlarında yol sınırı denetimi
     if ["cat", "head", "tail", "grep", "wc"].contains(&bin) {
+        let home_dir = dirs::home_dir().unwrap_or_else(|| PathBuf::from("/home/ankora"));
+        let home_real = fs::canonicalize(&home_dir).unwrap_or_else(|_| home_dir.clone());
+        let home_str = home_real.to_string_lossy().to_string();
         for arg in &parts[1..] {
+            if arg.starts_with('-') {
+                continue;
+            }
+            if arg.contains("..") || arg.starts_with('~') {
+                return Err(format!(
+                    "Güvenlik İlkesi İhlali: '{}' yolu dizin geçişi nedeniyle reddedildi.",
+                    arg
+                ));
+            }
+            if (arg.contains('*') || arg.contains('?') || arg.contains('['))
+                && !arg.starts_with(&format!("{}/", home_str))
+            {
+                return Err(format!(
+                    "Güvenlik İlkesi İhlali: '{}' kalıbı ev dizini dışında kullanılamaz.",
+                    arg
+                ));
+            }
             if arg.starts_with('/') {
-                let is_allowed_cat = ALLOWED_CAT_FILES.contains(arg);
-                let home_str = dirs::home_dir()
-                    .unwrap_or_else(|| PathBuf::from("/home/ankora"))
-                    .to_string_lossy()
-                    .to_string();
-                let is_in_home = arg.starts_with(&home_str);
+                let canon_arg = fs::canonicalize(arg)
+                    .map(|p| p.to_string_lossy().to_string())
+                    .unwrap_or_else(|_| arg.to_string());
+                let is_allowed_cat = ALLOWED_CAT_FILES.contains(arg)
+                    || ALLOWED_CAT_FILES.contains(&canon_arg.as_str());
+                let is_in_home = canon_arg == home_str
+                    || canon_arg.starts_with(&format!("{}/", home_str));
 
                 if !is_allowed_cat && !is_in_home {
                     return Err(format!("Güvenlik İlkesi İhlali: '{}' yolu izin verilen telemetri veya kullanıcı dosyaları listesinde yer almıyor.", arg));
@@ -2479,10 +2538,14 @@ async fn launch_interactive_terminal(command: Option<String>) -> Result<String, 
                 }
             }
             let first_word = cmd_str.split_whitespace().next().unwrap_or("");
-            if FORBIDDEN_LAUNCH_BINARIES.contains(&first_word) {
+            let base_first = Path::new(first_word)
+                .file_name()
+                .and_then(|s| s.to_str())
+                .unwrap_or(first_word);
+            if first_word.contains("..") || FORBIDDEN_LAUNCH_BINARIES.contains(&base_first) {
                 return Err(format!(
                     "Güvenlik İlkesi İhlali: '{}' komutu doğrudan başlatılamaz.",
-                    first_word
+                    base_first
                 ));
             }
             for pat in SENSITIVE_FILE_PATTERNS {
@@ -3933,10 +3996,11 @@ fn execute_system_installation_blocking(payload: InstallPayload) -> Result<Strin
                 /usr/local/bin/ayaz-pkg-helper set-language *, \
                 /usr/local/bin/ayaz-pkg-helper sync-ntp, \
                 /usr/local/bin/ayaz-pkg-helper drop-caches, \
+                /usr/local/bin/ayaz-pkg-helper suspend, \
                 /usr/local/bin/ayaz-pkg-helper usb-flash *, \
                 /usr/local/bin/ayaz-pkg-helper usb-format *, \
                 /usr/local/bin/ankora-doctor, /usr/local/bin/ankora-ollama-install, \
-                /bin/true, /usr/bin/true, /sbin/poweroff, /usr/sbin/poweroff, /sbin/reboot, /usr/sbin/reboot, /sbin/shutdown, /usr/sbin/shutdown\n",
+                /sbin/poweroff, /usr/sbin/poweroff, /sbin/reboot, /usr/sbin/reboot, /sbin/shutdown, /usr/sbin/shutdown\n",
                 username
             );
             let _ = root_write("/target/etc/sudoers.d/ankora-updater", &upd_entry);
@@ -5584,6 +5648,49 @@ async fn list_directory(path: Option<String>) -> Result<DirectoryListing, String
     })
 }
 
+fn resolve_nearest_canonical(p: &Path) -> Result<PathBuf, String> {
+    let mut cur = Some(p);
+    while let Some(anc) = cur {
+        if anc.exists() {
+            return fs::canonicalize(anc).map_err(|_| "Geçersiz dosya yolu.".to_string());
+        }
+        cur = anc.parent();
+    }
+    Ok(p.to_path_buf())
+}
+
+fn validate_non_system_path(p: &Path, allow_var_tmp: bool) -> Result<(), String> {
+    if p.components().any(|c| matches!(c, std::path::Component::ParentDir)) {
+        return Err("Güvenlik İlkesi İhlali: Yolda üst dizin geçişine ('..') izin verilmez.".to_string());
+    }
+    let clean = p.to_string_lossy().to_string();
+    if clean.contains('\0') {
+        return Err("Geçersiz dosya yolu.".to_string());
+    }
+    let canon = resolve_nearest_canonical(p)?;
+    let canon_str = canon.to_string_lossy().to_string();
+    let restricted = [
+        "/bin", "/sbin", "/usr", "/etc", "/boot", "/dev", "/proc", "/sys", "/lib", "/lib64",
+        "/opt", "/srv", "/root",
+    ];
+    for candidate in [&clean, &canon_str] {
+        for r in &restricted {
+            if candidate == *r || candidate.starts_with(&format!("{}/", r)) {
+                return Err(format!("Güvenlik İlkesi İhlali: Sistem dizinine ({}) doğrudan işlem yapılamaz.", r));
+            }
+        }
+        let var_blocked = if allow_var_tmp {
+            candidate == "/var" || (candidate.starts_with("/var/") && !candidate.starts_with("/var/tmp/"))
+        } else {
+            candidate == "/var" || candidate.starts_with("/var/")
+        };
+        if var_blocked {
+            return Err("Güvenlik İlkesi İhlali: /var dizinine doğrudan işlem yapılamaz.".to_string());
+        }
+    }
+    Ok(())
+}
+
 #[tauri::command]
 async fn create_folder(path: String) -> Result<String, String> {
     let clean = path.trim();
@@ -5591,15 +5698,7 @@ async fn create_folder(path: String) -> Result<String, String> {
         return Err("Geçersiz klasör yolu.".to_string());
     }
     let p = Path::new(clean);
-    let restricted = [
-        "/bin", "/sbin", "/usr", "/etc", "/boot", "/dev", "/proc", "/sys", "/lib", "/lib64",
-        "/var", "/opt", "/srv", "/root",
-    ];
-    for r in &restricted {
-        if clean == *r || clean.starts_with(&format!("{}/", r)) {
-            return Err("Bu sistem dizininde klasör oluşturulamaz.".to_string());
-        }
-    }
+    validate_non_system_path(p, false)?;
     fs::create_dir_all(p).map_err(|e| e.to_string())?;
     Ok(format!("Klasör oluşturuldu: {}", clean))
 }
@@ -5611,14 +5710,9 @@ async fn write_text_file(path: String, content: String) -> Result<String, String
         return Err("Geçersiz dosya yolu.".to_string());
     }
     let p = Path::new(clean);
-    let restricted = [
-        "/bin", "/sbin", "/usr", "/etc", "/boot", "/dev", "/proc", "/sys", "/lib", "/lib64",
-        "/var", "/opt", "/srv", "/root",
-    ];
-    for r in &restricted {
-        if clean == *r || clean.starts_with(&format!("{}/", r)) {
-            return Err("Bu sistem dizininde dosya oluşturulamaz.".to_string());
-        }
+    validate_non_system_path(p, false)?;
+    if p.file_name().and_then(|s| s.to_str()) == Some("update-endpoint") {
+        return Err("Güvenlik İlkesi İhlali: Güncelleme uç noktası yapılandırması doğrudan düzenlenemez.".to_string());
     }
     if let Some(parent) = p.parent() {
         if !parent.exists() {
@@ -5685,11 +5779,27 @@ async fn execute_desktop_program(path: String) -> Result<String, String> {
         }
         #[cfg(target_os = "linux")]
         {
+            if exec_cmd.chars().any(|c| matches!(c, ';' | '&' | '|' | '`' | '$' | '>' | '<' | '\\' | '(' | ')' | '\n' | '\r')) {
+                return Err("Güvenlik Hatası: .desktop Exec komutunda kabuk kontrol karakterleri tespit edildi.".to_string());
+            }
             let parts: Vec<String> = split_exec_args(&exec_cmd)
                 .into_iter()
                 .filter(|t| !matches!(t.as_str(), "%f" | "%F" | "%u" | "%U" | "%i" | "%c" | "%k"))
                 .collect();
             if let Some((bin, rest)) = parts.split_first() {
+                let base_bin = Path::new(bin.as_str())
+                    .file_name()
+                    .and_then(|s| s.to_str())
+                    .unwrap_or(bin.as_str());
+                if bin.contains("..") || FORBIDDEN_LAUNCH_BINARIES.contains(&base_bin) {
+                    return Err(format!("Güvenlik İlkesi İhlali: '{}' aracı .desktop üzerinden başlatılamaz.", base_bin));
+                }
+                let low_exec = exec_cmd.to_lowercase();
+                for pat in SENSITIVE_FILE_PATTERNS {
+                    if low_exec.contains(&pat.to_lowercase()) {
+                        return Err(format!("Güvenlik İlkesi İhlali: Hassas yola erişim engellendi ({}).", pat));
+                    }
+                }
                 let dsp = std::env::var("DISPLAY").unwrap_or_else(|_| ":0".to_string());
                 let title = real_path.file_name().and_then(|s| s.to_str()).unwrap_or("Program");
                 let mut x_args = vec!["-title".to_string(), title.to_string(), "-e".to_string(), bin.clone()];
@@ -5746,9 +5856,9 @@ async fn open_path(path: String) -> Result<String, String> {
     // GÜVENLİK: Kurulabilir/çalıştırılabilir paket dosyaları xdg-open'a
     // verilmez; .deb doğrudan dpkg, .desktop ise çalıştırma anlamına gelir.
     let lower = clean.to_lowercase();
-    if lower.ends_with(".deb") || lower.ends_with(".run") {
+    if lower.ends_with(".deb") || lower.ends_with(".run") || lower.ends_with(".desktop") {
         return Err(
-            "Güvenlik Hatası: Paket dosyaları buradan doğrudan açılamaz; paketleri lütfen Ankora Mağaza üzerinden kurun."
+            "Güvenlik Hatası: Çalıştırılabilir/paket dosyaları buradan doğrudan açılamaz."
                 .to_string(),
         );
     }
@@ -7485,19 +7595,19 @@ fn set_cpu_governor(governor: Option<String>, profile: Option<String>) -> Result
             return Err("Geçersiz CPU profili".to_string());
         }
 
-        if let Ok(entries) = fs::read_dir("/sys/devices/system/cpu") {
-            for entry in entries.flatten() {
-                let name = entry.file_name().to_string_lossy().to_string();
-                if name.starts_with("cpu") && name[3..].chars().all(|c| c.is_ascii_digit()) {
-                    let path = entry.path().join("cpufreq/scaling_governor");
-                    if path.exists() {
-                        let _ = root_command(
-                            "sh",
-                            &["-c", &format!("echo {} > {}", gov, path.display())],
-                        );
-                    }
-                }
-            }
+        let script = format!(
+            "for p in /sys/devices/system/cpu/cpu[0-9]*/cpufreq/scaling_governor; do [ -e \"$p\" ] && printf '%s' '{}' > \"$p\"; done",
+            gov
+        );
+        let out = root_command("sh", &["-c", &script])
+            .map_err(|e| format!("CPU profili ayarlanamadı: {}", e))?;
+        if !out.status.success() {
+            let err = String::from_utf8_lossy(&out.stderr).trim().to_string();
+            return Err(if err.is_empty() {
+                "CPU profili değiştirilemedi (yetki veya destek yok).".to_string()
+            } else {
+                err
+            });
         }
         Ok(format!("CPU profili ayarlandı: {}", gov))
     }
@@ -7820,7 +7930,17 @@ async fn list_trash() -> Result<Vec<DirectoryItem>, String> {
 
 #[tauri::command]
 async fn restore_trash_item(fileName: String) -> Result<String, String> {
+    if fileName.is_empty()
+        || fileName.contains('/')
+        || fileName.contains('\\')
+        || fileName.contains('\0')
+        || fileName == "."
+        || fileName == ".."
+    {
+        return Err("Güvenlik Hatası: Geçersiz çöp dosyası adı.".to_string());
+    }
     let home = dirs::home_dir().unwrap_or_else(|| PathBuf::from("/home/ankora"));
+    let real_home = fs::canonicalize(&home).unwrap_or_else(|_| home.clone());
     let trash_dir = home.join(".local/share/Trash");
     let file_path = trash_dir.join("files").join(&fileName);
     let info_path = trash_dir
@@ -7831,16 +7951,22 @@ async fn restore_trash_item(fileName: String) -> Result<String, String> {
         return Err("Geri yüklenecek dosya bulunamadı.".to_string());
     }
 
-    let mut target_dest = home.join("Masaüstü").join(&fileName);
+    let mut target_dest = real_home.join("Masaüstü").join(&fileName);
     if info_path.exists() {
         if let Ok(content) = fs::read_to_string(&info_path) {
             for line in content.lines() {
                 if let Some(orig_path) = line.strip_prefix("Path=") {
                     let p = PathBuf::from(orig_path.trim());
-                    if let Some(parent) = p.parent() {
-                        if parent.exists() {
-                            target_dest = p;
-                            break;
+                    if !p.components().any(|c| matches!(c, std::path::Component::ParentDir)) {
+                        if let Some(parent) = p.parent() {
+                            if let Ok(canon_parent) = fs::canonicalize(parent) {
+                                if canon_parent.starts_with(&real_home) || canon_parent.starts_with("/tmp") {
+                                    if let Some(fname) = p.file_name() {
+                                        target_dest = canon_parent.join(fname);
+                                    }
+                                    break;
+                                }
+                            }
                         }
                     }
                 }
@@ -7985,24 +8111,7 @@ fn path_sanitize_input(p: &str) -> Result<PathBuf, String> {
 }
 
 fn path_accessible_for_ops(p: &Path) -> Result<(), String> {
-    let clean = p.to_string_lossy().to_string();
-    if clean.contains('\0') {
-        return Err("Geçersiz dosya yolu.".into());
-    }
-    for forbidden in [
-        "/etc", "/boot", "/root", "/proc", "/sys", "/dev", "/usr", "/bin", "/sbin", "/lib", "/lib64",
-    ] {
-        if clean == forbidden || clean.starts_with(&format!("{}/", forbidden)) {
-            return Err(format!(
-                "Güvenlik İlkesi İhlali: Sistem dizinine ({}) doğrudan işlem yapılamaz.",
-                forbidden
-            ));
-        }
-    }
-    if clean == "/var" || (clean.starts_with("/var/") && !clean.starts_with("/var/tmp/")) {
-        return Err("Güvenlik İlkesi İhlali: /var dizinine doğrudan işlem yapılamaz.".into());
-    }
-    Ok(())
+    validate_non_system_path(p, true)
 }
 
 #[derive(Clone, Serialize)]
@@ -8319,12 +8428,13 @@ fn path_fs_usage(path: String) -> Result<serde_json::Value, String> {
 fn set_file_permissions(path: String, mode: String) -> Result<String, String> {
     let p = path_sanitize_input(&path)?;
     path_accessible_for_ops(&p)?;
-    // Yalnızca sekmeli oktal izin kümesi kabul edilir (600/400/000 vb.).
-    if mode.is_empty() || mode.len() > 4 || !mode.chars().all(|c| c.is_ascii_digit()) {
-        return Err("Geçersiz izin kümesi.".into());
+    // Yalnızca 3 haneli oktal izin kümesi kabul edilir (SUID/SGID yasaktır: 755, 644, 600 vb.).
+    let mode_clean = mode.trim();
+    if mode_clean.len() != 3 || !mode_clean.chars().all(|c| ('0'..='7').contains(&c)) {
+        return Err("Geçersiz izin kümesi (örn: 644 veya 755).".into());
     }
     let out = Command::new("chmod")
-        .args([&mode, &p.to_string_lossy().to_string()])
+        .args([mode_clean, &p.to_string_lossy().to_string()])
         .status()
         .map_err(|e| e.to_string())?;
     if out.success() {
@@ -9403,21 +9513,26 @@ fn system_user_add(
     }
 
     // Parola chpasswd ile stdin üzerinden beslenir (komut satırına hash yazılmaz).
-    if sudo_available() {
-        let mut child = Command::new("sudo")
-            .args(["-n", "chpasswd"])
-            .stdin(Stdio::piped())
-            .stdout(Stdio::null())
-            .stderr(Stdio::piped())
-            .spawn()
-            .map_err(|e| format!("chpasswd başlatılamadı: {}", e))?;
-        if let Some(mut stdin) = child.stdin.take() {
-            let _ = stdin.write_all(format!("{}:{}\n", username, password).as_bytes());
-        }
-        let res = child.wait_with_output().map_err(|e| e.to_string())?;
-        if !res.status.success() {
-            return Err("Kullanıcı oluşturuldu ancak parola ayarlanamadı.".into());
-        }
+    let (ch_prog, ch_args): (&str, Vec<&str>) = if sudo_available() {
+        ("sudo", vec!["-n", "chpasswd"])
+    } else if pkexec_available() && (polkit_agent_running() || std::env::var("DISPLAY").is_ok()) {
+        ("pkexec", vec!["chpasswd"])
+    } else {
+        ("chpasswd", vec![])
+    };
+    let mut child = Command::new(ch_prog)
+        .args(&ch_args)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::null())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|e| format!("chpasswd başlatılamadı: {}", e))?;
+    if let Some(mut stdin) = child.stdin.take() {
+        let _ = stdin.write_all(format!("{}:{}\n", username, password).as_bytes());
+    }
+    let res = child.wait_with_output().map_err(|e| e.to_string())?;
+    if !res.status.success() {
+        return Err("Kullanıcı oluşturuldu ancak parola ayarlanamadı.".into());
     }
 
     Ok(format!("'{}' kullanıcısı oluşturuldu.", username))
@@ -9729,8 +9844,21 @@ fn get_tray_items() -> Result<Vec<TrayItemInfo>, String> {
     Ok(items)
 }
 
+fn is_valid_dbus_service(service: &str) -> bool {
+    !service.is_empty()
+        && service.len() <= 255
+        && !service.starts_with('-')
+        && (service.starts_with(':') || service.contains('.'))
+        && service
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '_' | '-' | '.' | ':'))
+}
+
 #[tauri::command]
 fn activate_tray_item(service: String) -> Result<String, String> {
+    if !is_valid_dbus_service(&service) {
+        return Err("Geçersiz sistem tepsisi servis adı.".into());
+    }
     #[cfg(target_os = "linux")]
     {
         let _ = Command::new("dbus-send")
@@ -9750,6 +9878,9 @@ fn activate_tray_item(service: String) -> Result<String, String> {
 
 #[tauri::command]
 fn context_menu_tray_item(service: String) -> Result<String, String> {
+    if !is_valid_dbus_service(&service) {
+        return Err("Geçersiz sistem tepsisi servis adı.".into());
+    }
     #[cfg(target_os = "linux")]
     {
         let _ = Command::new("dbus-send")
