@@ -307,7 +307,7 @@ apt-get install -y --no-install-recommends \
 # GPU FİRMWARE — gerçek donanımda test bulgusu: Radeon (r600/ati) kartları
 # non-free firmware olmadan siyah ekran veriyor ve konsolu kilitliyor.
 #
-# ÖNEMLİ: paketleri TEK TEK kur. Tek bir bulunmayan paket adı (daedalus'ta
+# ÖNEMLİ: paketleri TEK TEK kur. Tek bir bulunmayan paket adı (daedalus/excalibur'da
 # firmware-radeon yok, firmware-amd-graphics içine katıldı) tüm apt komutunu
 # düşürüyordu; eski hali `2>/dev/null || true` ile hatayı yutuyor ve ISO
 # firmware'siz çıkıyordu. Bu yüzden artık hem tek tek kuruluyor hem de
@@ -383,7 +383,6 @@ df -h / || true
 # -----------------------------------------------------------------------
 apt-get install -y --no-install-recommends \
     libwebkit2gtk-4.1-0 \
-    libjavascriptcoregtk-4.1-0 \
     libjavascriptcoregtk-4.1-0 \
     libgtk-3-0 \
     libayatana-appindicator3-1 \
