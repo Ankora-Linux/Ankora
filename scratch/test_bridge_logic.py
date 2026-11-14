@@ -142,6 +142,77 @@ def test_native_windows_parsing(bridge):
     print("[OK  ] get_native_windows: wmctrl -l -x başlık ve aktif pencere ayrıştırması doğru")
 
 
+def test_check_de_update_semver(bridge):
+    import json
+    import re
+    import subprocess
+    import types
+    import urllib.request
+
+    body = extract_block(bridge, "check_de_update")
+
+    class _FakeResp:
+        def __init__(self, payload):
+            self.status = 200
+            self._data = json.dumps(payload).encode("utf-8")
+
+        def read(self):
+            return self._data
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+    def _run_with_release(tag_name):
+        fake_urllib = types.SimpleNamespace(
+            request=types.SimpleNamespace(
+                Request=urllib.request.Request,
+                urlopen=lambda req, timeout=8: _FakeResp({
+                    "tag_name": tag_name,
+                    "name": f"Ayaz DE {tag_name}",
+                    "body": "Test sürüm notu",
+                    "published_at": "2026-11-14T12:00:00Z",
+                    "assets": [
+                        {
+                            "name": "ankora-linux-4.6.0-ayaz-amd64.iso.sha256",
+                            "browser_download_url": "https://github.com/Ankora-Linux/Ankora/releases/download/v4.6.0/ankora.iso.sha256",
+                            "size": 90,
+                        },
+                        {
+                            "name": "ayaz-de-latest-amd64.deb",
+                            "browser_download_url": "https://github.com/Ankora-Linux/Ankora/releases/download/v4.6.0/ayaz-de-latest-amd64.deb",
+                            "size": 123456,
+                            "digest": "sha256:" + ("a" * 64),
+                        },
+                    ],
+                }),
+            )
+        )
+        fake_sp = types.SimpleNamespace(
+            run=lambda *a, **kw: types.SimpleNamespace(returncode=1, stdout=""),
+            PIPE=-1,
+            DEVNULL=-3,
+        )
+        return run_block(
+            body,
+            json=json,
+            re=re,
+            subprocess=fake_sp,
+            urllib=fake_urllib,
+        )
+
+    older = _run_with_release("v4.6.0")
+    assert older["has_update"] is False, older
+    newer = _run_with_release("v4.8.0")
+    assert newer["has_update"] is True, newer
+    assert newer["latest_version"] == "4.8.0", newer
+    assert newer["expected_sha256"] == "a" * 64, newer
+    assert newer["sha256_url"] is None, newer
+    print("[OK  ] check_de_update: semver sürüm sırası ve .deb/.iso ayrımı doğru")
+
+
 def main():
     bridge = load_bridge()
     test_xdg_english(bridge)
@@ -150,6 +221,7 @@ def main():
     test_icon_found(bridge)
     test_icon_missing_and_unsafe(bridge)
     test_native_windows_parsing(bridge)
+    test_check_de_update_semver(bridge)
     print("KÖPRÜ MANTIK TESTLERİ: geçti.")
     return 0
 

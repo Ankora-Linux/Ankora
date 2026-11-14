@@ -214,6 +214,12 @@ fi
 # 9. Senkronize et, durumu onayla
 sync
 write_state "committed" "kurulu sürüm: $INSTALLED_VERSION"
+_CLEAN_VER=$(norm_ver "$INSTALLED_VERSION")
+if [[ -n "$_CLEAN_VER" ]]; then
+    mkdir -p /etc/ankora
+    printf '%s\n' "$_CLEAN_VER" > /etc/ankora/version
+    chmod 0644 /etc/ankora/version
+fi
 
 # 10. Güncellemenin kendi deb'i temizlenir; geri alma deb'i bir sonraki
 #     başarılı güncelleme'ye kadar saklanır.

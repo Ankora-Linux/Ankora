@@ -1,6 +1,6 @@
 #!/bin/bash
 # ==============================================================================
-# Ankora Linux 4.6 (Excalibur) — Canlı (Live) ISO Derleme Betiği
+# Ankora Linux 4.7 "Bora" (Excalibur) — Canlı (Live) ISO Derleme Betiği
 # Masaüstü Ortamı: Ayaz DE (Tauri + WebKitGTK + SysVinit Core)
 # Mimari: x86_64 (UEFI + BIOS Hibrit Boot)
 # ==============================================================================
@@ -22,7 +22,7 @@ AYAZ_VERSION=$(sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' "$ROOT_DIR/src-tauri/
 if [ -z "$AYAZ_VERSION" ] && [ -f "$ROOT_DIR/VERSION" ]; then
     AYAZ_VERSION=$(tr -d '[:space:]' < "$ROOT_DIR/VERSION")
 fi
-[ -z "$AYAZ_VERSION" ] && AYAZ_VERSION="4.6.0"
+[ -z "$AYAZ_VERSION" ] && AYAZ_VERSION="4.7.0"
 ISO_NAME="ankora-linux-${AYAZ_VERSION}-ayaz-amd64.iso"
 # ISO9660 etiketi sürümü yansıtır; grub.cfg'deki search --label ile birebir
 # aynı etikettir — ikisi tek değişkenden üretilir, elle düzeltmeyin.
@@ -955,7 +955,7 @@ else
     rm -f "$BDIR/ankora-sistem-rehberi.pdf"
 fi
 cat << 'KIOSKTXT' > "$BDIR/kiosk-ayarlari.txt"
-Ankora Linux 4.6.0 — Kiosk Yapılandırma Raporu
+Ankora Linux 4.7.0 — Kiosk Yapılandırma Raporu
 =============================================
 
 Taban            : Devuan GNU/Linux 6 (excalibur)
@@ -971,7 +971,7 @@ Bu dosya Ayaz Dosyalar ve Ofis uygulamalarından açılabilir.
 Kiosk kilit ekranı ve widget ayarları Ayarlar penceresinden yönetilir.
 KIOSKTXT
 cat << 'KIOSKMD' > "$BDIR/kiosk-ayarlari.md"
-# Ankora Linux 4.6.0 — Kiosk Yapılandırma Raporu
+# Ankora Linux 4.7.0 — Kiosk Yapılandırma Raporu
 
 - Taban: Devuan 6 Excalibur (SysVinit, systemd-free)
 - Çekirdek: Linux 6.12 LTS
@@ -2697,7 +2697,7 @@ tmpfs /tmp tmpfs defaults,noatime,mode=1777 0 0
 
             # Hızlı Paralel Açılış ve ZRAM Swap Servisi Optimizasyonlarını Kurulu Sisteme Aktar
             _root_write('/target/etc/default/rcS',
-                        "# Ankora Linux 4.6.0 Hızlı Paralel Açılış\nCONCURRENCY=makefile\nUTC=yes\nVERBOSE=no\nFSCKFIX=no\n")
+                        "# Ankora Linux 4.7.0 Hızlı Paralel Açılış\nCONCURRENCY=makefile\nUTC=yes\nVERBOSE=no\nFSCKFIX=no\n")
             _root_write('/target/etc/sysctl.d/99-zram.conf',
                         "vm.swappiness = 100\nvm.vfs_cache_pressure = 150\nvm.watermark_boost_factor = 0\nvm.dirty_background_ratio = 5\nvm.dirty_ratio = 10\n")
             zram_target_script = """#!/bin/sh
@@ -2868,7 +2868,7 @@ exit 0
             _root("umount -l /target/boot/efi 2>/dev/null || true", check=False)
             _root("umount -l /target 2>/dev/null || true", check=False)
 
-        return "Ankora Linux 4.6.0 başarıyla kuruldu! Sistemi yeniden başlatabilirsiniz."
+        return "Ankora Linux 4.7.0 başarıyla kuruldu! Sistemi yeniden başlatabilirsiniz."
 
     elif cmd == 'get_system_telemetry':
         mem_total = 4096
@@ -4596,7 +4596,7 @@ exit 0
         cpu_cores = tele.get('cpu_cores') or 4
         cpu_pct = tele.get('cpu_percent') or 0.0
         uptime_mins = int((tele.get('uptime_seconds') or 0) // 60)
-        os_name = tele.get('os_name') or 'Ankora Linux 4.6.0'
+        os_name = tele.get('os_name') or 'Ankora Linux 4.7.0'
         kernel = tele.get('kernel') or 'Linux 6.12'
         init_sys = tele.get('init_system') or 'SysVinit'
 
@@ -4625,7 +4625,7 @@ exit 0
 
         tele_ctx = f"[Sistem Özeti: {os_name} | {kernel} | {init_sys} | RAM: {ram_used}/{ram_tot} MB (%{ram_pct}) | CPU: {cpu_cores} çekirdek (%{cpu_pct}) | Disk: {disk_used}/{disk_tot} GB (%{disk_pct})]"
         sys_prompt = (
-            "Sen Ankora Linux 4.6.0 (Devuan 6 Excalibur, SysVinit) sistem yöneticisi ve tanılama ajanısın. "
+            "Sen Ankora Linux 4.7.0 (Devuan 6 Excalibur, SysVinit) sistem yöneticisi ve tanılama ajanısın. "
             "Kullanıcıya Türkçe, net ve teknik yanıtlar ver. Gerekirse yanıtının sonuna şu formatta onaylı eylem ekle: "
             "<<<ACTION:{\"command\":\"izin_verilen_komut\",\"desc\":\"Açıklama\"}>>>\n" + tele_ctx
         )
@@ -4743,7 +4743,7 @@ exit 0
         elif any(w in p_lower for w in ['disk', 'depolama', 'alan', 'bölüm', 'lsblk', 'durum', 'özet', 'rapor', 'analiz']):
             c_cmd = 'df -h / && free -m'
             return {
-                'reply': f"Ankora Linux 4.6.0 Canlı Sistem Raporu:\n• Sistem: {os_name} ({init_sys})\n• Çekirdek: {kernel}\n• CPU: {cpu_cores} Çekirdek (Yük: %{cpu_pct})\n• RAM: {ram_used} MB / {ram_tot} MB (%{ram_pct})\n• Disk: {disk_used} GB / {disk_tot} GB (%{disk_pct})\n• Çalışma Süresi: {uptime_mins} dk\n\nAyrıntılı disk ve bellek çıktısı için aşağıdaki komutu onaylayabilirsiniz.",
+                'reply': f"Ankora Linux 4.7.0 Canlı Sistem Raporu:\n• Sistem: {os_name} ({init_sys})\n• Çekirdek: {kernel}\n• CPU: {cpu_cores} Çekirdek (Yük: %{cpu_pct})\n• RAM: {ram_used} MB / {ram_tot} MB (%{ram_pct})\n• Disk: {disk_used} GB / {disk_tot} GB (%{disk_pct})\n• Çalışma Süresi: {uptime_mins} dk\n\nAyrıntılı disk ve bellek çıktısı için aşağıdaki komutu onaylayabilirsiniz.",
                 'has_action': True,
                 'action_command': c_cmd,
                 'action_desc': 'Disk ve bellek doluluk durumunu sorgula',
@@ -4809,14 +4809,60 @@ exit 0
         return True
 
     elif cmd == 'check_de_update':
-        current_ver = '4.6.0'
+        def _parse_semver(v):
+            clean = str(v or '').strip().lstrip('vV')
+            if not clean:
+                return (0, 0, 0, 0)
+            parts_rp = re.split(r'[-+]', clean, maxsplit=1)
+            core = parts_rp[0]
+            rev = 0
+            if len(parts_rp) > 1:
+                for seg in parts_rp[1].split('-'):
+                    if seg.isdigit():
+                        rev = int(seg)
+                        break
+            nums = []
+            for p in core.split('.'):
+                if p.isdigit():
+                    nums.append(int(p))
+                else:
+                    m_num = re.match(r'^(\d+)', p)
+                    if m_num:
+                        nums.append(int(m_num.group(1)))
+            while len(nums) < 3:
+                nums.append(0)
+            return (nums[0], nums[1], nums[2], rev)
+
+        candidates = ['4.7.0']
         try:
             if os.path.exists('/etc/ankora/version'):
                 with open('/etc/ankora/version', 'r') as _vf:
-                    _cv = _vf.read().strip()
-                    if _cv: current_ver = _cv
+                    _cv = _vf.read().strip().lstrip('vV')
+                    if _cv:
+                        candidates.append(_cv)
         except Exception:
             pass
+        try:
+            if os.path.exists('/usr/share/ayaz/manifest.json'):
+                with open('/usr/share/ayaz/manifest.json', 'r') as _mf:
+                    _mdata = json.load(_mf)
+                    _mv = str(_mdata.get('version') or '').strip().lstrip('vV')
+                    if _mv:
+                        candidates.append(_mv)
+        except Exception:
+            pass
+        try:
+            _dp = subprocess.run(
+                ['dpkg-query', '-W', '-f=${Version}', 'ayaz-de'],
+                stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, timeout=5
+            )
+            if _dp.returncode == 0 and _dp.stdout.strip():
+                _dv = _dp.stdout.strip().lstrip('vV')
+                candidates.append(_dv.split(':', 1)[-1])
+        except Exception:
+            pass
+        current_ver = max(candidates, key=_parse_semver)
+
         result = {
             'has_update': False,
             'current_version': current_ver,
@@ -4824,7 +4870,7 @@ exit 0
             'release_name': f'Ankora Linux {current_ver} (AyazDE)',
             'release_notes': f'Sisteminiz güncel. AyazDE v{current_ver} kararlı sürüm devrededir.',
             'download_url': None,
-            'published_at': '2026-11-10',
+            'published_at': '2026-11-14',
             'package_size_bytes': 0,
             'expected_sha256': None,
             'sha256_url': None
@@ -4837,20 +4883,54 @@ exit 0
             with urllib.request.urlopen(req, timeout=8) as resp:
                 if resp.status == 200:
                     data = json.loads(resp.read().decode('utf-8'))
-                    tag = data.get('tag_name', '').lstrip('v')
-                    if tag and tag != current_ver:
+                    raw_tag = str(data.get('tag_name') or '').strip()
+                    tag = raw_tag.lstrip('vV')
+                    if tag and _parse_semver(tag) > _parse_semver(current_ver):
                         result['has_update'] = True
                         result['latest_version'] = tag
-                        result['release_name'] = data.get('name', f'Ayaz DE {tag}')
-                        result['release_notes'] = data.get('body', 'Yeni özellikler ve hata düzeltmeleri.')
-                        result['published_at'] = data.get('published_at', '')
+                        result['release_name'] = data.get('name') or f'Ayaz DE {tag}'
+                        result['release_notes'] = data.get('body') or 'Yeni özellikler ve hata düzeltmeleri.'
+                        result['published_at'] = data.get('published_at') or ''
+                        deb_is_ayaz = False
+                        deb_digest = None
+                        deb_sha256_url = None
+                        generic_sha256_url = None
                         for asset in data.get('assets', []):
-                            aname = asset.get('name', '').lower()
+                            aname = str(asset.get('name') or '').lower()
+                            aurl = asset.get('browser_download_url')
                             if aname.endswith('.deb'):
-                                result['download_url'] = asset.get('browser_download_url')
-                                result['package_size_bytes'] = asset.get('size', 0)
-                            elif aname.endswith('.sha256'):
-                                result['sha256_url'] = asset.get('browser_download_url')
+                                is_ayaz = ('ayaz-de' in aname) or ('ankora' in aname)
+                                if not result['download_url'] or (is_ayaz and not deb_is_ayaz):
+                                    result['download_url'] = aurl
+                                    result['package_size_bytes'] = asset.get('size', 0)
+                                    deb_is_ayaz = is_ayaz
+                                    adig = str(asset.get('digest') or '').strip()
+                                    if adig.lower().startswith('sha256:'):
+                                        h_val = adig.split(':', 1)[1].strip().lower()
+                                        if len(h_val) == 64 and all(c in '0123456789abcdef' for c in h_val):
+                                            deb_digest = h_val
+                            elif (
+                                aname.endswith('.deb.sha256')
+                                or aname.endswith('.deb.sha256sum')
+                                or (('ayaz-de' in aname or 'ankora' in aname) and not aname.endswith('.iso.sha256') and (aname.endswith('.sha256') or aname.endswith('.sha256sum')))
+                            ):
+                                deb_sha256_url = aurl
+                            elif aname in ('sha256sums', 'sha256sums.txt'):
+                                generic_sha256_url = aurl
+                        result['sha256_url'] = deb_sha256_url or generic_sha256_url
+                        result['expected_sha256'] = deb_digest
+                        if not result['expected_sha256'] and data.get('body'):
+                            for line in str(data.get('body')).splitlines():
+                                llow = line.lower()
+                                if '.iso' in llow and '.deb' not in llow:
+                                    continue
+                                for word in line.split():
+                                    w_clean = re.sub(r'[^a-fA-F0-9]', '', word)
+                                    if len(w_clean) == 64:
+                                        result['expected_sha256'] = w_clean.lower()
+                                        break
+                                if result['expected_sha256']:
+                                    break
         except Exception:
             pass
         return result
@@ -4864,13 +4944,14 @@ exit 0
 
         expected_sha256 = args.get('expectedSha256', args.get('expected_sha256'))
         sha256_url = args.get('sha256Url', args.get('sha256_url'))
+        expected_ver = str(args.get('expectedVersion') or args.get('expected_version') or '').strip().lstrip('vV')
 
         import tempfile, hashlib
         with tempfile.NamedTemporaryFile(suffix='.deb', delete=False) as tf:
             tmp_path = tf.name
 
         try:
-            req = urllib.request.Request(download_url, headers={'User-Agent': 'ayaz-updater/4.6.0'})
+            req = urllib.request.Request(download_url, headers={'User-Agent': 'ayaz-updater/4.7.0'})
             with urllib.request.urlopen(req, timeout=180) as resp, open(tmp_path, 'wb') as f:
                 content = resp.read()
                 f.write(content)
@@ -4880,11 +4961,24 @@ exit 0
                 try:
                     with urllib.request.urlopen(sha256_url, timeout=30) as s_resp:
                         s_txt = s_resp.read().decode('utf-8', errors='ignore')
-                        for word in s_txt.split():
-                            w_clean = re.sub(r'[^a-fA-F0-9]', '', word)
-                            if len(w_clean) == 64:
-                                expected_sha256 = w_clean.lower()
+                        fallback_hex = None
+                        for line in s_txt.splitlines():
+                            llow = line.lower()
+                            line_hex = None
+                            for word in line.split():
+                                w_clean = re.sub(r'[^a-fA-F0-9]', '', word)
+                                if len(w_clean) == 64:
+                                    line_hex = w_clean.lower()
+                                    break
+                            if not line_hex:
+                                continue
+                            if '.deb' in llow and '.iso' not in llow:
+                                expected_sha256 = line_hex
                                 break
+                            if '.iso' not in llow and not fallback_hex:
+                                fallback_hex = line_hex
+                        if not expected_sha256 and fallback_hex:
+                            expected_sha256 = fallback_hex
                 except Exception:
                     pass
 
@@ -4905,7 +4999,9 @@ exit 0
                 err_txt = (stage_proc.stderr or stage_proc.stdout) if stage_proc else 'stage failed'
                 raise Exception(f'Güncelleme hazırlık hatası: {err_txt}')
 
-            proc = _root_run([helper], timeout=300)
+            staged_deb = '/var/cache/ayaz-updates/ayaz-update.deb'
+            install_args = [helper, staged_deb, expected_ver] if expected_ver else [helper]
+            proc = _root_run(install_args, timeout=300)
             if proc is not None and proc.returncode == 0:
                 return 'Ayaz DE başarıyla güncellendi!'
             err_txt = (proc.stderr or proc.stdout) if proc else 'helper failed'
@@ -6505,7 +6601,7 @@ echo "[MANIFEST] Sistem künyesi yazılıyor..."
 AYAZ_VERSION=$(sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' "$ROOT_DIR/src-tauri/tauri.conf.json")
 AYAZ_VERSION="${AYAZ_VERSION%%$'\n'*}"
 if [ -z "$AYAZ_VERSION" ]; then
-    AYAZ_VERSION="4.6.0"
+    AYAZ_VERSION="4.7.0"
 fi
 # git yoksa (ör. WSL) .git/HEAD + ref dosyaları doğrudan okunur; revizyon
 # manifestte hiçbir koşulda boş kalmaz.
@@ -6534,17 +6630,19 @@ elif [ -f "$ROOT_DIR/.git/HEAD" ]; then
 fi
 BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 mkdir -p "$CHROOT_DIR/usr/share/ayaz"
+mkdir -p "$CHROOT_DIR/etc/ankora"
+printf '%s\n' "${AYAZ_VERSION}" > "$CHROOT_DIR/etc/ankora/version"
 # Canlı sistem kendi kimliğini taşısın: telemetry os-release PRETTY_NAME
 # urlparse okur; Devuan kimliğiyle "Ankora Linux <sürüm>" görünmeli (hata #2).
 if [ -f "$CHROOT_DIR/etc/os-release" ]; then
     sed -i -E '/^(PRETTY_NAME|VERSION)=/d' "$CHROOT_DIR/etc/os-release"
-    sed -i "1aPRETTY_NAME=\"Ankora Linux ${AYAZ_VERSION} Karayel (Excalibur)\"\nVERSION=\"${AYAZ_VERSION} (Karayel)\"\nVERSION_ID=\"${AYAZ_VERSION}\"" "$CHROOT_DIR/etc/os-release"
+    sed -i "1aPRETTY_NAME=\"Ankora Linux ${AYAZ_VERSION} Bora (Excalibur)\"\nVERSION=\"${AYAZ_VERSION} (Bora)\"\nVERSION_ID=\"${AYAZ_VERSION}\"" "$CHROOT_DIR/etc/os-release"
 fi
 cat > "$CHROOT_DIR/usr/share/ayaz/manifest.json" <<MANIFEST_JSON
 {
   "product": "Ayaz DE (Ankora Linux)",
   "version": "${AYAZ_VERSION}",
-  "codename": "Karayel",
+  "codename": "Bora",
   "build_date": "${BUILD_DATE}",
   "git_revision": "${GIT_REV}",
   "architecture": "amd64",

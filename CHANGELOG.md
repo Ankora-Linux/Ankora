@@ -1,6 +1,29 @@
 # Ankora Linux — Sürüm Notları
 
 
+## 4.7.0 "Bora" (2026-11-14)
+
+### Sürüm ve Kod Adı
+- Sistem ve masaüstü sürümü `4.7.0` ("Bora") olarak güncellendi. `VERSION`, `package.json`, `Cargo.toml`, `Cargo.lock`, `tauri.conf.json`, GRUB teması ve `/etc/ankora/version` aynı sürüm numarasında buluştu.
+
+### Ayaz Güncelleyici ve İç Yükseltme
+- `/usr/bin/ayaz` içindeki `check_de_update` fonksiyonu `tag != current_ver` yerine dört bileşenli sürüm karşılaştırması (`_parse_semver`) kullanacak biçimde yenilendi; artık kurulu sürüm GitHub'daki son sürümden yeniyse eski paket güncelleme gibi gösterilmiyor.
+- Kurulu sürüm okunurken yalnızca `/etc/ankora/version` ile yetinilmeyip `/usr/share/ayaz/manifest.json` ve `dpkg-query` (`ayaz-de`) verisi de taranır; güncelleme tamamlandığında `ayaz-update-helper.sh` yeni sürümü `/etc/ankora/version` dosyasına yazar.
+- `.deb` ve `.iso.sha256` özet dosyalarının karışması giderildi; `download_and_apply_de_update` çağrısı sürüm doğrulaması için beklenen sürüm bilgisini `ayaz-update-helper`'a geçirir.
+- `/usr/bin/ayaz` köprüsüne AppImage kurulumu (`install_appimage`), Ollama kurulumu (`install_ollama`) ve tema dosyası okuma (`read_theme_file`) komutları eklendi.
+
+### Masaüstü Yüzleri ve Duvar Kağıtları
+- 4 yeni fotoğraf duvar kağıdı (`Kobalt Dalgalar`, `Kozmik Küreler`, `Karlı Şafak`, `Gece Zirve Yolu`) 24 temaya varsayılan olarak bağlandı; önceki 15 vektörel duvar kağıdı Ayarlar içinde seçilebilir durumda korundu.
+- Bakır, Bostan ve Cıvata yüzlerinde masaüstü duvar kağıdı değiştirme ve temizlik geçişi düzeltildi; `faces.js` yükleme katmanıyla açılıştaki takılma kaldırıldı ve tema okuma yolundaki XSS açıklığı kapatıldı.
+
+### Yazılım Mağazası, Ses, Bluetooth ve Güvenlik
+- Mağaza detay penceresindeki yükleme/kaldırma düğmesi işlem boyunca kilitlenip `"İndiriliyor..."` veya `"Kaldırılıyor..."` durumunu gösterir.
+- Ses çıkış aygıtı geçişi, Bluetooth aç/kapa ve tarama hataları artık sessiz kalmayıp kullanıcıya bildirilir.
+- `open-as-root` bağlam menüsü girdisi ve Wi-Fi/Bluetooth hızlı ayar düğmelerindeki yinelenen olay dinleyicileri temizlendi.
+- Önbellek temizliği (`apt-get clean`) root yetkisiyle çalışacak duruma getirildi; `/tmp` temizliğinde X11/ICE soketleri ve etkin masaüstü oturum dosyaları korundu.
+- `ayaz-pkg-helper.sh`, `ankora-ollama-install.sh`, `ankora-updater-sudoers`, `Spotlight` dosya açma yolu ve Rust arka uç komutları sertleştirildi.
+
+
 ## 4.6.0 "Karayel" (2026-11-12)
 
 ### Sürüm ve Sistem Bilgisi Güncellemesi

@@ -5205,8 +5205,7 @@ fn protocol_4_endpoint(target_repo: &str) -> String {
 // Debian vb.) .deb kurulsa bile çalışmayacaktır; baştan reddederiz.
 fn is_ayaz_system() -> bool {
     let helper = Path::new("/usr/local/bin/ayaz-update-helper");
-    let binary = Path::new("/usr/bin/ayaz-de");
-    helper.exists() && binary.exists()
+    helper.exists() && (Path::new("/usr/bin/ayaz-de").exists() || Path::new("/usr/bin/ayaz").exists())
 }
 
 #[tauri::command]

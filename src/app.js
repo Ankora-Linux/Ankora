@@ -323,10 +323,10 @@
         case 'check_de_update':
           return {
             has_update: false,
-            current_version: '4.6.0',
-            latest_version: '4.6.0',
-            release_name: 'Ayaz DE v4.6.0 (Excalibur / Son Kararlı Sürüm)',
-            release_notes: '## Ayaz DE v4.6.0\n- Ankora Linux için geliştirilen minimalist masaüstü ortamı.\n- SysVinit uyumlu Kiosk tasarımı.\n- Güvenlik duvarı ve yerel AI ajan entegrasyonu.',
+            current_version: '4.7.0',
+            latest_version: '4.7.0',
+            release_name: 'Ayaz DE v4.7.0 "Bora" (Excalibur)',
+            release_notes: '## Ayaz DE v4.7.0 "Bora"\n- Ankora Linux için geliştirilen minimalist masaüstü ortamı.\n- SysVinit uyumlu Kiosk tasarımı.\n- Güvenlik duvarı ve yerel AI ajan entegrasyonu.',
             download_url: null,
             published_at: new Date().toISOString(),
             package_size_bytes: 0
@@ -362,7 +362,7 @@
             };
           }
           return {
-            reply: 'Ankora AI Yerel Teşhis Motoru (v4.6) aktif.\n• Çekirdek: Linux 6.12 LTS (Devuan 6 Excalibur)\n• İnit: SysVinit (PID 1)\nSistem doktoru, bellek/disk analizi, süreç denetimi veya ZRAM sorguları için hızlı etiketleri kullanabilir ya da API Ayarları üzerinden bulut anahtarı bağlayabilirsiniz.',
+            reply: 'Ankora AI Yerel Teşhis Motoru (v4.7) aktif.\n• Çekirdek: Linux 6.12 LTS (Devuan 6 Excalibur)\n• İnit: SysVinit (PID 1)\nSistem doktoru, bellek/disk analizi, süreç denetimi veya ZRAM sorguları için hızlı etiketleri kullanabilir ya da API Ayarları üzerinden bulut anahtarı bağlayabilirsiniz.',
             has_action: false,
             action_command: null,
             action_desc: null,
@@ -1863,7 +1863,7 @@
           exec: 'internal:win-installer',
           targetWindow: 'win-installer',
           cat: 'sys',
-          comment: 'Ankora Linux 4.6 Sabit Diske Kurulum Sihirbazı',
+          comment: 'Ankora Linux 4.7 Sabit Diske Kurulum Sihirbazı',
           is_installed_by_user: true,
           on_desktop: true
         },
@@ -4453,7 +4453,7 @@
       }
       if (nameEl) nameEl.textContent = pkg.name;
       if (leadEl) leadEl.textContent = pkg.desc;
-      if (descEl) descEl.textContent = `${pkg.name}, Ankora Linux Excalibur ortamı için optimize edilmiş güvenilir bir yazılımdır. ${pkg.desc}. Ayaz Masaüstü Ortamı (Ayaz DE) ile pürüzsüz entegrasyon sunar.`;
+      if (descEl) descEl.textContent = `${pkg.desc}. Kaynak: ${sourceLabel}. Paket boyutu: ${pkg.size || 'Standart'}.`;
       if (sourceEl) sourceEl.textContent = isFlatpak ? 'FLATHUB' : (pkg.action === 'meb-cert' ? 'SİSTEM' : 'APT DEPOSU');
       if (catEl) catEl.textContent = (pkg.cat || 'UYGULAMA').toUpperCase();
       if (sizeEl) sizeEl.textContent = pkg.size || 'Hafif';
@@ -4482,6 +4482,8 @@
         const btnPkg = actionWrap.querySelector('.btn-pkg:not(.btn-pkg-open):not(.btn-pkg-site)');
         if (btnPkg) {
           btnPkg.addEventListener('click', async () => {
+            btnPkg.disabled = true;
+            btnPkg.textContent = pkg.installed ? 'Kaldırılıyor...' : 'İndiriliyor...';
             await this.togglePackage(pkg);
             this.openDetail(pkg);
           });
@@ -6657,7 +6659,7 @@
         file_name: 'kiosk-ayarlari.md',
         file_type: 'text',
         file_size: 1420,
-        content: `# Ankora Linux 4.6 Kiosk Yapılandırma Raporu\n\n- Taban: Devuan 6 Excalibur (SysVinit)\n- Çekirdek: Linux 6.12 LTS\n- Pencere Motoru: Tauri 2 + WebKitGTK 4.1\n- Display Manager: nodm (Auto-login)\n- Donanım Parlaklığı: xrandr donanım kontrolü\n- Bellek: ZRAM + Disk Swap Hiyerarşisi\n\nBu belge, Ankora Office yerel belge işleyicisi tarafından doğrudan sistemden render edilmektedir.`
+        content: `# Ankora Linux 4.7 "Bora" Kiosk Yapılandırma Raporu\n\n- Taban: Devuan 6 Excalibur (SysVinit)\n- Çekirdek: Linux 6.12 LTS\n- Pencere Motoru: Tauri 2 + WebKitGTK 4.1\n- Display Manager: nodm (Auto-login)\n- Donanım Parlaklığı: xrandr donanım kontrolü\n- Bellek: ZRAM + Disk Swap Hiyerarşisi\n\nBu belge, Ankora Office yerel belge işleyicisi tarafından doğrudan sistemden açılır.`
       };
       this.renderDocument(doc);
     },
@@ -6730,7 +6732,7 @@
           file_name: name,
           file_type: 'text',
           file_size: 4096,
-          content: `# Ankora Linux 4.6 - Sürüm Notları (Excalibur)\n\n- Taban: Devuan GNU/Linux 6 (Excalibur)\n- İnit Sistemi: SysVinit (systemd-free, ultra-lightweight)\n- Arayüz: Tauri 2 (WebKitGTK 4.1) + Monokrom Minimalist DE\n- Çekirdek: Linux 6.12 LTS\n\nSistem kararlılığı ve minimum RAM tüketimi garanti edilmektedir.`
+          content: `# Ankora Linux 4.7 "Bora" - Sürüm Notları (Excalibur)\n\n- Taban: Devuan GNU/Linux 6 (Excalibur)\n- İnit Sistemi: SysVinit (systemd-free)\n- Arayüz: Tauri 2 (WebKitGTK 4.1) ve Ayaz Masaüstü Ortamı\n- Çekirdek: Linux 6.12 LTS\n\nSistem durumu ve kaynak kullanımı Ayarlar > Hakkında ekranından izlenir.`
         });
       }
     }
@@ -7775,7 +7777,7 @@
           `*Not: Görev listene yeni bir iş eklemek için "görev ekle: [iş adı]" yazabilirsin.*`;
       } else if (q.includes('durum') || q.includes('sistem') || q.includes('bellek') || q.includes('ram') || q.includes('cpu')) {
         reply = `⚡ **Canlı Sistem Durumu & Telemetri:**\n\n` +
-          `• **İşletim Sistemi:** Ankora Linux 4.6.0 "Karayel" (Devuan 6 Excalibur amd64)\n` +
+          `• **İşletim Sistemi:** Ankora Linux 4.7.0 "Bora" (Devuan 6 Excalibur amd64)\n` +
           `• **Masaüstü Ortamı:** Ayaz DE (Minimalist Tauri 2 & WebKitGTK 4.1)\n` +
           `• **İnit & Hizmet Sistemi:** SysVinit (Düşük kaynak tüketimli)\n` +
           `• **Çekirdek:** Linux LTS x86_64\n` +
@@ -7921,10 +7923,10 @@
         const key = this.activeKey.trim();
         const prov = this.provider.toLowerCase();
         const sysPromptBase = this.mode === 'developer'
-          ? 'Sen Ankora Linux 4.6 ortamında çalışan kıdemli bir Rust, Linux ve Tauri geliştiricisisin.'
+          ? 'Sen Ankora Linux 4.7 ortamında çalışan kıdemli bir Rust, Linux ve Tauri geliştiricisisin.'
           : (this.mode === 'doctor'
             ? 'Sen Ankora Sistem Doktorusun. Devuan 6 Excalibur (SysVinit) üzerinde bellek, disk, ZRAM, süreç ve güvenlik sorunlarını teşhis edip çözüm sunarsın.'
-            : 'Sen Ankora Linux 4.6 (Devuan 6 Excalibur / SysVinit) sistem yöneticisi ve yapay zeka asistanısın. Kullanıcıya Türkçe, net ve teknik olarak kusursuz yanıtlar ver.');
+            : 'Sen Ankora Linux 4.7 (Devuan 6 Excalibur / SysVinit) sistem yöneticisi ve yapay zeka asistanısın. Kullanıcıya Türkçe, net ve teknik olarak doğru yanıtlar ver.');
         const fullSysPrompt = `${sysPromptBase}\n${teleContext}\n${shotB64 ? '[Kullanıcı güncel bir ekran karesi paylaştı; soruyu görüntüyle birlikte değerlendir.]' : ''}\n${linkContext}\nEğer güvenli bir tanı komutu önermek istersen yanıtın sonuna <<<ACTION:komut|açıklama>>> ekle (Yalnızca: df -h /, free -h, uname -a, uptime, swapon --show, ip -br addr, lscpu, lsblk, ps aux, /usr/local/bin/ankora-doctor).`;
 
         try {
@@ -10041,7 +10043,7 @@
         document.querySelectorAll('#tele-mem').forEach(el => {
           el.textContent = `${(tele.memory_used_mb / 1024).toFixed(1)} / ${(tele.memory_total_mb / 1024).toFixed(1)} GB`;
         });
-        const currentVer = (typeof UpdaterManager !== 'undefined' && UpdaterManager.currentVersion) ? UpdaterManager.currentVersion : '4.6.0';
+        const currentVer = (typeof UpdaterManager !== 'undefined' && UpdaterManager.currentVersion) ? UpdaterManager.currentVersion : '4.7.0';
         document.querySelectorAll('#tele-de').forEach(el => el.textContent = `Ayaz DE ${currentVer}`);
         document.querySelectorAll('#tele-iso').forEach(el => el.textContent = `ankora-linux-${currentVer}-ayaz-amd64.iso`);
       } catch (e) {}
@@ -12497,7 +12499,7 @@
   // 11. ANKORA GÜNCELLEYİCİ (ANKORA DE UPDATE MANAGER)
   // ============================================================================
   const UpdaterManager = {
-    currentVersion: '4.6.0',
+    currentVersion: '4.7.0',
     latestRelease: null,
 
     init() {
@@ -14886,7 +14888,7 @@
         md += `#### Sistem Tanılama Verileri\n`;
         md += `\`\`\`yaml\n`;
         md += `İşletim Sistemi : ${this.telemetry.os_name}\n`;
-        md += `Masaüstü Ortamı : Ayaz DE v4.6.0 (Ankora Kiosk / X11)\n`;
+        md += `Masaüstü Ortamı : Ayaz DE v4.7.0 (Ankora Kiosk / X11)\n`;
         md += `Çekirdek (Kernel): ${this.telemetry.kernel}\n`;
         md += `İnit Sistemi     : ${this.telemetry.init_system}\n`;
         md += `CPU Çekirdek     : ${this.telemetry.cpu_cores} İş parçacığı\n`;

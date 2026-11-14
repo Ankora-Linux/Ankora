@@ -1,11 +1,11 @@
 <div align="center">
   <img src="assets/logo.png" alt="Ayaz DE Logo" width="200" style="border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.8);">
   <br><br>
-  <h1>Ankora Linux "Karayel"</h1>
-  <p><b>Resmî ana depo · 4.6.0 Karayel · Ayaz Desktop Environment (Ayaz DE)</b></p>
+  <h1>Ankora Linux "Bora"</h1>
+  <p><b>Resmî ana depo · 4.7.0 Bora · Ayaz Desktop Environment (Ayaz DE)</b></p>
 
   <p>
-    <img src="https://img.shields.io/badge/S%C3%9CR%C3%9CM-4.6.0-ffffff?style=for-the-badge&labelColor=111111" alt="Sürüm">
+    <img src="https://img.shields.io/badge/S%C3%9CR%C3%9CM-4.7.0-ffffff?style=for-the-badge&labelColor=111111" alt="Sürüm">
     <img src="https://img.shields.io/badge/HEDEF-ANKORA_LINUX-2563eb?style=for-the-badge&labelColor=111111" alt="Dağıtım">
   </p>
   <p>
@@ -83,9 +83,12 @@ Boyut ve tepki hedefleri:
   dock) arasında anında geçiş yapılabilir; açık iç ve harici X11
   uygulamaları (Brave, VLC, LibreOffice vb.) tüm yüzlerin dock ve
   panellerinde listelenir.
-* **15 arka plan**: matrix, aurora, obsidian, topo, zenith, nordik ve
-  Cumhuriyet dahil; 14 vektörel SVG ve 1 fotoğraf arka
-  plan (Ayaz Dağı).
+* **19 arka plan**: Kobalt Dalgalar, Kozmik Küreler, Karlı Şafak ve
+  Gece Zirve Yolu fotoğraf duvar kağıtları 24 sistem temasına varsayılan
+  olarak eşlenmiştir; matrix, aurora, obsidian, topo, zenith, nordik ve
+  Cumhuriyet dahil önceki 15 vektörel duvar kağıdı da Ayarlar içinden
+  seçilebilir. Duvar kağıdı değiştirme Klasik, Bakır, Bostan ve Cıvata
+  yüzlerinin tümünde çalışır.
 * **Dinamik Ada (Dynamic Island)**: ekranın üstünde cam kapsül: MPRIS medya
   oynatıcı kontrolleri, bildirim tostları, indirme ilerlemesi, AI işlem mikro
   etkileşimi ve canlı CPU/RAM telemetrisi. Beş ayrı yoldan açılabilir/kapatılabilir:
@@ -180,7 +183,7 @@ En son sürüm [GitHub Releases sayfasında](https://github.com/Ankora-Linux/Ank
 Bütünlük doğrulaması (ISO ile aynı dizindeyken):
 
 ```bash
-sha256sum -c ankora-linux-4.6.0-ayaz-amd64.iso.sha256
+sha256sum -c ankora-linux-4.7.0-ayaz-amd64.iso.sha256
 ```
 
 ## USB'ye yazdırma ve başlatma
@@ -193,7 +196,7 @@ ve yazdırma hedefinin başında bölüm numarası **olmayan** cihaz
 ```bash
 # Uyarı: /dev/sdX yerine kendi cihazınızı yazın. Yanlış hedef diskteki
 # tüm verileri siler.
-sudo dd if=ankora-linux-4.6.0-ayaz-amd64.iso of=/dev/sdX bs=4M oflag=direct status=progress
+sudo dd if=ankora-linux-4.7.0-ayaz-amd64.iso of=/dev/sdX bs=4M oflag=direct status=progress
 sync
 ```
 
@@ -229,8 +232,8 @@ belleğini yükseltin ya da GRUB menüsünden **Güvenli Mod (Failsafe)**
 ## Sürüm dağıtımı ve güncellenme akışı
 
 ```text
-git tag v4.6.0
-git push origin v4.6.0
+git tag v4.7.0
+git push origin v4.7.0
 ```
 
 `build-iso.yml` iş akışı tetiklenir ve sırasıyla:
@@ -286,7 +289,7 @@ Ankora/
 │   ├── faces.css                # Yüzlere özel tasarım kuralları ve açık yüzey kontrastı
 │   ├── index.html               # Masaüstü, pencereler, başlat menüsü, mağaza
 │   ├── style.css                # Tasarım sistemi ve 24 tema
-│   └── wallpaper-*.svg          # Vektörel duvar kağıtları (14 SVG; ek 1 fotoğraf arka plan assets/ içinde)
+│   └── wallpaper-*.{svg,jpg}    # 15 vektörel SVG ve 4 varsayılan fotoğraf duvar kağıdı
 ├── src-tauri/                   # Rust arka ucu
 │   ├── Cargo.toml
 │   ├── tauri.conf.json          # Kiosk pencere kuralları, CSP, sürüm damgası
