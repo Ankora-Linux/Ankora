@@ -3219,6 +3219,47 @@ fn build_local_ai_diagnostic_response(prompt: &str, mode: &str) -> AiResponse {
         };
     }
 
+    if p_lower.contains("ekranımda")
+        || p_lower.contains("ekranimda")
+        || p_lower.contains("ne görüyorsun")
+        || p_lower.contains("bak ve anlat")
+    {
+        let mut wins_summary = String::new();
+        #[cfg(target_os = "linux")]
+        {
+            if let Ok(out) = Command::new("wmctrl").arg("-l").output() {
+                if out.status.success() {
+                    let mut lines = Vec::new();
+                    for l in String::from_utf8_lossy(&out.stdout).lines() {
+                        let t = l.trim();
+                        if !t.is_empty() && lines.len() < 8 {
+                            lines.push(format!("• {}", t));
+                        }
+                    }
+                    if !lines.is_empty() {
+                        wins_summary = format!("\nAçık X11 Pencereleri:\n{}", lines.join("\n"));
+                    }
+                }
+            }
+        }
+        return AiResponse {
+            reply: format!(
+                "Ekran ve Oturum Görünümü:\n• İşletim Sistemi: {} | Çekirdek: {}\n• RAM: {} MB / {} MB (%{}) | CPU Yükü: %{:.1}{}\n\nNot: Piksel düzeyinde görsel analiz için Ankora AI Ayarları'ndan görüntü destekli bir model (Gemini, OpenAI, OpenRouter veya Ollama vision/llava) bağlayabilirsiniz.",
+                tele.os_name,
+                tele.kernel,
+                tele.memory_used_mb,
+                tele.memory_total_mb,
+                ram_pct,
+                tele.cpu_percent,
+                wins_summary
+            ),
+            has_action: false,
+            action_command: None,
+            action_desc: None,
+            action_token: None,
+        };
+    }
+
     if p_lower.contains("durum")
         || p_lower.contains("özet")
         || p_lower.contains("rapor")
@@ -3262,6 +3303,7 @@ fn build_local_ai_diagnostic_response(prompt: &str, mode: &str) -> AiResponse {
 }
 
 #[tauri::command]
+#[allow(non_snake_case)]
 async fn query_local_ai(
     prompt: String,
     provider: Option<String>,
@@ -3269,7 +3311,16 @@ async fn query_local_ai(
     api_key: Option<String>,
     model: Option<String>,
     agent_mode: Option<String>,
+    imageB64: Option<String>,
+    image_b64: Option<String>,
 ) -> Result<AiResponse, String> {
+    let raw_img = imageB64.or(image_b64).unwrap_or_default();
+    let trimmed_img = raw_img.trim();
+    let img_b64 = if trimmed_img.is_empty() {
+        None
+    } else {
+        Some(trimmed_img.to_string())
+    };
     let prov = provider
         .unwrap_or_else(|| "ollama".to_string())
         .to_lowercase();
@@ -3316,7 +3367,14 @@ async fn query_local_ai(
             Asla tehlikeli veya rastgele komut üretme. Sadece doğrulanmış sistem komutları üret."
         }
     };
-    let sys_prompt = format!("{}\n{}", base_sys_prompt, tele_summary);
+    let sys_prompt = if img_b64.is_some() {
+        format!(
+            "{}\n{}\n[Kullanıcı güncel bir ekran karesi paylaştı; soruyu görüntüyle birlikte değerlendir.]",
+            base_sys_prompt, tele_summary
+        )
+    } else {
+        format!("{}\n{}", base_sys_prompt, tele_summary)
+    };
 
     let resolved_key = match api_key {
         Some(ref k) if !k.trim().is_empty() => k.trim().to_string(),
@@ -3336,25 +3394,33 @@ async fn query_local_ai(
         |text: &str| -> (String, bool, Option<String>, Option<String>, Option<String>) {
             if let Some(start_idx) = text.find("<<<ACTION:") {
                 if let Some(end_idx) = text[start_idx..].find(">>>") {
-                    let json_str = &text[start_idx + 10..start_idx + end_idx];
+                    let inner = text[start_idx + 10..start_idx + end_idx].trim();
                     let clean_reply = text[..start_idx].trim().to_string();
+                    let mut proposed_cmd = String::new();
+                    let mut desc_opt: Option<String> = None;
 
-                    if let Ok(action_val) = serde_json::from_str::<serde_json::Value>(json_str) {
-                        let proposed_cmd = action_val["command"]
-                            .as_str()
-                            .unwrap_or("")
-                            .trim()
-                            .to_string();
-                        if ALLOWED_AGENT_ACTIONS.contains(&proposed_cmd.as_str()) {
-                            let token = generate_agent_action_token(&proposed_cmd);
-                            return (
-                                clean_reply,
-                                true,
-                                Some(proposed_cmd),
-                                action_val["desc"].as_str().map(|s| s.to_string()),
-                                Some(token),
-                            );
+                    if inner.starts_with('{') {
+                        if let Ok(action_val) = serde_json::from_str::<serde_json::Value>(inner) {
+                            proposed_cmd = action_val["command"]
+                                .as_str()
+                                .unwrap_or("")
+                                .trim()
+                                .to_string();
+                            desc_opt = action_val["desc"].as_str().map(|s| s.to_string());
                         }
+                    } else if let Some(pipe_idx) = inner.find('|') {
+                        proposed_cmd = inner[..pipe_idx].trim().to_string();
+                        let desc = inner[pipe_idx + 1..].trim().to_string();
+                        if !desc.is_empty() {
+                            desc_opt = Some(desc);
+                        }
+                    }
+
+                    if !proposed_cmd.is_empty()
+                        && ALLOWED_AGENT_ACTIONS.contains(&proposed_cmd.as_str())
+                    {
+                        let token = generate_agent_action_token(&proposed_cmd);
+                        return (clean_reply, true, Some(proposed_cmd), desc_opt, Some(token));
                     }
                 }
             }
@@ -3368,11 +3434,27 @@ async fn query_local_ai(
             return Err("Güvenlik Hatası: Ollama uç noktası yalnızca yerel adreslerde (127.0.0.1 veya localhost) çalışabilir.".to_string());
         }
         let ai_model = model.unwrap_or_else(|| "qwen2.5:0.5b".to_string());
-        let payload = serde_json::json!({
+        let model_low = ai_model.to_lowercase();
+        let is_vision_model = model_low.contains("vl")
+            || model_low.contains("vision")
+            || model_low.contains("llava")
+            || model_low.contains("moondream")
+            || model_low.contains("minicpm")
+            || model_low.contains("bakllava")
+            || model_low.contains("gemma3");
+        let mut payload = serde_json::json!({
             "model": ai_model,
             "prompt": format!("{}\n\nKullanıcı: {}", sys_prompt, prompt),
             "stream": false
         });
+        let vision_b64 = if is_vision_model {
+            img_b64.as_deref()
+        } else {
+            None
+        };
+        if let Some(b64) = vision_b64 {
+            payload["images"] = serde_json::json!([b64]);
+        }
 
         if let Ok(resp) = client.post(&url).json(&payload).send().await {
             if resp.status().is_success() {
@@ -3409,9 +3491,20 @@ async fn query_local_ai(
             "https://generativelanguage.googleapis.com/v1beta/models/{}:generateContent",
             ai_model
         );
+        let mut parts = vec![serde_json::json!({
+            "text": format!("{}\n\nKullanıcı: {}", sys_prompt, prompt)
+        })];
+        if let Some(ref b64) = img_b64 {
+            parts.push(serde_json::json!({
+                "inline_data": {
+                    "mime_type": "image/png",
+                    "data": b64
+                }
+            }));
+        }
         let payload = serde_json::json!({
             "contents": [{
-                "parts": [{ "text": format!("{}\n\nKullanıcı: {}", sys_prompt, prompt) }]
+                "parts": parts
             }]
         });
 
@@ -3479,11 +3572,26 @@ async fn query_local_ai(
             return Err(format!("{} API anahtarı tanımlanmadı. Lütfen API Ayarları panelinden anahtarınızı kaydedin.", prov.to_uppercase()));
         }
 
+        let vision_b64 = if prov == "openai" || prov == "openrouter" {
+            img_b64.as_deref()
+        } else {
+            None
+        };
+        let user_content = if let Some(b64) = vision_b64 {
+            let data_url = format!("data:image/png;base64,{}", b64);
+            serde_json::json!([
+                {"type": "text", "text": prompt},
+                {"type": "image_url", "image_url": {"url": data_url}}
+            ])
+        } else {
+            serde_json::json!(prompt)
+        };
+
         let payload = serde_json::json!({
             "model": ai_model,
             "messages": [
                 {"role": "system", "content": sys_prompt},
-                {"role": "user", "content": prompt}
+                {"role": "user", "content": user_content}
             ],
             "temperature": 0.3
         });
@@ -6258,6 +6366,9 @@ fn take_screenshot_core(
         } else {
             None
         };
+        if !save_to_disk && !copy_clipboard {
+            let _ = fs::remove_file(&filepath);
+        }
 
         Ok(ScreenshotResult {
             success: true,

@@ -32,6 +32,9 @@ export MALLOC_ARENA_MAX=2
 export WEBKIT_CACHE_MODEL=DOCUMENT_VIEWER
 # Glib dilim ayırıcısının boşa çıkan belleği OS'a hemen iade etmesini sağlar
 export G_SLICE=always-malloc
+export MALLOC_TRIM_THRESHOLD_=65536
+export MALLOC_MMAP_THRESHOLD_=65536
+export MESA_SHADER_CACHE_MAX_SIZE=16M
 
 # Sanal makine (VirtualBox, QEMU, KVM, VMware) tespiti:
 # Sanal GPU'larda DRI çökmelerini önlemek için yazılımsal render (llvmpipe) devreye alınır;

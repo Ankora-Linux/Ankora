@@ -723,7 +723,11 @@
     init() {
       this.windows = Array.from(document.querySelectorAll('.window'));
       this.tabsContainer = document.getElementById('running-tabs');
-      setInterval(() => this.refreshNativeWindows(), 2500);
+      setInterval(() => {
+        if (!document.hidden && !(window.LockManager && window.LockManager.isLocked)) {
+          this.refreshNativeWindows();
+        }
+      }, 2500);
       this.refreshNativeWindows();
 
       const wp = document.getElementById('desktop-wallpaper');
@@ -7124,9 +7128,13 @@
 
     async disconnectKey() {
       this.activeKey = null;
-      try {
-        await TauriBridge.invoke('delete_ai_credential', { provider: this.provider });
-      } catch (e) {}
+      const providers = Array.from(new Set([this.provider, 'gemini', 'groq', 'openai', 'openrouter'].filter(Boolean)));
+      for (const prov of providers) {
+        if (prov === 'ollama' || prov === 'auto') continue;
+        try {
+          await TauriBridge.invoke('delete_ai_credential', { provider: prov });
+        } catch (e) {}
+      }
 
       this.provider = 'ollama';
       this.model = 'qwen2.5:0.5b';
@@ -7736,19 +7744,41 @@
     },
 
     parseActionDirective(rawText) {
-      const m = String(rawText || '').match(/<<<ACTION:([^|>]+)\|([^>]+)>>>/);
+      const m = String(rawText || '').match(/<<<ACTION:([\s\S]*?)>>>/);
       if (!m) {
         return { reply: rawText, has_action: false, action_command: null, action_desc: null };
       }
-      const cmd = m[1].trim();
-      const desc = m[2].trim();
+      const inner = m[1].trim();
       const clean = String(rawText).replace(m[0], '').trim();
-      return {
-        reply: clean,
-        has_action: true,
-        action_command: cmd,
-        action_desc: desc
-      };
+      if (inner.startsWith('{')) {
+        try {
+          const parsed = JSON.parse(inner);
+          const cmd = String(parsed.command || '').trim();
+          const desc = String(parsed.desc || 'Sistem bakım komutu').trim();
+          if (cmd) {
+            return {
+              reply: clean,
+              has_action: true,
+              action_command: cmd,
+              action_desc: desc
+            };
+          }
+        } catch (e) {}
+      }
+      const pipeIdx = inner.indexOf('|');
+      if (pipeIdx > 0) {
+        const cmd = inner.slice(0, pipeIdx).trim();
+        const desc = inner.slice(pipeIdx + 1).trim();
+        if (cmd) {
+          return {
+            reply: clean,
+            has_action: true,
+            action_command: cmd,
+            action_desc: desc || 'Sistem bakım komutu'
+          };
+        }
+      }
+      return { reply: rawText, has_action: false, action_command: null, action_desc: null };
     },
 
     generateFallbackDiagnostic(prompt) {
@@ -7874,7 +7904,9 @@
           const shot = await TauriBridge.invoke('take_screenshot', {
             mode: 'fullscreen',
             delay: 0,
+            saveToDisk: false,
             save_to_disk: false,
+            copyClipboard: false,
             copy_clipboard: false
           });
           if (shot && shot.image_b64) {
@@ -7888,8 +7920,9 @@
           this.appendMsg('bot', `⚠ Ekran görüntüsü alınamadı: ${shotErr}\nEkran yakalama aracını (scrot) ve X11 oturumunu kontrol edin.`);
           return;
         }
-        if (!this.activeKey && !['openai', 'gemini', 'openrouter'].includes(this.provider)) {
-          this.appendMsg('bot', 'Not: Ekran izleme, görüntüyü işleyebilen bulut sağlayıcıya (Gemini, OpenAI, OpenRouter) API anahtarıyla bağlanınca çalışır. Yerel Ollama yolu metin modeliyle sınırlıdır.');
+        const isOllamaVision = this.provider === 'ollama' && /vl|vision|llava|moondream|minicpm|bakllava|gemma3/i.test(this.model || '');
+        if (!['openai', 'gemini', 'openrouter'].includes(this.provider) && !isOllamaVision) {
+          this.appendMsg('bot', 'Not: Ekran izleme, görüntüyü işleyebilen bulut sağlayıcıya (Gemini, OpenAI, OpenRouter) veya görüş destekli yerel modele (llava/gemma3/vision) bağlanınca pixel düzeyinde analiz yapar.');
         }
       }
 
@@ -7908,7 +7941,9 @@
             endpoint: this.endpoint,
             apiKey: this.activeKey || '',
             model: this.model,
-            agentMode: this.mode
+            agentMode: this.mode,
+            imageB64: shotB64 || '',
+            image_b64: shotB64 || ''
           });
         } catch (invokeErr) {
           // Tauri arka uçta hata alındıysa veya anahtar yoksa fallback teşhis motoruna devret
@@ -8535,6 +8570,8 @@
     ],
 
     installedModels: new Set(),
+    installedCount: 0,
+    customModels: [],
     isServiceOnline: false,
     installBusy: false,
 
@@ -8562,15 +8599,31 @@
         if (resp.ok) {
           const data = await resp.json();
           this.installedModels.clear();
-          (data.models || []).forEach(m => {
+          const recIds = new Set(this.RECOMMENDED.map(r => r.id));
+          this.customModels = [];
+          const list = Array.isArray(data.models) ? data.models : [];
+          this.installedCount = list.length;
+          list.forEach(m => {
+            if (!m || !m.name) return;
             this.installedModels.add(m.name);
-            const baseName = (m.name || '').split(':')[0];
+            const baseName = m.name.split(':')[0];
             if (baseName) this.installedModels.add(baseName);
+            if (!recIds.has(m.name)) {
+              const sizeMb = m.size ? `${Math.round(m.size / (1024 * 1024))} MB` : 'Yerel';
+              this.customModels.push({
+                id: m.name,
+                name: m.name,
+                desc: 'Kullanıcı tarafından indirilen yerel Ollama modeli.',
+                size: sizeMb
+              });
+            }
           });
           this.isServiceOnline = true;
           return true;
         }
       } catch (e) {}
+      this.installedCount = 0;
+      this.customModels = [];
       this.isServiceOnline = false;
       return false;
     },
@@ -8597,13 +8650,14 @@
       }
 
       if (statusText) {
-        statusText.innerHTML = `<span style="color:var(--success,#10b981);">Ollama Aktif</span> · ${this.installedModels.size} yerel model hazır`;
+        statusText.innerHTML = `<span style="color:var(--success,#10b981);">Ollama Aktif</span> · ${this.installedCount} yerel model hazır`;
       }
 
       listEl.replaceChildren();
       const currentModel = SafeStorage.getItem('ankora_ai_model') || 'qwen2.5:0.5b';
+      const allModels = [...this.RECOMMENDED, ...this.customModels];
 
-      this.RECOMMENDED.forEach(mod => {
+      allModels.forEach(mod => {
         const isInstalled = this.installedModels.has(mod.id);
         const isActive = (SafeStorage.getItem('ankora_ai_provider') === 'ollama') && (currentModel === mod.id);
 
@@ -11609,13 +11663,6 @@
           AIAgent.updateBadges();
         });
       }
-
-      document.querySelectorAll('.ai-mini-chip').forEach(chip => {
-        chip.addEventListener('click', () => {
-          const prompt = chip.getAttribute('data-prompt');
-          if (prompt) AIAgent.handleQuery(prompt);
-        });
-      });
     }
 
 
@@ -13699,6 +13746,11 @@
           AIAgent.feed.removeChild(AIAgent.feed.firstChild);
         }
       }
+      if (AIAgent && AIAgent.miniFeed) {
+        while (AIAgent.miniFeed.children.length > 15) {
+          AIAgent.miniFeed.removeChild(AIAgent.miniFeed.firstChild);
+        }
+      }
 
       let freedMb = 48;
       try {
@@ -13739,6 +13791,11 @@
       if (AIAgent && AIAgent.feed && AIAgent.feed.children.length > 15) {
         while (AIAgent.feed.children.length > 15) {
           AIAgent.feed.removeChild(AIAgent.feed.firstChild);
+        }
+      }
+      if (AIAgent && AIAgent.miniFeed && AIAgent.miniFeed.children.length > 15) {
+        while (AIAgent.miniFeed.children.length > 15) {
+          AIAgent.miniFeed.removeChild(AIAgent.miniFeed.firstChild);
         }
       }
 
@@ -16907,7 +16964,11 @@
       });
 
       this.pollClipboard();
-      setInterval(() => this.pollClipboard(), 5000);
+      setInterval(() => {
+        if (!document.hidden && !(window.LockManager && window.LockManager.isLocked)) {
+          this.pollClipboard();
+        }
+      }, 5000);
     },
 
     save() {
@@ -18264,7 +18325,11 @@
     init() {
       this.refresh();
       if (this.pollTimer) clearInterval(this.pollTimer);
-      this.pollTimer = setInterval(() => this.refresh(), 4000);
+      this.pollTimer = setInterval(() => {
+        if (!document.hidden && !(window.LockManager && window.LockManager.isLocked)) {
+          this.refresh();
+        }
+      }, 4000);
     },
 
     async refresh() {

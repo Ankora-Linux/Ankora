@@ -521,6 +521,23 @@ echo "[GÜVENLİK] linux-image-amd64 = $(dpkg-query -W -f='${Version}' linux-ima
 UPG=$(apt-get -s dist-upgrade 2>/dev/null | awk '/^Inst/{c++} END{print c+0}')
 echo "[GÜVENLİK] Bekleyen paket güncellemesi: $UPG (beklenen 0)"
 
+# Çift/eski çekirdek kalıntılarını güvenli temizle (en güncel çekirdek her zaman korunur)
+LATEST_VMLINUZ=$(ls -1v /boot/vmlinuz-* 2>/dev/null | tail -n1 || true)
+LATEST_KPKG=""
+if [ -n "$LATEST_VMLINUZ" ]; then
+    LATEST_KPKG=$(dpkg-query -S "$LATEST_VMLINUZ" 2>/dev/null | cut -d: -f1 | head -n1 || true)
+fi
+INSTALLED_KPKGS=$(dpkg-query -W -f='${Package}\n' 'linux-image-[0-9]*-amd64' 2>/dev/null | sort -V || true)
+KPKG_COUNT=$(printf '%s\n' "$INSTALLED_KPKGS" | sed '/^$/d' | wc -l)
+if [ "$KPKG_COUNT" -gt 1 ] && [ -n "$LATEST_KPKG" ]; then
+    OLD_KPKGS=$(printf '%s\n' "$INSTALLED_KPKGS" | grep -vxF "$LATEST_KPKG" || true)
+    if [ -n "$OLD_KPKGS" ]; then
+        echo "[TEMİZLİK] Eski çekirdek paketleri kaldırılıyor: $OLD_KPKGS (korunan: $LATEST_KPKG)"
+        apt-get purge -y $OLD_KPKGS || true
+    fi
+fi
+apt-get autoremove --purge -y || true
+
 # Son temizlik
 apt-get clean
 rm -rf /var/lib/apt/lists/*
@@ -839,6 +856,7 @@ RCS_CONF
 mkdir -p /etc/sysctl.d
 cat << 'SYSCTL_ZRAM' > /etc/sysctl.d/99-zram.conf
 vm.swappiness = 100
+vm.page-cluster = 0
 vm.vfs_cache_pressure = 150
 vm.watermark_boost_factor = 0
 vm.dirty_background_ratio = 5
@@ -1066,6 +1084,10 @@ import urllib.parse, urllib.request
 os.environ["GDK_BACKEND"] = "x11"
 os.environ["WEBKIT_DISABLE_DMABUF_RENDERER"] = "1"
 os.environ["WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS"] = "1"
+os.environ.setdefault("G_SLICE", "always-malloc")
+os.environ.setdefault("MALLOC_TRIM_THRESHOLD_", "65536")
+os.environ.setdefault("MALLOC_MMAP_THRESHOLD_", "65536")
+os.environ.setdefault("MESA_SHADER_CACHE_MAX_SIZE", "16M")
 
 # Sanal makine (VirtualBox, QEMU, KVM, VMware) tespiti:
 # Sanal GPU'larda DRI çökmelerini önlemek için yazılımsal render (llvmpipe) devreye alınır;
@@ -1837,7 +1859,7 @@ def execute_ayaz_command(cmd, args):
         f_size = os.path.getsize(f_path)
         size_human = f"{f_size / (1024*1024):.1f} MB" if f_size >= 1024*1024 else f"{f_size / 1024:.1f} KB"
         lower = f_name.lower()
-        if lower.ends_with('.deb'):
+        if lower.endswith('.deb'):
             proc = subprocess.run(['dpkg-deb', '-I', f_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=5)
             info = proc.stdout if proc.returncode == 0 else ''
             name = f_name[:-4]
@@ -1864,7 +1886,7 @@ def execute_ayaz_command(cmd, args):
                 'size_human': size_human,
                 'description': desc
             }
-        elif lower.ends_with('.appimage'):
+        elif lower.endswith('.appimage'):
             name = f_name.replace('.appimage', '').replace('.AppImage', '')
             return {
                 'file_name': f_name,
@@ -2078,8 +2100,8 @@ def execute_ayaz_command(cmd, args):
     elif cmd == 'take_screenshot':
         mode = args.get('mode', 'fullscreen')
         delay = int(args.get('delay', 0))
-        save_to_disk = bool(args.get('save_to_disk', True))
-        copy_clipboard = bool(args.get('copy_clipboard', True))
+        save_to_disk = bool(args['saveToDisk'] if 'saveToDisk' in args else args.get('save_to_disk', True))
+        copy_clipboard = bool(args['copyClipboard'] if 'copyClipboard' in args else args.get('copy_clipboard', True))
 
         # Gerçek "Resimler" dizini: xdg-user-dir Tercih edilir; yoksa
         # ~/Resimler (Türkçe oturum), ~/Pictures. Alt klasör ZORLA
@@ -2133,10 +2155,18 @@ def execute_ayaz_command(cmd, args):
             except Exception:
                 pass
 
+        saved_path = filepath
+        if not save_to_disk and not copy_clipboard and os.path.exists(filepath):
+            try:
+                os.remove(filepath)
+                saved_path = ''
+            except Exception:
+                pass
+
         return {
             'success': True,
-            'file_path': filepath,
-            'file_name': os.path.basename(filepath),
+            'file_path': saved_path,
+            'file_name': os.path.basename(saved_path) if saved_path else '',
             'image_b64': preview_b64
         }
 
@@ -2921,6 +2951,15 @@ exit 0
         }
 
     elif cmd == 'optimize_system_memory':
+        def _trim_process_memory():
+            try:
+                import gc
+                import ctypes
+                gc.collect()
+                ctypes.CDLL('libc.so.6').malloc_trim(0)
+            except Exception:
+                pass
+
         def _read_mem_used():
             try:
                 with open('/proc/meminfo', 'r') as f:
@@ -2935,6 +2974,7 @@ exit 0
                 return 0
         try:
             before_mb = _read_mem_used()
+            _trim_process_memory()
             subprocess.run(['sync'], check=False)
             helper = '/usr/local/bin/ayaz-pkg-helper'
             if os.path.exists(helper):
@@ -4575,6 +4615,7 @@ exit 0
         model = (args.get('model') or '').strip()
         endpoint = (args.get('endpoint') or '').strip()
         agent_mode = (args.get('agentMode') or args.get('agent_mode') or 'sysadmin').strip().lower()
+        image_b64 = (args.get('imageB64') or args.get('image_b64') or '').strip()
 
         if not api_key:
             c_file = os.path.expanduser('~/.config/ankora/ai_creds.json')
@@ -4605,30 +4646,67 @@ exit 0
                 s_idx = text.find('<<<ACTION:')
                 e_rel = text[s_idx:].find('>>>')
                 if e_rel != -1:
-                    raw_j = text[s_idx + 10:s_idx + e_rel]
-                    clean_r = text[:s_idx].strip()
+                    raw_j = text[s_idx + 10:s_idx + e_rel].strip()
+                    clean_r = (text[:s_idx] + text[s_idx + e_rel + 3:]).strip()
                     try:
-                        act = json.loads(raw_j)
-                        c_cmd = (act.get('command') or '').strip()
+                        c_cmd = ''
+                        c_desc = ''
+                        if raw_j.startswith('{'):
+                            act = json.loads(raw_j)
+                            c_cmd = (act.get('command') or '').strip()
+                            c_desc = (act.get('desc') or '').strip()
+                        elif '|' in raw_j:
+                            parts = raw_j.split('|', 1)
+                            c_cmd = parts[0].strip()
+                            c_desc = parts[1].strip()
+                        else:
+                            c_cmd = raw_j.strip()
                         if c_cmd in _ALLOWED_AGENT_ACTIONS:
                             tok = _generate_agent_action_token(c_cmd)
                             return {
-                                'reply': clean_r,
+                                'reply': clean_r or (c_desc or 'Önerilen sistem eylemi hazır.'),
                                 'has_action': True,
                                 'action_command': c_cmd,
-                                'action_desc': act.get('desc') or 'Sistem bakım komutu',
+                                'action_desc': c_desc or 'Sistem bakım komutu',
                                 'action_token': tok
                             }
                     except Exception:
                         pass
+                    return {
+                        'reply': clean_r or text,
+                        'has_action': False,
+                        'action_command': None,
+                        'action_desc': None,
+                        'action_token': None
+                    }
             return {'reply': text, 'has_action': False, 'action_command': None, 'action_desc': None, 'action_token': None}
 
         tele_ctx = f"[Sistem Özeti: {os_name} | {kernel} | {init_sys} | RAM: {ram_used}/{ram_tot} MB (%{ram_pct}) | CPU: {cpu_cores} çekirdek (%{cpu_pct}) | Disk: {disk_used}/{disk_tot} GB (%{disk_pct})]"
-        sys_prompt = (
+        mode_prompts = {
+            'doctor': (
+                "Sen Ankora Linux 4.7.0 (Devuan 6 Excalibur, SysVinit) Sistem Doktoru ajanısın. "
+                "Donanım, paket sağlığı, ZRAM, servisler ve günlük hatalarını kök neden odaklı teşhis et ve Türkçe yanıt ver."
+            ),
+            'developer': (
+                "Sen Ankora Linux 4.7.0 üzerinde çalışan kıdemli yazılım geliştirme ve sistem programlama asistanısın. "
+                "Kod, kabuk betikleri, derleme ve hata ayıklama sorularına net, doğru ve Türkçe yanıt ver."
+            ),
+            'general': (
+                "Sen Ankora AI yardımcı asistanısın. "
+                "Kullanıcının günlük sorularına nazik, öz ve Türkçe yanıt ver; gerektiğinde mevcut sistem bağlamından yararlan."
+            ),
+        }
+        base_prompt = mode_prompts.get(
+            agent_mode,
             "Sen Ankora Linux 4.7.0 (Devuan 6 Excalibur, SysVinit) sistem yöneticisi ve tanılama ajanısın. "
-            "Kullanıcıya Türkçe, net ve teknik yanıtlar ver. Gerekirse yanıtının sonuna şu formatta onaylı eylem ekle: "
-            "<<<ACTION:{\"command\":\"izin_verilen_komut\",\"desc\":\"Açıklama\"}>>>\n" + tele_ctx
+            "Kullanıcıya Türkçe, net ve teknik yanıtlar ver."
         )
+        action_hint = (
+            " Gerekirse yanıtının sonuna şu formatta onaylı eylem ekle: "
+            "<<<ACTION:{\"command\":\"izin_verilen_komut\",\"desc\":\"Açıklama\"}>>>"
+        )
+        vision_hint = " Kullanıcı mevcut ekran görüntüsünü de paylaştı; görseli dikkate alarak yanıtla." if image_b64 else ""
+        sys_prompt = f"{base_prompt}{action_hint}{vision_hint}\n{tele_ctx}"
 
         # Eğer API anahtarı veya Ollama varsa canlı HTTP çağrısı yap
         if api_key or provider == 'ollama':
@@ -4639,8 +4717,11 @@ exit 0
                     if not re.match(r'^[A-Za-z0-9._/\-]+$', ai_model):
                         raise Exception('Geçersiz model adı')
                     url = f"https://generativelanguage.googleapis.com/v1beta/models/{ai_model}:generateContent"
+                    parts_req = [{"text": f"{sys_prompt}\n\nKullanıcı: {prompt}"}]
+                    if image_b64:
+                        parts_req.append({"inline_data": {"mime_type": "image/png", "data": image_b64}})
                     body = json.dumps({
-                        "contents": [{"parts": [{"text": f"{sys_prompt}\n\nKullanıcı: {prompt}"}]}]
+                        "contents": [{"parts": parts_req}]
                     }).encode('utf-8')
                     req = urllib.request.Request(url, data=body, headers={
                         'Content-Type': 'application/json',
@@ -4660,12 +4741,22 @@ exit 0
                               else 'https://api.openai.com/v1/chat/completions')
                     )
                     ep = endpoint or default_ep
-                    ai_model = model or ('llama-3.3-70b-versatile' if provider == 'groq' else 'gpt-4o-mini')
+                    ai_model = model or (
+                        'anthropic/claude-3.5-sonnet' if provider == 'openrouter'
+                        else ('llama-3.3-70b-versatile' if provider == 'groq' else 'gpt-4o-mini')
+                    )
+                    if image_b64 and provider in ('openai', 'openrouter'):
+                        user_content = [
+                            {"type": "text", "text": prompt},
+                            {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{image_b64}"}}
+                        ]
+                    else:
+                        user_content = prompt
                     body = json.dumps({
                         "model": ai_model,
                         "messages": [
                             {"role": "system", "content": sys_prompt},
-                            {"role": "user", "content": prompt}
+                            {"role": "user", "content": user_content}
                         ],
                         "temperature": 0.3
                     }).encode('utf-8')
@@ -4683,13 +4774,16 @@ exit 0
                     ep = endpoint or 'http://127.0.0.1:11434/api/generate'
                     if ep.startswith(('http://127.0.0.1:', 'http://localhost:')):
                         ai_model = model or 'qwen2.5:0.5b'
-                        body = json.dumps({
+                        ollama_payload = {
                             "model": ai_model,
                             "prompt": f"{sys_prompt}\n\nKullanıcı: {prompt}",
                             "stream": False
-                        }).encode('utf-8')
+                        }
+                        if image_b64 and any(v in ai_model.lower() for v in ('vl', 'vision', 'llava', 'moondream', 'minicpm', 'bakllava', 'gemma3')):
+                            ollama_payload["images"] = [image_b64]
+                        body = json.dumps(ollama_payload).encode('utf-8')
                         req = urllib.request.Request(ep, data=body, headers={'Content-Type': 'application/json'})
-                        with urllib.request.urlopen(req, timeout=10) as resp:
+                        with urllib.request.urlopen(req, timeout=30) as resp:
                             res_data = json.loads(resp.read().decode('utf-8'))
                             reply_text = res_data.get('response', '')
                             if reply_text:
@@ -4698,7 +4792,54 @@ exit 0
                 pass
 
         p_lower = prompt.lower()
-        if any(w in p_lower for w in ['doktor', 'doctor', 'onar', 'sağlık']) or (agent_mode == 'doctor' and any(w in p_lower for w in ['tara', 'kontrol', 'durum'])):
+        if any(w in p_lower for w in ['ekranımda', 'ekranimda', 'ne görüyorsun', 'bak ve anlat']):
+            win_out = _run_capture(['wmctrl', '-l'])
+            win_lines = []
+            for ln in (win_out or '').splitlines():
+                parts = ln.split(None, 3)
+                if len(parts) >= 4 and parts[3].strip():
+                    win_lines.append(f"• {parts[3].strip()}")
+            win_summary = '\n'.join(win_lines[:10]) if win_lines else '• Açık pencere tespit edilemedi.'
+            vision_note = (
+                "Görsel kare alındı ancak seçili yerel tanılama motoru görüntü işleyemediği için açık X11 pencere listesi sunuldu."
+                if image_b64 else
+                "Görsel ekran analizi için API Ayarları'ndan Gemini, OpenAI, OpenRouter veya bir Ollama görsel modeli (llava, moondream, gemma3) seçebilirsiniz."
+            )
+            return {
+                'reply': (
+                    f"Masaüstü Pencere ve Ekran Özeti:\n{win_summary}\n\n"
+                    f"• RAM: {ram_used} MB / {ram_tot} MB (%{ram_pct}) | CPU: %{cpu_pct}\n"
+                    f"• Not: {vision_note}"
+                ),
+                'has_action': False,
+                'action_command': None,
+                'action_desc': None,
+                'action_token': None
+            }
+        elif any(w in p_lower for w in ['ağ', 'wifi', 'wi-fi', 'internet', 'ip ', 'dns', 'bağlantı']):
+            net = execute_ayaz_command('get_network_info', {})
+            iface = net.get('interface') or 'atanmadı'
+            ip_addr = net.get('ip') or 'yok'
+            gw = net.get('gateway') or 'yok'
+            dns_list = ', '.join(net.get('dns') or []) or 'sistem varsayılanı'
+            connected = net.get('connected', False)
+            durum = 'Bağlı' if connected else 'Çevrimdışı / Bağlı Değil'
+            return {
+                'reply': (
+                    f"Anlık Ağ ve Bağlantı Durumu:\n"
+                    f"• Durum: {durum}\n"
+                    f"• Arayüz: {iface}\n"
+                    f"• Yerel IPv4: {ip_addr}\n"
+                    f"• Ağ Geçidi (Gateway): {gw}\n"
+                    f"• DNS Sunucuları: {dns_list}\n\n"
+                    "Ağ servislerini ve DNS çözümlemesini derinlemesine test etmek için Sistem Doktorunu çalıştırabilirsiniz."
+                ),
+                'has_action': True,
+                'action_command': '/usr/local/bin/ankora-doctor',
+                'action_desc': 'Ağ ve sistem sağlığı taramasını başlat',
+                'action_token': _generate_agent_action_token('/usr/local/bin/ankora-doctor')
+            }
+        elif any(w in p_lower for w in ['doktor', 'doctor', 'onar', 'sağlık']) or (agent_mode == 'doctor' and any(w in p_lower for w in ['tara', 'kontrol', 'durum'])):
             c_cmd = '/usr/local/bin/ankora-doctor'
             return {
                 'reply': (f"Ankora Sistem Doktoru ön kontrolü tamamlandı:\n"
@@ -6098,8 +6239,8 @@ class AyazIpcHandler(BaseHTTPRequestHandler):
             IPC_STATE['bad'] = 0
 
         content_length = int(self.headers.get('Content-Length', 0))
-        # Sınırsız gövde, tek istekle bellek tüketilebilir
-        if content_length > 1_000_000:
+        # Sınırsız gövde, tek istekle bellek tüketilebilir; görsel bağlam (8 MB) için güvenli üst sınır
+        if content_length > 8_000_000:
             self.send_response(413)
             self.end_headers()
             return
@@ -6658,13 +6799,32 @@ umount -lf "$CHROOT_DIR/dev" 2>/dev/null || true
 umount -lf "$CHROOT_DIR/proc" 2>/dev/null || true
 umount -lf "$CHROOT_DIR/sys" 2>/dev/null || true
 
+# Squashfs öncesi güvenli boyut temizliği (dil paketleri / önbellekler / loglar)
+rm -rf "$CHROOT_DIR/var/lib/apt/lists/"* \
+       "$CHROOT_DIR/var/cache/apt/archives/"*.deb \
+       "$CHROOT_DIR/var/cache/apt/archives/partial/"* \
+       "$CHROOT_DIR/var/cache/apt/"*.bin 2>/dev/null || true
+rm -f "$CHROOT_DIR/var/lib/dpkg/"*-old "$CHROOT_DIR/var/cache/debconf/"*-old 2>/dev/null || true
+find "$CHROOT_DIR/var/log" -type f -exec truncate -s 0 {} + 2>/dev/null || true
+rm -f "$CHROOT_DIR/var/cache/ldconfig/aux-cache" 2>/dev/null || true
+find "$CHROOT_DIR/usr" "$CHROOT_DIR/opt" -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true
+if [ -d "$CHROOT_DIR/opt/brave.com/brave/locales" ]; then
+    find "$CHROOT_DIR/opt/brave.com/brave/locales" -maxdepth 1 -type f -name '*.pak' \
+        ! -name 'tr.pak' ! -name 'en-US.pak' ! -name 'en-GB.pak' -delete 2>/dev/null || true
+fi
+if [ -d "$CHROOT_DIR/usr/share/locale" ]; then
+    find "$CHROOT_DIR/usr/share/locale" -mindepth 1 -maxdepth 1 -type d \
+        ! -name 'tr' ! -name 'tr_*' ! -name 'en' ! -name 'en_*' ! -name 'C' ! -name 'C.*' ! -name 'POSIX' \
+        -exec rm -rf {} + 2>/dev/null || true
+fi
+
 # Not: boot DAHİL tutulur — kurucu squashfs'i /target'a açıp GRUB'u
 # oradaki çekirdekle kurar; boot dışlanırsa kurulu sistem çekirdeksiz kalır.
 # KRİTİK: -e 'dizin' dizinin KENDİSİNİ siler; /dev /proc /sys /run yoksa
 # switch_root hedefe geçemez ve açılış "Attempted to kill init" ile ölür.
 # Bu yüzden 'dizin/*' kalıbı kullanılır: içerik atılır, boş dizin kalır.
 # /proc /sys /dev olduğu gibi tutulur (boş/statik, zararsız).
-mksquashfs "$CHROOT_DIR" "$IMAGE_DIR/live/filesystem.squashfs" -comp xz -b 1048576 -noappend \
+mksquashfs "$CHROOT_DIR" "$IMAGE_DIR/live/filesystem.squashfs" -comp xz -Xdict-size 100% -b 1048576 -noappend \
     -e 'tmp/*' 'run/*' 'mnt/*' 'media/*' 'var/tmp/*' 'var/cache/apt/archives/*' 'var/lib/apt/lists/*' 2>/dev/null || \
 mksquashfs "$CHROOT_DIR" "$IMAGE_DIR/live/filesystem.squashfs" -comp xz -b 1048576 -noappend
 

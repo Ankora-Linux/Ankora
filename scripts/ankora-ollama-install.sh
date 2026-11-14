@@ -115,10 +115,10 @@ case "$1" in
     touch "$LOGFILE"
     chown ollama:ollama "$LOGFILE" 2>/dev/null || true
     chmod 0640 "$LOGFILE" 2>/dev/null || true
-    OLLAMA_HOST=127.0.0.1:11434 OLLAMA_MODELS=/usr/share/ollama/.ollama/models \
+    OLLAMA_HOST=127.0.0.1:11434 OLLAMA_ORIGINS='*' OLLAMA_MODELS=/usr/share/ollama/.ollama/models \
       start-stop-daemon --start --background --quiet --make-pidfile --pidfile "$PIDFILE" \
       --chuid ollama:ollama --exec /usr/bin/env -- \
-      sh -c "OLLAMA_HOST=127.0.0.1:11434 OLLAMA_MODELS=/usr/share/ollama/.ollama/models exec $DAEMON serve >>$LOGFILE 2>&1"
+      sh -c "OLLAMA_HOST=127.0.0.1:11434 OLLAMA_ORIGINS='*' OLLAMA_MODELS=/usr/share/ollama/.ollama/models exec $DAEMON serve >>$LOGFILE 2>&1"
     ;;
   stop)
     start-stop-daemon --stop --quiet --retry 5 --pidfile "$PIDFILE" 2>/dev/null || true
