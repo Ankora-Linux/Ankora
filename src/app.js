@@ -6093,10 +6093,6 @@
             <svg class="glyph"><use href="#ico-terminal"></use></svg>
             <span>Burada Uçbirim Aç</span>
           </div>
-          <div class="ctx-item" data-action="open-as-root">
-            <svg class="glyph"><use href="#ico-lock"></use></svg>
-            <span>Yönetici Olarak Aç</span>
-          </div>
           <div class="ctx-item" data-action="copy-path">
             <svg class="glyph"><use href="#ico-copy"></use></svg>
             <span>Dosya Yolunu Kopyala</span>
@@ -6169,13 +6165,6 @@
               if (typeof Terminal !== 'undefined' && Terminal.runCommand) {
                 Terminal.runCommand(`cd "${item.path}"`);
               }
-              break;
-            case 'open-as-root':
-              TauriBridge.invoke('launch_application', { exec: `pkexec xdg-open "${item.path}"` })
-                .catch(() => {
-                  TauriBridge.invoke('launch_application', { exec: `sudo -A xdg-open "${item.path}"` })
-                    .catch(err => ReportManager?.showToast(`Yönetici olarak açılamadı: ${err.message || err}`, 'error'));
-                });
               break;
             case 'restore': this.restoreTrashItem(item.name); break;
             case 'extract': this.extractArchive(item.path); break;
@@ -11638,26 +11627,8 @@
     });
 
     // 5.1 Hızlı Aç/Kapa Düğmeleri (Toggles)
-    const qsWifi = document.getElementById('qs-wifi-toggle');
-    if (qsWifi) {
-      qsWifi.addEventListener('click', () => {
-        const isActive = qsWifi.classList.toggle('active');
-        const sub = qsWifi.querySelector('.qs-tile-sub');
-        if (sub) sub.textContent = isActive ? 'Bağlı' : 'Kapalı';
-        Terminal.log(`[AĞ] Wi-Fi: ${isActive ? 'Etkinleştirildi' : 'Devre Dışı'}`, 'cmd');
-      });
-    }
-
-    const qsBt = document.getElementById('qs-bt-toggle');
-    if (qsBt) {
-      qsBt.addEventListener('click', () => {
-        const isActive = qsBt.classList.toggle('active');
-        const sub = qsBt.querySelector('.qs-tile-sub');
-        if (sub) sub.textContent = isActive ? 'Açık' : 'Kapalı';
-        Terminal.log(`[BLUETOOTH] Adaptör: ${isActive ? 'Açık' : 'Kapalı'}`, 'cmd');
-      });
-    }
-
+    // qs-wifi-toggle ve qs-bt-toggle artık RadioManager.init() içinde gerçek
+    // sistem durumuyla yönetilir (çift dinleyici çakışması önlenir).
     // qs-nightlight-toggle artık SettingsManager.updateNightState ile tam senkron yönetilir
 
     const qsTheme = document.getElementById('qs-theme-toggle');

@@ -1552,6 +1552,36 @@ def execute_ayaz_command(cmd, args):
             else:
                 return f'bash: cd: {target_d}: Böyle bir dosya ya da dizin yok'
 
+        if command in ('apt-get clean', 'rm -rf /tmp/*', 'apt-get clean && rm -rf /tmp/*'):
+            report = []
+            if 'apt-get clean' in command:
+                p_clean = _root_run(['apt-get', 'clean'], timeout=60)
+                if p_clean is None or p_clean.returncode != 0:
+                    err = ((p_clean.stderr or p_clean.stdout) if p_clean else '').strip()
+                    raise Exception(err or 'APT önbelleği temizlenemedi.')
+                report.append('APT paket önbelleği temizlendi.')
+            if 'rm -rf /tmp/*' in command:
+                _protected_tmp = (
+                    'ayaz-', 'ankora-', '.X11-unix', '.ICE-unix', '.XIM-unix',
+                    '.font-unix', 'ssh-', 'gpg-', 'dbus-', 'pulse-', 'pipewire-', 'systemd-'
+                )
+                try:
+                    for _entry in os.listdir('/tmp'):
+                        if any(_entry.startswith(_p) for _p in _protected_tmp):
+                            continue
+                        _tp = os.path.join('/tmp', _entry)
+                        try:
+                            if os.path.isdir(_tp) and not os.path.islink(_tp):
+                                shutil.rmtree(_tp, ignore_errors=True)
+                            else:
+                                os.unlink(_tp)
+                        except Exception:
+                            pass
+                except Exception:
+                    pass
+                report.append('/tmp geçici dosyaları (aktif oturum dosyaları korunarak) temizlendi.')
+            return '\n'.join(report)
+
         if command not in _EXACT_ALLOWED:
             bad_chars = set(';&|`$\n\r><()')
             found_bad = bad_chars.intersection(command)
@@ -3958,9 +3988,14 @@ exit 0
     elif cmd == 'set_default_audio_device':
         kind = str(args.get('kind', 'sink')).strip()
         dev = str(args.get('deviceName', args.get('device_name', ''))).strip()
-        if shutil.which('pactl') and dev:
-            sub = 'set-default-source' if kind == 'source' else 'set-default-sink'
-            subprocess.run(['pactl', sub, dev], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        if not dev:
+            raise Exception('Aygıt adı belirtilmedi.')
+        if not shutil.which('pactl'):
+            raise Exception('pactl komutu sistemde bulunamadı.')
+        sub = 'set-default-source' if kind == 'source' else 'set-default-sink'
+        p = subprocess.run(['pactl', sub, dev], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        if p.returncode != 0:
+            raise Exception((p.stderr or p.stdout or '').strip() or f'Ses aygıtı değiştirilemedi: {dev}')
         return True
 
     elif cmd == 'get_bluetooth_status':
@@ -3987,19 +4022,39 @@ exit 0
         return {'is_available': is_avail, 'is_powered': is_pow, 'devices': devs}
 
     elif cmd == 'toggle_bluetooth':
-        pow_on = bool(args.get('powered', True))
+        pow_on = bool(args.get('powered', args.get('enable', True)))
         val = 'on' if pow_on else 'off'
+        bt_ok = False
+        rf_ok = False
         if shutil.which('bluetoothctl'):
-            subprocess.run(['timeout', '2', 'bluetoothctl', 'power', val], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            p = subprocess.run(
+                ['timeout', '2', 'bluetoothctl', 'power', val],
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+            )
+            txt = ((p.stdout or '') + (p.stderr or '')).lower()
+            bt_ok = (p.returncode == 0 and 'no default controller' not in txt)
         if shutil.which('rfkill'):
-            subprocess.run(['rfkill', 'unblock' if pow_on else 'block', 'bluetooth'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            p_rf = subprocess.run(
+                ['rfkill', 'unblock' if pow_on else 'block', 'bluetooth'],
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+            )
+            rf_ok = (p_rf.returncode == 0)
+        if not bt_ok and not rf_ok:
+            raise Exception('Bluetooth adaptörü bulunamadı veya güç durumu değiştirilemedi.')
         return pow_on
 
     elif cmd == 'scan_bluetooth':
         en = bool(args.get('enable', True))
         val = 'on' if en else 'off'
-        if shutil.which('bluetoothctl'):
-            subprocess.run(['timeout', '2', 'bluetoothctl', 'scan', val], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        if not shutil.which('bluetoothctl'):
+            raise Exception('bluetoothctl sistemde kurulu değil.')
+        p = subprocess.run(
+            ['timeout', '2', 'bluetoothctl', 'scan', val],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+        )
+        txt = ((p.stdout or '') + '\n' + (p.stderr or '')).strip()
+        if p.returncode != 0 or 'no default controller' in txt.lower():
+            raise Exception(txt or 'Bluetooth taraması başlatılamadı (adaptör yok veya kapalı).')
         return en
 
     elif cmd == 'connect_bluetooth_device':
@@ -5589,6 +5644,85 @@ exit 0
             os.makedirs(pics, exist_ok=True)
         subprocess.Popen(['xdg-open', pics])
         return True
+
+    elif cmd == 'install_appimage':
+        file_path = str(args.get('filePath') or args.get('file_path') or '').strip()
+        if not file_path or '..' in file_path or any(c in file_path for c in ('\0', ';', '|', '&', '$', '`', '\n', '\r')):
+            raise Exception('Geçersiz dosya yolu.')
+        if not file_path.lower().endswith('.appimage'):
+            raise Exception('Yalnızca .AppImage uzantılı dosyalar kurulabilir.')
+        canonical = os.path.realpath(file_path)
+        if not os.path.isfile(canonical):
+            raise Exception('Kurulacak AppImage dosyası bulunamadı.')
+        home_real = os.path.realpath(home_dir)
+        if not (canonical.startswith(home_real + '/') or canonical.startswith('/tmp/')):
+            raise Exception('Güvenlik İlkesi: AppImage yalnızca kullanıcı çalışma alanından kurulabilir.')
+        raw_stem = os.path.splitext(os.path.basename(canonical))[0] or 'appimage-app'
+        slug = ''.join(
+            c.lower() if (c.isascii() and (c.isalnum() or c in '.-_')) else '-'
+            for c in raw_stem
+        ).strip('-') or 'appimage-app'
+        bin_dir = os.path.join(home_real, '.local', 'bin')
+        os.makedirs(bin_dir, exist_ok=True)
+        target = os.path.join(bin_dir, slug)
+        if canonical != os.path.realpath(target):
+            shutil.copy2(canonical, target)
+        os.chmod(target, 0o755)
+        apps_dir = os.path.join(home_real, '.local', 'share', 'applications')
+        os.makedirs(apps_dir, exist_ok=True)
+        desktop_name = ''.join(' ' if c in '\n\r\t' else c for c in raw_stem).strip() or slug
+        desktop_path = os.path.join(apps_dir, f'{slug}.desktop')
+        with open(desktop_path, 'w', encoding='utf-8') as df:
+            df.write(
+                f"[Desktop Entry]\nType=Application\nName={desktop_name}\n"
+                f"Comment=AppImage olarak kuruldu (Ankora Ayaz DE)\n"
+                f"Exec=\"{target}\"\nIcon=application-x-executable\n"
+                f"Terminal=false\nCategories=Utility;\n"
+            )
+        if shutil.which('update-desktop-database'):
+            subprocess.run(['update-desktop-database', apps_dir], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        return f"{desktop_name} uygulaması ~/.local/bin içine kuruldu ve uygulama menüsüne eklendi."
+
+    elif cmd == 'install_ollama':
+        helper = '/usr/local/bin/ankora-ollama-install'
+        if not os.path.exists(helper):
+            raise Exception('Ollama kurulum yardımcısı bu sistemde bulunamadı; kurulum yalnızca Ankora ISO üzerinde yapılabilir.')
+        proc = _pkg_helper_run([helper], timeout=600)
+        out = (proc.stdout or '').strip()
+        err = (proc.stderr or '').strip()
+        if proc.returncode != 0:
+            raise Exception(f"Ollama kurulumu başarısız:\n{err or out or f'çıkış kodu {proc.returncode}'}")
+        return out or 'Ollama kuruldu ve servis başlatıldı.'
+
+    elif cmd == 'read_theme_file':
+        file_path = str(args.get('filePath') or args.get('file_path') or '').strip()
+        if '..' in file_path:
+            raise Exception("Güvenlik Hatası: Dizin geçişine ('..') izin verilmez.")
+        ext = os.path.splitext(file_path)[1].lower().lstrip('.')
+        if ext not in ('css', 'json'):
+            raise Exception(f"Güvenlik Hatası: '.{ext}' uzantılı dosyalar tema paketi olarak okunamaz; yalnızca .css ve .json.")
+        canonical = os.path.realpath(file_path)
+        if not os.path.isfile(canonical):
+            raise Exception(f'Tema dosyası bulunamadı veya erişilemiyor: {file_path}')
+        canon_low = canonical.lower()
+        if any(p.lower() in canon_low for p in _SENSITIVE_PATTERNS):
+            raise Exception('Güvenlik Hatası: Hassas sistem dosyalarının okunması engellendi.')
+        home_real = os.path.realpath(home_dir)
+        if not (canonical == home_real or canonical.startswith(home_real + '/')):
+            raise Exception('Güvenlik Hatası: Tema dosyası yalnızca kullanıcı dizinlerinden (Belgeler, İndirilenler, Resimler) yüklenebilir.')
+        fsize = os.path.getsize(canonical)
+        if fsize > 512 * 1024:
+            raise Exception('Dosya çok büyük (512 KB üstü tema paketi kabul edilmez).')
+        try:
+            with open(canonical, 'r', encoding='utf-8') as tf:
+                content = tf.read()
+        except Exception as e:
+            raise Exception(f'Dosya okunamadı (UTF-8 olmayan içerik devredildi): {e}')
+        return {
+            'file_name': os.path.basename(canonical),
+            'file_size': fsize,
+            'content': content,
+        }
 
     # Bilinmeyen komut sessizce "işlendi" derse arayüz hiçbir zaman hata görmez;
     # köprü ile uyuşmayan her çağrı gerçek bir hata olarak döner.

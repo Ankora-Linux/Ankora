@@ -2459,6 +2459,59 @@ fn run_terminal_command_blocking(command: String) -> Result<String, String> {
         return res;
     }
 
+    if cmd_trimmed == "apt-get clean"
+        || cmd_trimmed == "rm -rf /tmp/*"
+        || cmd_trimmed == "apt-get clean && rm -rf /tmp/*"
+    {
+        #[cfg(target_os = "linux")]
+        {
+            let mut report = Vec::new();
+            if cmd_trimmed.contains("apt-get clean") {
+                let out = root_command("apt-get", &["clean"])
+                    .map_err(|e| format!("APT önbelleği temizlenemedi: {}", e))?;
+                if !out.status.success() {
+                    let err = String::from_utf8_lossy(&out.stderr).trim().to_string();
+                    return Err(if err.is_empty() {
+                        format!(
+                            "apt-get clean hata verdi (çıkış kodu {}).",
+                            out.status.code().unwrap_or(-1)
+                        )
+                    } else {
+                        format!("apt-get clean: {}", err)
+                    });
+                }
+                report.push("APT paket önbelleği temizlendi.".to_string());
+            }
+            if cmd_trimmed.contains("rm -rf /tmp/*") {
+                // Aktif masaüstü/X11 IPC soket ve durum dosyalarını koru
+                let protected = [
+                    "ayaz-", "ankora-", ".X11-unix", ".ICE-unix", ".XIM-unix",
+                    ".font-unix", "ssh-", "gpg-", "dbus-", "pulse-", "pipewire-", "systemd-",
+                ];
+                if let Ok(entries) = fs::read_dir("/tmp") {
+                    for entry in entries.flatten() {
+                        let name = entry.file_name().to_string_lossy().to_string();
+                        if protected.iter().any(|p| name.starts_with(p)) {
+                            continue;
+                        }
+                        let p = entry.path();
+                        if p.is_dir() && !p.is_symlink() {
+                            let _ = fs::remove_dir_all(&p);
+                        } else {
+                            let _ = fs::remove_file(&p);
+                        }
+                    }
+                }
+                report.push("/tmp geçici dosyaları (aktif oturum dosyaları korunarak) temizlendi.".to_string());
+            }
+            return Ok(report.join("\n"));
+        }
+        #[cfg(not(target_os = "linux"))]
+        {
+            return Ok(format!("[Simüle bash çıkışı]: {} başarıyla yürütüldü.", cmd_trimmed));
+        }
+    }
+
     // Güvenlik İlkesi (Whitelist & Parameter Sanity) denetimi
     is_terminal_command_permitted(cmd_trimmed)?;
 
@@ -9041,13 +9094,27 @@ fn toggle_bluetooth(powered: Option<bool>, enable: Option<bool>) -> Result<bool,
     #[cfg(target_os = "linux")]
     {
         let val = if state { "on" } else { "off" };
-        let _ = Command::new("timeout")
+        let bt_out = Command::new("timeout")
             .args(["2", "bluetoothctl", "power", val])
             .output();
-        let _ = Command::new("rfkill")
+        let rf_out = Command::new("rfkill")
             .args([if state { "unblock" } else { "block" }, "bluetooth"])
             .output();
-        Ok(state)
+        let bt_ok = bt_out.as_ref().map(|o| {
+            let txt = format!(
+                "{}{}",
+                String::from_utf8_lossy(&o.stdout),
+                String::from_utf8_lossy(&o.stderr)
+            )
+            .to_lowercase();
+            o.status.success() && !txt.contains("no default controller")
+        }).unwrap_or(false);
+        let rf_ok = rf_out.as_ref().map(|o| o.status.success()).unwrap_or(false);
+        if bt_ok || rf_ok {
+            Ok(state)
+        } else {
+            Err("Bluetooth adaptörü bulunamadı veya güç durumu değiştirilemedi.".to_string())
+        }
     }
     #[cfg(not(target_os = "linux"))]
     {
@@ -9061,9 +9128,23 @@ fn scan_bluetooth(enable: Option<bool>) -> Result<bool, String> {
     #[cfg(target_os = "linux")]
     {
         let val = if state { "on" } else { "off" };
-        let _ = Command::new("timeout")
+        let out = Command::new("timeout")
             .args(["2", "bluetoothctl", "scan", val])
-            .output();
+            .output()
+            .map_err(|e| format!("bluetoothctl çalıştırılamadı: {}", e))?;
+        let combined = format!(
+            "{}\n{}",
+            String::from_utf8_lossy(&out.stdout),
+            String::from_utf8_lossy(&out.stderr)
+        );
+        if !out.status.success() || combined.to_lowercase().contains("no default controller") {
+            let detail = combined.trim();
+            return Err(if detail.is_empty() {
+                "Bluetooth taraması başlatılamadı (adaptör yok veya kapalı).".to_string()
+            } else {
+                format!("Bluetooth taraması başarısız: {}", detail)
+            });
+        }
         Ok(state)
     }
     #[cfg(not(target_os = "linux"))]
