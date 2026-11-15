@@ -81,11 +81,35 @@
       install_deb_package: 15 * 60 * 1000,
       install_vendor_package: 15 * 60 * 1000,
       install_local_deb_package: 15 * 60 * 1000,
+      install_flatpak_app: 20 * 60 * 1000,
       remove_deb_package: 5 * 60 * 1000,
+      remove_flatpak_app: 5 * 60 * 1000,
       download_and_apply_de_update: 30 * 60 * 1000,
       apt_update_clean: 10 * 60 * 1000,
       system_update_apt: 15 * 60 * 1000,
       execute_desktop_program: 60 * 1000
+    },
+
+    _afterExternalLaunch(cmd) {
+      if (
+        cmd === 'launch_application' ||
+        cmd === 'execute_desktop_program' ||
+        cmd === 'launch_interactive_terminal' ||
+        cmd === 'activate_native_window' ||
+        cmd === 'open_path' ||
+        cmd === 'open_url'
+      ) {
+        try {
+          if (typeof WindowManager !== 'undefined') {
+            WindowManager._isLayerAbove = true;
+            WindowManager.ensureDesktopLayer(false);
+            if (cmd !== 'activate_native_window' && typeof WindowManager.refreshNativeWindows === 'function') {
+              setTimeout(() => WindowManager.refreshNativeWindows(true), 600);
+              setTimeout(() => WindowManager.refreshNativeWindows(true), 1800);
+            }
+          }
+        } catch (e) {}
+      }
     },
 
     init() {
@@ -146,14 +170,22 @@
         ? (window.__TAURI__.core?.invoke || window.__TAURI__.invoke)
         : null;
       if (tauriInvoke) {
-        return await tauriInvoke(cmd, args);
+        const out = await tauriInvoke(cmd, args);
+        this._afterExternalLaunch(cmd);
+        return out;
       }
 
       // 2. WebKit2GTK MessageHandler Native IPC (yerel process içi çağrı)
       if (typeof window !== 'undefined' && window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.ayazIpc) {
         return await new Promise((resolve, reject) => {
           const id = ++this.reqIdCounter;
-          this.pendingRequests.set(id, { resolve, reject });
+          this.pendingRequests.set(id, {
+            resolve: (val) => {
+              this._afterExternalLaunch(cmd);
+              resolve(val);
+            },
+            reject
+          });
           // Token yalnız ana enjekte edilir; köprü (iframe) sayfaları bu yola
           // token olmadan erişemez.
           window.webkit.messageHandlers.ayazIpc.postMessage(JSON.stringify({
@@ -193,6 +225,7 @@
       }
       const data = await res.json();
       if (data.error) throw new Error(data.error);
+      this._afterExternalLaunch(cmd);
       return data.result;
     },
 
@@ -718,6 +751,11 @@
       if (!hasActive) {
         this.ensureDesktopLayer(false);
       }
+    },
+
+    syncDesktopLayer() {
+      const hasActive = this.windows.some(w => w.classList.contains('open') && !w.classList.contains('minimized'));
+      this.ensureDesktopLayer(hasActive);
     },
 
     init() {
@@ -1652,12 +1690,15 @@
         card.type = 'button';
         card.className = `overview-card ${nw.is_active ? 'active' : ''}`;
         const title = (nw.title || nw.app_name || 'Uygulama').split('—')[0].trim();
-        card.innerHTML = '<span class="overview-glyph" style="background:linear-gradient(135deg,#0284c7,#38bdf8);color:#fff;"></span><span class="overview-title"></span>';
+        card.innerHTML = '<span class="overview-glyph" style="background:var(--accent-primary);color:#fff;"></span><span class="overview-title"></span>';
         card.querySelector('.overview-glyph').textContent = (nw.app_name || title).charAt(0).toLocaleUpperCase('tr');
         card.querySelector('.overview-title').textContent = title;
         card.title = `${nw.title} (${nw.app_name})`;
         card.addEventListener('click', () => {
           this.closeOverview();
+          if (typeof WindowManager !== 'undefined' && WindowManager.ensureDesktopLayer) {
+            WindowManager.ensureDesktopLayer(false);
+          }
           TauriBridge.invoke('activate_native_window', { id: nw.id }).catch(() => {});
         });
         grid.appendChild(card);
@@ -1868,6 +1909,7 @@
           targetWindow: 'win-installer',
           cat: 'sys',
           comment: 'Ankora Linux 4.7 Sabit Diske Kurulum Sihirbazı',
+          isBuiltin: true,
           is_installed_by_user: true,
           on_desktop: true
         },
@@ -1878,6 +1920,7 @@
           targetWindow: 'win-files',
           cat: 'util',
           comment: 'Dosya Yöneticisi ve Dizin Gezgini',
+          isBuiltin: true,
           is_installed_by_user: true,
           on_desktop: true
         },
@@ -1888,6 +1931,7 @@
           targetWindow: null,
           cat: 'net',
           comment: 'Hızlı, Gizlilik Odaklı Güvenli Web Tarayıcısı',
+          isBuiltin: true,
           is_installed_by_user: true,
           on_desktop: true
         },
@@ -1898,6 +1942,7 @@
           targetWindow: 'win-store',
           cat: 'sys',
           comment: 'Paket Yöneticisi ve Uygulama Mağazası',
+          isBuiltin: true,
           is_installed_by_user: true,
           on_desktop: true
         },
@@ -1908,6 +1953,7 @@
           targetWindow: 'win-welcome',
           cat: 'util',
           comment: 'Sisteme Genel Bakış ve Hoş Geldiniz Rehberi',
+          isBuiltin: true,
           is_installed_by_user: true,
           on_desktop: false
         },
@@ -1918,6 +1964,7 @@
           targetWindow: 'win-terminal',
           cat: 'sys',
           comment: 'Güçlü Linux Uçbirimi ve Komut Satırı',
+          isBuiltin: true,
           is_installed_by_user: true,
           on_desktop: false
         },
@@ -1928,6 +1975,7 @@
           targetWindow: 'win-screenshot',
           cat: 'util',
           comment: 'Tam ekran, pencere veya serbest alan yakalama aracı',
+          isBuiltin: true,
           is_installed_by_user: true,
           on_desktop: false
         },
@@ -1938,6 +1986,7 @@
           targetWindow: 'win-office',
           cat: 'office',
           comment: 'Belge Düzenleyici ve Not Defteri',
+          isBuiltin: true,
           is_installed_by_user: true,
           on_desktop: false
         },
@@ -1948,6 +1997,7 @@
           targetWindow: 'win-widgets',
           cat: 'util',
           comment: 'Saat ve sistem bilgisi bileşenlerini masaüstüne yerleştirir',
+          isBuiltin: true,
           is_installed_by_user: true,
           on_desktop: false
         },
@@ -1958,6 +2008,7 @@
           targetWindow: 'win-flasher',
           cat: 'sys',
           comment: 'USB bellek biçimlendirici ve ISO kalıbı yazıcı',
+          isBuiltin: true,
           is_installed_by_user: true,
           on_desktop: false
         },
@@ -1968,6 +2019,7 @@
           targetWindow: null,
           cat: 'office',
           comment: 'Etkileşimli akıllı tahta ve ekran çizim/not kalemi',
+          isBuiltin: true,
           is_installed_by_user: true,
           on_desktop: false
         }
@@ -2050,20 +2102,34 @@
     async rescanXdgApps(firstScan) {
       try {
         const apps = await TauriBridge.invoke('scan_xdg_applications');
-        if (!apps || !Array.isArray(apps)) return;
+        if (!apps || !Array.isArray(apps) || apps.length === 0) return false;
 
+        const defaultIds = new Set(this.getDefaultApps().map(a => a.id));
         const seen = new Set(this.seenIds());
-        const known = new Set(this.installedApps.map(a => a.id));
         const fresh = [];
         let changed = false;
 
         apps.forEach(app => {
           if (!app || !app.id) return;
 
+          const idx = this.installedApps.findIndex(a =>
+            a && (
+              a.id === app.id ||
+              (a.flatpak && a.flatpak === app.id) ||
+              (a.deb && a.deb === app.id) ||
+              (a.storeId && a.storeId === app.id)
+            )
+          );
+
           if (app.is_installed_by_user) {
-            const idx = this.installedApps.findIndex(a => a.id === app.id);
             if (idx >= 0) {
-              this.installedApps[idx] = { ...this.installedApps[idx], ...app, is_installed_by_user: true };
+              const prev = this.installedApps[idx];
+              this.installedApps[idx] = {
+                ...prev,
+                ...app,
+                is_installed_by_user: true,
+                on_desktop: prev.on_desktop !== false
+              };
             } else {
               this.installedApps.push({ ...app, is_installed_by_user: true, on_desktop: true });
               fresh.push(app);
@@ -2073,7 +2139,7 @@
             return;
           }
 
-          if (!known.has(app.id)) {
+          if (idx < 0) {
             // Sistemle gelen veya paket yöneticisinden kurulan XDG uygulaması (PulseAudio, vb.)
             let cat = 'util';
             if (Array.isArray(app.categories)) {
@@ -2091,7 +2157,6 @@
               is_installed_by_user: true,
               on_desktop: false
             });
-            known.add(app.id);
             changed = true;
             if (!firstScan && !seen.has(app.id)) {
               fresh.push(app);
@@ -2102,21 +2167,31 @@
 
         SafeStorage.setItem('ankora_xdg_seen_ids', JSON.stringify(Array.from(seen)));
         // Sistemdeki gerçek XDG (/usr/share/applications) ile senkronize et:
-        // Kaldırılan harici paketleri otomatik temizle (yerleşik iç pencereler korunur).
+        // Kaldırılan harici paketleri otomatik temizle (yerleşik iç ve varsayılan uygulamalar korunur).
         const activeIds = new Set(apps.map(a => a && a.id).filter(Boolean));
         const beforeLen = this.installedApps.length;
         this.installedApps = this.installedApps.filter(a => {
           if (!a) return false;
           if (a.targetWindow || (a.exec && String(a.exec).startsWith('internal:'))) return true;
-          if (a.isBuiltin) return true;
-          return activeIds.has(a.id);
+          if (a.isBuiltin || defaultIds.has(a.id)) return true;
+          return activeIds.has(a.id)
+            || (a.flatpak && activeIds.has(a.flatpak))
+            || (a.deb && activeIds.has(a.deb));
         });
         if (this.installedApps.length !== beforeLen) changed = true;
 
         if (changed) {
+          if (typeof LauncherSearch !== 'undefined') LauncherSearch._collected = null;
           SafeStorage.setItem('ankora_xdg_apps', JSON.stringify(this.installedApps));
           this.renderToDesktop();
           this.renderToStartMenu();
+          document.dispatchEvent(new CustomEvent('ayaz-apps-changed'));
+        }
+        if (typeof StoreManager !== 'undefined' && typeof StoreManager.syncWithXdg === 'function') {
+          StoreManager.syncWithXdg(apps);
+        }
+        if (typeof DesktopFiles !== 'undefined' && typeof DesktopFiles.refresh === 'function') {
+          DesktopFiles.refresh();
         }
         fresh.forEach(app => {
           Terminal.log(`[XDG] '${app.name}' bulundu; başlat menüsüne ve masaüstüne eklendi.`, 'success');
@@ -2124,38 +2199,61 @@
             ReportManager.showToast(`Yeni uygulama: ${app.name}`);
           }
         });
-      } catch (err) {}
+        return true;
+      } catch (err) {
+        return false;
+      }
     },
 
     addApplication(app) {
       if (!app || !app.id) return;
       app.is_installed_by_user = true;
-      const existingIdx = this.installedApps.findIndex(a => a.id === app.id);
+      if (app.on_desktop === undefined) app.on_desktop = true;
+      const existingIdx = this.installedApps.findIndex(a =>
+        a && (
+          a.id === app.id ||
+          (app.flatpak && a.flatpak === app.flatpak) ||
+          (app.storeId && a.storeId === app.storeId)
+        )
+      );
       if (existingIdx >= 0) {
-        this.installedApps[existingIdx] = app;
+        this.installedApps[existingIdx] = { ...this.installedApps[existingIdx], ...app };
       } else {
         this.installedApps.push(app);
       }
       // Sonradan silinip terminalden yeniden kurulduğunda "yeni" sayılması
       // için bilinen uygulamalar listesine de yazılır.
       this.markSeen(app.id);
+      if (typeof LauncherSearch !== 'undefined') LauncherSearch._collected = null;
 
       SafeStorage.setItem('ankora_xdg_apps', JSON.stringify(this.installedApps));
       this.renderToDesktop();
       this.renderToStartMenu();
+      document.dispatchEvent(new CustomEvent('ayaz-apps-changed'));
     },
 
-    removeApplication(appId) {
-      this.installedApps = this.installedApps.filter(a => a.id !== appId);
-      this.removeAppFromAllGroups(appId);
+    removeApplication(appId, debName = null, flatpakId = null) {
+      const matchesTarget = (a) => {
+        if (!a || a.isBuiltin) return false;
+        if (a.id === appId || a.storeId === appId) return true;
+        if (debName && (a.deb === debName || a.id === debName || a.exec === debName)) return true;
+        if (flatpakId && (a.flatpak === flatpakId || a.id === flatpakId || (a.exec && String(a.exec).includes(flatpakId)))) return true;
+        return false;
+      };
+      const removedIds = this.installedApps.filter(matchesTarget).map(a => a.id);
+      const dropIds = new Set([appId, ...removedIds].concat(debName ? [debName] : []).concat(flatpakId ? [flatpakId] : []));
+      this.installedApps = this.installedApps.filter(a => !matchesTarget(a));
+      dropIds.forEach(id => this.removeAppFromAllGroups(id));
       this.closeGroup();
       // Kayıt bilinenler listesinden de düşer: uygulama sonradan geri
       // kurulursa tarama onu yeniden bulur ve masaüstüne ekler.
-      const seen = this.seenIds().filter(id => id !== appId);
+      const seen = this.seenIds().filter(id => !dropIds.has(id));
       SafeStorage.setItem('ankora_xdg_seen_ids', JSON.stringify(seen));
       SafeStorage.setItem('ankora_xdg_apps', JSON.stringify(this.installedApps));
+      if (typeof LauncherSearch !== 'undefined') LauncherSearch._collected = null;
       this.renderToDesktop();
       this.renderToStartMenu();
+      document.dispatchEvent(new CustomEvent('ayaz-apps-changed'));
     },
 
     // Masaüstü simgesini ekle veya kaldır. Uygulama listeden çıkmaz, yalnızca
@@ -3403,10 +3501,27 @@
         }
         if (!this.dir) return;
         const res = await TauriBridge.invoke('list_directory', { path: this.dir });
+        const xdgDesktopStems = new Set();
+        if (typeof XdgDesktopEngine !== 'undefined' && Array.isArray(XdgDesktopEngine.installedApps)) {
+          XdgDesktopEngine.installedApps.forEach(a => {
+            if (!a || a.on_desktop === false) return;
+            if (a.id) xdgDesktopStems.add(String(a.id).toLowerCase());
+            if (a.flatpak) xdgDesktopStems.add(String(a.flatpak).toLowerCase());
+            if (a.deb) xdgDesktopStems.add(String(a.deb).toLowerCase());
+            if (a.desktopFile) {
+              const base = String(a.desktopFile).split('/').pop().replace(/\.desktop$/i, '').toLowerCase();
+              if (base) xdgDesktopStems.add(base);
+            }
+          });
+        }
         const items = (res && res.items ? res.items : []).filter(it => {
           const name = String((it && it.name) || '').trim();
           // "." / ".." ve gizli dosyalar masaüstünde simge olarak görünmesin.
           if (!name || name === '.' || name === '..' || name.startsWith('.')) return false;
+          if (name.toLowerCase().endsWith('.desktop')) {
+            const stem = name.slice(0, -8).toLowerCase();
+            if (xdgDesktopStems.has(stem)) return false;
+          }
           return !it.is_hidden;
         });
         if (!items.length) return;
@@ -3518,6 +3633,10 @@
           WindowManager.open('win-files');
         } else {
           const ext = (it.name || it.path || '').split('.').pop()?.toLowerCase();
+          if (ext === 'desktop') {
+            await TauriBridge.invoke('execute_desktop_program', { path: it.path });
+            return;
+          }
           if (ext === 'deb' || ext === 'appimage') {
             if (typeof PackageInstallerManager !== 'undefined') {
               PackageInstallerManager.open(it.path);
@@ -3896,7 +4015,7 @@
       { id: 'sqlitebrowser', name: 'DB Browser for SQLite', deb: 'sqlitebrowser', desc: 'SQLite veritabanlarını tablo görünümünde inceleme ve düzenleme', cat: 'dev', size: '10 MB', installed: false },
 
       // 10. YENİ EKLENEN PROFESYONEL VE EĞİTİM UYGULAMALARI (100)
-      { id: 'flatpak-geogebra', name: 'GeoGebra Matematik & Geometri', flatpak: 'org.geogebra.GeoGebra', desc: 'Dinamik matematik, grafik, cebir ve geometri öğrenim yazılımı', cat: 'office', size: '110 MB', installed: false },
+      { id: 'rocs', name: 'Rocs Çizge Kuramı ve Algoritma', deb: 'rocs', desc: 'Veri yapıları, çizge (graph) teorisi ve algoritma görselleştirme laboratuvarı', cat: 'office', school: true, size: '8 MB', installed: false },
       { id: 'kalzium', name: 'Kalzium Periyodik Tablo', deb: 'kalzium', desc: 'Kapsamlı kimyasal elementler tablosu ve molekül hesaplayıcı', cat: 'office', size: '12 MB', installed: false },
       { id: 'marble', name: 'Marble Dünya Atlası', deb: 'marble', desc: '3B sanal dünya küresi, harita ve coğrafi keşif aracı', cat: 'office', size: '35 MB', installed: false },
       { id: 'kstars', name: 'KStars Masaüstü Planetaryum', deb: 'kstars', desc: 'Gece gökyüzü simülasyonu ve gelişmiş teleskop kontrol yazılımı', cat: 'office', size: '65 MB', installed: false },
@@ -4232,6 +4351,26 @@
       SafeStorage.setItem('ankora_installed_pkg_ids', JSON.stringify(ids));
     },
 
+    syncWithXdg(xdgApps) {
+      if (!Array.isArray(xdgApps) || xdgApps.length === 0) return;
+      const xdgIds = new Set(xdgApps.map(a => a && a.id).filter(Boolean).map(s => String(s)));
+      let changed = false;
+      this.packages.forEach(p => {
+        if (p.installed || p.action) return;
+        const hit = (p.flatpak && xdgIds.has(p.flatpak))
+          || (p.id && xdgIds.has(p.id))
+          || (p.deb && xdgIds.has(p.deb));
+        if (hit) {
+          p.installed = true;
+          changed = true;
+        }
+      });
+      if (changed) {
+        this.saveInstalledState();
+        this.render(document.getElementById('store-search') ? document.getElementById('store-search').value : '');
+      }
+    },
+
     render(query = '') {
       if (!this.tableBody) return;
       this.tableBody.replaceChildren();
@@ -4253,8 +4392,9 @@
           || (p.flatpak && p.flatpak.toLowerCase().includes(q))
           || p.desc.toLowerCase().includes(q);
         if (!matchSource || !matchCat || !matchQ) return false;
-        if (seen.has(p.id)) return false;
-        seen.add(p.id);
+        const dedupeKey = p.flatpak ? `fp:${p.flatpak}` : (p.deb ? `deb:${p.deb}:${p.id}` : p.id);
+        if (seen.has(dedupeKey)) return false;
+        seen.add(dedupeKey);
         return true;
       });
 
@@ -4624,7 +4764,8 @@
             await TauriBridge.invoke('remove_flatpak_app', { appId: pkg.flatpak });
             this.syncInstalledState(pkg.id, false);
             this.saveInstalledState();
-            XdgDesktopEngine.removeApplication(pkg.id);
+            XdgDesktopEngine.removeApplication(pkg.id, pkg.deb, pkg.flatpak);
+            await XdgDesktopEngine.rescanXdgApps(true);
             Terminal.log(`[FLATPAK] '${pkg.name}' (${pkg.flatpak}) kaldırıldı.`, 'success');
             ReportManager.showToast(`${pkg.name} kaldırıldı.`);
             this.render(document.getElementById('store-search')?.value || '');
@@ -4641,14 +4782,18 @@
             this.syncInstalledState(pkg.id, true);
             this.saveInstalledState();
             XdgDesktopEngine.addApplication({
-              id: pkg.id,
+              id: pkg.flatpak || pkg.id,
+              storeId: pkg.id,
+              flatpak: pkg.flatpak,
               name: pkg.name,
+              icon: pkg.id,
               exec: `flatpak run ${pkg.flatpak}`,
               cat: pkg.cat,
               comment: pkg.desc,
-              is_installed_by_user: true
+              is_installed_by_user: true,
+              on_desktop: true
             });
-            XdgDesktopEngine.rescanXdgApps(false);
+            await XdgDesktopEngine.rescanXdgApps(false);
             Terminal.log(`[FLATPAK] '${pkg.name}' (${pkg.flatpak}) başarıyla kuruldu ve masaüstüne eklendi!`, 'success');
             ReportManager.showToast(`${pkg.name} kuruldu ve masaüstüne eklendi!`);
             this.render(document.getElementById('store-search')?.value || '');
@@ -4677,7 +4822,8 @@
             btn.textContent = 'Kur';
           }
           this.saveInstalledState();
-          XdgDesktopEngine.removeApplication(pkg.id);
+          XdgDesktopEngine.removeApplication(pkg.id, pkg.deb, pkg.flatpak);
+          await XdgDesktopEngine.rescanXdgApps(true);
           Terminal.log(`[APT] '${pkg.name}' (${pkg.deb}) başarıyla kaldırıldı.`, 'success');
           this.render(document.getElementById('store-search')?.value || '');
         } catch (err) {
@@ -4724,15 +4870,17 @@
         const resolved = xdgApp || {};
         XdgDesktopEngine.addApplication({
           id: resolved.id || pkg.id,
+          storeId: pkg.id,
           name: resolved.name || pkg.name,
           exec: resolved.exec || pkg.deb,
           deb: pkg.deb,
           desktopFile: resolved.desktop_file || '',
           cat: resolved.cat || pkg.cat,
           comment: resolved.comment || pkg.desc,
-          is_installed_by_user: true
+          is_installed_by_user: true,
+          on_desktop: true
         });
-        XdgDesktopEngine.rescanXdgApps(false);
+        await XdgDesktopEngine.rescanXdgApps(false);
 
         Terminal.log(`[XDG OK] ${resolved.name || pkg.name} kuruldu ve masaüstüne eklendi.`, 'success');
         ReportManager.showToast(`${resolved.name || pkg.name} kuruldu; masaüstüne eklendi.`);
@@ -10788,18 +10936,35 @@
         if (t) items.push({ title: t, desc: (desc || '').trim(), kind, run });
       };
 
-      // Sabit kartlar pencere kimliği, kurulu uygulama kartları XDG kimliği
-      // taşır; XDG kartlarında WindowManager.open hedefi bulamaz.
-      document.querySelectorAll('.pinned-app-card[data-open]').forEach(card => {
+      // Sabit kartlar pencere kimliği, harici başlatıcı veya kurulu uygulama
+      // kimliği taşır; XDG ve harici başlatıcılar doğrudan açılır.
+      const seenAppTitles = new Set();
+      document.querySelectorAll('.pinned-app-card').forEach(card => {
         const target = card.getAttribute('data-open');
+        const launch = card.getAttribute('data-launch');
         const appId = card.getAttribute('data-app-id');
-        push(card.querySelector('.app-title')?.textContent || card.textContent,
-          card.querySelector('.app-desc')?.textContent, 'Uygulama', () => {
-            const app = appId ? XdgDesktopEngine.installedApps.find(a => a.id === appId) : null;
-            if (app) XdgDesktopEngine.launchApp(app);
-            else if (target) WindowManager.open(target);
-          });
+        const title = card.querySelector('.app-title')?.textContent || card.textContent;
+        const normTitle = launcherNorm(title);
+        if (normTitle) seenAppTitles.add(normTitle);
+        push(title, card.querySelector('.app-desc')?.textContent, 'Uygulama', () => {
+          const app = appId ? XdgDesktopEngine.installedApps.find(a => a.id === appId) : null;
+          if (app) XdgDesktopEngine.launchApp(app);
+          else if (launch) TauriBridge.invoke('launch_application', { exec: launch }).catch(() => {});
+          else if (target) WindowManager.open(target);
+        });
       });
+
+      if (typeof XdgDesktopEngine !== 'undefined' && Array.isArray(XdgDesktopEngine.installedApps)) {
+        XdgDesktopEngine.installedApps.forEach(app => {
+          if (!app || app.is_menu_hidden) return;
+          const normTitle = launcherNorm(app.name || app.id || '');
+          if (!normTitle || seenAppTitles.has(normTitle)) return;
+          seenAppTitles.add(normTitle);
+          push(app.name || app.id, app.comment || app.exec || 'Uygulama', 'Uygulama', () => {
+            XdgDesktopEngine.launchApp(app);
+          });
+        });
+      }
 
       document.querySelectorAll('.recent-doc-row[data-file]').forEach(row => {
         const file = row.getAttribute('data-file');
@@ -17755,9 +17920,13 @@
       this.selectedIndex = 0;
       this.input.focus();
       this.renderDefaults();
-      try {
-        TauriBridge.invoke('set_desktop_layer', { above: true }).catch(() => {});
-      } catch (e) {}
+      if (typeof WindowManager !== 'undefined' && WindowManager.ensureDesktopLayer) {
+        WindowManager.ensureDesktopLayer(true);
+      } else {
+        try {
+          TauriBridge.invoke('set_desktop_layer', { above: true }).catch(() => {});
+        } catch (e) {}
+      }
     },
 
     close() {
@@ -17765,9 +17934,13 @@
       this.isOpen = false;
       this.overlay.style.display = 'none';
       this.input.blur();
-      try {
-        TauriBridge.invoke('set_desktop_layer', { above: false }).catch(() => {});
-      } catch (e) {}
+      if (typeof WindowManager !== 'undefined' && WindowManager.syncDesktopLayer) {
+        WindowManager.syncDesktopLayer();
+      } else {
+        try {
+          TauriBridge.invoke('set_desktop_layer', { above: false }).catch(() => {});
+        } catch (e) {}
+      }
     },
 
     toggle() {
@@ -17964,12 +18137,20 @@
 
       // 3. Uygulamalar Araması (XdgDesktopEngine)
       if (typeof XdgDesktopEngine !== 'undefined') {
-        const allApps = [
-          ...(XdgDesktopEngine.getDefaultApps ? XdgDesktopEngine.getDefaultApps() : []),
-          ...(XdgDesktopEngine.installedApps || [])
-        ];
+        const mergedApps = [];
+        const seenAppKeys = new Set();
+        [
+          ...(XdgDesktopEngine.installedApps || []),
+          ...(XdgDesktopEngine.getDefaultApps ? XdgDesktopEngine.getDefaultApps() : [])
+        ].forEach(app => {
+          if (!app) return;
+          const key = app.id || app.name;
+          if (!key || seenAppKeys.has(key)) return;
+          seenAppKeys.add(key);
+          mergedApps.push(app);
+        });
 
-        const matchedApps = allApps.filter(app => {
+        const matchedApps = mergedApps.filter(app => {
           const name = typeof launcherNorm === 'function' ? launcherNorm(app.name || '') : (app.name || '').toLowerCase();
           const comment = typeof launcherNorm === 'function' ? launcherNorm(app.comment || '') : (app.comment || '').toLowerCase();
           const exec = (app.exec || '').toLowerCase();

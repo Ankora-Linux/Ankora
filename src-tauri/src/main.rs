@@ -2060,15 +2060,21 @@ fn remove_deb_package_blocking(package_name: String) -> Result<String, String> {
 
     #[cfg(target_os = "linux")]
     {
-        if let Some(home_dir) = dirs::home_dir() {
-            let desktop_file = home_dir
-                .join("Desktop")
-                .join(format!("{}.desktop", clean_pkg));
-            let local_file = home_dir
-                .join(".local/share/applications")
-                .join(format!("{}.desktop", clean_pkg));
-            let _ = fs::remove_file(desktop_file);
-            let _ = fs::remove_file(local_file);
+        let mut desktop_names: Vec<String> = vec![format!("{}.desktop", clean_pkg)];
+        if let Ok(dp) = Command::new("dpkg").args(["-L", clean_pkg]).output() {
+            if dp.status.success() {
+                for line in String::from_utf8_lossy(&dp.stdout).lines() {
+                    let s = line.trim();
+                    if s.ends_with(".desktop") && s.contains("/applications/") {
+                        if let Some(fname) = Path::new(s).file_name().and_then(|n| n.to_str()) {
+                            let fname_str = fname.to_string();
+                            if !desktop_names.contains(&fname_str) {
+                                desktop_names.push(fname_str);
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         let helper = Path::new("/usr/local/bin/ayaz-pkg-helper");
@@ -2081,6 +2087,22 @@ fn remove_deb_package_blocking(package_name: String) -> Result<String, String> {
         match res {
             Ok(out) => {
                 if out.status.success() {
+                    let mut cleanup_dirs: Vec<PathBuf> = Vec::new();
+                    if let Some(desk_dir) = dirs::desktop_dir() {
+                        cleanup_dirs.push(desk_dir);
+                    }
+                    if let Some(home_dir) = dirs::home_dir() {
+                        let desk_fallback = home_dir.join("Desktop");
+                        if !cleanup_dirs.contains(&desk_fallback) {
+                            cleanup_dirs.push(desk_fallback);
+                        }
+                        cleanup_dirs.push(home_dir.join(".local/share/applications"));
+                    }
+                    for dir in &cleanup_dirs {
+                        for fname in &desktop_names {
+                            let _ = fs::remove_file(dir.join(fname));
+                        }
+                    }
                     Ok(format!("{} paketi başarıyla kaldırıldı.", clean_pkg))
                 } else {
                     let err = String::from_utf8_lossy(&out.stderr);
@@ -2641,7 +2663,10 @@ async fn launch_interactive_terminal(command: Option<String>) -> Result<String, 
         }
 
         match spawn_reaped(&mut spawn_cmd) {
-            Ok(_) => Ok(format!("Sistem terminali ({}) başlatıldı.", term_bin)),
+            Ok(_) => {
+                lower_ayaz_window();
+                Ok(format!("Sistem terminali ({}) başlatıldı.", term_bin))
+            }
             Err(e) => Err(format!("Terminal başlatılamadı ({}): {}", term_bin, e)),
         }
     }
@@ -4589,6 +4614,7 @@ async fn launch_application(exec: String) -> Result<String, String> {
                 .stderr(Stdio::null());
             spawn_reaped(&mut cmd).map_err(|e| format!("Uygulama başlatılamadı: {}", e))?;
         }
+        lower_ayaz_window();
     }
 
     Ok(format!("Uygulama çalıştırıldı: {}", clean))
@@ -5985,6 +6011,7 @@ async fn execute_desktop_program(path: String) -> Result<String, String> {
                 let mut cmd = Command::new("xterm");
                 cmd.args(&x_args).env("DISPLAY", &dsp);
                 let _ = spawn_reaped(&mut cmd);
+                lower_ayaz_window();
                 return Ok(format!("Program çalıştırıldı: {}", title));
             }
         }
@@ -6017,6 +6044,7 @@ async fn execute_desktop_program(path: String) -> Result<String, String> {
             cmd.current_dir(parent).env("DISPLAY", &dsp);
             spawn_reaped(&mut cmd).map_err(|e| e.to_string())?;
         }
+        lower_ayaz_window();
     }
     Ok(format!(
         "Program olarak çalıştırıldı: {}",
@@ -6955,12 +6983,24 @@ fn minimize_all_windows() -> Result<(), String> {
     Ok(())
 }
 
+#[cfg(target_os = "linux")]
+fn lower_ayaz_window() {
+    for title in ["Ayaz · Ankora", "Ayaz — Ankora"] {
+        let _ = Command::new("wmctrl")
+            .args(["-r", title, "-b", "remove,above"])
+            .output();
+        let _ = Command::new("wmctrl")
+            .args(["-r", title, "-b", "add,below"])
+            .output();
+    }
+}
+
 #[tauri::command]
 fn set_desktop_layer(above: bool) -> Result<bool, String> {
     #[cfg(target_os = "linux")]
     {
-        for title in ["Ayaz · Ankora", "Ayaz — Ankora"] {
-            if above {
+        if above {
+            for title in ["Ayaz · Ankora", "Ayaz — Ankora"] {
                 let _ = Command::new("wmctrl")
                     .args(["-r", title, "-b", "remove,below"])
                     .output();
@@ -6968,14 +7008,9 @@ fn set_desktop_layer(above: bool) -> Result<bool, String> {
                     .args(["-r", title, "-b", "add,above"])
                     .output();
                 let _ = Command::new("wmctrl").args(["-a", title]).output();
-            } else {
-                let _ = Command::new("wmctrl")
-                    .args(["-r", title, "-b", "remove,above"])
-                    .output();
-                let _ = Command::new("wmctrl")
-                    .args(["-r", title, "-b", "add,below"])
-                    .output();
             }
+        } else {
+            lower_ayaz_window();
         }
     }
     Ok(true)

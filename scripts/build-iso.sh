@@ -1220,6 +1220,13 @@ def _root_run(cmd_args, stdin_text=None, timeout=30):
         return proc
     return last_proc
 
+def _lower_ayaz_window():
+    if not shutil.which('wmctrl'):
+        return
+    for _t in ('Ayaz · Ankora', 'Ayaz — Ankora'):
+        subprocess.run(['wmctrl', '-r', _t, '-b', 'remove,above'], timeout=3)
+        subprocess.run(['wmctrl', '-r', _t, '-b', 'add,below'], timeout=3)
+
 def _pkg_helper_run(cmd_args, timeout=900):
     """Uzun süren paket/güncelleme işlemlerini süreç grubuyla ve pkexec destekli çalıştırır.
     Zaman aşımı olursa alt apt/dpkg süreçlerini yetim bırakmadan sonlandırır."""
@@ -1732,6 +1739,7 @@ def execute_ayaz_command(cmd, args):
             subprocess.Popen(['xterm', '-title', base_name, '-e'] + tokens, cwd=home_dir, env=env, start_new_session=True)
         else:
             subprocess.Popen(tokens, cwd=home_dir, env=env, start_new_session=True)
+        _lower_ayaz_window()
         return f'Uygulama başlatıldı: {exec_cmd}'
 
     elif cmd == 'install_deb_package':
@@ -2045,6 +2053,16 @@ def execute_ayaz_command(cmd, args):
         pkg = args.get('packageName', '').strip()
         if not pkg or not re.match(r'^[a-zA-Z0-9.+_-]+$', pkg):
             raise Exception('Geçersiz paket adı biçimi')
+        desktop_names = {f'{pkg}.desktop'}
+        try:
+            dp = subprocess.run(['dpkg', '-L', pkg], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, timeout=10)
+            if dp.returncode == 0:
+                for line in dp.stdout.splitlines():
+                    s = line.strip()
+                    if s.endswith('.desktop') and '/applications/' in s:
+                        desktop_names.add(os.path.basename(s))
+        except Exception:
+            pass
         helper = '/usr/local/bin/ayaz-pkg-helper'
         cmd_args = [helper, 'remove', pkg] if os.path.exists(helper) else ['apt-get', 'remove', '-y', '--', pkg]
         proc = _pkg_helper_run(cmd_args, timeout=300)
@@ -2053,6 +2071,17 @@ def execute_ayaz_command(cmd, args):
             if not err:
                 err = f'çıkış kodu {proc.returncode}'
             raise Exception(f'Kaldırma başarısız: {err}')
+        cleanup_dirs = [
+            os.path.expanduser('~/Desktop'),
+            os.path.expanduser('~/Masaüstü'),
+            os.path.expanduser('~/.local/share/applications'),
+        ]
+        for cdir in cleanup_dirs:
+            for fname in desktop_names:
+                try:
+                    os.remove(os.path.join(cdir, fname))
+                except OSError:
+                    pass
         return f'{pkg} kaldırıldı'
 
     elif cmd == 'list_installed_deb_packages':
@@ -3134,6 +3163,7 @@ exit 0
                 env.setdefault('DISPLAY', ':0')
                 subprocess.Popen(['xterm', '-title', os.path.basename(target_path), '-e'] + toks,
                                  cwd=os.path.dirname(target_path), env=env, start_new_session=True)
+                _lower_ayaz_window()
                 return f'Program çalıştırıldı: {os.path.basename(target_path)}'
             return execute_ayaz_command('launch_application', {'exec': exec_cmd})
         if low.endswith('.deb'):
@@ -3148,6 +3178,7 @@ exit 0
                              cwd=os.path.dirname(target_path), env=env, start_new_session=True)
         else:
             subprocess.Popen([target_path], cwd=os.path.dirname(target_path), env=env, start_new_session=True)
+        _lower_ayaz_window()
         return f'Program olarak çalıştırıldı: {os.path.basename(target_path)}'
 
     elif cmd == 'open_url':
@@ -3647,15 +3678,13 @@ exit 0
 
     elif cmd == 'set_desktop_layer':
         above = bool(args.get('above', False))
-        if shutil.which('wmctrl'):
+        if above and shutil.which('wmctrl'):
             for _t in ('Ayaz · Ankora', 'Ayaz — Ankora'):
-                if above:
-                    subprocess.run(['wmctrl', '-r', _t, '-b', 'remove,below'], timeout=3)
-                    subprocess.run(['wmctrl', '-r', _t, '-b', 'add,above'], timeout=3)
-                    subprocess.run(['wmctrl', '-a', _t], timeout=3)
-                else:
-                    subprocess.run(['wmctrl', '-r', _t, '-b', 'remove,above'], timeout=3)
-                    subprocess.run(['wmctrl', '-r', _t, '-b', 'add,below'], timeout=3)
+                subprocess.run(['wmctrl', '-r', _t, '-b', 'remove,below'], timeout=3)
+                subprocess.run(['wmctrl', '-r', _t, '-b', 'add,above'], timeout=3)
+                subprocess.run(['wmctrl', '-a', _t], timeout=3)
+        elif not above:
+            _lower_ayaz_window()
         return True
 
     elif cmd == 'get_removable_drives':
@@ -5572,6 +5601,7 @@ exit 0
             subprocess.Popen([term, '-e', 'bash', '-c', script], env=os.environ.copy())
         else:
             subprocess.Popen([term], env=os.environ.copy())
+        _lower_ayaz_window()
         return f"Sistem terminali ({term}) başlatıldı."
 
     elif cmd == 'get_all_monitors':
