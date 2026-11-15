@@ -11,7 +11,10 @@ CMD="${1:-help}"
 get_ayaz_win_id() {
     local wid=""
     if command -v xdotool >/dev/null 2>&1; then
-        wid=$(xdotool search --name "Ayaz — Ankora" 2>/dev/null | head -n 1 || true)
+        wid=$(xdotool search --name "Ayaz · Ankora" 2>/dev/null | head -n 1 || true)
+        if [ -z "$wid" ]; then
+            wid=$(xdotool search --name "Ayaz — Ankora" 2>/dev/null | head -n 1 || true)
+        fi
         if [ -z "$wid" ]; then
             wid=$(xdotool search --class "ayaz" 2>/dev/null | head -n 1 || true)
         fi

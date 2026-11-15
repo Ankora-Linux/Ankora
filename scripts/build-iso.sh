@@ -979,7 +979,7 @@ Ankora Linux 4.7.0 — Kiosk Yapılandırma Raporu
 Taban            : Devuan GNU/Linux 6 (excalibur)
 Init sistemi     : SysVinit (systemd yok)
 Çekirdek         : Linux 6.12 LTS
-Masaüstü         : Ayaz DE (Ayaz — Ankora Linux)
+Masaüstü         : Ayaz DE (Ayaz · Ankora Linux)
 Pencere motoru   : Tauri 2 + WebKitGTK 4.1
 Otomatik giriş   : tty1 getty --autologin ankora → startx
 Ekran düzeltmesi : Yalnızca çözünürlük çok düşükse xrandr -s 1280x800
@@ -3598,7 +3598,7 @@ exit 0
             lower_class = wm_class.lower()
             lower_title = title.lower()
             _cls_parts = set(lower_class.replace('.', ' ').split())
-            if any(k in lower_class for k in ('ayaz', 'openbox', 'trayer', 'dunst', 'xfdesktop', 'nautilus-desktop', 'nemo-desktop', 'pcmanfm-desktop')) or 'desktop' in _cls_parts or 'ayaz — ankora' in lower_title or title == 'Desktop':
+            if any(k in lower_class for k in ('ayaz', 'openbox', 'trayer', 'dunst', 'xfdesktop', 'nautilus-desktop', 'nemo-desktop', 'pcmanfm-desktop')) or 'desktop' in _cls_parts or 'ayaz · ankora' in lower_title or 'ayaz — ankora' in lower_title or title == 'Desktop':
                 continue
             app_name = wm_class.split('.')[-1] if '.' in wm_class else wm_class
             try:
@@ -3617,8 +3617,9 @@ exit 0
     elif cmd == 'activate_native_window':
         win_id = str(args.get('id', '')).strip()
         if win_id and shutil.which('wmctrl'):
-            subprocess.run(['wmctrl', '-r', 'Ayaz — Ankora', '-b', 'remove,above'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=3)
-            subprocess.run(['wmctrl', '-r', 'Ayaz — Ankora', '-b', 'add,below'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=3)
+            for _t in ('Ayaz · Ankora', 'Ayaz — Ankora'):
+                subprocess.run(['wmctrl', '-r', _t, '-b', 'remove,above'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=3)
+                subprocess.run(['wmctrl', '-r', _t, '-b', 'add,below'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=3)
             subprocess.run(['wmctrl', '-i', '-r', win_id, '-b', 'remove,hidden'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=3)
             subprocess.run(['wmctrl', '-i', '-r', win_id, '-b', 'remove,shaded'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=3)
             subprocess.run(['wmctrl', '-i', '-a', win_id], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=3)
@@ -3647,13 +3648,14 @@ exit 0
     elif cmd == 'set_desktop_layer':
         above = bool(args.get('above', False))
         if shutil.which('wmctrl'):
-            if above:
-                subprocess.run(['wmctrl', '-r', 'Ayaz — Ankora', '-b', 'remove,below'], timeout=3)
-                subprocess.run(['wmctrl', '-r', 'Ayaz — Ankora', '-b', 'add,above'], timeout=3)
-                subprocess.run(['wmctrl', '-a', 'Ayaz — Ankora'], timeout=3)
-            else:
-                subprocess.run(['wmctrl', '-r', 'Ayaz — Ankora', '-b', 'remove,above'], timeout=3)
-                subprocess.run(['wmctrl', '-r', 'Ayaz — Ankora', '-b', 'add,below'], timeout=3)
+            for _t in ('Ayaz · Ankora', 'Ayaz — Ankora'):
+                if above:
+                    subprocess.run(['wmctrl', '-r', _t, '-b', 'remove,below'], timeout=3)
+                    subprocess.run(['wmctrl', '-r', _t, '-b', 'add,above'], timeout=3)
+                    subprocess.run(['wmctrl', '-a', _t], timeout=3)
+                else:
+                    subprocess.run(['wmctrl', '-r', _t, '-b', 'remove,above'], timeout=3)
+                    subprocess.run(['wmctrl', '-r', _t, '-b', 'add,below'], timeout=3)
         return True
 
     elif cmd == 'get_removable_drives':
@@ -6270,7 +6272,7 @@ def start_ipc_server():
 
 class AyazDesktop(Gtk.Window):
     def __init__(self):
-        super().__init__(title="Ayaz — Ankora Linux")
+        super().__init__(title="Ayaz · Ankora Linux")
         try:
             self.set_wmclass("ayaz", "ayaz")
         except Exception:

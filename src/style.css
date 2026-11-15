@@ -1768,6 +1768,24 @@ body.is-light-theme .notepad-statusbar {
   -webkit-user-select: none;
 }
 
+input,
+textarea,
+pre,
+code,
+[contenteditable="true"],
+#term-output,
+.term-output,
+.term-line,
+.ai-msg,
+.ai-mini-feed,
+.office-text-frame,
+.doc-viewer-body,
+.updater-log-box,
+.report-preview-box {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
 html, body {
   margin: 0;
   padding: 0;
@@ -1914,9 +1932,7 @@ html, body {
   width: 236px;
   padding: 14px 16px;
   box-sizing: border-box;
-  background: rgba(20, 22, 32, 0.68);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: rgba(16, 18, 26, 0.94);
   border: 1px solid var(--border-subtle);
   border-radius: 14px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
@@ -2533,7 +2549,7 @@ html, body {
 
 /* Kategori Belirteçleri (Sade, mat ve abartısız) */
 .cat-dev .item-cat-dot { background: #38bdf8; }
-.cat-media .item-cat-dot { background: #a855f7; }
+.cat-media .item-cat-dot { background: #f59e0b; }
 .cat-net .item-cat-dot { background: #10b981; }
 .cat-office .item-cat-dot { background: #f59e0b; }
 .cat-sys .item-cat-dot { background: #3b82f6; }
@@ -2619,14 +2635,12 @@ html, body {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: rgba(20, 22, 32, 0.88);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: rgba(16, 18, 26, 0.96);
   border: 1px solid var(--border-medium);
   border-radius: 18px;
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
   color: var(--text-primary);
-  animation: folderIn 0.16s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: folderIn 0.13s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @keyframes folderIn {
@@ -3468,16 +3482,14 @@ body.is-dragging button {
 .store-detail-overlay {
   position: absolute;
   inset: 0;
-  background: rgba(7, 10, 18, 0.85);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: rgba(7, 10, 18, 0.94);
   z-index: 50;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 24px;
   box-sizing: border-box;
-  animation: storeDetailIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: storeDetailIn 0.14s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .store-detail-overlay[hidden] {
@@ -8775,7 +8787,6 @@ body.is-light-theme #win-ai .ai-entry.user .ai-body {
   display: flex;
   flex-direction: column;
   background: var(--mini-bg);
-  backdrop-filter: blur(16px) saturate(1.25);
   border: 1px solid var(--mini-border-strong);
   border-radius: 20px;
   overflow: hidden;
@@ -8783,8 +8794,8 @@ body.is-light-theme #win-ai .ai-entry.user .ai-body {
   box-shadow: 0 22px 54px rgba(0, 0, 0, 0.56);
   opacity: 0;
   pointer-events: none;
-  transition: opacity 170ms cubic-bezier(0.16, 1, 0.3, 1),
-              transform 170ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition: opacity 135ms cubic-bezier(0.16, 1, 0.3, 1),
+              transform 135ms cubic-bezier(0.16, 1, 0.3, 1);
   z-index: 9200;
 }
 
@@ -9400,12 +9411,24 @@ body.is-light-theme .ai-mini-composer-card:focus-within {
   filter: brightness(1.15);
 }
 
-/* Klavye Erişilebilirliği (Focus-Visible) */
+/* Klavye Erişilebilirliği (Focus-Visible) ve Devre Dışı (Disabled) Durumlar */
 button:focus-visible,
 input:focus-visible,
-select:focus-visible {
+select:focus-visible,
+textarea:focus-visible,
+a:focus-visible,
+[tabindex]:focus-visible,
+[role="button"]:focus-visible {
   outline: 2px solid var(--accent-active) !important;
-  outline-offset: 1px;
+  outline-offset: 2px;
+}
+
+button:disabled,
+input:disabled,
+select:disabled,
+textarea:disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
 }
 
 /* ==============================================================================
@@ -11842,8 +11865,8 @@ body .pinned-icon-box.welcome-accent {
 }
 
 body .pinned-icon-box.installer-accent {
-  background: rgba(99, 102, 241, 0.15);
-  color: #6366f1;
+  background: rgba(14, 165, 233, 0.15);
+  color: #0ea5e9;
 }
 
 /* ==============================================================================
@@ -11878,23 +11901,23 @@ body .pinned-icon-box.installer-accent {
 
 /* --- Faerie Wren: renkli, yumuşak gradyan ikon kareleri --- */
 html[data-iconset='faerie'] .pinned-icon-box {
-  background: linear-gradient(135deg, #60a5fa, #818cf8) !important;
+  background: #2563eb !important;
   color: #ffffff !important;
-  border-color: rgba(255, 255, 255, 0.25) !important;
+  border-color: rgba(255, 255, 255, 0.22) !important;
 }
 html[data-iconset='faerie'] .pinned-icon-box.store-accent { background: linear-gradient(135deg, #fbbf24, #f97316) !important; }
 html[data-iconset='faerie'] .pinned-icon-box.terminal-accent { background: linear-gradient(135deg, #34d399, #059669) !important; }
 html[data-iconset='faerie'] .pinned-icon-box.browser-accent { background: linear-gradient(135deg, #38bdf8, #0284c7) !important; }
-html[data-iconset='faerie'] .pinned-icon-box.ai-accent { background: linear-gradient(135deg, #a78bfa, #7c3aed) !important; }
+html[data-iconset='faerie'] .pinned-icon-box.ai-accent { background: #0284c7 !important; }
 html[data-iconset='faerie'] .pinned-icon-box.settings-accent { background: linear-gradient(135deg, #94a3b8, #475569) !important; }
 html[data-iconset='faerie'] .pinned-icon-box.office-accent { background: linear-gradient(135deg, #fb7185, #e11d48) !important; }
 html[data-iconset='faerie'] .pinned-icon-box.welcome-accent { background: linear-gradient(135deg, #22d3ee, #0891b2) !important; }
-html[data-iconset='faerie'] .pinned-icon-box.installer-accent { background: linear-gradient(135deg, #818cf8, #4f46e5) !important; }
+html[data-iconset='faerie'] .pinned-icon-box.installer-accent { background: #0d9488 !important; }
 html[data-iconset='faerie'] .pinned-icon-box svg { stroke: #ffffff !important; }
 
 html[data-iconset='faerie'] .desktop-item .item-icon,
 html[data-iconset='faerie'] .ayaz-desktop-shortcut .item-icon {
-  background: linear-gradient(135deg, #60a5fa, #818cf8) !important;
+  background: #2563eb !important;
   color: #ffffff !important;
   border-color: rgba(255, 255, 255, 0.25) !important;
   box-shadow: 0 3px 10px rgba(0, 0, 0, 0.35) !important;
@@ -11903,7 +11926,7 @@ html[data-iconset='faerie'] .item-icon svg { stroke: #ffffff !important; }
 
 /* Kategoriye göre gradyan (nokta paletiyle aynı aile) */
 html[data-iconset='faerie'] .cat-dev .item-icon { background: linear-gradient(135deg, #38bdf8, #0284c7) !important; }
-html[data-iconset='faerie'] .cat-media .item-icon { background: linear-gradient(135deg, #c084fc, #7c3aed) !important; }
+html[data-iconset='faerie'] .cat-media .item-icon { background: #d97706 !important; }
 html[data-iconset='faerie'] .cat-net .item-icon { background: linear-gradient(135deg, #34d399, #059669) !important; }
 html[data-iconset='faerie'] .cat-office .item-icon { background: linear-gradient(135deg, #fbbf24, #d97706) !important; }
 html[data-iconset='faerie'] .cat-sys .item-icon { background: linear-gradient(135deg, #60a5fa, #2563eb) !important; }
@@ -12140,9 +12163,9 @@ html[data-iconset='nordic'] .pinned-icon-box.terminal-accent {
   border-color: rgba(16, 185, 129, 0.35) !important;
 }
 html[data-iconset='nordic'] .pinned-icon-box.ai-accent {
-  background: rgba(139, 92, 246, 0.15) !important;
-  color: #a78bfa !important;
-  border-color: rgba(139, 92, 246, 0.35) !important;
+  background: rgba(56, 189, 248, 0.15) !important;
+  color: #38bdf8 !important;
+  border-color: rgba(56, 189, 248, 0.35) !important;
 }
 html[data-iconset='nordic'] .desktop-item .item-icon,
 html[data-iconset='nordic'] .ayaz-desktop-shortcut .item-icon {
@@ -12227,11 +12250,10 @@ html[data-iconset='nordic'] .ayaz-desktop-shortcut:hover .item-icon {
   border-radius: 12px;
   color: #cbd5e1;
   cursor: pointer;
-  transition: color 0.18s ease, background-color 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease, transform 0.18s ease;
+  transition: color 0.13s ease, background-color 0.13s ease, border-color 0.13s ease, box-shadow 0.13s ease, opacity 0.13s ease, transform 0.13s ease;
 }
 .power-modal-item:hover {
   background: rgba(255, 255, 255, 0.09);
-  transform: translateY(-2px);
 }
 .power-modal-icon {
   width: 44px;
@@ -12259,8 +12281,8 @@ html[data-iconset='nordic'] .ayaz-desktop-shortcut:hover .item-icon {
   color: #38bdf8;
 }
 .power-modal-item.accent:hover .power-modal-icon {
-  background: rgba(139, 92, 246, 0.25);
-  color: #a78bfa;
+  background: rgba(59, 130, 246, 0.22);
+  color: #60a5fa;
 }
 .power-modal-item.default:hover .power-modal-icon {
   background: rgba(148, 163, 184, 0.25);
@@ -13335,9 +13357,7 @@ body.is-light-theme .cal-today-item {
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
-  background: rgba(13, 17, 24, 0.88);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: rgba(13, 17, 24, 0.96);
   border: 1px solid rgba(255, 255, 255, 0.09);
   border-top: none;
   border-radius: 0 0 14px 14px;
@@ -13346,11 +13366,11 @@ body.is-light-theme .cal-today-item {
   cursor: pointer;
   overflow: hidden;
   user-select: none;
-  transition: width 0.28s cubic-bezier(0.16, 1, 0.3, 1),
-              height 0.28s cubic-bezier(0.16, 1, 0.3, 1),
-              border-radius 0.28s ease,
-              background 0.2s ease,
-              border-color 0.2s ease;
+  transition: width 0.15s cubic-bezier(0.16, 1, 0.3, 1),
+              height 0.15s cubic-bezier(0.16, 1, 0.3, 1),
+              border-radius 0.15s ease,
+              background 0.13s ease,
+              border-color 0.13s ease;
 }
 
 .dynamic-island:focus-visible {

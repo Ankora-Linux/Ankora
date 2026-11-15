@@ -1003,6 +1003,24 @@ fn verify_lock_credentials(pin: String) -> Result<bool, String> {
     Ok(is_valid)
 }
 
+#[cfg_attr(not(target_os = "linux"), allow(dead_code))]
+fn spawn_reaped(cmd: &mut Command) -> std::io::Result<()> {
+    let mut child = cmd.spawn()?;
+    std::thread::spawn(move || {
+        let _ = child.wait();
+    });
+    Ok(())
+}
+
+#[cfg_attr(not(target_os = "linux"), allow(dead_code))]
+fn is_valid_x11_window_id(id: &str) -> bool {
+    let hex = id
+        .strip_prefix("0x")
+        .or_else(|| id.strip_prefix("0X"))
+        .unwrap_or("");
+    !hex.is_empty() && hex.len() <= 16 && hex.chars().all(|c| c.is_ascii_hexdigit())
+}
+
 #[tauri::command]
 fn lock_x11_session() -> Result<String, String> {
     if let Ok(mut auth) = SESSION_UNLOCK_PERMITTED_UNTIL.lock() {
@@ -1014,7 +1032,7 @@ fn lock_x11_session() -> Result<String, String> {
         if xtrlock_path.exists() {
             let mut cmd = Command::new("/usr/bin/xtrlock");
             cmd.arg("-b");
-            match cmd.spawn() {
+            match spawn_reaped(&mut cmd) {
                 Ok(_) => Ok("X11 xtrlock oturumu kilitlendi.".to_string()),
                 Err(e) => Err(format!("xtrlock başlatılamadı: {}", e)),
             }
@@ -2622,7 +2640,7 @@ async fn launch_interactive_terminal(command: Option<String>) -> Result<String, 
             spawn_cmd.args(["-e", "bash", "-c", &script]);
         }
 
-        match spawn_cmd.spawn() {
+        match spawn_reaped(&mut spawn_cmd) {
             Ok(_) => Ok(format!("Sistem terminali ({}) başlatıldı.", term_bin)),
             Err(e) => Err(format!("Terminal başlatılamadı ({}): {}", term_bin, e)),
         }
@@ -4555,23 +4573,21 @@ async fn launch_application(exec: String) -> Result<String, String> {
                 bin_name.to_string(),
             ];
             x_args.extend(args.iter().cloned());
-            let _ = Command::new("xterm")
-                .args(&x_args)
+            let mut cmd = Command::new("xterm");
+            cmd.args(&x_args)
                 .env("DISPLAY", dsp)
                 .stdin(Stdio::null())
                 .stdout(Stdio::null())
-                .stderr(Stdio::null())
-                .spawn()
-                .map_err(|e| format!("Uygulama başlatılamadı: {}", e))?;
+                .stderr(Stdio::null());
+            spawn_reaped(&mut cmd).map_err(|e| format!("Uygulama başlatılamadı: {}", e))?;
         } else {
-            let _ = Command::new(bin_name)
-                .args(args)
+            let mut cmd = Command::new(bin_name);
+            cmd.args(args)
                 .env("DISPLAY", dsp)
                 .stdin(Stdio::null())
                 .stdout(Stdio::null())
-                .stderr(Stdio::null())
-                .spawn()
-                .map_err(|e| format!("Uygulama başlatılamadı: {}", e))?;
+                .stderr(Stdio::null());
+            spawn_reaped(&mut cmd).map_err(|e| format!("Uygulama başlatılamadı: {}", e))?;
         }
     }
 
@@ -5688,7 +5704,9 @@ fn restart_desktop_process() -> Result<(), String> {
     #[cfg(target_os = "linux")]
     {
         // Tam ikili yol eşlemesi ile sadece kendi sürecimizi sonlandır, başka eşleşmeler önlenir
-        let _ = Command::new("pkill").args(["-x", "ayaz-de"]).spawn();
+        let mut cmd = Command::new("pkill");
+        cmd.args(["-x", "ayaz-de"]);
+        let _ = spawn_reaped(&mut cmd);
     }
     Ok(())
 }
@@ -5964,7 +5982,9 @@ async fn execute_desktop_program(path: String) -> Result<String, String> {
                 let title = real_path.file_name().and_then(|s| s.to_str()).unwrap_or("Program");
                 let mut x_args = vec!["-title".to_string(), title.to_string(), "-e".to_string(), bin.clone()];
                 x_args.extend(rest.iter().cloned());
-                let _ = Command::new("xterm").args(&x_args).env("DISPLAY", &dsp).spawn();
+                let mut cmd = Command::new("xterm");
+                cmd.args(&x_args).env("DISPLAY", &dsp);
+                let _ = spawn_reaped(&mut cmd);
                 return Ok(format!("Program çalıştırıldı: {}", title));
             }
         }
@@ -5987,18 +6007,15 @@ async fn execute_desktop_program(path: String) -> Result<String, String> {
         let parent = real_path.parent().unwrap_or(&real_home);
         let name = real_path.file_name().and_then(|s| s.to_str()).unwrap_or("Program");
         if lower.ends_with(".sh") || lower.ends_with(".py") || lower.ends_with(".pl") || lower.ends_with(".rb") {
-            let _ = Command::new("xterm")
-                .args(["-hold", "-title", name, "-e", &real_path.to_string_lossy()])
+            let mut cmd = Command::new("xterm");
+            cmd.args(["-hold", "-title", name, "-e", &real_path.to_string_lossy()])
                 .current_dir(parent)
-                .env("DISPLAY", &dsp)
-                .spawn()
-                .map_err(|e| e.to_string())?;
+                .env("DISPLAY", &dsp);
+            spawn_reaped(&mut cmd).map_err(|e| e.to_string())?;
         } else {
-            let _ = Command::new(&real_path)
-                .current_dir(parent)
-                .env("DISPLAY", &dsp)
-                .spawn()
-                .map_err(|e| e.to_string())?;
+            let mut cmd = Command::new(&real_path);
+            cmd.current_dir(parent).env("DISPLAY", &dsp);
+            spawn_reaped(&mut cmd).map_err(|e| e.to_string())?;
         }
     }
     Ok(format!(
@@ -6039,21 +6056,18 @@ async fn open_path(path: String) -> Result<String, String> {
             }
             let _ = Command::new("chmod").args(["+x", &canon_str]).output();
             let dsp = std::env::var("DISPLAY").unwrap_or_else(|_| ":0".to_string());
-            Command::new(&canon_str)
-                .env("DISPLAY", dsp)
-                .spawn()
-                .map_err(|e| e.to_string())?;
+            let mut cmd = Command::new(&canon_str);
+            cmd.env("DISPLAY", dsp);
+            spawn_reaped(&mut cmd).map_err(|e| e.to_string())?;
             return Ok(format!("AppImage başlatıldı: {}", canon_str));
         }
     }
     #[cfg(target_os = "linux")]
     {
         let dsp = std::env::var("DISPLAY").unwrap_or_else(|_| ":0".to_string());
-        let _ = Command::new("xdg-open")
-            .arg(clean)
-            .env("DISPLAY", dsp)
-            .spawn()
-            .map_err(|e| e.to_string())?;
+        let mut cmd = Command::new("xdg-open");
+        cmd.arg(clean).env("DISPLAY", dsp);
+        spawn_reaped(&mut cmd).map_err(|e| e.to_string())?;
     }
     Ok(format!("Açıldı: {}", clean))
 }
@@ -6068,11 +6082,9 @@ async fn open_url(url: String) -> Result<bool, String> {
     #[cfg(target_os = "linux")]
     {
         let dsp = std::env::var("DISPLAY").unwrap_or_else(|_| ":0".to_string());
-        Command::new("xdg-open")
-            .arg(clean)
-            .env("DISPLAY", dsp)
-            .spawn()
-            .map_err(|e| e.to_string())?;
+        let mut cmd = Command::new("xdg-open");
+        cmd.arg(clean).env("DISPLAY", dsp);
+        spawn_reaped(&mut cmd).map_err(|e| e.to_string())?;
     }
     Ok(true)
 }
@@ -6190,7 +6202,9 @@ fn system_reboot() -> Result<String, String> {
         }
         // sudo başarısız: elogind polkit yolu, sonra düz çekiçleme.
         if !try_loginctl_power("reboot") {
-            let _ = Command::new("shutdown").args(["-r", "now"]).spawn();
+            let mut cmd = Command::new("shutdown");
+            cmd.args(["-r", "now"]);
+            let _ = spawn_reaped(&mut cmd);
         }
     }
     Ok("Sistem yeniden başlatılıyor.".to_string())
@@ -6200,13 +6214,17 @@ fn system_reboot() -> Result<String, String> {
 fn system_suspend() -> Result<String, String> {
     #[cfg(target_os = "linux")]
     {
-        let ok = Command::new("loginctl")
-            .arg("suspend")
+        let pm_ok = Command::new("pm-suspend")
             .status()
             .map(|s| s.success())
             .unwrap_or(false);
-        if !ok {
-            let _ = Command::new("pm-suspend").status();
+        let sys_ok = if !pm_ok {
+            std::fs::write("/sys/power/state", "mem").is_ok()
+        } else {
+            true
+        };
+        if !sys_ok {
+            let _ = Command::new("loginctl").arg("suspend").status();
         }
     }
     Ok("Sistem askıya alınıyor.".to_string())
@@ -6278,13 +6296,12 @@ fn open_pictures_folder() -> Result<bool, String> {
     let dir_str = dir.to_string_lossy().to_string();
     #[cfg(target_os = "linux")]
     {
-        Command::new("xdg-open")
-            .arg(&dir_str)
+        let mut cmd = Command::new("xdg-open");
+        cmd.arg(&dir_str)
             .stdin(Stdio::null())
             .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .spawn()
-            .map_err(|e| format!("Klasör açılamadı: {}", e))?;
+            .stderr(Stdio::null());
+        spawn_reaped(&mut cmd).map_err(|e| format!("Klasör açılamadı: {}", e))?;
     }
     #[cfg(not(target_os = "linux"))]
     {
@@ -6347,19 +6364,12 @@ fn take_screenshot_core(
         }
 
         if copy_clipboard {
-            let _ = Command::new("xclip")
-                .args([
-                    "-selection",
-                    "clipboard",
-                    "-t",
-                    "image/png",
-                    "-i",
-                    &filepath_str,
-                ])
+            let mut cmd = Command::new("xclip");
+            cmd.args(["-selection", "clipboard", "-t", "image/png", "-i", &filepath_str])
                 .stdin(Stdio::null())
                 .stdout(Stdio::null())
-                .stderr(Stdio::null())
-                .spawn();
+                .stderr(Stdio::null());
+            let _ = spawn_reaped(&mut cmd);
         }
         let b64 = if let Ok(bytes) = fs::read(&filepath) {
             Some(base64::engine::general_purpose::STANDARD.encode(&bytes))
@@ -6843,6 +6853,7 @@ fn get_native_windows() -> Result<Vec<NativeWindowInfo>, String> {
                 || lower_class.contains("nemo-desktop")
                 || lower_class.contains("pcmanfm-desktop")
                 || has_exact_desktop
+                || lower_title.contains("ayaz · ankora")
                 || lower_title.contains("ayaz — ankora")
                 || title == "Desktop"
             {
@@ -6871,15 +6882,20 @@ fn get_native_windows() -> Result<Vec<NativeWindowInfo>, String> {
 
 #[tauri::command]
 fn activate_native_window(id: String) -> Result<(), String> {
+    let clean = id.trim();
+    if !is_valid_x11_window_id(clean) {
+        return Err("Geçersiz X11 pencere kimliği.".to_string());
+    }
     #[cfg(target_os = "linux")]
     {
-        let clean = id.trim();
-        let _ = Command::new("wmctrl")
-            .args(["-r", "Ayaz — Ankora", "-b", "remove,above"])
-            .output();
-        let _ = Command::new("wmctrl")
-            .args(["-r", "Ayaz — Ankora", "-b", "add,below"])
-            .output();
+        for title in ["Ayaz · Ankora", "Ayaz — Ankora"] {
+            let _ = Command::new("wmctrl")
+                .args(["-r", title, "-b", "remove,above"])
+                .output();
+            let _ = Command::new("wmctrl")
+                .args(["-r", title, "-b", "add,below"])
+                .output();
+        }
         let _ = Command::new("wmctrl")
             .args(["-i", "-r", clean, "-b", "remove,hidden"])
             .output();
@@ -6893,21 +6909,30 @@ fn activate_native_window(id: String) -> Result<(), String> {
 
 #[tauri::command]
 fn close_native_window(id: String) -> Result<(), String> {
+    let clean = id.trim();
+    if !is_valid_x11_window_id(clean) {
+        return Err("Geçersiz X11 pencere kimliği.".to_string());
+    }
     #[cfg(target_os = "linux")]
     {
-        let _ = Command::new("wmctrl").args(["-i", "-c", id.trim()]).spawn();
+        let mut cmd = Command::new("wmctrl");
+        cmd.args(["-i", "-c", clean]);
+        let _ = spawn_reaped(&mut cmd);
     }
     Ok(())
 }
 
 #[tauri::command]
 fn minimize_native_window(id: String) -> Result<(), String> {
+    let clean = id.trim();
+    if !is_valid_x11_window_id(clean) {
+        return Err("Geçersiz X11 pencere kimliği.".to_string());
+    }
     #[cfg(target_os = "linux")]
     {
-        let clean = id.trim();
-        let _ = Command::new("wmctrl")
-            .args(["-i", "-r", clean, "-b", "add,hidden"])
-            .spawn();
+        let mut cmd = Command::new("wmctrl");
+        cmd.args(["-i", "-r", clean, "-b", "add,hidden"]);
+        let _ = spawn_reaped(&mut cmd);
     }
     Ok(())
 }
@@ -6916,7 +6941,9 @@ fn minimize_native_window(id: String) -> Result<(), String> {
 fn minimize_all_windows() -> Result<(), String> {
     #[cfg(target_os = "linux")]
     {
-        let _ = Command::new("wmctrl").args(["-k", "on"]).spawn();
+        let mut cmd = Command::new("wmctrl");
+        cmd.args(["-k", "on"]);
+        let _ = spawn_reaped(&mut cmd);
     }
     Ok(())
 }
@@ -6925,23 +6952,23 @@ fn minimize_all_windows() -> Result<(), String> {
 fn set_desktop_layer(above: bool) -> Result<bool, String> {
     #[cfg(target_os = "linux")]
     {
-        if above {
-            let _ = Command::new("wmctrl")
-                .args(["-r", "Ayaz — Ankora", "-b", "remove,below"])
-                .output();
-            let _ = Command::new("wmctrl")
-                .args(["-r", "Ayaz — Ankora", "-b", "add,above"])
-                .output();
-            let _ = Command::new("wmctrl")
-                .args(["-a", "Ayaz — Ankora"])
-                .output();
-        } else {
-            let _ = Command::new("wmctrl")
-                .args(["-r", "Ayaz — Ankora", "-b", "remove,above"])
-                .output();
-            let _ = Command::new("wmctrl")
-                .args(["-r", "Ayaz — Ankora", "-b", "add,below"])
-                .output();
+        for title in ["Ayaz · Ankora", "Ayaz — Ankora"] {
+            if above {
+                let _ = Command::new("wmctrl")
+                    .args(["-r", title, "-b", "remove,below"])
+                    .output();
+                let _ = Command::new("wmctrl")
+                    .args(["-r", title, "-b", "add,above"])
+                    .output();
+                let _ = Command::new("wmctrl").args(["-a", title]).output();
+            } else {
+                let _ = Command::new("wmctrl")
+                    .args(["-r", title, "-b", "remove,above"])
+                    .output();
+                let _ = Command::new("wmctrl")
+                    .args(["-r", title, "-b", "add,below"])
+                    .output();
+            }
         }
     }
     Ok(true)
@@ -8644,10 +8671,9 @@ async fn print_file(path: String) -> Result<String, String> {
 async fn email_file(path: String) -> Result<String, String> {
     let p = path_sanitize_input(&path)?;
     path_accessible_for_ops(&p)?;
-    Command::new("xdg-email")
-        .args(["--attach", &p.to_string_lossy().to_string()])
-        .spawn()
-        .map_err(|e| format!("E-posta uygulaması açılamadı: {}", e))?;
+    let mut cmd = Command::new("xdg-email");
+    cmd.args(["--attach", &p.to_string_lossy().to_string()]);
+    spawn_reaped(&mut cmd).map_err(|e| format!("E-posta uygulaması açılamadı: {}", e))?;
     Ok("E-posta uygulaması açıldı.".into())
 }
 
@@ -10964,7 +10990,10 @@ fn main() {
             Ok(())
         })
         .run(tauri::generate_context!())
-        .expect("Ankora DE başlatılırken hata oluştu");
+        .unwrap_or_else(|e| {
+            eprintln!("Ankora DE başlatılırken hata oluştu: {}", e);
+            std::process::exit(1);
+        });
 }
 
 // ============================================================================
@@ -11054,7 +11083,7 @@ mod tests {
         let sample = b"{\"openai\":\"sk-secret-key-12345\"}";
         let enc = encrypt_vault_payload(sample);
         assert!(enc.starts_with(b"ANKORA_VAULT_V2\n"));
-        let dec = decrypt_vault_payload(&enc).expect("Vault decryption failed");
+        let dec = decrypt_vault_payload(&enc).unwrap_or_default();
         assert_eq!(dec, sample);
     }
 
@@ -11070,16 +11099,16 @@ mod tests {
 
     #[test]
     fn test_ssrf_ip_filtering() {
-        let link_local: IpAddr = "169.254.169.254".parse().unwrap();
+        let link_local = IpAddr::V4(std::net::Ipv4Addr::new(169, 254, 169, 254));
         assert!(is_private_or_restricted_ip(&link_local));
 
-        let priv_10: IpAddr = "10.0.0.1".parse().unwrap();
+        let priv_10 = IpAddr::V4(std::net::Ipv4Addr::new(10, 0, 0, 1));
         assert!(is_private_or_restricted_ip(&priv_10));
 
-        let priv_192: IpAddr = "192.168.1.1".parse().unwrap();
+        let priv_192 = IpAddr::V4(std::net::Ipv4Addr::new(192, 168, 1, 1));
         assert!(is_private_or_restricted_ip(&priv_192));
 
-        let pub_ip: IpAddr = "8.8.8.8".parse().unwrap();
+        let pub_ip = IpAddr::V4(std::net::Ipv4Addr::new(8, 8, 8, 8));
         assert!(!is_private_or_restricted_ip(&pub_ip));
     }
 

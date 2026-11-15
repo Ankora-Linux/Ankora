@@ -9182,7 +9182,7 @@
     THEME_BUNDLES: {
       'theme-dark':      { wallpaper: 'wallpaper-kobalt.jpg',       iconset: 'nordic',   accent: '#2563eb' },
       'theme-light':     { wallpaper: 'wallpaper-karli-safak.jpg',  iconset: 'outline',  accent: '#059669' },
-      'theme-midnight':  { wallpaper: 'wallpaper-kozmik.jpg',       iconset: 'ink',      accent: '#7c3aed' },
+      'theme-midnight':  { wallpaper: 'wallpaper-kozmik.jpg',       iconset: 'ink',      accent: '#3b82f6' },
       'theme-nord':      { wallpaper: 'wallpaper-gece-yolu.jpg',    iconset: 'nordic',   accent: '#ffffff' },
       'theme-evergreen': { wallpaper: 'wallpaper-gece-yolu.jpg',    iconset: 'emerald',  accent: '#059669' },
       'theme-ember':     { wallpaper: 'wallpaper-kozmik.jpg',       iconset: 'sunset',   accent: '#ea580c' },
