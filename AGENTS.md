@@ -4,10 +4,10 @@ Bu depo, Ankora Linux projesinin resmî ana deposudur. Burada Ayaz Desktop Envir
 
 ## Proje genel bakış
 
-- Ana kullanım amacı: Devuan tabanlı Ankora Linux için hafif, kiosk odaklı masaüstü ortamı.
-- Teknoloji yığını: Tauri 1.5 + Rust + WebKitGTK
+- Ana kullanım amacı: Devuan 6 (Excalibur) tabanlı Ankora Linux için hafif, kiosk odaklı masaüstü ortamı.
+- Teknoloji yığını: Tauri 2.0 + Rust + WebKitGTK 4.1 (`libwebkit2gtk-4.1-dev`)
 - Sistem modeli: SysVinit tabanlı çalışma, systemd yerine
-- Paketleme: yalnızca ISO üretimi; Ayaz DE ayrı `.deb` olarak dış dünyaya dağıtılmaz
+- Paketleme: Canlı ISO üretimi (`scripts/build-iso.sh`) ve tam payload içeren `ayaz-de-latest-amd64.deb` (`scripts/package-deb.sh`, `/usr/bin/ayaz-de` ikilisi + `/usr/bin/ayaz` sembolik bağı)
 
 ## Kaynak haritası
 
@@ -131,6 +131,11 @@ tarihli satır olarak eklenir; silinmez.
       378 paket, sifir em-dash), `ci.yml` (5 dosya surum kontrolu),
       `build-iso.yml` (CHANGELOG surum notu cikarma) ve `verify_all.py`
       guncellendi.
+
+- 2026-11-16: v4.7.0 yayın öncesi P0/P1/P2 mimari ve güvenlik sertleştirmeleri tamamlandı:
+  - `scripts/build-iso.sh` içindeki ~5.510 satırlık eski `AYAZ_PY` Python köprüsü tamamen kaldırıldı; tek masaüstü arka ucu olarak `/usr/bin/ayaz-de` (Tauri 2.0) belirlendi, `/usr/bin/ayaz` buna sembolik bağlandı ve `scripts/package-deb.sh` tam sistem payload'ını (.deb içinde yardımcı betikler, `eta-touchdrv`, `ayaz-session`, sudoers) paketleyecek şekilde yenilendi.
+  - Devuan 6 Excalibur / HTTPS depo (`https://deb.devuan.org/merged`) + `ca-certificates` + `devuan-keyring` GPG parmak izi denetimi eklendi; `ayaz-update-helper --stage` root bypass'ı kalıcı olarak kapatıldı (`--fetch-and-install` + SHA-256 + `gpgv`), `ankora-updater-sudoers` en az ayrıcalık ilkesine indirildi, `ayaz-pkg-helper` içinde çıkarılabilir/USB blok aygıtı zorunluluğu ve Helium GPG parmak izi (`BE677C1989D35EAB2C5F26C9351601AD01D6378E`) sabitlendi.
+  - `withGlobalTauri: false`, çıplak `https:` olmayan sıkı CSP, çalışma anı `bwrap` WebKit sandbox denemesi, `validate_non_system_path`, `set_file_permissions`, `execute_desktop_program` sertleştirmeleri, SHA-sabitlenmiş CI/CD iş akışları (5 sürüm dosyası + `cargo audit` + QEMU ISO duman testi + `SHA256SUMS`/GPG imzalama) ve güncel `CHANGELOG.md` / `README.md` / `HARDWARE.md` / `SECURITY.md` dokümantasyonu tamamlandı.
 
 ## Not
 

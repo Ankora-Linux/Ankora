@@ -60,8 +60,24 @@ vendor_brave() {
 
 vendor_helium() {
     need_net_tools
-    curl -fsSL https://raw.githubusercontent.com/imputnet/helium-linux/main/pubkey.asc \
-        | gpg --dearmor --yes -o /usr/share/keyrings/helium.gpg
+    local expected_fpr="BE677C1989D35EAB2C5F26C9351601AD01D6378E"
+    local tmp_key actual_fpr
+    tmp_key=$(mktemp /tmp/helium-pubkey.XXXXXX.asc)
+    if ! curl -fsSL --proto '=https' --tlsv1.2 --max-time 30 \
+        https://raw.githubusercontent.com/imputnet/helium-linux/main/pubkey.asc -o "$tmp_key"; then
+        rm -f "$tmp_key"
+        echo "[HATA] Helium GPG imza anahtarı indirilemedi." >&2
+        exit 6
+    fi
+    actual_fpr=$(gpg --batch --with-colons --import-options show-only --import "$tmp_key" 2>/dev/null \
+        | awk -F: '/^fpr:/ {print toupper($10); exit}')
+    if [[ -z "$actual_fpr" || "$actual_fpr" != "$expected_fpr" ]]; then
+        rm -f "$tmp_key"
+        echo "[HATA] Güvenlik İhlali: Helium GPG anahtar parmak izi uyuşmuyor (Beklenen: $expected_fpr, Alınan: ${actual_fpr:-yok})." >&2
+        exit 6
+    fi
+    gpg --dearmor --yes -o /usr/share/keyrings/helium.gpg "$tmp_key"
+    rm -f "$tmp_key"
     echo "deb [arch=amd64,arm64 signed-by=/usr/share/keyrings/helium.gpg] https://pkg.helium.computer/deb stable main" \
         > /etc/apt/sources.list.d/helium.list
     /usr/bin/apt-get update -qq
@@ -441,6 +457,15 @@ validate_usb_block_device() {
     if [[ ! -b "$dev" ]]; then
         echo "[HATA] Hedef blok aygıtı bulunamadı: '$dev'" >&2
         return 2
+    fi
+    local dev_base="${dev#/dev/}"
+    local removable tran sys_path
+    removable="$(cat "/sys/block/${dev_base}/removable" 2>/dev/null || echo 0)"
+    tran="$(lsblk -ndo TRAN "$dev" 2>/dev/null | head -n 1 || echo "")"
+    sys_path="$(/usr/bin/readlink -f "/sys/block/${dev_base}" 2>/dev/null || echo "")"
+    if [[ "$removable" != "1" && "${tran,,}" != "usb" && "$sys_path" != *"/usb"* ]]; then
+        echo "[HATA] Güvenlik İlkesi İhlali: '$dev' çıkarılabilir bir USB aygıtı değil (Dahili sabit disklere yazma/biçimlendirme engellendi)." >&2
+        return 3
     fi
     local mnt src
     for mnt in / /boot /boot/efi /home /var /usr /etc /run/live/medium /lib/live/mount/medium; do

@@ -2,8 +2,9 @@
 Name=Ayaz DE
 GenericName=Masaüstü Ortamı
 Comment=Ankora Linux Minimalist Kiosk Masaüstü Ortamı (Devuan 6 Excalibur)
-Exec=/usr/bin/ayaz
-Icon=ayaz
+Exec=/usr/bin/ayaz-de
+TryExec=/usr/bin/ayaz-de
+Icon=ayaz-de
 Terminal=false
 Type=Application
 Categories=System;Utility;Core;

@@ -1,27 +1,30 @@
 # Ankora Linux: Sürüm Notları
 
 
-## 4.7.0 "Bora" (2026-11-14)
+## 4.7.0 "Bora" (2026-11-16)
 
-### Sürüm ve Kod Adı
-- Sistem ve masaüstü sürümü `4.7.0` ("Bora") olarak güncellendi. `VERSION`, `package.json`, `Cargo.toml`, `Cargo.lock`, `tauri.conf.json`, GRUB teması ve `/etc/ankora/version` aynı sürüm numarasında buluştu.
+### Taban Sistem ve Masaüstü Çalışma Zamanı Geçişi (Önemli Değişiklik)
+- **Taban Dağıtım Yükseltmesi:** `Devuan 5.0 Daedalus` tabanından **Devuan 6.0 Excalibur** (`SysVinit`, Linux 6.12 LTS çekirdek hattı, HTTPS `https://deb.devuan.org/merged` depoları) tabanına geçildi; `debootstrap --include` içine `ca-certificates` eklendi ve `devuan-keyring` indirimi GPG parmak izi doğrulamasına bağlandı.
+- **Masaüstü Altyapısı Yükseltmesi:** Ayaz DE **Tauri 1.5 (`libwebkit2gtk-4.0`)** yığınından **Tauri 2.0 (`libwebkit2gtk-4.1`)** yığınına taşındı.
+- **Tek Doğru Kaynak (`/usr/bin/ayaz-de`):** `scripts/build-iso.sh` içindeki eski gömülü Python/WebKit köprüsü (`AYAZ_PY`) tamamen kaldırıldı. ISO ve `.deb` paketi artık tek derlenen Rust/Tauri ikilisini (`/usr/bin/ayaz-de`) taşır; `/usr/bin/ayaz` yalnızca `/usr/bin/ayaz-de` ikilisine sembolik bağdır.
+- **Sürüm Damgası Uyumu:** `VERSION`, `package.json`, `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`, `src-tauri/tauri.conf.json`, GRUB teması ve `/etc/ankora/version` tek sürüm numarasında (`4.7.0`) eşitlendi.
 
-### Ayaz Güncelleyici ve İç Yükseltme
-- `/usr/bin/ayaz` içindeki `check_de_update` fonksiyonu `tag != current_ver` yerine dört bileşenli sürüm karşılaştırması (`_parse_semver`) kullanacak biçimde yenilendi; artık kurulu sürüm GitHub'daki son sürümden yeniyse eski paket güncelleme gibi gösterilmiyor.
-- Kurulu sürüm okunurken yalnızca `/etc/ankora/version` ile yetinilmeyip `/usr/share/ayaz/manifest.json` ve `dpkg-query` (`ayaz-de`) verisi de taranır; güncelleme tamamlandığında `ayaz-update-helper.sh` yeni sürümü `/etc/ankora/version` dosyasına yazar.
-- `.deb` ve `.iso.sha256` özet dosyalarının karışması giderildi; `download_and_apply_de_update` çağrısı sürüm doğrulaması için beklenen sürüm bilgisini `ayaz-update-helper`'a geçirir.
-- `/usr/bin/ayaz` köprüsüne AppImage kurulumu (`install_appimage`), Ollama kurulumu (`install_ollama`) ve tema dosyası okuma (`read_theme_file`) komutları eklendi.
+### Yükseltme ve Geri Dönüş Politikası (`4.6.x` -> `4.7.0`)
+- **v4.6.x (Daedalus) -> v4.7.0 (Excalibur) Temiz Kurulum Gerektirir:** Taban OS, ABI (`libwebkit2gtk-4.0` -> `4.1`) ve masaüstü mimarisi değiştiği için `4.6.x` kurulu sistemlerde yerinde yükseltme desteklenmez; temiz ISO kurulumu önerilir.
+- **4.7.x Serisi İçi Yükseltme ve Geri Dönüş:** `scripts/package-deb.sh` artık `/usr/bin/ayaz-de`, `/usr/bin/ayaz` sembolik bağı, `/usr/bin/ayaz-session`, `/usr/bin/ayaz-ctl`, `/usr/bin/eta-touchdrv`, `/usr/local/bin/ayaz-update-helper`, `/usr/local/bin/ayaz-pkg-helper`, `/usr/local/bin/ankora-doctor`, `/usr/local/bin/ankora-ollama-install`, `/etc/sudoers.d/ankora-updater` ve masaüstü yardımcılarını içeren tam `.deb` paketini üretir. Kurulum başarısız olursa `ayaz-update-helper.sh` önceki yedeği (`rollback`) otomatik geri yükler; başarı durumunda oturum `/tmp/ayaz-restart-requested` üzerinden temiz yeniden başlatılır.
 
-### Masaüstü Yüzleri ve Duvar Kağıtları
+### Güvenlik ve Bütünlük Sertleştirmesi
+- **Güncelleyici Yetki Bypass Kapatıldı:** `ayaz-update-helper.sh --stage` modu kalıcı olarak kapatıldı (açık ret kodu `9`). Güncellemeler yalnızca `--fetch-and-install <url> <sha256> [sürüm]` üzerinden `https://github.com/Ankora-Linux/` adresinden root izole dizininde (`0700`) indirilip SHA-256 + GitHub Releases özet karşılaştırması ve `gpgv` imza doğrulaması (`/etc/ankora/require-gpg-signature` ile zorunlu kılınabilir) yapılarak kurulur.
+- **Sudoers En Az Ayrıcalık Düzenlemesi:** `scripts/ankora-updater-sudoers` dosyasından wildcard `NOPASSWD` kuralları (`install *`, `remove *`, `vendor *`, `usb-flash *`, `usb-format *`, `snapshot-*`, çıplak `ayaz-update-helper`) kaldırıldı; paket kurma/kaldırma, USB yazma/biçimlendirme ve anlık görüntü işlemleri `pkexec` ile yönetici onayı ister.
+- **USB Medya Koruması & Pinned GPG:** `ayaz-pkg-helper.sh` USB yazma ve biçimlendirme işlemlerinde yalnızca çıkarılabilir/USB taşıma aygıtlarını (`/sys/block/*/removable == 1` veya `TRAN=usb`) kabul eder; `vendor_helium()` indirilen GPG anahtarının parmak izini `BE677C1989D35EAB2C5F26C9351601AD01D6378E` ile doğrular.
+- **WebKit Sandbox & Tauri 2 IPC Kısıtlamaları:** `scripts/xinitrc`, `scripts/ayaz-session` ve `src-tauri/src/main.rs` açılışta `bwrap --ro-bind / / /bin/true` denemesi yapar ve destekleyen ortamlarda WebKit sandbox'ı açık tutar. `withGlobalTauri: false` etkinleştirildi, `tauri.conf.json` ve `src/index.html` CSP yönergelerinden çıplak `https:` jokeri çıkarıldı, `validate_non_system_path` (`.vault_secret`, `vault.enc`, `/etc/ankora/update-endpoint`, `.config/autostart`, `.local/share/applications`), `write_text_file`, `set_file_permissions` ve `execute_desktop_program` (otomatik `chmod +x` kaldırıldı) sertleştirildi.
+- **Sürüm Bütünlüğü & CI/CD:** GitHub Actions iş akışları 40 karakterli commit SHA'larına sabitlendi; `ci.yml` ve `build-iso.yml` 5 sürüm dosyasının tamamını ve `cargo audit` denetimini uygular; release varlıklarına `.iso.sha256`, `.deb.sha256`, birleşik `SHA256SUMS` ve isteğe bağlı `.asc` GPG imzaları eklendi, `build-iso.yml` içine QEMU BIOS/UEFI önyükleme duman testi eklendi.
+
+### Masaüstü Yüzleri, Mağaza, Ses ve Donanım
 - 4 yeni fotoğraf duvar kağıdı (`Kobalt Dalgalar`, `Kozmik Küreler`, `Karlı Şafak`, `Gece Zirve Yolu`) 24 temaya varsayılan olarak bağlandı; önceki 15 vektörel duvar kağıdı Ayarlar içinde seçilebilir durumda korundu.
-- Bakır, Bostan ve Cıvata yüzlerinde masaüstü duvar kağıdı değiştirme ve temizlik geçişi düzeltildi; `faces.js` yükleme katmanıyla açılıştaki takılma kaldırıldı ve tema okuma yolundaki XSS açıklığı kapatıldı.
-
-### Yazılım Mağazası, Ses, Bluetooth ve Güvenlik
-- Mağaza detay penceresindeki yükleme/kaldırma düğmesi işlem boyunca kilitlenip `"İndiriliyor..."` veya `"Kaldırılıyor..."` durumunu gösterir.
-- Ses çıkış aygıtı geçişi, Bluetooth aç/kapa ve tarama hataları artık sessiz kalmayıp kullanıcıya bildirilir.
-- `open-as-root` bağlam menüsü girdisi ve Wi-Fi/Bluetooth hızlı ayar düğmelerindeki yinelenen olay dinleyicileri temizlendi.
-- Önbellek temizliği (`apt-get clean`) root yetkisiyle çalışacak duruma getirildi; `/tmp` temizliğinde X11/ICE soketleri ve etkin masaüstü oturum dosyaları korundu.
-- `ayaz-pkg-helper.sh`, `ankora-ollama-install.sh`, `ankora-updater-sudoers`, `Spotlight` dosya açma yolu ve Rust arka uç komutları sertleştirildi.
+- Bakır, Bostan ve Cıvata yüzlerinde masaüstü duvar kağıdı değiştirme, `faces.js` açılış takılmasının giderilmesi ve tema okuma XSS koruması tamamlandı.
+- Mağaza detay penceresi indirme/kaldırma kilidi, ses/Bluetooth hata bildirimleri, `open-as-root` / hızlı ayar dinleyici temizliği ve X11 soketlerini koruyan `/tmp` temizliği eklendi.
+- AppImage kurulumu (`install_appimage`), Ollama kurulumu (`install_ollama`), tema okuma (`read_theme_file`) ve semver güncelleme denetimi (`parse_semver` / `is_newer_version`) Rust Tauri 2 ikilisinde birleştirildi.
 
 
 ## 4.6.0 "Karayel" (2026-11-12)

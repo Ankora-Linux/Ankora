@@ -2174,10 +2174,26 @@ fn sudo_available() -> bool {
     })
 }
 
-// Root gereken yollar: sudo -n başarılıysa doğrudan döner; parola/yetki hatası
-// verirse doğrudan çalıştırma ve gerekirse pkexec (Polkit) yükseltmesi denenir.
+fn sudo_binary_exists() -> bool {
+    static SUDO_BIN: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *SUDO_BIN.get_or_init(|| {
+        Path::new("/usr/bin/sudo").exists()
+            || Path::new("/bin/sudo").exists()
+            || Command::new("sudo")
+                .arg("--version")
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .status()
+                .map(|s| s.success())
+                .unwrap_or(false)
+    })
+}
+
+// Root gereken yollar: önce sudo -n denenir (kurulu sistemlerde /etc/sudoers.d/ankora-updater
+// izinli alt komutlar için çalışır; canlı sistemde ise tümü izinlidir). Parola/yetki hatası
+// verirse PolicyKit (pkexec) yükseltmesine düşer.
 fn root_command(prog: &str, args: &[&str]) -> std::io::Result<std::process::Output> {
-    if sudo_available() {
+    if sudo_binary_exists() {
         let out = Command::new("sudo")
             .arg("-n")
             .arg(prog)
@@ -2187,17 +2203,28 @@ fn root_command(prog: &str, args: &[&str]) -> std::io::Result<std::process::Outp
             return Ok(out);
         }
         let err_lower = String::from_utf8_lossy(&out.stderr).to_lowercase();
-        if !err_lower.contains("a password is required")
-            && !err_lower.contains("not allowed to execute")
-            && !err_lower.contains("sudo:")
-        {
+        let sudo_denied = err_lower.contains("a password is required")
+            || err_lower.contains("a terminal is required")
+            || err_lower.contains("not allowed to execute")
+            || err_lower.contains("sudo:");
+        if !sudo_denied {
             return Ok(out);
         }
+        if pkexec_available() && (polkit_agent_running() || std::env::var("DISPLAY").is_ok()) {
+            let elevated = Command::new("pkexec")
+                .arg(prog)
+                .args(args)
+                .stdin(Stdio::null())
+                .output();
+            if let Ok(pk) = elevated {
+                if pk.status.success() || !pk.stderr.is_empty() {
+                    return Ok(pk);
+                }
+            }
+        }
+        return Ok(out);
     }
-    // sudo parolasız erişim yoksa doğrudan deneyin; kullanıcı root değilse
-    // komut izin hatasıyla düşer. Bu durumda PolicyKit üzerinden (pkexec)
-    // tek seferlik yükseltme denenir — masaüstü oturumunda yetkilendirme
-    // penceresi kullanıcıdan istenir.
+    // sudo yoksa doğrudan dene; izin hatasında PolicyKit (pkexec) dener.
     let direct = Command::new(prog).args(args).output()?;
     let err_str = String::from_utf8_lossy(&direct.stderr).to_lowercase();
     let code = direct.status.code();
@@ -4184,27 +4211,34 @@ fn execute_system_installation_blocking(payload: InstallPayload) -> Result<Strin
                 ],
             );
             let upd_entry = format!(
-                "{} ALL=(root) NOPASSWD: /usr/local/bin/ayaz-update-helper, \
-                /usr/local/bin/ayaz-pkg-helper apt-update, \
-                /usr/local/bin/ayaz-pkg-helper apt-upgrade, \
-                /usr/local/bin/ayaz-pkg-helper install *, \
-                /usr/local/bin/ayaz-pkg-helper remove *, \
-                /usr/local/bin/ayaz-pkg-helper vendor *, \
-                /usr/local/bin/ayaz-pkg-helper mebcert, \
-                /usr/local/bin/ayaz-pkg-helper mebcert-remove, \
-                /usr/local/bin/ayaz-pkg-helper snapshot-create*, \
-                /usr/local/bin/ayaz-pkg-helper snapshot-restore *, \
-                /usr/local/bin/ayaz-pkg-helper snapshot-delete *, \
-                /usr/local/bin/ayaz-pkg-helper set-timezone *, \
-                /usr/local/bin/ayaz-pkg-helper set-keyboard *, \
-                /usr/local/bin/ayaz-pkg-helper set-language *, \
-                /usr/local/bin/ayaz-pkg-helper sync-ntp, \
-                /usr/local/bin/ayaz-pkg-helper drop-caches, \
-                /usr/local/bin/ayaz-pkg-helper suspend, \
-                /usr/local/bin/ayaz-pkg-helper usb-flash *, \
-                /usr/local/bin/ayaz-pkg-helper usb-format *, \
-                /usr/local/bin/ankora-doctor, /usr/local/bin/ankora-ollama-install, \
-                /sbin/poweroff, /usr/sbin/poweroff, /sbin/reboot, /usr/sbin/reboot, /sbin/shutdown, /usr/sbin/shutdown\n",
+                "{0} ALL=(root) NOPASSWD: /usr/local/bin/ayaz-update-helper --fetch-and-install https\\://github.com/Ankora-Linux/*, \
+                 /usr/local/bin/ayaz-update-helper --check-and-apply, \
+                 /usr/local/bin/ayaz-pkg-helper apt-update, \
+                 /usr/local/bin/ayaz-pkg-helper apt-upgrade, \
+                 /usr/local/bin/ayaz-pkg-helper mebcert, \
+                 /usr/local/bin/ayaz-pkg-helper mebcert-remove, \
+                 /usr/local/bin/ayaz-pkg-helper set-timezone *, \
+                 /usr/local/bin/ayaz-pkg-helper set-keyboard *, \
+                 /usr/local/bin/ayaz-pkg-helper set-language *, \
+                 /usr/local/bin/ayaz-pkg-helper sync-ntp, \
+                 /usr/local/bin/ayaz-pkg-helper drop-caches, \
+                 /usr/local/bin/ayaz-pkg-helper suspend, \
+                 /usr/local/bin/ankora-doctor, /usr/local/bin/ankora-ollama-install, \
+                 /sbin/poweroff, /usr/sbin/poweroff, /sbin/reboot, /usr/sbin/reboot, /sbin/shutdown, /usr/sbin/shutdown\n\
+                 %sudo ALL=(root) NOPASSWD: /usr/local/bin/ayaz-update-helper --fetch-and-install https\\://github.com/Ankora-Linux/*, \
+                 /usr/local/bin/ayaz-update-helper --check-and-apply, \
+                 /usr/local/bin/ayaz-pkg-helper apt-update, \
+                 /usr/local/bin/ayaz-pkg-helper apt-upgrade, \
+                 /usr/local/bin/ayaz-pkg-helper mebcert, \
+                 /usr/local/bin/ayaz-pkg-helper mebcert-remove, \
+                 /usr/local/bin/ayaz-pkg-helper set-timezone *, \
+                 /usr/local/bin/ayaz-pkg-helper set-keyboard *, \
+                 /usr/local/bin/ayaz-pkg-helper set-language *, \
+                 /usr/local/bin/ayaz-pkg-helper sync-ntp, \
+                 /usr/local/bin/ayaz-pkg-helper drop-caches, \
+                 /usr/local/bin/ayaz-pkg-helper suspend, \
+                 /usr/local/bin/ankora-doctor, /usr/local/bin/ankora-ollama-install, \
+                 /sbin/poweroff, /usr/sbin/poweroff, /sbin/reboot, /usr/sbin/reboot, /sbin/shutdown, /usr/sbin/shutdown\n",
                 username
             );
             let _ = root_write("/target/etc/sudoers.d/ankora-updater", &upd_entry);
@@ -5401,19 +5435,19 @@ fn process_github_release(release: GitHubRelease, current_ver: &str) -> UpdateRe
 }
 
 // protocol_4 güncelleme istemcisi: sürüm beslemesinin JSON uç noktası.
-// Yapılandırma dosyası yoksa/boşsa GitHub API'ye düşülür (önceki davranış).
-// Uç nokta yalnız sürüm bilgisini besler; indirme adresi yine
-// download_and_apply_de_update içinde Ankora-Linux deposuyla sınırlıdır.
+// Yalnızca root sahipliğindeki /etc/ankora/update-endpoint okunur ve resmi
+// Ankora-Linux GitHub API adresiyle sınırlıdır; kullanıcı dizininden geçersiz kılınamaz.
 fn protocol_4_endpoint(target_repo: &str) -> String {
     let default_url = format!(
         "https://api.github.com/repos/{}/releases/latest",
         target_repo
     );
-    let path = get_ankora_config_dir().join("update-endpoint");
-    if let Ok(val) = fs::read_to_string(&path) {
+    let path = Path::new("/etc/ankora/update-endpoint");
+    if let Ok(val) = fs::read_to_string(path) {
         let val = val.trim();
-        // Yalnızca https uç noktaları kabul edilir; boşluk taşıyamaz.
-        if val.starts_with("https://") && !val.chars().any(char::is_whitespace) {
+        if val.starts_with("https://api.github.com/repos/Ankora-Linux/")
+            && !val.chars().any(char::is_whitespace)
+        {
             return val.to_string();
         }
     }
@@ -5545,16 +5579,17 @@ async fn download_and_apply_de_update(
     sha256_url: Option<String>,
     expected_version: Option<String>,
 ) -> Result<String, String> {
-    // Güvenlik doğrulaması: Yalnızca resmi Ankora-Linux deposunun release
-    // alanından indirmeye izin ver. Adresin sahibi webview'e de emanet edilmez.
-    if !download_url.starts_with("https://github.com/Ankora-Linux/") {
+    let url_clean = download_url.trim().to_string();
+    let allowed_prefix = url_clean
+        .starts_with("https://github.com/Ankora-Linux/Ankora/releases/download/")
+        || url_clean.starts_with("https://github.com/Ankora-Linux/Ayaz/releases/download/");
+    if !allowed_prefix || !url_clean.ends_with(".deb") || url_clean.chars().any(char::is_whitespace) {
         return Err(
-            "Güvenlik İlkesi İhlali: İndirme bağlantısı resmi Ankora-Linux deposuna ait değil."
+            "Güvenlik İlkesi İhlali: Yalnızca resmî Ankora-Linux GitHub release .deb bağlantıları kabul edilir."
                 .to_string(),
         );
     }
 
-    // İkinci kilit: Ayaz DE paketi yalnız Ayaz DE kurulu sistemde uygulanır.
     if !is_ayaz_system() {
         return Err(
             "Bu güncelleme yalnız Ankora Linux (Ayaz DE kurulu) sistemlerde uygulanabilir. \
@@ -5568,181 +5603,77 @@ async fn download_and_apply_de_update(
         UpdateProgressPayload {
             percent: 10,
             stage: "connecting".to_string(),
-            message: "Ayaz DE paketine bağlanılıyor...".to_string(),
+            message: "Resmî sürüm bütünlük özeti (SHA-256 / GPG) doğrulanıyor...".to_string(),
         },
     );
 
     let client = reqwest::Client::builder()
-        .timeout(std::time::Duration::from_secs(300))
+        .timeout(std::time::Duration::from_secs(60))
         .build()
-        .map_err(|e| format!("İstemci hatası: {}", e))?;
+        .map_err(|e| format!("HTTP istemcisi hatası: {}", e))?;
 
-    let res = client
-        .get(&download_url)
-        .send()
-        .await
-        .map_err(|e| format!("İndirme bağlantısı kurulamadı: {}", e))?;
+    let mut target_sha256 = expected_sha256
+        .map(|s| s.trim().to_lowercase())
+        .filter(|s| s.len() == 64 && s.chars().all(|c| c.is_ascii_hexdigit()));
 
-    if !res.status().is_success() {
-        return Err(format!("Paket indirilemedi (HTTP {})", res.status()));
-    }
-
-    let total_size = res.content_length().unwrap_or(0);
-
-    let _ = window.emit(
-        "update-progress",
-        UpdateProgressPayload {
-            percent: 30,
-            stage: "downloading".to_string(),
-            message: if total_size > 0 {
-                format!(
-                    "Ayaz DE indiriliyor ({:.1} MB)...",
-                    total_size as f64 / 1_048_576.0
-                )
-            } else {
-                "Ayaz DE paketi indiriliyor...".to_string()
-            },
-        },
-    );
-
-    let bytes = res
-        .bytes()
-        .await
-        .map_err(|e| format!("Paket verisi indirilirken hata: {}", e))?;
-
-    // SHA-256 Bütünlük ve İmza Kontrolü (Bulgu #5 Giderildi)
-    let mut computed_hasher = Sha256::new();
-    computed_hasher.update(&bytes);
-    let computed_sha256 = format!("{:x}", computed_hasher.finalize());
-
-    let mut target_sha256 = expected_sha256;
     if target_sha256.is_none() {
-        if let Some(ref s_url) = sha256_url {
-            if s_url.starts_with("https://github.com/Ankora-Linux/") {
-                if let Ok(resp) = client.get(s_url).send().await {
-                    if resp.status().is_success() {
-                        if let Ok(txt) = resp.text().await {
-                            let find_hex = |s: &str| -> Option<String> {
-                                for word in s.split_whitespace() {
-                                    let c = word.trim_matches(|ch: char| !ch.is_ascii_alphanumeric());
-                                    if c.len() == 64 && c.chars().all(|ch| ch.is_ascii_hexdigit()) {
-                                        return Some(c.to_lowercase());
-                                    }
-                                }
-                                None
-                            };
-                            let matched_line = txt.lines().find(|l| {
-                                let ll = l.to_lowercase();
-                                ll.contains(".deb") && !ll.contains(".iso")
-                            });
-                            target_sha256 = matched_line.and_then(&find_hex).or_else(|| find_hex(&txt));
+        let fallback_sha_url = format!("{}.sha256", url_clean);
+        let candidate_url = sha256_url
+            .filter(|u| u.starts_with("https://github.com/Ankora-Linux/"))
+            .unwrap_or(fallback_sha_url);
+        if let Ok(resp) = client.get(&candidate_url).send().await {
+            if resp.status().is_success() {
+                if let Ok(txt) = resp.text().await {
+                    let find_hex = |s: &str| -> Option<String> {
+                        for word in s.split_whitespace() {
+                            let c = word.trim_matches(|ch: char| !ch.is_ascii_alphanumeric());
+                            if c.len() == 64 && c.chars().all(|ch| ch.is_ascii_hexdigit()) {
+                                return Some(c.to_lowercase());
+                            }
                         }
-                    }
+                        None
+                    };
+                    let matched_line = txt.lines().find(|l| {
+                        let ll = l.to_lowercase();
+                        ll.contains(".deb") && !ll.contains(".iso")
+                    });
+                    target_sha256 = matched_line.and_then(&find_hex).or_else(|| find_hex(&txt));
                 }
             }
         }
     }
 
-    let exp = match target_sha256 {
-        Some(exp) => exp,
-        None => {
-            return Err(
-                "Güvenlik İlkesi İhlali: Güncelleme paketi için geçerli bir SHA-256 doğrulama özeti bulunamadı. \
-                 Bütünlüğü doğrulanmamış paketlerin kurulumu engellendi."
-                    .to_string(),
-            );
-        }
-    };
-
-    if computed_sha256.to_lowercase() != exp.to_lowercase() {
-        return Err(format!(
-            "Güvenlik İlkesi İhlali: İndirilen paketin SHA-256 bütünlük doğrulaması başarısız! \
-            Hesaplanan: {}, Beklenen: {}. Paket değiştirilmiş veya bozulmuş olabilir; kurulum durduruldu.",
-            computed_sha256, exp
-        ));
-    }
-
-    #[cfg(target_os = "linux")]
-    let deb_path = PathBuf::from("/var/cache/ayaz-updates/ayaz-update.deb");
-
-    #[cfg(not(target_os = "linux"))]
-    let deb_path = std::env::temp_dir().join("ayaz-update.deb");
-
-    // Paket önce kullanıcının kendi özel geçici dizinine yazılır: normal bir
-    // süreç /var/cache dizinine yazamaz. Root staging devri, helper'ın
-    // --stage moduyla yapılır; paketin KOPYASI root tarafından alınıp özeti
-    // yeniden doğrulanır, sahiplik doğrulaması bu kopya üzerinde geçerlidir.
-    let tmp_dir = std::env::temp_dir().join(format!("ayaz-upd-{}", std::process::id()));
-    fs::create_dir_all(&tmp_dir)
-        .map_err(|e| format!("Geçici güncelleme dizini oluşturulamadı: {}", e))?;
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        let _ = fs::set_permissions(&tmp_dir, fs::Permissions::from_mode(0o700));
-    }
-    let tmp_deb = tmp_dir.join("ayaz-update.deb");
-    fs::write(&tmp_deb, &bytes)
-        .map_err(|e| format!("Geçici güncelleme dosyası diske kaydedilemedi: {}", e))?;
-
-    #[cfg(target_os = "linux")]
-    {
-        let helper_path = Path::new("/usr/local/bin/ayaz-update-helper");
-        if !helper_path.exists() {
-            let _ = fs::remove_dir_all(&tmp_dir);
-            return Err(
-                "Güvenlik İlkesi İhlali: /usr/local/bin/ayaz-update-helper bulunamadı. \
-                 Paket staging dizinine yalnızca bu yardımcı üzerinden alınabilir."
-                    .to_string(),
-            );
-        }
-        let helper_str = helper_path.to_string_lossy().to_string();
-        let stage_src = tmp_deb.to_string_lossy().to_string();
-        let stage_sha = computed_sha256.to_lowercase();
-        let stage_out = root_command(
-            helper_str.as_str(),
-            &["--stage", stage_src.as_str(), stage_sha.as_str()],
-        );
-        let _ = fs::remove_dir_all(&tmp_dir);
-        match stage_out {
-            Ok(o) if o.status.success() => {}
-            Ok(o) => {
-                let err = String::from_utf8_lossy(&o.stderr).trim().to_string();
-                let out = String::from_utf8_lossy(&o.stdout).trim().to_string();
-                let detail = if err.is_empty() { out } else { err };
-                return Err(format!(
-                    "Güncelleme paketi güvenli staging dizinine alınamadı (Çıkış Kodu: {}){}",
-                    o.status.code().unwrap_or(-1),
-                    if detail.is_empty() { String::new() } else { format!(": {}", detail) }
-                ));
-            }
-            Err(e) => {
-                return Err(format!("Güvenlik yardımcısı çalıştırılamadı: {}", e));
-            }
-        }
-    }
-
-    #[cfg(not(target_os = "linux"))]
-    {
-        let _ = fs::rename(&tmp_deb, &deb_path);
-    }
+    let exp = target_sha256.ok_or_else(|| {
+        "Güvenlik İlkesi İhlali: Güncelleme paketi için geçerli bir SHA-256 doğrulama özeti bulunamadı. \
+         Bütünlüğü doğrulanmamış paketlerin kurulumu engellendi."
+            .to_string()
+    })?;
 
     let _ = window.emit(
         "update-progress",
         UpdateProgressPayload {
-            percent: 80,
-            stage: "installing".to_string(),
-            message: "Ayaz Masaüstü Ortamı sisteme kuruluyor (dpkg)...".to_string(),
+            percent: 35,
+            stage: "downloading".to_string(),
+            message: "Yetkili güncelleyici paketi root olarak indiriyor ve GPG/SHA-256 doğruluyor..."
+                .to_string(),
         },
     );
 
     #[cfg(target_os = "linux")]
     {
         let helper_path = Path::new("/usr/local/bin/ayaz-update-helper");
-        let deb_str = deb_path.to_string_lossy().to_string();
+        if !helper_path.exists() {
+            return Err(
+                "Güvenlik İlkesi İhlali: /usr/local/bin/ayaz-update-helper bulunamadı."
+                    .to_string(),
+            );
+        }
 
-        // Yardımcıya beklenen sürüm de iletilir: kurulum sonunda kurulu
-        // sürüm bu değerle doğrulanır, uyuşmazlıkta geri alma tetiklenir.
-        let mut helper_args_owned: Vec<String> = vec![deb_str];
+        let mut helper_args_owned: Vec<String> = vec![
+            "--fetch-and-install".to_string(),
+            url_clean.clone(),
+            exp,
+        ];
         if let Some(ref ev) = expected_version {
             let ev = ev.trim();
             if !ev.is_empty() {
@@ -5750,21 +5681,29 @@ async fn download_and_apply_de_update(
             }
         }
         let helper_arg_refs: Vec<&str> = helper_args_owned.iter().map(|s| s.as_str()).collect();
+        let install_out = root_command("/usr/local/bin/ayaz-update-helper", &helper_arg_refs);
 
-        let install_out = if helper_path.exists() {
-            root_command("/usr/local/bin/ayaz-update-helper", &helper_arg_refs)
-        } else {
-            return Err("Güvenlik İlkesi İhlali: /usr/local/bin/ayaz-update-helper bulunamadı. Güncelleme yalnızca doğrulanmış yardımcı üzerinden kurulabilir.".to_string());
-        };
+        let ver_label = expected_version
+            .as_deref()
+            .map(str::trim)
+            .filter(|v| !v.is_empty())
+            .unwrap_or("güncel");
 
         match install_out {
             Ok(o) if o.status.success() => {
-                let _ = window.emit("update-progress", UpdateProgressPayload {
-                    percent: 100,
-                    stage: "completed".to_string(),
-                    message: "Ayaz Masaüstü Ortamı başarıyla güncellendi! Masaüstünü şimdi yeniden başlatabilirsiniz.".to_string(),
-                });
-                Ok("Ayaz DE başarıyla güncellendi.".to_string())
+                let done_msg = format!(
+                    "Paket kuruldu ({}). Yeni sürümün devreye girmesi için oturumu yeniden başlatın.",
+                    ver_label
+                );
+                let _ = window.emit(
+                    "update-progress",
+                    UpdateProgressPayload {
+                        percent: 100,
+                        stage: "completed".to_string(),
+                        message: done_msg.clone(),
+                    },
+                );
+                Ok(done_msg)
             }
             Ok(o) => {
                 let err = String::from_utf8_lossy(&o.stderr).trim().to_string();
@@ -5773,7 +5712,11 @@ async fn download_and_apply_de_update(
                 Err(format!(
                     "Kurulum başarısız oldu (Çıkış Kodu: {}){}",
                     o.status.code().unwrap_or(-1),
-                    if detail.is_empty() { String::new() } else { format!(": {}", detail) }
+                    if detail.is_empty() {
+                        String::new()
+                    } else {
+                        format!(": {}", detail)
+                    }
                 ))
             }
             Err(e) => Err(format!("Kurulum yardımcısı çalıştırılamadı: {}", e)),
@@ -5782,17 +5725,8 @@ async fn download_and_apply_de_update(
 
     #[cfg(not(target_os = "linux"))]
     {
-        tokio::time::sleep(std::time::Duration::from_millis(600)).await;
-        let _ = window.emit(
-            "update-progress",
-            UpdateProgressPayload {
-                percent: 100,
-                stage: "completed".to_string(),
-                message: "Simülasyon: Ayaz Masaüstü Ortamı başarıyla doğrulandı ve kuruldu."
-                    .to_string(),
-            },
-        );
-        Ok("Simülasyon güncellemesi tamamlandı.".to_string())
+        let _ = (&client, &url_clean, &exp, &expected_version);
+        Err("Ayaz DE paket güncellemesi yalnızca Linux sistemlerde çalıştırılabilir.".to_string())
     }
 }
 
@@ -5800,10 +5734,11 @@ async fn download_and_apply_de_update(
 fn restart_desktop_process() -> Result<(), String> {
     #[cfg(target_os = "linux")]
     {
-        // Tam ikili yol eşlemesi ile sadece kendi sürecimizi sonlandır, başka eşleşmeler önlenir
-        let mut cmd = Command::new("pkill");
-        cmd.args(["-x", "ayaz-de"]);
-        let _ = spawn_reaped(&mut cmd);
+        let _ = fs::write("/tmp/ayaz-restart-requested", "1");
+        std::thread::spawn(|| {
+            std::thread::sleep(Duration::from_millis(250));
+            std::process::exit(0);
+        });
     }
     Ok(())
 }
@@ -5949,6 +5884,15 @@ fn validate_non_system_path(p: &Path, allow_var_tmp: bool) -> Result<(), String>
         "/opt", "/srv", "/root",
     ];
     for candidate in [&clean, &canon_str] {
+        let low = candidate.to_lowercase();
+        if low.ends_with("/.vault_secret")
+            || low.ends_with("/vault.enc")
+            || low.ends_with("/update-endpoint")
+            || low.contains("/.config/autostart")
+            || low.contains("/.local/share/applications")
+        {
+            return Err("Güvenlik İlkesi İhlali: Kritik güvenlik/otostart yapılandırmasına IPC üzerinden erişilemez.".to_string());
+        }
         for r in &restricted {
             if candidate == *r || candidate.starts_with(&format!("{}/", r)) {
                 return Err(format!("Güvenlik İlkesi İhlali: Sistem dizinine ({}) doğrudan işlem yapılamaz.", r));
@@ -5986,8 +5930,38 @@ async fn write_text_file(path: String, content: String) -> Result<String, String
     }
     let p = Path::new(clean);
     validate_non_system_path(p, false)?;
-    if p.file_name().and_then(|s| s.to_str()) == Some("update-endpoint") {
-        return Err("Güvenlik İlkesi İhlali: Güncelleme uç noktası yapılandırması doğrudan düzenlenemez.".to_string());
+    let fname_low = p
+        .file_name()
+        .and_then(|s| s.to_str())
+        .unwrap_or("")
+        .to_lowercase();
+    let ext_low = p
+        .extension()
+        .and_then(|s| s.to_str())
+        .unwrap_or("")
+        .to_lowercase();
+    const FORBIDDEN_WRITE_EXTS: &[&str] = &[
+        "sh", "bash", "zsh", "py", "pl", "rb", "desktop", "service", "appimage", "run", "bin",
+    ];
+    const FORBIDDEN_DOTFILES: &[&str] = &[
+        "update-endpoint",
+        ".bashrc",
+        ".profile",
+        ".bash_profile",
+        ".zshrc",
+        ".zprofile",
+        ".xinitrc",
+        ".xsession",
+        ".vault_secret",
+        "vault.enc",
+    ];
+    if FORBIDDEN_DOTFILES.contains(&fname_low.as_str())
+        || FORBIDDEN_WRITE_EXTS.contains(&ext_low.as_str())
+    {
+        return Err(
+            "Güvenlik İlkesi İhlali: Çalıştırılabilir betik, başlatıcı veya oturum yapılandırma dosyaları WebView üzerinden yazılamaz."
+                .to_string(),
+        );
     }
     if let Some(parent) = p.parent() {
         if !parent.exists() {
@@ -6087,40 +6061,35 @@ async fn execute_desktop_program(path: String) -> Result<String, String> {
             }
         }
     }
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        if let Ok(meta) = fs::metadata(&real_path) {
-            let mode = meta.permissions().mode();
-            if (mode & 0o111) == 0 {
-                let mut perms = meta.permissions();
-                perms.set_mode(mode | 0o755);
-                let _ = fs::set_permissions(&real_path, perms);
-            }
+    if lower.ends_with(".appimage") {
+        let canon_str = real_path.to_string_lossy().to_string();
+        if canon_str.contains("/.") || canon_str.starts_with("/tmp") || canon_str.starts_with("/var/tmp") {
+            return Err("Güvenlik İlkesi İhlali: Gizli veya geçici dizinlerdeki AppImage dosyaları doğrudan başlatılamaz.".to_string());
         }
-    }
-    #[cfg(target_os = "linux")]
-    {
-        let dsp = std::env::var("DISPLAY").unwrap_or_else(|_| ":0".to_string());
-        let parent = real_path.parent().unwrap_or(&real_home);
-        let name = real_path.file_name().and_then(|s| s.to_str()).unwrap_or("Program");
-        if lower.ends_with(".sh") || lower.ends_with(".py") || lower.ends_with(".pl") || lower.ends_with(".rb") {
-            let mut cmd = Command::new("xterm");
-            cmd.args(["-hold", "-title", name, "-e", &real_path.to_string_lossy()])
-                .current_dir(parent)
-                .env("DISPLAY", &dsp);
-            spawn_reaped(&mut cmd).map_err(|e| e.to_string())?;
-        } else {
+        let mut magic = [0u8; 4];
+        let is_elf = fs::File::open(&real_path)
+            .and_then(|mut f| f.read_exact(&mut magic))
+            .map(|_| magic == [0x7f, b'E', b'L', b'F'])
+            .unwrap_or(false);
+        if !is_elf {
+            return Err("Güvenlik Hatası: Geçerli ELF AppImage başlığı doğrulanamadı.".to_string());
+        }
+        #[cfg(target_os = "linux")]
+        {
+            let dsp = std::env::var("DISPLAY").unwrap_or_else(|_| ":0".to_string());
+            let parent = real_path.parent().unwrap_or(&real_home);
             let mut cmd = Command::new(&real_path);
             cmd.current_dir(parent).env("DISPLAY", &dsp);
             spawn_reaped(&mut cmd).map_err(|e| e.to_string())?;
+            lower_ayaz_window();
         }
-        lower_ayaz_window();
+        return Ok(format!(
+            "Program olarak çalıştırıldı: {}",
+            real_path.file_name().and_then(|s| s.to_str()).unwrap_or(clean)
+        ));
     }
-    Ok(format!(
-        "Program olarak çalıştırıldı: {}",
-        real_path.file_name().and_then(|s| s.to_str()).unwrap_or(clean)
-    ))
+    Err("Güvenlik İlkesi İhlali: Yalnızca .desktop kısayolları veya doğrulanmış ELF .AppImage dosyaları çalıştırılabilir."
+        .to_string())
 }
 
 #[tauri::command]
@@ -8731,10 +8700,11 @@ fn path_fs_usage(path: String) -> Result<serde_json::Value, String> {
 fn set_file_permissions(path: String, mode: String) -> Result<String, String> {
     let p = path_sanitize_input(&path)?;
     path_accessible_for_ops(&p)?;
-    // Yalnızca 3 haneli oktal izin kümesi kabul edilir (SUID/SGID yasaktır: 755, 644, 600 vb.).
+    // Yalnızca 3 haneli ve çalıştırma biti (1) içermeyen okuma/yazma izinleri (örn: 644, 600, 444).
+    // Çalıştırma izni yalnızca doğrulanmış set_file_executable üzerinden verilir.
     let mode_clean = mode.trim();
-    if mode_clean.len() != 3 || !mode_clean.chars().all(|c| ('0'..='7').contains(&c)) {
-        return Err("Geçersiz izin kümesi (örn: 644 veya 755).".into());
+    if mode_clean.len() != 3 || !mode_clean.chars().all(|c| matches!(c, '0' | '2' | '4' | '6')) {
+        return Err("Güvenlik İlkesi: İzin kümesi yalnızca çalıştırma biti içermeyen 3 haneli kodlar olabilir (ör: 644, 600).".into());
     }
     let out = Command::new("chmod")
         .args([mode_clean, &p.to_string_lossy().to_string()])
@@ -8751,6 +8721,20 @@ fn set_file_permissions(path: String, mode: String) -> Result<String, String> {
 fn set_file_executable(path: String, executable: bool) -> Result<String, String> {
     let p = path_sanitize_input(&path)?;
     path_accessible_for_ops(&p)?;
+    if executable {
+        let low = p.to_string_lossy().to_lowercase();
+        if !low.ends_with(".appimage") || low.contains("/.") || low.starts_with("/tmp") || low.starts_with("/var/tmp") {
+            return Err("Güvenlik İlkesi İhlali: Yalnızca kullanıcı klasörlerindeki geçerli .AppImage dosyalarına çalıştırma izni verilebilir.".into());
+        }
+        let mut magic = [0u8; 4];
+        let is_elf = fs::File::open(&p)
+            .and_then(|mut f| f.read_exact(&mut magic))
+            .map(|_| magic == [0x7f, b'E', b'L', b'F'])
+            .unwrap_or(false);
+        if !is_elf {
+            return Err("Güvenlik Hatası: Dosya geçerli bir ELF AppImage ikilisi değil.".into());
+        }
+    }
     let bits = if executable { "+x" } else { "-x" };
     let out = Command::new("chmod")
         .args([bits, &p.to_string_lossy().to_string()])
@@ -10891,7 +10875,20 @@ fn main() {
     // DİKKAT: WebKitGTK 2.42+ sürümlerinde WEBKIT_DISABLE_COMPOSITING_MODE siyah ekrana yol açtığı için kaldırıldı.
     std::env::set_var("GDK_BACKEND", "x11");
     std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
-    std::env::set_var("WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS", "1");
+    // WebKit Bubblewrap (bwrap) sandbox varsayılan olarak etkindir; yalnızca
+    // kullanıcı ad alanı desteklemeyen kısıtlı ortamlarda devre dışı kalır.
+    let bwrap_supported = Command::new("bwrap")
+        .args(["--ro-bind", "/", "/", "/bin/true"])
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status()
+        .map(|s| s.success())
+        .unwrap_or(false);
+    if bwrap_supported {
+        std::env::remove_var("WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS");
+    } else {
+        std::env::set_var("WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS", "1");
+    }
 
     // Sanal makine (VirtualBox, QEMU, KVM, VMware) tespiti
     let is_vm = ["/sys/class/dmi/id/product_name", "/sys/class/dmi/id/sys_vendor", "/sys/class/dmi/id/board_vendor"]

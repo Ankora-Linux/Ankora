@@ -16,7 +16,13 @@ xset s noblank 2>/dev/null || true
 # WebKitGTK ve X11 ortam ayarları (fiziksel donanım ve sanal makine uyumluluğu)
 export GDK_BACKEND=x11
 export WEBKIT_DISABLE_DMABUF_RENDERER=1
-export WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS=1
+# Bubblewrap (bwrap) kullanıcı ad alanı destekleniyorsa WebKit sandbox etkin kalır;
+# yalnızca kısıtlı container / eski çekirdeklerde geri düşüş uygulanır.
+if command -v bwrap >/dev/null 2>&1 && bwrap --ro-bind / / /bin/true >/dev/null 2>&1; then
+    unset WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS
+else
+    export WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS=1
+fi
 
 # Düşük RAM optimizasyonları (800 MB -> 450 MB hedefi)
 # Glibc thread arena kısıtlaması: WebKit thread patlamasını ve bellek şişmesini önler
@@ -165,28 +171,34 @@ if ! : > "$AYAZ_LOG" 2>/dev/null; then
     AYAZ_LOG=/dev/null
 fi
 
-# WebKitGTK on kontrolu: Python koprusu WebKit2 4.1 (libsoup3), yoksa 4.0 typelib'i ister.
-# Eksikse sessiz siyah ekran yerine loga okunur bir satir yazilir.
-if command -v python3 >/dev/null 2>&1; then
-    if ! python3 -c "import gi; gi.require_version('WebKit2','4.1')" 2>/dev/null \
-       && ! python3 -c "import gi; gi.require_version('WebKit2','4.0')" 2>/dev/null; then
-        printf '[Ayaz] UYARI: WebKit2 typelib (4.1/4.0) bulunamadi; arayuz acilamayabilir.\n' >>"$AYAZ_LOG"
-    fi
-fi
-
 AYAZ_BIN=
-if [ -x /usr/bin/ayaz ]; then
+if [ -x /usr/bin/ayaz-de ]; then
+    AYAZ_BIN=/usr/bin/ayaz-de
+elif [ -x /usr/bin/ayaz ]; then
     AYAZ_BIN=/usr/bin/ayaz
-elif [ -x /usr/local/bin/ayaz ]; then
-    AYAZ_BIN=/usr/local/bin/ayaz
+elif [ -x /usr/local/bin/ayaz-de ]; then
+    AYAZ_BIN=/usr/local/bin/ayaz-de
 fi
 
 if [ -z "$AYAZ_BIN" ]; then
-    printf '[Ayaz] Masaüstü ikilisi bulunamadı (/usr/bin/ayaz, /usr/local/bin/ayaz).\n' >>"$AYAZ_LOG"
+    printf '[Ayaz] Masaüstü ikilisi bulunamadı (/usr/bin/ayaz-de, /usr/bin/ayaz).\n' >>"$AYAZ_LOG"
     AYAZ_RC=127
 else
-    "$AYAZ_BIN" >>"$AYAZ_LOG" 2>&1
-    AYAZ_RC=$?
+    while :; do
+        rm -f /tmp/ayaz-restart-requested 2>/dev/null || true
+        "$AYAZ_BIN" >>"$AYAZ_LOG" 2>&1
+        AYAZ_RC=$?
+        if [ "$AYAZ_RC" -eq 0 ] && [ -f /tmp/ayaz-restart-requested ]; then
+            rm -f /tmp/ayaz-restart-requested 2>/dev/null || true
+            printf '[Ayaz] Oturum içi temiz yeniden başlatma tetiklendi...\n' >>"$AYAZ_LOG"
+            # İkili güncelleme sonrası değişmişse güncel yolu yeniden seç
+            if [ -x /usr/bin/ayaz-de ]; then
+                AYAZ_BIN=/usr/bin/ayaz-de
+            fi
+            continue
+        fi
+        break
+    done
 fi
 
 if [ "$AYAZ_RC" -ne 0 ]; then

@@ -1,8 +1,8 @@
-# Ankora Linux Donanım Uyumluluk Rehberi (v4.5.2)
+# Ankora Linux Donanım Uyumluluk Rehberi (v4.7.0)
 
-Bu belge, Ankora Linux (Devuan Daedalus 5.0 tabanlı, SysVinit init sistemi ve Ayaz DE masaüstü ortamı) için hedeflenen donanım profillerini ve her birinin doğrulama durumunu listeler.
+Bu belge, Ankora Linux 4.7.0 "Bora" (Devuan 6.0 Excalibur tabanlı, SysVinit init sistemi ve Ayaz DE Tauri 2.0 / WebKitGTK 4.1 masaüstü ortamı) için hedeflenen donanım profillerini ve her birinin doğrulama durumunu listeler.
 
-> **Doğrulama durumu (2026-11-10):** v4.5.2 ISO içeriği denetlendi (247 radeon, 530 amdgpu firmware dosyası; hibrit MBR + UEFI imzası). Gerçek donanımda açılış ve diske kurulum henüz uçtan uca doğrulanmadı. Aşağıdaki tablolar destek hedefidir; bir cihazda test ettiyseniz sonucu GitHub Issues üzerinden bildirin, tablo güncellenir.
+> **Doğrulama durumu (2026-11-16):** v4.7.0 ("Bora", Devuan 6.0 Excalibur, Linux 6.12 LTS çekirdek hattı, Tauri 2.0 / WebKitGTK 4.1) kaynak, `.deb` paketleme ve ISO betik denetimleri tamamlandı; CI hattına QEMU BIOS/UEFI önyükleme duman testi eklendi. Gerçek fiziksel donanımda açılış ve diske kurulum henüz uçtan uca doğrulanmadı. Aşağıdaki tablolar destek hedefidir; bir cihazda test ettiyseniz sonucu GitHub Issues üzerinden bildirin, tablo güncellenir.
 
 ---
 
@@ -29,7 +29,7 @@ Canlı ISO imajında açık kaynak Mesa sürücüleri ve ikili (binary) çekirde
 
 | GPU Ailesi | Örnek Modeller | Çekirdek / Mesa Sürücüsü | Firmware / Durum |
 | :--- | :--- | :--- | :--- |
-| **AMD / ATI Eski Nesil (TeraScale)** | Mobility Radeon HD 4300, HD 4350, HD 4500, HD 5450 | `radeon` + Mesa `r600` | `/lib/firmware/radeon` ISO içinde doğrulanır, boşsa derleme durur. 4.5.1 HD 4300'de konsolda donuyordu (firmware eksikti); 4.5.2 açılışı henüz donanımda denenmedi. |
+| **AMD / ATI Eski Nesil (TeraScale)** | Mobility Radeon HD 4300, HD 4350, HD 4500, HD 5450 | `radeon` + Mesa `r600` | `/lib/firmware/radeon` ISO içinde doğrulanır, boşsa derleme durur. 4.5.1 HD 4300'de firmware eksikliği nedeniyle donuyordu; 4.7.0 (Excalibur / Linux 6.12 LTS) gerçek donanımda henüz denenmedi. |
 | **AMD GCN / RDNA** | Radeon RX 400/500, Vega APU, RX 6000 | `amdgpu` + Mesa `radeonsi` | `/lib/firmware/amdgpu` yerleşik; donanımsal hızlandırma açık. |
 | **Intel Entegre GPU** | GMA 4500, HD 2000/3000/4000, UHD 600, Iris Xe | `i915` + Mesa `crocus` / `iris` | Ek paket gerektirmez; tam KMS ve WebKitGTK uyumu. |
 | **NVIDIA (Eski ve Orta Nesil)** | GeForce GT 210, GT 710, GTX 750/960/1050 | `nouveau` (açık kaynak) | Canlı oturumda `nouveau` ile açılır. Görüntü sorunu yaşanırsa önyükleme menüsünden **Güvenli Grafik (nomodeset)** seçilebilir. |
@@ -56,7 +56,7 @@ Boşta bellek tüketimi bu sürüm için ölçülmedi.
 
 ## 4. Yazıcı, Tarayıcı ve Çevre Birimleri
 
-Bir sonraki ISO derlemesinden itibaren yazdırma ve belge tarama altyapısı hazır gelir (yayınlanmış 4.5.2 ISO'sunda henüz yok):
+v4.7.0 ISO üretim betiklerinde yazdırma ve belge tarama altyapısı öntanımlı olarak kurulur:
 
 * **Yazıcı Desteği (CUPS)**: `cups`, `cups-client`, `cups-bsd`, `printer-driver-gutenprint` ve `system-config-printer` kurulu gelir. `cups` SysVinit servisi açılışta etkindir; `ankora` kullanıcısı `lp` grubuna üyedir.
 * **Tarayıcı Desteği (SANE)**: `sane-utils`, `libsane1` ve `simple-scan` (Belge Tarayıcı) kurulu gelir; `ankora` kullanıcısı `scanner` grubuna üyedir.

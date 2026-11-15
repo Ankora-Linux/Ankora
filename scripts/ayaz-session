@@ -23,7 +23,13 @@ fi
 # WebKitGTK ve X11 ortam ayarları (fiziksel donanım ve sanal makine uyumluluğu)
 export GDK_BACKEND=x11
 export WEBKIT_DISABLE_DMABUF_RENDERER=1
-export WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS=1
+# Bubblewrap (bwrap) kullanıcı ad alanı destekleniyorsa WebKit sandbox etkin kalır;
+# yalnızca kısıtlı container / eski çekirdeklerde geri düşüş uygulanır.
+if command -v bwrap >/dev/null 2>&1 && bwrap --ro-bind / / /bin/true >/dev/null 2>&1; then
+    unset WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS
+else
+    export WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS=1
+fi
 
 # Düşük RAM optimizasyonları (800 MB -> 450 MB hedefi)
 # Glibc thread arena kısıtlaması: WebKit thread patlamasını ve bellek şişmesini önler
@@ -134,7 +140,7 @@ if command -v xsettingsd >/dev/null 2>&1; then
     xsettingsd &
 fi
 
-# 6. Ayaz DE Başlatma ve Temiz Kapanış
+# 6. Ayaz DE Başlatma ve Temiz Kapanış (Tek İkili: /usr/bin/ayaz-de)
 cleanup() {
     if [ -n "${OPENBOX_PID:-}" ]; then
         kill "$OPENBOX_PID" 2>/dev/null || true
@@ -143,12 +149,31 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-if [ -x /usr/bin/ayaz ]; then
-    /usr/bin/ayaz
-elif [ -x /usr/local/bin/ayaz ]; then
-    /usr/local/bin/ayaz
+AYAZ_BIN=""
+if [ -x /usr/bin/ayaz-de ]; then
+    AYAZ_BIN="/usr/bin/ayaz-de"
+elif [ -x /usr/bin/ayaz ]; then
+    AYAZ_BIN="/usr/bin/ayaz"
+elif [ -x /usr/local/bin/ayaz-de ]; then
+    AYAZ_BIN="/usr/local/bin/ayaz-de"
 elif [ -x "$(dirname "$0")/../src-tauri/target/release/ayaz-de" ]; then
-    "$(dirname "$0")/../src-tauri/target/release/ayaz-de"
+    AYAZ_BIN="$(dirname "$0")/../src-tauri/target/release/ayaz-de"
+fi
+
+if [ -n "$AYAZ_BIN" ]; then
+    while :; do
+        rm -f /tmp/ayaz-restart-requested 2>/dev/null || true
+        set +e
+        "$AYAZ_BIN"
+        AYAZ_RC=$?
+        set -e
+        if [ "$AYAZ_RC" -eq 0 ] && [ -f /tmp/ayaz-restart-requested ]; then
+            rm -f /tmp/ayaz-restart-requested 2>/dev/null || true
+            [ -x /usr/bin/ayaz-de ] && AYAZ_BIN="/usr/bin/ayaz-de"
+            continue
+        fi
+        exit "$AYAZ_RC"
+    done
 else
     xterm -e "echo [HATA] Ayaz ikili dosyası bulunamadı!; sh" || true
 fi

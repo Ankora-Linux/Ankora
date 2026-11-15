@@ -163,11 +163,31 @@
       }
     },
 
+    listen(eventName, handler) {
+      if (typeof window === 'undefined' || typeof handler !== 'function') return null;
+      if (window.__TAURI__?.event?.listen) {
+        return window.__TAURI__.event.listen(eventName, handler);
+      }
+      const internals = window.__TAURI_INTERNALS__;
+      if (internals && typeof internals.invoke === 'function' && typeof internals.transformCallback === 'function') {
+        const cbId = internals.transformCallback((evt) => {
+          try { handler(evt); } catch (e) {}
+        });
+        return internals.invoke('plugin:event|listen', {
+          event: eventName,
+          target: { kind: 'Any' },
+          handler: cbId
+        });
+      }
+      return null;
+    },
+
     async invoke(cmd, args = {}) {
       // 1. Rust Tauri Native (derlenmiş Tauri binary içinde çalışıyorsa)
-      //    Bu köprü varsa hata gerçek bir hatadır: yutulmaz, çağırana iletilir.
-      const tauriInvoke = (typeof window !== 'undefined' && window.__TAURI__)
-        ? (window.__TAURI__.core?.invoke || window.__TAURI__.invoke)
+      //    withGlobalTauri=false iken __TAURI_INTERNALS__.invoke üzerinden konuşur;
+      //    hata gerçek bir hatadır: yutulmaz, çağırana iletilir.
+      const tauriInvoke = (typeof window !== 'undefined')
+        ? (window.__TAURI__?.core?.invoke || window.__TAURI__?.invoke || window.__TAURI_INTERNALS__?.invoke)
         : null;
       if (tauriInvoke) {
         const out = await tauriInvoke(cmd, args);
@@ -419,7 +439,7 @@
           return 'Oturum kilitlendi.';
 
         case 'download_and_apply_de_update':
-          return 'Simülasyon güncellemesi başarıyla tamamlandı.';
+          throw new Error('Güncelleme yardımcısına (Tauri IPC) ulaşılamadı. Paket kurulmadı.');
 
         case 'restart_desktop_process':
           window.location.reload();
@@ -5570,10 +5590,8 @@
 
     // Kopyalama/taşıma canlı ilerleme: "0.4 MB / 12.0 MB — 3 sn" (hata listesi #5).
     initProgressListener() {
-      if (!window.__TAURI__ || !window.__TAURI__.event) return;
-      this._progStart = 0;
-      this._progLast = 0;
-      window.__TAURI__.event.listen('fs-progress', (event) => {
+      // Tauri olay dinleyicisi (fs-progress)
+      TauriBridge.listen('fs-progress', (event) => {
         const now = Date.now();
         // 5 saniye sessizlik yeni işlem sayılır: süre sayacı sıfırlanır.
         if (!this._progLast || now - this._progLast > 5000) this._progStart = now;
@@ -7962,7 +7980,7 @@
           `• **Masaüstü Ortamı:** Ayaz DE (Rust + WebKitGTK)\n` +
           `• **İnit & Hizmet Sistemi:** SysVinit (Düşük kaynak tüketimli)\n` +
           `• **Çekirdek:** Linux LTS x86_64\n` +
-          `• **Güvenlik & İzolasyon:** Unprivileged sandbox, yerel anahtar kasası\n\n` +
+          `• **Güvenlik & İzolasyon:** Bubblewrap (bwrap) + Kısıtlı IPC, yerel anahtar kasası\n\n` +
           `Disk ve bellek doluluk oranlarını canlı sorgulamak için aşağıdaki komutu onaylayabilirsiniz.`;
         has_action = true;
         action_command = 'df -h / && free -m';
@@ -12779,11 +12797,9 @@
       }
 
       // Tauri olay dinleyicisi (canlı indirme ve kurulum yüzdesi)
-      if (typeof window !== 'undefined' && window.__TAURI__ && window.__TAURI__.event) {
-        window.__TAURI__.event.listen('update-progress', (event) => {
-          this.handleProgress(event.payload);
-        });
-      }
+      TauriBridge.listen('update-progress', (event) => {
+        this.handleProgress(event.payload);
+      });
     },
 
     async checkForUpdates() {
@@ -12930,13 +12946,13 @@
 
         if (progressFill) progressFill.style.width = '100%';
         if (progressPct) progressPct.textContent = '100%';
-        if (progressLabel) progressLabel.textContent = 'Güncelleme başarıyla tamamlandı!';
+        if (progressLabel) progressLabel.textContent = 'Paket kuruldu. Yeni sürümün devreye girmesi için oturumu yeniden başlatın.';
 
         if (btnApply) btnApply.style.display = 'none';
         const btnRestart = document.getElementById('btn-updater-restart');
         if (btnRestart) btnRestart.style.display = 'inline-block';
 
-        Terminal.log('[GÜNCELLEME] Ayaz DE başarıyla güncellendi. Masaüstünün yeniden başlatılması önerilir.', 'cmd');
+        Terminal.log('[GÜNCELLEME] Paket kuruldu. Yeni sürümün devreye girmesi için oturumu yeniden başlatın.', 'cmd');
       } catch (err) {
         if (progressLabel) progressLabel.textContent = `Hata: ${err}`;
         if (btnApply) {

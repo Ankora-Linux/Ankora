@@ -2,7 +2,7 @@
 title WSL Debian Kurulumu - Ankora Linux
 cd /d "%~dp0"
 echo ======================================================================
-echo       ANKORA LINUX 2.0 - WSL DEBIAN OTOMATIK KURULUM ARACI
+echo       ANKORA LINUX 4.7.0 - WSL DEBIAN OTOMATIK KURULUM ARACI
 echo ======================================================================
 echo.
 echo Bu islem Windows Subsystem for Linux (WSL) ve Debian tabanini kurar.

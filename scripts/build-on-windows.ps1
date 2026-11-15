@@ -1,25 +1,25 @@
 ﻿# ==============================================================================
-# Ankora Linux 3.3 (Ayaz DE) - Windows Canlı ISO Derleme Otomasyonu
+# Ankora Linux 4.7.0 "Bora" (Ayaz DE) - Windows Canlı ISO Derleme Otomasyonu
 # Bu betik Windows ortamından Devuan 6 Excalibur tabanlı canlı ISO imajını
 # WSL2, VirtualBox veya GitHub Actions entegrasyonuyla güvenle derler.
 # ==============================================================================
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-$Host.UI.RawUI.WindowTitle = "Ankora Linux 3.3 - Windows ISO Derleme İstasyonu"
+$Host.UI.RawUI.WindowTitle = "Ankora Linux 4.7.0 - Windows ISO Derleme İstasyonu"
 
 Clear-Host
 Write-Host "======================================================================" -ForegroundColor Cyan
-Write-Host "     ANKORA LINUX 3.3 (AYAZ DE) - WINDOWS CANLI ISO DERLEYİCİ          " -ForegroundColor Yellow
+Write-Host "     ANKORA LINUX 4.7.0 (AYAZ DE) - WINDOWS CANLI ISO DERLEYİCİ        " -ForegroundColor Yellow
 Write-Host "======================================================================" -ForegroundColor Cyan
 Write-Host "Hedef Dağıtım : Devuan GNU/Linux 6 (Excalibur) SysVinit Core" -ForegroundColor White
-Write-Host "Masaüstü      : Ayaz DE v3.3.0 (Kiosk GUI)" -ForegroundColor White
-Write-Host "Çıktı Kalıbı  : dist\ankora-linux-3.3-ayaz-amd64.iso (UEFI + BIOS Hibrit)" -ForegroundColor White
+Write-Host "Masaüstü      : Ayaz DE v4.7.0 (Tauri 2.0 + WebKitGTK 4.1)" -ForegroundColor White
+Write-Host "Çıktı Kalıbı  : dist\ankora-linux-4.7.0-ayaz-amd64.iso (UEFI + BIOS Hibrit)" -ForegroundColor White
 Write-Host "======================================================================" -ForegroundColor Cyan
 Write-Host ""
 
 $RootPath = (Resolve-Path "$PSScriptRoot\..").Path
 $DistPath = Join-Path $RootPath "dist"
-$IsoPath  = Join-Path $DistPath "ankora-linux-3.3-ayaz-amd64.iso"
+$IsoPath  = Join-Path $DistPath "ankora-linux-4.7.0-ayaz-amd64.iso"
 
 # 1. Ortam Taraması: WSL Durumu
 Write-Host "[1/4] Windows sanallaştırma ve alt sistem ortamı taranıyor..." -ForegroundColor Yellow
@@ -143,7 +143,7 @@ bash scripts/build-iso.sh
 
         Write-Host ""
         Write-Host "======================================================================" -ForegroundColor Green
-        Write-Host "  TEBRİKLER! ANKORA LINUX 3.3 CANLI ISO BAŞARIYLA ÜRETİLDİ!           " -ForegroundColor Green
+        Write-Host "  TEBRİKLER! ANKORA LINUX 4.7.0 CANLI ISO BAŞARIYLA ÜRETİLDİ!         " -ForegroundColor Green
         Write-Host "======================================================================" -ForegroundColor Green
         Write-Host "  Konum  : $IsoPath" -ForegroundColor White
         Write-Host "  Boyut  : $isoSizeMB MB" -ForegroundColor White
@@ -206,10 +206,10 @@ else {
             Write-Host "     GITHUB ACTIONS BULUTTA ISO DERLEME ADIMLARI                      " -ForegroundColor Yellow
             Write-Host "======================================================================" -ForegroundColor Cyan
             Write-Host "Tarayıcınızda GitHub Actions sayfası açılıyor..." -ForegroundColor Green
-            Start-Process "https://github.com/Ankora-Linux/Ayaz/actions"
+            Start-Process "https://github.com/Ankora-Linux/Ankora/actions"
             Write-Host "1. Açılan sayfada 'Ankora Linux Canlı ISO Derleme' iş akışını seçin." -ForegroundColor White
             Write-Host "2. Sağ üstteki 'Run workflow' butonuna basarak derlemeyi başlatın." -ForegroundColor Green
-            Write-Host "3. 10-15 dakika içinde üretilen 'ankora-linux-3.3-ayaz-amd64.iso' kalıbı hazır olacaktır." -ForegroundColor White
+            Write-Host "3. 10-15 dakika içinde üretilen 'ankora-linux-4.7.0-ayaz-amd64.iso' kalıbı hazır olacaktır." -ForegroundColor White
             Write-Host "======================================================================" -ForegroundColor Cyan
         }
         "3" {

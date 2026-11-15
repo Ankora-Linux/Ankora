@@ -207,7 +207,8 @@ def main():
         check("eta: chroot kurulumu", all(k in iso for k in (
             "usr/bin/eta-touchdrv", "99-faz-touch.rules", "99-faz-touch.conf",
             "eta-touchdrv.desktop")))
-        check("eta: kurulu hedefe taşınır", "target/usr/bin/eta-touchdrv" in iso)
+        main_rs = (ROOT / "src-tauri/src/main.rs").read_text(encoding="utf-8")
+        check("eta: kurulu hedefe taşınır", "target/usr/bin/eta-touchdrv" in main_rs)
         check("eta: oturumda otomatik", "eta-touchdrv --enable" in xin
               and "eta-touchdrv --enable" in (ROOT / "scripts/ayaz-session").read_text(encoding="utf-8"))
         import subprocess as _sp
