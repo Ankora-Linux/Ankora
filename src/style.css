@@ -5737,7 +5737,6 @@ body.is-light-theme .desktop-context-menu {
   background: rgba(255, 255, 255, 0.1);
   border-color: rgba(255, 255, 255, 0.18);
   color: #ffffff;
-  transform: translateY(-1px);
 }
 
 .taskbar-pin-btn:active {
@@ -5749,6 +5748,9 @@ body.is-light-theme .desktop-context-menu {
   display: block;
   stroke: currentColor;
   fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
   width: 17px;
   height: 17px;
 }
@@ -13070,24 +13072,24 @@ body.theme-meltem .ai-watch-wave .wave-glow {
 /* Görev çubuğundaki "Bak ve anlat" göz düğmesi. Açık temalarda koyu
    maviye döner; hard-coded cyan beyaz panelde okunmaz. */
 .taskbar-pin-btn.ai-look-pin {
-  color: #38bdf8;
+  color: inherit;
 }
 .taskbar-pin-btn.ai-look-pin:hover {
-  color: #7dd3fc;
+  color: var(--accent, currentColor);
 }
 body.theme-light .taskbar-pin-btn.ai-look-pin,
 body.is-light-theme .taskbar-pin-btn.ai-look-pin,
 body.theme-arctic .taskbar-pin-btn.ai-look-pin,
 body.theme-cinar .taskbar-pin-btn.ai-look-pin,
 body.theme-meltem .taskbar-pin-btn.ai-look-pin {
-  color: #0369a1;
+  color: inherit;
 }
 body.theme-light .taskbar-pin-btn.ai-look-pin:hover,
 body.is-light-theme .taskbar-pin-btn.ai-look-pin:hover,
 body.theme-arctic .taskbar-pin-btn.ai-look-pin:hover,
 body.theme-cinar .taskbar-pin-btn.ai-look-pin:hover,
 body.theme-meltem .taskbar-pin-btn.ai-look-pin:hover {
-  color: #075985;
+  color: var(--accent, currentColor);
 }
 
 /* Mini AI'ya dosya bırakma */

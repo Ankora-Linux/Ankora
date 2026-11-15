@@ -3096,7 +3096,7 @@
         return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>`;
       }
       if (id.includes('brave') || id === 'ankora-browser' || id.includes('browser')) {
-        return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2L4 5v6.09c0 5.05 3.41 9.76 8 10.91 4.59-1.15 8-5.86 8-10.91V5l-8-3z"></path><path d="M9 12l2 2 4-4"></path></svg>`;
+        return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><polygon points="10.2 10.2 15.5 8.5 13.8 13.8 8.5 15.5 10.2 10.2"></polygon></svg>`;
       }
       if (id.includes('screenshot') || id.includes('scrot') || id.includes('snip')) {
         return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>`;
@@ -3106,6 +3106,9 @@
       }
       if (id === 'ayaz-widgets' || id.includes('widget')) {
         return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="8" height="8" rx="2"></rect><rect x="13" y="3" width="8" height="5" rx="2"></rect><rect x="13" y="10" width="8" height="11" rx="2"></rect><rect x="3" y="13" width="8" height="8" rx="2"></rect></svg>`;
+      }
+      if (id === 'settings' || id === 'ayaz-settings' || id.includes('setting')) {
+        return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h16M4 17h16"></path><circle cx="14.5" cy="7" r="2"></circle><circle cx="8" cy="12" r="2"></circle><circle cx="16" cy="17" r="2"></circle></svg>`;
       }
 
       if (id.includes('vlc') || id.includes('mpv') || id.includes('audio') || id.includes('media') || cat === 'media') {

@@ -297,11 +297,11 @@
       // 2. Alt Dock: Temel Uygulamalar
       const apps = [
         { id: 'start', title: 'Başlat Menüsü', icon: '<circle cx="8" cy="8" r="3.4"/><rect x="9.4" y="9.4" width="7.6" height="7.6"/>', action: (e) => this.toggleStartMenu(e) },
-        { id: 'files', winId: 'win-files', title: 'Dosyalar', icon: '<path d="M3 7h6l2 2h10v10H3z"/>', action: () => this.openApp('win-files') },
-        { id: 'brave', winId: 'win-browser', title: 'Brave Web Tarayıcısı', icon: '<circle cx="12" cy="12" r="8"/><path d="M4 12h16M12 4c-3 4-3 12 0 16M12 4c3 4 3 12 0 16"/>', action: () => this.launchOrToggleBrave() },
-        { id: 'store', winId: 'win-store', title: 'Yazılım Mağazası', icon: '<path d="M5 8l7-4 7 4-7 4zM12 12v8M5 16l7 4 7-4M5 8v8l7 4 7-4V8"/>', action: () => this.openApp('win-store') },
-        { id: 'settings', winId: 'win-settings', title: 'Sistem Ayarları', icon: '<path d="M5 8h14l-1 10H6zM9 8V6a3 3 0 0 1 6 0v2"/>', action: () => this.openApp('win-settings') },
-        { id: 'terminal', winId: 'win-terminal', title: 'Uçbirim (Terminal)', icon: '<rect x="4" y="5" width="16" height="14"/><path d="M7 9.5l3 2.5-3 2.5M12 15h5"/>', action: () => this.openApp('win-terminal') }
+        { id: 'files', winId: 'win-files', title: 'Dosyalar', icon: '<path d="M3 6.5A1.5 1.5 0 0 1 4.5 5h4.3l2 2.2H19.5A1.5 1.5 0 0 1 21 8.7v9.8a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5z"/>', action: () => this.openApp('win-files') },
+        { id: 'brave', winId: 'win-browser', title: 'Brave Web Tarayıcısı', icon: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polygon points="10.2 10.2 15.5 8.5 13.8 13.8 8.5 15.5 10.2 10.2"/>', action: () => this.launchOrToggleBrave() },
+        { id: 'store', winId: 'win-store', title: 'Yazılım Mağazası', icon: '<path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/>', action: () => this.openApp('win-store') },
+        { id: 'settings', winId: 'win-settings', title: 'Sistem Ayarları', icon: '<path d="M4 7h16M4 12h16M4 17h16"/><circle cx="14.5" cy="7" r="2"/><circle cx="8" cy="12" r="2"/><circle cx="16" cy="17" r="2"/>', action: () => this.openApp('win-settings') },
+        { id: 'terminal', winId: 'win-terminal', title: 'Uçbirim (Terminal)', icon: '<rect x="3" y="4.5" width="18" height="15" rx="1.5"/><path d="M7 9.5l3 2.5-3 2.5M12.5 15h5"/>', action: () => this.openApp('win-terminal') }
       ];
 
       apps.forEach(app => {
@@ -310,7 +310,7 @@
         btn.setAttribute('data-app-id', app.id);
         if (app.winId) btn.setAttribute('data-win-id', app.winId);
         btn.title = app.title;
-        btn.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24">${app.icon}</svg>`;
+        btn.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${app.icon}</svg>`;
         btn.addEventListener('click', (e) => app.action(e));
         dock.appendChild(btn);
       });
@@ -361,11 +361,11 @@
       // 3. Alt Yeşil Kapsül Dock
       const apps = [
         { id: 'start', title: 'Başlat Menüsü', icon: '<circle cx="8" cy="8" r="3.4"/><rect x="9.4" y="9.4" width="7.6" height="7.6"/>', action: (e) => this.toggleStartMenu(e) },
-        { id: 'files', winId: 'win-files', title: 'Dosyalar', icon: '<path d="M3 7h6l2 2h10v10H3z"/>', action: () => this.openApp('win-files') },
-        { id: 'brave', winId: 'win-browser', title: 'Brave Web Tarayıcısı', icon: '<circle cx="12" cy="12" r="8"/><path d="M4 12h16M12 4c-3 4-3 12 0 16M12 4c3 4 3 12 0 16"/>', action: () => this.launchOrToggleBrave() },
-        { id: 'store', winId: 'win-store', title: 'Yazılım Mağazası', icon: '<path d="M5 8l7-4 7 4-7 4zM12 12v8M5 16l7 4 7-4M5 8v8l7 4 7-4V8"/>', action: () => this.openApp('win-store') },
-        { id: 'terminal', winId: 'win-terminal', title: 'Uçbirim (Terminal)', icon: '<rect x="4" y="5" width="16" height="14"/><path d="M7 9.5l3 2.5-3 2.5M12 15h5"/>', action: () => this.openApp('win-terminal') },
-        { id: 'settings', winId: 'win-settings', title: 'Sistem Ayarları', icon: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1z"/>', action: () => this.openApp('win-settings') }
+        { id: 'files', winId: 'win-files', title: 'Dosyalar', icon: '<path d="M3 6.5A1.5 1.5 0 0 1 4.5 5h4.3l2 2.2H19.5A1.5 1.5 0 0 1 21 8.7v9.8a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5z"/>', action: () => this.openApp('win-files') },
+        { id: 'brave', winId: 'win-browser', title: 'Brave Web Tarayıcısı', icon: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polygon points="10.2 10.2 15.5 8.5 13.8 13.8 8.5 15.5 10.2 10.2"/>', action: () => this.launchOrToggleBrave() },
+        { id: 'store', winId: 'win-store', title: 'Yazılım Mağazası', icon: '<path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/>', action: () => this.openApp('win-store') },
+        { id: 'terminal', winId: 'win-terminal', title: 'Uçbirim (Terminal)', icon: '<rect x="3" y="4.5" width="18" height="15" rx="1.5"/><path d="M7 9.5l3 2.5-3 2.5M12.5 15h5"/>', action: () => this.openApp('win-terminal') },
+        { id: 'settings', winId: 'win-settings', title: 'Sistem Ayarları', icon: '<path d="M4 7h16M4 12h16M4 17h16"/><circle cx="14.5" cy="7" r="2"/><circle cx="8" cy="12" r="2"/><circle cx="16" cy="17" r="2"/>', action: () => this.openApp('win-settings') }
       ];
 
       apps.forEach(app => {
@@ -374,7 +374,7 @@
         btn.setAttribute('data-app-id', app.id);
         if (app.winId) btn.setAttribute('data-win-id', app.winId);
         btn.title = app.title;
-        btn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24">${app.icon}</svg>`;
+        btn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${app.icon}</svg>`;
         btn.addEventListener('click', (e) => app.action(e));
         dock.appendChild(btn);
       });
@@ -422,11 +422,11 @@
       if (dock) {
         const apps = [
           { id: 'start', title: 'Başlat Menüsü', icon: '<circle cx="8" cy="8" r="3.4"/><rect x="9.4" y="9.4" width="7.6" height="7.6"/>', action: (e) => this.toggleStartMenu(e) },
-          { id: 'files', winId: 'win-files', title: 'Dosyalar', icon: '<path d="M3 7h6l2 2h10v10H3z"/>', action: () => this.openApp('win-files') },
-          { id: 'brave', winId: 'win-browser', title: 'Brave Web Tarayıcısı', icon: '<circle cx="12" cy="12" r="8"/><path d="M4 12h16M12 4c-3 4-3 12 0 16M12 4c3 4 3 12 0 16"/>', action: () => this.launchOrToggleBrave() },
-          { id: 'store', winId: 'win-store', title: 'Yazılım Mağazası', icon: '<path d="M5 8l7-4 7 4-7 4zM12 12v8M5 16l7 4 7-4M5 8v8l7 4 7-4V8"/>', action: () => this.openApp('win-store') },
-          { id: 'terminal', winId: 'win-terminal', title: 'Uçbirim (Terminal)', icon: '<rect x="4" y="5" width="16" height="14"/><path d="M7 9.5l3 2.5-3 2.5M12 15h5"/>', action: () => this.openApp('win-terminal') },
-          { id: 'settings', winId: 'win-settings', title: 'Sistem Ayarları', icon: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1z"/>', action: () => this.openApp('win-settings') }
+          { id: 'files', winId: 'win-files', title: 'Dosyalar', icon: '<path d="M3 6.5A1.5 1.5 0 0 1 4.5 5h4.3l2 2.2H19.5A1.5 1.5 0 0 1 21 8.7v9.8a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5z"/>', action: () => this.openApp('win-files') },
+          { id: 'brave', winId: 'win-browser', title: 'Brave Web Tarayıcısı', icon: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polygon points="10.2 10.2 15.5 8.5 13.8 13.8 8.5 15.5 10.2 10.2"/>', action: () => this.launchOrToggleBrave() },
+          { id: 'store', winId: 'win-store', title: 'Yazılım Mağazası', icon: '<path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/>', action: () => this.openApp('win-store') },
+          { id: 'terminal', winId: 'win-terminal', title: 'Uçbirim (Terminal)', icon: '<rect x="3" y="4.5" width="18" height="15" rx="1.5"/><path d="M7 9.5l3 2.5-3 2.5M12.5 15h5"/>', action: () => this.openApp('win-terminal') },
+          { id: 'settings', winId: 'win-settings', title: 'Sistem Ayarları', icon: '<path d="M4 7h16M4 12h16M4 17h16"/><circle cx="14.5" cy="7" r="2"/><circle cx="8" cy="12" r="2"/><circle cx="16" cy="17" r="2"/>', action: () => this.openApp('win-settings') }
         ];
 
         apps.forEach(app => {
@@ -435,7 +435,7 @@
           btn.setAttribute('data-app-id', app.id);
           if (app.winId) btn.setAttribute('data-win-id', app.winId);
           btn.title = app.title;
-          btn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24">${app.icon}</svg>`;
+          btn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${app.icon}</svg>`;
           btn.addEventListener('click', (e) => app.action(e));
           dock.appendChild(btn);
         });
