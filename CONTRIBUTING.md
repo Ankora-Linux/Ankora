@@ -1,6 +1,6 @@
 # CONTRIBUTING.md
 
-Teşekkürler — Ankora Linux projesine katkıda bulunmak istiyorsun! Bu belge, katkı sürecini ve temel kuralları açıklar. Proje dosyalarına (src/, src-tauri/, scripts/ vb.) doğrudan müdahale etmeden önce bu kurallara uy:
+Ankora Linux projesine katkıda bulunmak istediğiniz için teşekkürler. Bu belge, katkı sürecini ve temel kuralları açıklar. Proje dosyalarına (src/, src-tauri/, scripts/ vb.) doğrudan müdahale etmeden önce bu kurallara uy:
 
 1. Sorun (issue) açma
    - Yeni bir hata bildirimi veya özellik isteği için GitHub Issues kullanın.

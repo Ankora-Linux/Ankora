@@ -1,4 +1,4 @@
-# AGENTS.md — Ankora Linux / Ayaz DE
+# AGENTS.md: Ankora Linux / Ayaz DE
 
 Bu depo, Ankora Linux projesinin resmî ana deposudur. Burada Ayaz Desktop Environment (Ayaz DE) geliştirilir, paketlenir ve canlı ISO yapılandırması sürdürülür.
 
@@ -50,7 +50,7 @@ tarihli satır olarak eklenir; silinmez.
 - 2026-10-29 ( finalized): v4.0.0 yayınlandı. İlk ISO derlemesi
   (`40884939190`) doğrulama suzgecinde dustu: xorriso 1.5.4 'as_mkisofs'
   raporu '-isohybrid-gpt-basdat' satırını basmıyor. Dogrulama bayt
-  duzeyine taşındı (MBR1=0x80 @446, MBR2=0xef @466, GPT imza @512) —
+  duzeyine taşındı (MBR1=0x80 @446, MBR2=0xef @466, GPT imza @512);
   pozitif/negatif mini ISO ile hem doğrulandı. Sabit volid ANKORA_3_3 →
   $AYAZ_VERSION'dan türetilen VOLID (ANKORA_4_0_0), grub.cfg 'search
   --label' yer tutucu üzerinden aynı kaynaktan (commit `3ec1b19`).

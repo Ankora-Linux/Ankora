@@ -1,4 +1,4 @@
-# DESIGN.md — Ayaz DE tasarım yönü
+# DESIGN.md: Ayaz DE tasarım yönü
 
 Bu dosya ürün sahibinin talimatıdır. `antislop.md` yalnızca filtre görevi görür;
 yön buradan okunur.

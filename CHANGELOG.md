@@ -1,4 +1,4 @@
-# Ankora Linux — Sürüm Notları
+# Ankora Linux: Sürüm Notları
 
 
 ## 4.7.0 "Bora" (2026-11-14)
@@ -95,38 +95,38 @@
 
 ## 4.5.0 (2026-11-03)
 
-### 🎵 MPRIS+ Medya Entegrasyonu (Dinamik Ada + Bildirim Merkezi + Bakır/Bostan/Cıvata Panelleri)
-- **Dinamik Ada**: Çalan medyada şarkı adı, sanatçı, albüm kapağı, duraklat/öniçi/sonraki kontrolleri, canlı ses dalgası animasyonu ve parça ilerleme çubuğu (1 sn yumuşak interpolasyon).
+### MPRIS+ Medya Entegrasyonu (Dinamik Ada + Bildirim Merkezi + Bakır/Bostan/Cıvata Panelleri)
+- **Dinamik Ada**: Çalan medyada şarkı adı, sanatçı, albüm kapağı, duraklat/önceki/sonraki kontrolleri, canlı ses dalgası animasyonu ve parça ilerleme çubuğu (1 sn yumuşak interpolasyon).
 - **Bildirim Merkezi Kartı**: Aynı kontroller, ilerleme çubuğu ve birden fazla oynatıcı (Chromium, Brave, Spotify, VLC, mpv) arasında seçim yapan **oynatıcı çipleri** (seçim `ankora_mpris_player` anahtarıyla kalıcı).
 - **Akıllı Filtreleme**: Yalnız **Playing > Paused** durumundaki oynatıcı gösterilir; Stopped/durdurulanlar eskimiş metadata taşımadığı için gizlenir. Komutlar seçili oynatıcıya hedeflenir (`playerctl -p <name>`).
-- **Yüz Panelleri (Bakır/Bostan/Cıvata)**: Üst panellere entegre medya şeridi — önceki/oynat/sonraki + başlık/sanatçı + ilerleme çubuğu; her yüzün paletiyle (bakır/yeşil/mürekkep) renklendirilmiş, açık temalarda kontrast düzeltmesi.
+- **Yüz Panelleri (Bakır/Bostan/Cıvata)**: Üst panellere entegre medya şeridi: önceki/oynat/sonraki + başlık/sanatçı + ilerleme çubuğu; her yüzün paletiyle (bakır/yeşil/mürekkep) renklendirilmiş, açık temalarda kontrast düzeltmesi.
 
-### 🤖 Yerel AI Kurulum Sihirbazı (Ollama)
+### Yerel AI Kurulum Sihirbazı (Ollama)
 - ISO içine `/usr/local/bin/ankora-ollama-install` yardımcısı eklendi (GitHub resmî `ollama-linux-amd64.tgz` + sha256 doğrulama, `/usr/local` kurulum, **SysVinit `ollama` servisi** otomatik etkinleştirme).
-- AI Ayarları → "Yerel Modeller (Ollama)" bölümüne **"Ollama'yı Kur"** düğmesi (offline görünür, kurulum sonrası servis denetlenip model listesi yüklenir).
+- AI Ayarları -> "Yerel Modeller (Ollama)" bölümüne **"Ollama'yı Kur"** düğmesi (offline görünür, kurulum sonrası servis denetlenip model listesi yüklenir).
 - **Varsayılan model** `qwen2.5:0.5b` öneri listesine eklendi (4 GB ve altı RAM için optimize).
 - Önerilen modeller: `qwen2.5:0.5b` (398 MB), `qwen2.5-coder:1.5b` (986 MB), `llama3.2:1b` (1.3 GB), `gemma2:2b` (1.6 GB).
 
-### ⚡ ZRAM Desteği (Eco RAM+)
+### ZRAM Desteği (Eco RAM+)
 - 4 GB altı bellekli cihazlarda açılışta otomatik `lz4`/`zstd` sıkıştırmalı ZRAM takas havuzu (`ayaz-session`, `xinitrc`, `build-iso` entegrasyonu).
 - *Not: Init scripti henüz RAM eşiğini gözetmiyor (boyut politikası init=RAM/2, session=RAM); 4.5.1'de iyileştirilecek.*
 
-### 📦 Görsel Paket Yükleyici (.deb + .AppImage)
+### Görsel Paket Yükleyici (.deb + .AppImage)
 - Çift tıklanan `.deb` / `.AppImage` dosyaları için **win-pkg-installer** grafik arayüzü.
 - **Backend IPC**: `inspect_package_file` (meta: ad, sürüm, mimari, boyut, **bağımlılıklar Depends**), `install_local_deb_package`, `install_appimage`.
 - Kurulum öncesi bağımlılık listesi gösterilir; hata ayrıntısı pencere içi `<pre>` kutusunda okunur (toast yerine).
 - **AppImage kalıcı kurulum**: `~/.local/bin` kopyası + `0755` + `~/.local/share/applications/*.desktop` menü girişi; ikinci tık "Uygulamayı Başlat".
 
-### 🩺 Sistem Doktoru Eylemi
+### Sistem Doktoru Eylemi
 - Ankora AI mini popover'ına "Sistem Doktoru" hızlı çipi.
 - `ankora-doctor` raporuyla sistem sorunlarını analiz edip **tek tıkla güvenli onarım onay kartı** sunar.
 
-### 🔧 İkon Çözümleyici ve Yüzler Düzeltmeleri
-- **IconResolver**: Eksik `getIconSvg` metodu, menu/taskbar pin ikon yükseltmeleri, doğrudan alias eşlemeleri (`files`→`org.gnome.Nautilus`, `terminal`→`utilities-terminal`, vb.).
+### İkon Çözümleyici ve Yüzler Düzeltmeleri
+- **IconResolver**: Eksik `getIconSvg` metodu, menu/taskbar pin ikon yükseltmeleri, doğrudan alias eşlemeleri (`files`->`org.gnome.Nautilus`, `terminal`->`utilities-terminal`, vb.).
 - **Yüz 3 (Bostan) / Yüz 8 (Cıvata)**: Dev saat hero alanında canlı hava durumu senkronizasyonu.
-- **🐛 DÜZELTME**: Bakır/Bostan panellerinde görev çubuğuna uygulama sabitlendiğinde ikon **devasa/bozuk görünüyordu** — nedeni: pin kaydı yalnız `id/name/exec` taşıyor, gerçek ikon yükseltmesi 512 px SVG/PNG gelince 34×32 px düğmeyi aşıyordu.
+- **Düzeltme**: Bakır/Bostan panellerinde görev çubuğuna uygulama sabitlendiğinde ikon **devasa/bozuk görünüyordu**. Nedeni: pin kaydı yalnız `id/name/exec` taşıyor, gerçek ikon yükseltmesi 512 px SVG/PNG gelince 34×32 px düğmeyi aşıyordu.
   - `AppPinManager.toggleTaskbarPin` artık tam kayıt (`icon/exec/cat/deb/flatpak`) yazar; yeniden çizimde yer tutucu yerine uygulamanın kendi glifi gelir.
-  - Panel pin düğmesi: `.taskbar-pin-icon` sarmalayıcı, `max-width/height: 17px`, `object-fit: contain` — 512 px ikon bile 17×17 kutuda kalır.
+  - Panel pin düğmesi: `.taskbar-pin-icon` sarmalayıcı, `max-width/height: 17px`, `object-fit: contain`. 512 px ikon bile 17×17 kutuda kalır.
   - Yüz 2/3 dock: `.face-dock-app img/.real-app-icon` → `max 22×22` / `20×20` px.
   - Başlat menüsü sabitleme kartı: `.pinned-icon-box .real-app-icon` → `max 22×22` px.
   - Headless regression testleri eklendi (`scratch/test_ui_comprehensive.py`).
@@ -144,7 +144,7 @@
 ## 4.0.0 (2026-10-29)
 - Sanal Makine ve Fiziksel Donanım Ekran Çizim Düzeltmesi (Siyah Ekran Çözümü): WebKitGTK 2.40/2.50+ sürümlerinde sanal makine ve düşük donanım ortamlarında boş/siyah ekrana neden olan tüm engeller giderildi: Sanal makine (VirtualBox, QEMU, KVM, VMware) DMI tespiti ile otomatik `LIBGL_ALWAYS_SOFTWARE=1` ve yazılımsal rasterizer (llvmpipe) devreye alındı, fiziksel GPU'larda (Intel, AMD, Nvidia) tam donanım hızlandırması korundu; WebKitWebProcess sandbox çökmesini engelleyen `WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS=1` ve `kernel.unprivileged_userns_clone=1` eklendi; bubblewrap ve xdg-dbus-proxy chroot paketlerine dahil edildi; pencere boyutu tam ekran ekran geometrisi ile Openbox öncesi garantiye alındı; yerel dosya ve WebKit CSP'sine `file:` şeması entegre edildi. Kurulum aracı 4.0 damgasıyla güncellendi.
 - Cumhuriyet Teması (29 Ekim özel): Bayrak kırmızısı zeminli, ay-yıldız beyazı metinli koyu tema; eşleşen vektörel duvar kağıdı ve tema seçici kartı ile birlikte gelir. Monokrom cam tasarım sisteminin palet varyantıdır.
-- Güvenlik Sertleştirmeleri: 14 tarama bulgusu kapatıldı — kilit ekranı girişim sınırlayıcı ve tek kullanımlık kilit açma yetkisi (30 sn), pano sızıntısının kilitliyken engellenmesi, sembolik bağ üzerine yazma ataklarının durdurulması, polkit ajan denetimli pkexec geçidi, IPC'de Origin + 256-bit token + zaman-sabitli karşılaştırma + 50 denemede kalıcı blok, komut yürütmede katmanlı beyaz liste, çıktı boyutu DoS sınırları, MEB sertifikasına CA:TRUE Basic Constraints doğrulaması, CSP sıkılaştırması (object-src 'none').
+- Güvenlik Sertleştirmeleri: 14 tarama bulgusu kapatıldı: kilit ekranı girişim sınırlayıcı ve tek kullanımlık kilit açma yetkisi (30 sn), pano sızıntısının kilitliyken engellenmesi, sembolik bağ üzerine yazma ataklarının durdurulması, polkit ajan denetimli pkexec geçidi, IPC'de Origin + 256-bit token + zaman-sabitli karşılaştırma + 50 denemede kalıcı blok, komut yürütmede katmanlı beyaz liste, çıktı boyutu DoS sınırları, MEB sertifikasına CA:TRUE Basic Constraints doğrulaması, CSP sıkılaştırması (object-src 'none').
 - Bağımlılık Güvenliği: reqwest 0.12'ye yükseltildi; h2 (RUSTSEC-2026-0258, unbounded empty DATA frames DoS) kapatıldı. cargo-audit taramasında açık sayısı 0.
 - USB Başlatma Güvencesi: Hibrit ISO derlemesinin sessiz CD-only fallback'i kaldırıldı; isohdpfx MBR eksikse veya hibrit xorriso adımı başarısızsa derleme açık hatayla durur. Derleme sonunda xorriso report_system_area ile isohybrid MBR + UEFI gpt-basdat bayrakları otomatik doğrulanır. UEFI efi.img mtools yokluğunda boş üretilemez (fatal). README'ye USB'ye yazdırma talimatı eklendi.
 - boot.cfg spor adımları: early-bios.cfg aramasına --no-floppy eklendi; sürüm dizgeleri CARGO_PKG_VERSION'dan türetildi (4.0.0'dan itibaren otomatik).

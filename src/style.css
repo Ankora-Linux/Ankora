@@ -155,7 +155,7 @@ body.theme-midnight {
 }
 
 /* ==============================================================================
-   GENİŞ TEMA SETİ — her tema sistem yüzeyini tamamen değiştirir.
+   GENİŞ TEMA SETİ · her tema sistem yüzeyini tamamen değiştirir.
    Açık arayüzde sabit koyu yüzeyler (başlat menüsü, panel flyout'ları, bağlam
    menüsü) tema değişkenine bağlandı; her tema kendi yüzey rengini verir.
    ============================================================================== */
@@ -453,7 +453,7 @@ body.theme-cumhuriyet {
   --glass-flyout: rgba(36, 18, 21, 0.74);
 }
 
-/* Tema değişkenlerine bağlanan sabit yüzeyler — koyu temalarda varsayılan
+/* Tema değişkenlerine bağlanan sabit yüzeyler · koyu temalarda varsayılan
    değer, theme-* sınıfıyla override edilir. */
 .start-flyout {
   background: var(--surface-flyout, #12141c);
@@ -909,7 +909,7 @@ body.theme-meridyen .start-flyout {
   background: var(--surface-flyout, #ffffff);
 }
 
-/* Yön gömülmesi: Bakır, Bostan, Cıvata — Masaüstü/ayaz-yuz-*.html önizlemlerinin
+/* Yön gömülmesi: Bakır, Bostan, Cıvata · Masaüstü/ayaz-yuz-*.html önizlemlerinin
    gerçek bileşenlere birebir çevirisi. Amaç: tema seçimi yalnız renk yüzeyi
    değil, panel/sekme/pencere/bağlantı dilini de taşımak. */
 
@@ -2920,7 +2920,7 @@ body.is-dragging button {
 }
 
 /* ==============================================================================
-   ANKORA YAZILIM MERKEZİ (STORE) — Modern Cam Tasarım Sistemi
+   ANKORA YAZILIM MERKEZİ (STORE) · Modern Cam Tasarım Sistemi
    ============================================================================== */
 .store-container {
   display: flex;
@@ -3933,12 +3933,12 @@ body.is-light-theme .desktop-item.file-item .item-name {
 }
 
 /* ==============================================================================
-   UYGULAMA: ANKORA AI AJAN — SOHBET BÖLÜMÜ
+   UYGULAMA: ANKORA AI AJAN · SOHBET BÖLÜMÜ
    Hiyerarşi: kullanıcı sesi vurgulu, ajan sesi sakin (baloncuk yok).
    Vurgu yalnızca kullanıcı baloncuğu ve gönder düğmesinde.
    ============================================================================== */
 /* ==============================================================================
-   ANKORA AI — ANTIGRAVITY WORKSPACE TASARIMI
+   ANKORA AI: SOHBET BÖLÜMÜ
    ============================================================================== */
 #win-ai {
   --ai-canvas: #0d0e11;
@@ -6321,7 +6321,7 @@ body.is-light-theme .desktop-context-menu {
 }
 
 /* ==============================================================================
-   CAM YÜZEYLER (glassmorphism) — YALNIZCA GÖREV ÇUBUĞU VE BAŞLAT MENÜSÜ
+   CAM YÜZEYLER (glassmorphism) · YALNIZCA GÖREV ÇUBUĞU VE BAŞLAT MENÜSÜ
 
    Pencere, kart ve tablo yüzeyleri cam değil: arkalarında içerik kayar, blur
    hem yavaşlatır hem okunurluğu bozar. Bu ikisi sabit ve içerik kaydırmıyor.
@@ -8746,7 +8746,7 @@ body.is-light-theme #win-ai .ai-entry.user .ai-body {
 }
 
 /* ==============================================================================
-   ANKORA AI MINI SOHBET (GÖREV ÇUBUĞU ÜSTÜ PANOSU — ANTIGRAVITY TASARIMI)
+   ANKORA AI MINI SOHBET (GÖREV ÇUBUĞU ÜSTÜ PANOSU · GÖREV ÇUBUĞU PANOSU)
    ============================================================================== */
 .ai-mini-popover {
   --mini-bg: rgba(14, 15, 19, 0.96);
@@ -13312,7 +13312,7 @@ body.is-light-theme .cal-today-item {
 }
 
 /* ==============================================================================
-   DİNAMİK DURUM KAPSÜLÜ (DYNAMIC STATUS CAPSULE) — Rafine Monokrom Cam Kapsül
+   DİNAMİK DURUM KAPSÜLÜ (DYNAMIC STATUS CAPSULE) · Rafine Monokrom Cam Kapsül
    ============================================================================== */
 .dynamic-island-container {
   position: fixed;

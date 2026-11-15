@@ -4064,9 +4064,9 @@
       { id: 'cdparanoia', name: 'cdparanoia Hatasız Ses CD Okuyucu', deb: 'cdparanoia', desc: 'Çizik ses CDlerinden hata düzeltmeli dijital ses verisi çıkarma aracı', cat: 'media', size: '2 MB', installed: false },
 
       // 11e. GRAFİK, FOTOĞRAF & 3B TASARIM (12)
-      { id: 'hugin', name: 'Hugin Panorama Fotoğraf Birleştirici', deb: 'hugin', desc: 'Çoklu fotoğrafları kusursuz 360 derece panoramik görüntülere dönüştürme stüdyosu', cat: 'graphics', size: '48 MB', installed: false },
+      { id: 'hugin', name: 'Hugin Panorama Fotoğraf Birleştirici', deb: 'hugin', desc: 'Çoklu fotoğrafları dikişsiz 360 derece panoramik görüntülere dönüştürme stüdyosu', cat: 'graphics', size: '48 MB', installed: false },
       { id: 'luminance-hdr', name: 'Luminance HDR Yüksek Dinamik Aralık', deb: 'luminance-hdr', desc: 'Farklı pozlamalı fotoğraflardan HDR görüntü üretme ve ton eşleme yazılımı', cat: 'graphics', size: '22 MB', installed: false },
-      { id: 'enblend', name: 'Enblend Kusursuz Görüntü Harmanlayıcı', deb: 'enblend', desc: 'Fotoğraf birleşim çizgilerini renk ve parlaklık geçişleriyle görünmez kılma aracı', cat: 'graphics', size: '6 MB', installed: false },
+      { id: 'enblend', name: 'Enblend Görüntü Harmanlayıcı', deb: 'enblend', desc: 'Fotoğraf birleşim çizgilerini renk ve parlaklık geçişleriyle görünmez kılma aracı', cat: 'graphics', size: '6 MB', installed: false },
       { id: 'nomacs', name: 'nomacs Hızlı ve Şık Resim Görüntüleyici', flatpak: 'org.nomacs.ImageLounge', desc: 'RAW, PSD ve ZIP içi görselleri açabilen, yan yana fotoğraf karşılaştırma destekli gezgin', cat: 'graphics', size: '48 MB', installed: false },
       { id: 'ristretto', name: 'Ristretto Hafif Resim Görüntüleyici', deb: 'ristretto', desc: 'Düşük donanımlı bilgisayarlar için anında açılan sade fotoğraf görüntüleyici', cat: 'graphics', size: '3 MB', installed: false },
       { id: 'mirage', name: 'Mirage Hızlı GTK Görsel Tarayıcı', deb: 'mirage', desc: 'Kırpma, yeniden boyutlandırma ve küçük resim şeridine sahip hızlı resim açıcı', cat: 'graphics', size: '2 MB', installed: false },
@@ -7789,7 +7789,7 @@
       let action_desc = null;
 
       if (q.includes('doktor') || q.includes('doctor') || q.includes('onar') || q.includes('sağlık') || q.includes('bakım')) {
-        reply = `🩺 **Ankora Sistem Doktoru Teşhis Raporu:**\n\n` +
+        reply = `**Ankora Sistem Doktoru Teşhis Raporu:**\n\n` +
           `• **Paket Bütünlüğü:** Bozuk veya eksik dpkg/apt paketleri doğrulanacak.\n` +
           `• **Bellek & ZRAM:** Sıkıştırılmış lz4 ZRAM takas havuzu ve çekirdek önbellekleri kontrol edilecek.\n` +
           `• **Sistem İzinleri:** /tmp ve kritik sudoers yapılandırmaları teftiş edilecek.\n` +
@@ -7799,16 +7799,16 @@
         action_command = '/usr/local/bin/ankora-doctor';
         action_desc = 'Ankora Sistem Doktoru kapsamlı bakım ve onarımını çalıştır';
       } else if (q.includes('plan') || q.includes('günün planı') || q.includes('işler') || q.includes('yapılacak')) {
-        reply = `📋 **Ankora Linux Günlük Çalışma Planı:**\n\n` +
-          `• ⚡ **Sistem Bakımı:** Paket depolarını güncelle ve güvenlik yamalarını kontrol et (\`apt-get update\`).\n` +
-          `• 🧹 **Bellek ve ZRAM Durumu:** Canlı bellek tüketimini ve takas alanını gözden geçir (\`free -h\`).\n` +
-          `• 🛡️ **Depolama Sağlığı:** Kök dizin (\`/\`) ve ev dizini (\`/home\`) boş alanını denetle (\`df -h\`).\n` +
-          `• 🚀 **Üretkenlik:** Ankora Mağaza'dan araçlarını hazırla, Ayaz DE çalışma alanlarını organize et.\n\n` +
+        reply = `**Ankora Linux Günlük Çalışma Planı:**\n\n` +
+          `• **Sistem Bakımı:** Paket depolarını güncelle ve güvenlik yamalarını kontrol et (\`apt-get update\`).\n` +
+          `• **Bellek ve ZRAM Durumu:** Canlı bellek tüketimini ve takas alanını gözden geçir (\`free -h\`).\n` +
+          `• **Depolama Sağlığı:** Kök dizin (\`/\`) ve ev dizini (\`/home\`) boş alanını denetle (\`df -h\`).\n` +
+          `• **Üretkenlik:** Ankora Mağaza'dan araçlarını hazırla, Ayaz DE çalışma alanlarını organize et.\n\n` +
           `*Not: Görev listene yeni bir iş eklemek için "görev ekle: [iş adı]" yazabilirsin.*`;
       } else if (q.includes('durum') || q.includes('sistem') || q.includes('bellek') || q.includes('ram') || q.includes('cpu')) {
-        reply = `⚡ **Canlı Sistem Durumu & Telemetri:**\n\n` +
+        reply = `**Canlı Sistem Durumu & Telemetri:**\n\n` +
           `• **İşletim Sistemi:** Ankora Linux 4.7.0 "Bora" (Devuan 6 Excalibur amd64)\n` +
-          `• **Masaüstü Ortamı:** Ayaz DE (Minimalist Tauri 2 & WebKitGTK 4.1)\n` +
+          `• **Masaüstü Ortamı:** Ayaz DE (Rust + WebKitGTK)\n` +
           `• **İnit & Hizmet Sistemi:** SysVinit (Düşük kaynak tüketimli)\n` +
           `• **Çekirdek:** Linux LTS x86_64\n` +
           `• **Güvenlik & İzolasyon:** Unprivileged sandbox, yerel anahtar kasası\n\n` +
@@ -7817,15 +7817,15 @@
         action_command = 'df -h / && free -m';
         action_desc = 'Disk ve bellek kullanımını sorgula';
       } else if (q.includes('öner') || q.includes('uygulama') || q.includes('mağaza') || q.includes('program')) {
-        reply = `✨ **Ankora Mağaza'dan Seçkin Öneriler:**\n\n` +
-          `• 🌐 **İnternet:** Brave Browser, Chromium, Telegram Desktop, Thunderbird\n` +
-          `• 💻 **Geliştirme:** VS Code, Geany, Code::Blocks, DBeaver, Meld, Git GUI\n` +
-          `• 🎨 **Tasarım & Medya:** Krita, Inkscape, Blender, GIMP, VLC, OBS Studio\n` +
-          `• 📚 **Eğitim:** Fatih Kalem 2, GeoGebra, GCompris, Kalzium, Stellarium\n` +
-          `• 🛠️ **Sistem:** GParted, Timeshift, BleachBit, Htop, Btop, Screenfetch\n\n` +
+        reply = `**Ankora Mağaza'dan Önerilen Uygulamalar:**\n\n` +
+          `• **İnternet:** Brave Browser, Chromium, Telegram Desktop, Thunderbird\n` +
+          `• **Geliştirme:** VS Code, Geany, Code::Blocks, DBeaver, Meld, Git GUI\n` +
+          `• **Tasarım & Medya:** Krita, Inkscape, Blender, GIMP, VLC, OBS Studio\n` +
+          `• **Eğitim:** Fatih Kalem 2, GeoGebra, GCompris, Kalzium, Stellarium\n` +
+          `• **Sistem:** GParted, Timeshift, BleachBit, Htop, Btop, Screenfetch\n\n` +
           `Uygulamaları tek tıkla kurmak için Yazılım Mağazası'nı açabilirsiniz.`;
       } else if (q.includes('uçbirim') || q.includes('terminal') || q.includes('komut') || q.includes('bash')) {
-        reply = `💻 **Hızlı Uçbirim Komut Rehberi:**\n\n` +
+        reply = `**Hızlı Uçbirim Komut Rehberi:**\n\n` +
           `• Sistem güncelleme: \`sudo apt update && sudo apt upgrade -y\`\n` +
           `• Bellek durumu: \`free -h\`\n` +
           `• Disk alanı: \`df -h /\`\n` +
