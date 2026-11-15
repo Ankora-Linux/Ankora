@@ -6365,10 +6365,17 @@ fn take_screenshot_core(
 
         if copy_clipboard {
             let mut cmd = Command::new("xclip");
-            cmd.args(["-selection", "clipboard", "-t", "image/png", "-i", &filepath_str])
-                .stdin(Stdio::null())
-                .stdout(Stdio::null())
-                .stderr(Stdio::null());
+            cmd.args([
+                "-selection",
+                "clipboard",
+                "-t",
+                "image/png",
+                "-i",
+                &filepath_str,
+            ])
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null());
             let _ = spawn_reaped(&mut cmd);
         }
         let b64 = if let Ok(bytes) = fs::read(&filepath) {
@@ -8672,7 +8679,7 @@ async fn email_file(path: String) -> Result<String, String> {
     let p = path_sanitize_input(&path)?;
     path_accessible_for_ops(&p)?;
     let mut cmd = Command::new("xdg-email");
-    cmd.args(["--attach", &p.to_string_lossy().to_string()]);
+    cmd.args(["--attach", p.to_string_lossy().as_ref()]);
     spawn_reaped(&mut cmd).map_err(|e| format!("E-posta uygulaması açılamadı: {}", e))?;
     Ok("E-posta uygulaması açıldı.".into())
 }
