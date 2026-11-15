@@ -12,7 +12,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 WORK_DIR="/var/tmp/ankora-iso-build"
 CHROOT_DIR="$WORK_DIR/chroot"
 IMAGE_DIR="$WORK_DIR/image"
-DEVUAN_MIRROR="${DEVUAN_SNAPSHOT_URL:-${DEVUAN_MIRROR:-https://deb.devuan.org/merged}}"
+DEVUAN_MIRROR="${DEVUAN_SNAPSHOT_URL:-${DEVUAN_MIRROR:-https://pkgmaster.devuan.org/merged}}"
 DEVUAN_SUITE="excalibur"
 
 # Tek sürüm kaynağı: src-tauri/tauri.conf.json (devrik: VERSION).
@@ -240,9 +240,9 @@ apt_update_retry() {
 
 # Depo kaynakları
 cat << 'SOURCES' > /etc/apt/sources.list
-deb https://deb.devuan.org/merged excalibur main contrib non-free non-free-firmware
-deb https://deb.devuan.org/merged excalibur-security main contrib non-free non-free-firmware
-deb https://deb.devuan.org/merged excalibur-updates main contrib non-free non-free-firmware
+deb https://pkgmaster.devuan.org/merged excalibur main contrib non-free non-free-firmware
+deb https://pkgmaster.devuan.org/merged excalibur-security main contrib non-free non-free-firmware
+deb https://pkgmaster.devuan.org/merged excalibur-updates main contrib non-free non-free-firmware
 SOURCES
 
 # trusted=yes imza denetimini tamamen kapatıyordu. Anahtarlık yukarıda
@@ -944,9 +944,9 @@ update-initramfs -u -k all
 
 # Canlı imaj için resmi kaynak listesi
 cat << 'SOURCES' > /etc/apt/sources.list
-deb https://deb.devuan.org/merged excalibur main contrib non-free non-free-firmware
-deb https://deb.devuan.org/merged excalibur-security main contrib non-free non-free-firmware
-deb https://deb.devuan.org/merged excalibur-updates main contrib non-free non-free-firmware
+deb https://pkgmaster.devuan.org/merged excalibur main contrib non-free non-free-firmware
+deb https://pkgmaster.devuan.org/merged excalibur-security main contrib non-free non-free-firmware
+deb https://pkgmaster.devuan.org/merged excalibur-updates main contrib non-free non-free-firmware
 SOURCES
 
 # Son temizlik

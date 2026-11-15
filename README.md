@@ -174,7 +174,7 @@ Boyut ve tepki hedefleri:
 ### Sistem
 
 * **Devuan 6.0 Excalibur** (SysVinit, Linux 6.12 LTS çekirdek hattı):
-  systemd yok; X11 `nodm` ve Openbox oturum yönetimi, `https://deb.devuan.org/merged`
+  systemd yok; X11 `nodm` ve Openbox oturum yönetimi, `https://pkgmaster.devuan.org/merged`
   depoları ve GPG parmak izi doğrulamalı `devuan-keyring`.
 * **Hibrit canlı ISO**: aynı dosya hem BIOS (isohdpfx MBR) hem UEFI
   (GPT bas-dat) firmware'den başlatılabilir; derleme sonunda sistem
@@ -383,7 +383,7 @@ aşağıdaki kapılara sahiptir: MBR bootloader kodu, UEFI efi.img ve GPT
 yapısından biri üretilmezse derleme açık hatayla durur:
 
 1. Host paketleri ve Devuan anahtarlık GPG parmak izi denetimi
-2. debootstrap ile Devuan 6.0 Excalibur taban sistemi (`https://deb.devuan.org/merged`)
+2. debootstrap ile Devuan 6.0 Excalibur taban sistemi (`https://pkgmaster.devuan.org/merged`)
 3. Ayaz DE Tauri 2.0 ikilisi (`/usr/bin/ayaz-de` + `/usr/bin/ayaz` sembolik bağı) kurulumu
 4. GRUB BIOS/UEFI önyükleyicileri (grub-mkimage + grub-mkstandalone)
 5. mksquashfs canlı dosya sistemi

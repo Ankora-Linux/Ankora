@@ -90,7 +90,7 @@ def test_single_desktop_source():
     iso = read_text("scripts/build-iso.sh")
     assert "AYAZ_PY" not in iso, "Eski AYAZ_PY Python köprüsü build-iso.sh içinden tamamen kaldırılmış olmalı"
     assert "ln -sf /usr/bin/ayaz-de" in iso, "build-iso.sh /usr/bin/ayaz -> /usr/bin/ayaz-de sembolik bağını kurmalı"
-    assert "https://deb.devuan.org/merged" in iso, "build-iso.sh HTTPS Devuan deposu kullanmalı"
+    assert "https://pkgmaster.devuan.org/merged" in iso, "build-iso.sh HTTPS Devuan deposu kullanmalı"
 
     deb = read_text("scripts/package-deb.sh")
     for required in (

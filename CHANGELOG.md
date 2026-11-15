@@ -4,7 +4,7 @@
 ## 4.7.0 "Bora" (2026-11-16)
 
 ### Taban Sistem ve Masaüstü Çalışma Zamanı Geçişi (Önemli Değişiklik)
-- **Taban Dağıtım Yükseltmesi:** `Devuan 5.0 Daedalus` tabanından **Devuan 6.0 Excalibur** (`SysVinit`, Linux 6.12 LTS çekirdek hattı, HTTPS `https://deb.devuan.org/merged` depoları) tabanına geçildi; `debootstrap --include` içine `ca-certificates` eklendi ve `devuan-keyring` indirimi GPG parmak izi doğrulamasına bağlandı.
+- **Taban Dağıtım Yükseltmesi:** `Devuan 5.0 Daedalus` tabanından **Devuan 6.0 Excalibur** (`SysVinit`, Linux 6.12 LTS çekirdek hattı, HTTPS `https://pkgmaster.devuan.org/merged` depoları) tabanına geçildi; `debootstrap --include` içine `ca-certificates` eklendi ve `devuan-keyring` indirimi GPG parmak izi doğrulamasına bağlandı.
 - **Masaüstü Altyapısı Yükseltmesi:** Ayaz DE **Tauri 1.5 (`libwebkit2gtk-4.0`)** yığınından **Tauri 2.0 (`libwebkit2gtk-4.1`)** yığınına taşındı.
 - **Tek Doğru Kaynak (`/usr/bin/ayaz-de`):** `scripts/build-iso.sh` içindeki eski gömülü Python/WebKit köprüsü (`AYAZ_PY`) tamamen kaldırıldı. ISO ve `.deb` paketi artık tek derlenen Rust/Tauri ikilisini (`/usr/bin/ayaz-de`) taşır; `/usr/bin/ayaz` yalnızca `/usr/bin/ayaz-de` ikilisine sembolik bağdır.
 - **Sürüm Damgası Uyumu:** `VERSION`, `package.json`, `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`, `src-tauri/tauri.conf.json`, GRUB teması ve `/etc/ankora/version` tek sürüm numarasında (`4.7.0`) eşitlendi.
