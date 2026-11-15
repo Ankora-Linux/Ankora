@@ -1,8 +1,7 @@
 name: Ankora Linux Canlı ISO Derleme (Live ISO Build)
 
-# Ayaz DE (Devuan 6 Excalibur SysVinit) canlı ISO imajını (.iso) ve iç Debian
-# paketini (.deb) bulutta otomatik olarak derler. ISO dosya adı derleyiciden
-# dinamik okunur; sürüm sabit kodlanmaz (3.3/3.4 çakışması düzeltildi).
+# Ayaz DE (Devuan 6 Excalibur SysVinit, Tauri 2.0 / WebKitGTK 4.1) canlı ISO
+# imajını (.iso), güncelleme paketini (.deb) ve bütünlük/GPG dosyalarını derler.
 # Manuel tetikleme: Actions -> Run workflow. Otomatik: v* etiketi push'u.
 
 on:
@@ -29,22 +28,22 @@ jobs:
 
     steps:
       - name: Kaynak Kodları İndir (Checkout)
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Rust Araç Setini Kur
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@39008827e6b4319a349e9a42dfc90579dd25f1ca # stable
 
       - name: Derleme Önbelleği (Cargo)
-        uses: Swatinem/rust-cache@v2
+        uses: Swatinem/rust-cache@82a92a6e8fbeee089604da2575dc567ae9ddeaab # v2.7.5
         with:
           workspaces: src-tauri
 
       - name: Node.js Ortamını Kur
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
 
-      - name: Gerekli Paketleri Kur (Tauri + ISO Oluşturucu Araçları)
+      - name: Gerekli Paketleri Kur (Tauri + ISO + QEMU + GPG)
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
@@ -66,39 +65,55 @@ jobs:
             grub-pc-bin \
             grub-efi-amd64-bin \
             mtools \
-            dosfstools
+            dosfstools \
+            gnupg \
+            qemu-system-x86 \
+            ovmf
 
       - name: Tauri CLI Kur
         run: cargo install tauri-cli --version "^2"
 
-      - name: Sürüm Doğrulama (tauri.conf.json = VERSION)
+      - name: Sürüm Doğrulama (5 Dosya)
         run: |
           VER_CONF=$(sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' src-tauri/tauri.conf.json | head -1)
-          FILE_VER=$(cat VERSION 2>/dev/null | tr -d '[:space:]')
-          echo "tauri.conf.json: $VER_CONF / VERSION: $FILE_VER"
-          if [ -n "$FILE_VER" ] && [ "$VER_CONF" != "$FILE_VER" ]; then
-            echo "::error::Sürüm uyumsuzluğu: tauri.conf.json=$VER_CONF, VERSION=$FILE_VER"
+          CARGO_VER=$(grep -m1 '^version' src-tauri/Cargo.toml | sed 's/version *= *//;s/"//g')
+          LOCK_VER=$(awk '/^name = "ayaz-de"/{getline; gsub(/version = |"/,""); print; exit}' src-tauri/Cargo.lock)
+          PKG_VER=$(node -p "require('./package.json').version")
+          FILE_VER=$(cat VERSION | tr -d '[:space:]')
+          echo "tauri=$VER_CONF cargo=$CARGO_VER lock=$LOCK_VER package=$PKG_VER version=$FILE_VER"
+          if [ "$VER_CONF" != "$CARGO_VER" ] || [ "$VER_CONF" != "$LOCK_VER" ] || [ "$VER_CONF" != "$PKG_VER" ] || [ "$VER_CONF" != "$FILE_VER" ]; then
+            echo "::error::Sürüm bilgisi 5 dosyada birebir eşleşmelidir!"
             exit 1
           fi
           echo "ankora_version=$VER_CONF" >> "$GITHUB_ENV"
 
       - name: NPM Bağımlılıklarını Kur
-        run: npm install --no-audit --no-fund
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci --no-audit --no-fund
+          else
+            npm install --no-audit --no-fund
+          fi
 
-      - name: Güvenlik ve Bütünlük Denetimi (DevSecOps SAST & Verification)
+      - name: Güvenlik, Sözleşme ve Bütünlük Denetimi
         run: |
           python3 scratch/verify_all.py
           python3 scratch/verify_plymouth.py
+          python3 scratch/test_bridge_logic.py
+          node scratch/test_store_data.js
+          (cd src-tauri && cargo install cargo-audit --locked && cargo audit)
           npm audit --audit-level=high || echo "::warning::NPM bağımlılık uyarısı"
 
-      - name: Ayaz DE İç Paketini Derle (yalnızca ISO içi enjeksiyon)
+      - name: Ayaz DE Güncelleme Paketini Derle (.deb)
+        env:
+          ANKORA_GPG_PRIVATE_KEY: ${{ secrets.ANKORA_GPG_PRIVATE_KEY }}
+          ANKORA_GPG_KEY_ID: ${{ secrets.ANKORA_GPG_KEY_ID }}
+          ANKORA_GPG_PASSPHRASE: ${{ secrets.ANKORA_GPG_PASSPHRASE }}
         run: |
-          sed -i 's/\r$//' scripts/*.sh
+          sed -i 's/\r$//' scripts/*.sh scripts/ayaz-session scripts/xinitrc scripts/ayaz-ctl scripts/eta-touchdrv
           bash scripts/package-deb.sh
-          if [ -f "dist/ayaz-de-latest-amd64.deb" ]; then
-            echo "İç paket hazır: dist/ayaz-de-latest-amd64.deb (yayınlanmaz)"
-          else
-            echo "::error::İç paket üretilemedi!"
+          if [ ! -f "dist/ayaz-de-latest-amd64.deb" ] || [ ! -f "dist/ayaz-de-latest-amd64.deb.sha256" ]; then
+            echo "::error::Ayaz DE .deb paketi veya .sha256 özeti üretilemedi!"
             exit 1
           fi
 
@@ -106,7 +121,11 @@ jobs:
         run: |
           sudo bash scripts/build-iso.sh
 
-      - name: ISO Bütünlük ve Boyut Denetimi
+      - name: ISO + DEB Bütünlük Özeti ve İsteğe Bağlı GPG İmzalama
+        env:
+          ANKORA_GPG_PRIVATE_KEY: ${{ secrets.ANKORA_GPG_PRIVATE_KEY }}
+          ANKORA_GPG_KEY_ID: ${{ secrets.ANKORA_GPG_KEY_ID }}
+          ANKORA_GPG_PASSPHRASE: ${{ secrets.ANKORA_GPG_PASSPHRASE }}
         run: |
           ls -lh dist/
           ISO_FILE=$(find dist -maxdepth 1 -name 'ankora-linux-*-ayaz-amd64.iso' | head -n 1)
@@ -114,28 +133,88 @@ jobs:
             echo "::error::ISO dosyası dist dizininde bulunamadı!"
             exit 2
           fi
+          ISO_NAME=$(basename "$ISO_FILE")
           echo "iso_file=$ISO_FILE" >> "$GITHUB_ENV"
-          echo "iso_name=$(basename "$ISO_FILE")" >> "$GITHUB_ENV"
-          echo "ISO başarıyla üretildi:"
-          sha256sum "$ISO_FILE"
+          echo "iso_name=$ISO_NAME" >> "$GITHUB_ENV"
+          (cd dist && sha256sum "$ISO_NAME" > "${ISO_NAME}.sha256")
+          (cd dist && sha256sum "$ISO_NAME" "ayaz-de-latest-amd64.deb" > SHA256SUMS)
+          if [ -n "${ANKORA_GPG_PRIVATE_KEY:-}" ]; then
+            GNUPG_TMP=$(mktemp -d)
+            trap 'rm -rf "$GNUPG_TMP"' EXIT
+            chmod 700 "$GNUPG_TMP"
+            printf '%s\n' "$ANKORA_GPG_PRIVATE_KEY" | gpg --homedir "$GNUPG_TMP" --batch --import
+            KEY_ARGS=()
+            if [ -n "${ANKORA_GPG_KEY_ID:-}" ]; then
+              KEY_ARGS=(-u "$ANKORA_GPG_KEY_ID")
+            fi
+            PASS_ARGS=()
+            if [ -n "${ANKORA_GPG_PASSPHRASE:-}" ]; then
+              PASS_ARGS=(--pinentry-mode loopback --passphrase "$ANKORA_GPG_PASSPHRASE")
+            fi
+            gpg --homedir "$GNUPG_TMP" --batch --yes "${PASS_ARGS[@]}" "${KEY_ARGS[@]}" \
+              --armor --detach-sign -o dist/SHA256SUMS.asc dist/SHA256SUMS
+            gpg --homedir "$GNUPG_TMP" --batch --yes "${PASS_ARGS[@]}" "${KEY_ARGS[@]}" \
+              --armor --detach-sign -o "${ISO_FILE}.asc" "$ISO_FILE"
+            gpg --homedir "$GNUPG_TMP" --batch --yes "${PASS_ARGS[@]}" "${KEY_ARGS[@]}" \
+              --armor --detach-sign -o dist/ayaz-de-latest-amd64.deb.asc dist/ayaz-de-latest-amd64.deb
+            echo "[GPG] dist/SHA256SUMS.asc, ${ISO_FILE}.asc ve dist/ayaz-de-latest-amd64.deb.asc imzalandı."
+          else
+            echo "::notice::ANKORA_GPG_PRIVATE_KEY tanımlı değil; .asc imza dosyaları atlandı."
+          fi
+          cat dist/SHA256SUMS
 
-      - name: ISO ve Sağlama Toplamını GitHub Artifact Olarak Yükle
-        uses: actions/upload-artifact@v7
+      - name: QEMU ISO Önyükleme Duman Testi (BIOS + UEFI)
+        run: |
+          set +e
+          timeout 45s qemu-system-x86_64 -m 2048 -cdrom "${{ env.iso_file }}" \
+            -boot d -display none -serial file:/tmp/qemu-bios.log -no-reboot
+          RC_BIOS=$?
+          set -e
+          echo "QEMU BIOS exit code: $RC_BIOS (124 = zaman aşımına dek sorunsuz çalıştı)"
+          if [ "$RC_BIOS" -ne 0 ] && [ "$RC_BIOS" -ne 124 ]; then
+            echo "::error::QEMU BIOS ISO önyükleme testi başarısız (çıkış=$RC_BIOS)"
+            cat /tmp/qemu-bios.log 2>/dev/null || true
+            exit 1
+          fi
+          OVMF_CODE=$(find /usr/share/OVMF /usr/share/qemu -maxdepth 2 -name 'OVMF_CODE*.fd' 2>/dev/null | head -n 1 || true)
+          if [ -n "$OVMF_CODE" ]; then
+            set +e
+            timeout 30s qemu-system-x86_64 -bios "$OVMF_CODE" -m 2048 -cdrom "${{ env.iso_file }}" \
+              -boot d -display none -serial file:/tmp/qemu-uefi.log -no-reboot
+            RC_UEFI=$?
+            set -e
+            echo "QEMU UEFI exit code: $RC_UEFI (124 = zaman aşımına dek sorunsuz çalıştı)"
+            if [ "$RC_UEFI" -ne 0 ] && [ "$RC_UEFI" -ne 124 ]; then
+              echo "::error::QEMU UEFI ISO önyükleme testi başarısız (çıkış=$RC_UEFI)"
+              cat /tmp/qemu-uefi.log 2>/dev/null || true
+              exit 1
+            fi
+          fi
+
+      - name: ISO ve Sağlama Toplamlarını GitHub Artifact Olarak Yükle
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ${{ env.iso_name }}
           path: |
             ${{ env.iso_file }}
             ${{ env.iso_file }}.sha256
+            dist/ayaz-de-latest-amd64.deb
+            dist/ayaz-de-latest-amd64.deb.sha256
+            dist/SHA256SUMS
+            dist/*.asc
           retention-days: 14
 
-      - name: Sürüm (Release) Varsa ISO'yu Ekle
+      - name: Sürüm (Release) Varsa Varlıkları Yayınla
         if: startsWith(github.ref, 'refs/tags/v')
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3 # v3.0.4
         with:
           files: |
             ${{ env.iso_file }}
             ${{ env.iso_file }}.sha256
             dist/ayaz-de-latest-amd64.deb
+            dist/ayaz-de-latest-amd64.deb.sha256
+            dist/SHA256SUMS
+            dist/*.asc
           generate_release_notes: true
           name: Ankora Linux ${{ env.ankora_version }} (${{ github.ref_name }})
           draft: false

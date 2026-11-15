@@ -1,7 +1,7 @@
 name: CI (Derleme & Kalite Denetimi)
 
-# Rust tarafı için hızlı derleme (cargo check) ve format denetimi,
-# JS/HTML tarafı için söz dizimi kontrolleri ve yerleşik doğrulama betikleri.
+# Rust tarafı için derleme, Clippy, güvenlik açığı denetimi (cargo audit),
+# JS/HTML söz dizimi kontrolleri, sözleşme ve doğrulama betikleri.
 # ISO derlemesi ayrı: .github/workflows/build-iso.yml
 
 on:
@@ -13,15 +13,15 @@ on:
 
 jobs:
   rust-check:
-    name: Rust Derleme Denetimi (cargo check)
+    name: Rust Derleme, Clippy ve Güvenlik Denetimi
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v7
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: dtolnay/rust-toolchain@39008827e6b4319a349e9a42dfc90579dd25f1ca # stable
         with:
           components: clippy, rustfmt
-      - uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@82a92a6e8fbeee089604da2575dc567ae9ddeaab # v2.7.5
         with:
           workspaces: src-tauri
       - name: Sistem Bağımlılıkları
@@ -30,46 +30,58 @@ jobs:
           sudo apt-get install -y --no-install-recommends \
             libwebkit2gtk-4.1-dev build-essential libssl-dev libgtk-3-dev \
             libayatana-appindicator3-dev librsvg2-dev file
-      - name: Format Denetimi (cargo fmt --check)
-        run: cargo fmt --check
-        working-directory: src-tauri
-        continue-on-error: true
       - name: Kompilasyon Denetimi (cargo check)
         run: cargo check --all-targets
         working-directory: src-tauri
-      - name: Clippy (uyarı raporlar, derlemeyi bozmaz)
-        run: cargo clippy --all-targets
+      - name: Clippy Doğruluk ve Güvenlik Denetimi
+        run: cargo clippy --all-targets -- -D clippy::correctness -D clippy::suspicious
         working-directory: src-tauri
-        continue-on-error: true
+      - name: Bağımlılık Güvenlik Denetimi (cargo audit)
+        run: |
+          cargo install cargo-audit --locked
+          cargo audit
+        working-directory: src-tauri
 
   frontend-check:
-    name: Arayüz ve Betik Denetimi
+    name: Arayüz, Sözleşme ve Betik Denetimi
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
       - name: NPM Bağımlılıkları
-        run: npm install --no-audit --no-fund
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci --no-audit --no-fund
+          else
+            npm install --no-audit --no-fund
+          fi
       - name: JS Söz Dizimi (node --check)
-        run: node --check src/app.js
-      - name: Python Doğrulama Betikleri
+        run: |
+          node --check src/app.js
+          node --check src/faces.js
+      - name: Python & Mağaza Doğrulama Betikleri
         run: |
           python3 scratch/verify_all.py
           python3 scratch/verify_plymouth.py
+          python3 scratch/test_bridge_logic.py
+          node scratch/test_store_data.js
       - name: Kabuk Betik Denetimi (bash -n)
         run: |
-          for f in scripts/*.sh; do bash -n "$f"; done
-      - name: Sürüm Tutarlılığı
+          for f in scripts/*.sh scripts/ayaz-session scripts/xinitrc scripts/ayaz-ctl scripts/eta-touchdrv; do
+            bash -n "$f"
+          done
+      - name: Sürüm Tutarlılığı (5 Dosya)
         run: |
           VER_CONF=$(sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' src-tauri/tauri.conf.json | head -1)
           CARGO_VER=$(grep -m1 '^version' src-tauri/Cargo.toml | sed 's/version *= *//;s/"//g')
+          LOCK_VER=$(awk '/^name = "ayaz-de"/{getline; gsub(/version = |"/,""); print; exit}' src-tauri/Cargo.lock)
           PKG_VER=$(node -p "require('./package.json').version")
           FILE_VER=$(cat VERSION | tr -d '[:space:]')
-          echo "tauri=$VER_CONF cargo=$CARGO_VER package=$PKG_VER version=$FILE_VER"
-          if [ "$VER_CONF" != "$CARGO_VER" ] || [ "$VER_CONF" != "$PKG_VER" ] || [ "$VER_CONF" != "$FILE_VER" ]; then
-            echo "::error::Sürüm bilgisi dosyalar arasında uyumsuz!"
+          echo "tauri=$VER_CONF cargo=$CARGO_VER lock=$LOCK_VER package=$PKG_VER version=$FILE_VER"
+          if [ "$VER_CONF" != "$CARGO_VER" ] || [ "$VER_CONF" != "$LOCK_VER" ] || [ "$VER_CONF" != "$PKG_VER" ] || [ "$VER_CONF" != "$FILE_VER" ]; then
+            echo "::error::Sürüm bilgisi 5 dosyada birebir eşleşmelidir!"
             exit 1
           fi
