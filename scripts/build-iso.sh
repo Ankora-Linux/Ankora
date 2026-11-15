@@ -1693,6 +1693,9 @@ echo "[8/8] ISO Doğrulaması ve SHA256..."
 if [ -f "$ROOT_DIR/dist/$ISO_NAME" ]; then
     cd "$ROOT_DIR/dist"
     sha256sum "$ISO_NAME" > "$ISO_NAME.sha256"
+    if [ -n "${SUDO_UID:-}" ] && [ -n "${SUDO_GID:-}" ]; then
+        chown "${SUDO_UID}:${SUDO_GID}" "$ISO_NAME" "$ISO_NAME.sha256" 2>/dev/null || true
+    fi
     echo "======================================================================"
     echo "  BAŞARILI: Ankora Linux ISO Kalıbı Hazır!"
     echo "  Konum: $ROOT_DIR/dist/$ISO_NAME"

@@ -120,6 +120,7 @@ jobs:
       - name: Ankora Linux Canlı ISO Kalıbını Pişir (build-iso.sh)
         run: |
           sudo bash scripts/build-iso.sh
+          sudo chown -R "$(id -u):$(id -g)" dist/
 
       - name: ISO + DEB Bütünlük Özeti ve İsteğe Bağlı GPG İmzalama
         env:
@@ -127,6 +128,7 @@ jobs:
           ANKORA_GPG_KEY_ID: ${{ secrets.ANKORA_GPG_KEY_ID }}
           ANKORA_GPG_PASSPHRASE: ${{ secrets.ANKORA_GPG_PASSPHRASE }}
         run: |
+          sudo chown -R "$(id -u):$(id -g)" dist/
           ls -lh dist/
           ISO_FILE=$(find dist -maxdepth 1 -name 'ankora-linux-*-ayaz-amd64.iso' | head -n 1)
           if [ -z "$ISO_FILE" ] || [ ! -f "$ISO_FILE" ]; then
@@ -136,8 +138,12 @@ jobs:
           ISO_NAME=$(basename "$ISO_FILE")
           echo "iso_file=$ISO_FILE" >> "$GITHUB_ENV"
           echo "iso_name=$ISO_NAME" >> "$GITHUB_ENV"
-          (cd dist && sha256sum "$ISO_NAME" > "${ISO_NAME}.sha256")
-          (cd dist && sha256sum "$ISO_NAME" "ayaz-de-latest-amd64.deb" > SHA256SUMS)
+          (
+            cd dist
+            rm -f "${ISO_NAME}.sha256" SHA256SUMS
+            sha256sum "$ISO_NAME" > "${ISO_NAME}.sha256"
+            sha256sum "$ISO_NAME" "ayaz-de-latest-amd64.deb" > SHA256SUMS
+          )
           if [ -n "${ANKORA_GPG_PRIVATE_KEY:-}" ]; then
             GNUPG_TMP=$(mktemp -d)
             trap 'rm -rf "$GNUPG_TMP"' EXIT
@@ -157,8 +163,10 @@ jobs:
               --armor --detach-sign -o "${ISO_FILE}.asc" "$ISO_FILE"
             gpg --homedir "$GNUPG_TMP" --batch --yes "${PASS_ARGS[@]}" "${KEY_ARGS[@]}" \
               --armor --detach-sign -o dist/ayaz-de-latest-amd64.deb.asc dist/ayaz-de-latest-amd64.deb
+            echo "has_gpg_sigs=true" >> "$GITHUB_ENV"
             echo "[GPG] dist/SHA256SUMS.asc, ${ISO_FILE}.asc ve dist/ayaz-de-latest-amd64.deb.asc imzalandı."
           else
+            echo "has_gpg_sigs=false" >> "$GITHUB_ENV"
             echo "::notice::ANKORA_GPG_PRIVATE_KEY tanımlı değil; .asc imza dosyaları atlandı."
           fi
           cat dist/SHA256SUMS
@@ -166,7 +174,7 @@ jobs:
       - name: QEMU ISO Önyükleme Duman Testi (BIOS + UEFI)
         run: |
           set +e
-          timeout 45s qemu-system-x86_64 -m 2048 -cdrom "${{ env.iso_file }}" \
+          timeout 30s qemu-system-x86_64 -m 2048 -cdrom "${{ env.iso_file }}" \
             -boot d -display none -serial file:/tmp/qemu-bios.log -no-reboot
           RC_BIOS=$?
           set -e
@@ -176,10 +184,9 @@ jobs:
             cat /tmp/qemu-bios.log 2>/dev/null || true
             exit 1
           fi
-          OVMF_CODE=$(find /usr/share/OVMF /usr/share/qemu -maxdepth 2 -name 'OVMF_CODE*.fd' 2>/dev/null | head -n 1 || true)
-          if [ -n "$OVMF_CODE" ]; then
+          if [ -f /usr/share/ovmf/OVMF.fd ]; then
             set +e
-            timeout 30s qemu-system-x86_64 -bios "$OVMF_CODE" -m 2048 -cdrom "${{ env.iso_file }}" \
+            timeout 30s qemu-system-x86_64 -bios /usr/share/ovmf/OVMF.fd -m 2048 -cdrom "${{ env.iso_file }}" \
               -boot d -display none -serial file:/tmp/qemu-uefi.log -no-reboot
             RC_UEFI=$?
             set -e
@@ -201,7 +208,6 @@ jobs:
             dist/ayaz-de-latest-amd64.deb
             dist/ayaz-de-latest-amd64.deb.sha256
             dist/SHA256SUMS
-            dist/*.asc
           retention-days: 14
 
       - name: Sürüm (Release) Varsa Varlıkları Yayınla
@@ -214,10 +220,16 @@ jobs:
             dist/ayaz-de-latest-amd64.deb
             dist/ayaz-de-latest-amd64.deb.sha256
             dist/SHA256SUMS
-            dist/*.asc
           generate_release_notes: true
           name: Ankora Linux ${{ env.ankora_version }} (${{ github.ref_name }})
           draft: false
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: GPG İmza Dosyalarını Sürüme Ekle (varsa)
+        if: startsWith(github.ref, 'refs/tags/v') && env.has_gpg_sigs == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload "${{ github.ref_name }}" dist/*.asc --clobber
