@@ -4074,7 +4074,7 @@ fn execute_system_installation_blocking(payload: InstallPayload) -> Result<Strin
                     "/target",
                     "usermod",
                     "-aG",
-                    "sudo,audio,video,plugdev,netdev",
+                    "sudo,audio,video,plugdev,netdev,lp,scanner",
                     "ankora",
                 ],
             );
@@ -4089,7 +4089,7 @@ fn execute_system_installation_blocking(payload: InstallPayload) -> Result<Strin
                     "-s",
                     "/bin/bash",
                     "-G",
-                    "sudo,audio,video,plugdev,netdev",
+                    "sudo,audio,video,plugdev,netdev,lp,scanner",
                     username,
                 ],
             )?;
@@ -4136,7 +4136,7 @@ fn execute_system_installation_blocking(payload: InstallPayload) -> Result<Strin
         if let Ok(icerik) = fs::read_to_string(inittab_path) {
             let yeni_satir = if payload.autologin {
                 format!(
-                    "1:2345:respawn:/sbin/getty --autologin {} --noclear 38400 tty1 linux",
+                    "1:2345:respawn:/sbin/getty --autologin {} 38400 tty1 linux",
                     username
                 )
             } else {
@@ -4262,9 +4262,56 @@ fn execute_system_installation_blocking(payload: InstallPayload) -> Result<Strin
         let _ = root_command("chroot", &["/target", "sh", "-c", &format!("command -v update-locale >/dev/null && update-locale LANG={} 2>/dev/null; command -v locale-gen >/dev/null && locale-gen {} en_US.UTF-8 2>/dev/null; true", want_lang, want_lang)]);
 
         // ZRAM Takas Servisi ve Optimizasyonunu kurulu sisteme kur
-        let _ = root_write("/target/etc/default/rcS", "# Ankora Linux 3.5 Hızlı Paralel Açılış\nCONCURRENCY=makefile\nUTC=yes\nVERBOSE=no\nFSCKFIX=no\n");
+        let _ = root_write("/target/etc/default/rcS", "# Ankora Linux 4.7.0 Hızlı Paralel Açılış\nCONCURRENCY=makefile\nUTC=yes\nVERBOSE=no\nFSCKFIX=no\n");
         let _ = root_write("/target/etc/sysctl.d/99-zram.conf", "vm.swappiness = 100\nvm.vfs_cache_pressure = 50\nvm.watermark_boost_factor = 0\nvm.dirty_background_ratio = 5\nvm.dirty_ratio = 10\n");
-        let zram_script = "#!/bin/sh\ncase \"$1\" in\n  start)\n    modprobe zram num_devices=1 2>/dev/null || true\n    if [ -e /dev/zram0 ]; then\n      for alg in zstd lz4 lzo; do\n        if grep -q \"$alg\" /sys/block/zram0/comp_algorithm 2>/dev/null; then\n          echo \"$alg\" > /sys/block/zram0/comp_algorithm 2>/dev/null && break\n        fi\n      done\n      MEM_TOTAL_KB=$(grep MemTotal /proc/meminfo 2>/dev/null | awk '{print $2}')\n      DISKSIZE=$(( MEM_TOTAL_KB * 1024 / 2 ))\n      echo \"$DISKSIZE\" > /sys/block/zram0/disksize 2>/dev/null || true\n      mkswap /dev/zram0 >/dev/null 2>&1 || true\n      swapon -p 100 /dev/zram0 2>/dev/null || true\n    fi\n    ;;\n  stop)\n    swapoff /dev/zram0 2>/dev/null || true\n    echo 1 > /sys/block/zram0/reset 2>/dev/null || true\n    ;;\n  restart)\n    $0 stop; $0 start;;\nesac\nexit 0\n";
+        let zram_script = r#"#!/bin/sh
+### BEGIN INIT INFO
+# Provides:          zram-swap
+# Required-Start:    $local_fs
+# Required-Stop:     $local_fs
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: ZRAM Sıkıştırılmış RAM Takas Alanı
+### END INIT INFO
+
+case "$1" in
+  start)
+    modprobe zram num_devices=1 2>/dev/null || true
+    if [ -e /dev/zram0 ]; then
+      for alg in zstd lz4 lzo; do
+        if grep -q "$alg" /sys/block/zram0/comp_algorithm 2>/dev/null; then
+          echo "$alg" > /sys/block/zram0/comp_algorithm 2>/dev/null && break
+        fi
+      done
+      MEM_TOTAL_KB=$(grep MemTotal /proc/meminfo 2>/dev/null | awk '{print $2}')
+      if [ -n "$MEM_TOTAL_KB" ] && [ "$MEM_TOTAL_KB" -gt 0 ] 2>/dev/null; then
+        DISKSIZE=$(( MEM_TOTAL_KB * 1024 / 2 ))
+      else
+        DISKSIZE=1073741824
+      fi
+      echo "$DISKSIZE" > /sys/block/zram0/disksize 2>/dev/null || true
+      mkswap /dev/zram0 >/dev/null 2>&1 || true
+      swapon -p 100 /dev/zram0 2>/dev/null || true
+    fi
+    ;;
+  stop)
+    swapoff /dev/zram0 2>/dev/null || true
+    echo 1 > /sys/block/zram0/reset 2>/dev/null || true
+    ;;
+  restart|force-reload)
+    "$0" stop
+    "$0" start
+    ;;
+  status)
+    swapon -s 2>/dev/null | grep zram || echo "zram aktif değil"
+    ;;
+  *)
+    echo "Kullanım: $0 {start|stop|restart|status}" >&2
+    exit 1
+    ;;
+esac
+exit 0
+"#;
         let _ = root_write("/target/etc/init.d/zram-swap", zram_script);
         let _ = root_command("chmod", &["0755", "/target/etc/init.d/zram-swap"]);
         let _ = root_command(
@@ -4364,6 +4411,30 @@ fn execute_system_installation_blocking(payload: InstallPayload) -> Result<Strin
                 "chroot",
                 &["/target", "plymouth-set-default-theme", "-R", "ankora"],
             );
+        }
+        // Faz tahta dokunmatik sürücüsü kurulu sisteme taşınır.
+        let faz_files = [
+            ("/usr/bin/eta-touchdrv", "/target/usr/bin/eta-touchdrv"),
+            (
+                "/usr/share/applications/eta-touchdrv.desktop",
+                "/target/usr/share/applications/eta-touchdrv.desktop",
+            ),
+            (
+                "/lib/udev/rules.d/99-faz-touch.rules",
+                "/target/lib/udev/rules.d/99-faz-touch.rules",
+            ),
+            (
+                "/usr/share/X11/xorg.conf.d/99-faz-touch.conf",
+                "/target/usr/share/X11/xorg.conf.d/99-faz-touch.conf",
+            ),
+        ];
+        for (src, dst) in &faz_files {
+            if Path::new(src).is_file() {
+                if let Some(parent_str) = Path::new(dst).parent().and_then(|p| p.to_str()) {
+                    let _ = root_command("mkdir", &["-p", parent_str]);
+                }
+                let _ = root_command("cp", &["-af", src, dst]);
+            }
         }
         run_step("chroot", &["/target", "update-grub"])?;
 
