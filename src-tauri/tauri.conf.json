@@ -18,13 +18,13 @@
         "label": "main",
         "title": "Ayaz · Ankora Linux",
         "fullscreen": false,
-        "maximized": true,
+        "maximized": false,
         "decorations": false,
-        "resizable": false,
+        "resizable": true,
         "transparent": false,
         "alwaysOnTop": false,
         "skipTaskbar": true,
-        "center": true,
+        "center": false,
         "width": 1920,
         "height": 1080
       }

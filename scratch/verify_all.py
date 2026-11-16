@@ -290,6 +290,11 @@ def main():
               )))
         check("zram: algoritma (zstd lz4 lzo) ve %50 boyut eşitlemesi",
               all("zstd lz4 lzo" in s and "/ 2 ))" in s for s in (iso, ayaz_sess, xin)))
+        cap_text = (ROOT / "src-tauri/capabilities/default.json").read_text(encoding="utf-8")
+        check("ayaz kabuk sürükleme kilidi (drag-region ve start-dragging kapalı)",
+              "data-tauri-drag-region" not in html_text
+              and "data-tauri-drag-region" not in app_js
+              and "core:window:allow-start-dragging" not in cap_text)
     except Exception as e:
         check("sürüm rozeti, CUPS/SANE ve ZRAM eşitlemesi", False, str(e)[:200])
 

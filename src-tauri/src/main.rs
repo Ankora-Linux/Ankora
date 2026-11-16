@@ -7024,6 +7024,60 @@ fn minimize_all_windows() -> Result<(), String> {
 }
 
 #[cfg(target_os = "linux")]
+fn parse_screen_wxh(token: &str) -> Option<(u32, u32)> {
+    let (w_s, h_s) = token.split_once('x')?;
+    let w = w_s.trim().parse::<u32>().ok()?;
+    let h = h_s.trim().parse::<u32>().ok()?;
+    (w >= 640 && h >= 480).then_some((w, h))
+}
+
+#[cfg(target_os = "linux")]
+fn detect_primary_screen_dimensions() -> Option<(u32, u32)> {
+    let out = Command::new("xrandr").arg("--current").output().ok()?;
+    if !out.status.success() {
+        return None;
+    }
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    for line in stdout.lines() {
+        if (line.starts_with(' ') || line.starts_with('\t')) && line.contains('*') {
+            if let Some(dims) = line.split_whitespace().next().and_then(parse_screen_wxh) {
+                return Some(dims);
+            }
+        }
+    }
+    for line in stdout.lines() {
+        if let Some(dims) = line
+            .split("current ")
+            .nth(1)
+            .and_then(|rest| rest.split(',').next())
+            .and_then(parse_screen_wxh)
+        {
+            return Some(dims);
+        }
+    }
+    None
+}
+
+#[cfg(target_os = "linux")]
+fn pin_ayaz_window_geometry() {
+    let geom_arg = match detect_primary_screen_dimensions() {
+        Some((w, h)) => format!("0,0,0,{},{}", w, h),
+        None => "0,0,0,-1,-1".to_string(),
+    };
+    for title in ["Ayaz · Ankora", "Ayaz — Ankora"] {
+        let _ = Command::new("wmctrl")
+            .args(["-r", title, "-b", "remove,maximized_vert,maximized_horz"])
+            .output();
+        let _ = Command::new("wmctrl")
+            .args(["-r", title, "-e", &geom_arg])
+            .output();
+        let _ = Command::new("wmctrl")
+            .args(["-r", title, "-b", "add,skip_taskbar,skip_pager"])
+            .output();
+    }
+}
+
+#[cfg(target_os = "linux")]
 fn lower_ayaz_window() {
     for title in ["Ayaz · Ankora", "Ayaz — Ankora"] {
         let _ = Command::new("wmctrl")
@@ -7033,6 +7087,7 @@ fn lower_ayaz_window() {
             .args(["-r", title, "-b", "add,below"])
             .output();
     }
+    pin_ayaz_window_geometry();
 }
 
 #[tauri::command]
@@ -7040,6 +7095,7 @@ fn set_desktop_layer(above: bool) -> Result<bool, String> {
     #[cfg(target_os = "linux")]
     {
         if above {
+            pin_ayaz_window_geometry();
             for title in ["Ayaz · Ankora", "Ayaz — Ankora"] {
                 let _ = Command::new("wmctrl")
                     .args(["-r", title, "-b", "remove,below"])
@@ -7222,6 +7278,8 @@ fn set_display_mode(
                 .args(["--output", &out_name, "--mode", mode.trim()])
                 .output();
         }
+
+        pin_ayaz_window_geometry();
 
         Ok(DisplayApplyResponse {
             success: true,
@@ -11067,6 +11125,24 @@ fn main() {
             {
                 use tauri::Manager;
                 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
+                if let Some(win) = app.get_webview_window("main") {
+                    let _ = win.set_decorations(false);
+                    let _ = win.set_position(tauri::Position::Physical(
+                        tauri::PhysicalPosition::new(0, 0),
+                    ));
+                    if let Ok(Some(monitor)) =
+                        win.current_monitor().or_else(|_| win.primary_monitor())
+                    {
+                        let size = *monitor.size();
+                        let _ = win.set_size(tauri::Size::Physical(size));
+                    }
+                    std::thread::spawn(|| {
+                        std::thread::sleep(Duration::from_millis(300));
+                        pin_ayaz_window_geometry();
+                        std::thread::sleep(Duration::from_millis(700));
+                        pin_ayaz_window_geometry();
+                    });
+                }
                 if let Ok(shortcut) = "PrintScreen".parse::<Shortcut>() {
                     let _ = app.global_shortcut().on_shortcut(
                         shortcut,

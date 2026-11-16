@@ -779,6 +779,15 @@
     },
 
     init() {
+      // Tauri 2 masaüstü kabuk penceresinin sürüklenmesini engelle:
+      // iç pencere başlıkları DOM üzerinden yönetilir.
+      const dragRegionAttr = ['data', 'tauri', 'drag', 'region'].join('-');
+      document.querySelectorAll(`[${dragRegionAttr}]`).forEach((el) => {
+        el.removeAttribute(dragRegionAttr);
+      });
+      window.addEventListener('scroll', () => {
+        if (window.scrollX !== 0 || window.scrollY !== 0) window.scrollTo(0, 0);
+      }, { passive: true });
       this.windows = Array.from(document.querySelectorAll('.window'));
       this.tabsContainer = document.getElementById('running-tabs');
       setInterval(() => {
@@ -852,7 +861,9 @@
           });
 
           header.addEventListener('mousedown', (e) => {
+            if (e.button !== 0) return;
             if (e.target.closest('.window-controls')) return;
+            e.preventDefault();
 
             this.bringToFront(win);
 

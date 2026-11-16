@@ -159,9 +159,17 @@
       </action>
     </keybind>
 
-    <!-- Alt+F4: Aktif pencereyi kapat -->
+    <!-- Alt+F4: Aktif harici pencereyi kapat (Ayaz masaüstü kabuğu korunur) -->
     <keybind key="A-F4">
-      <action name="Close"/>
+      <action name="If">
+        <query target="default">
+          <title>*Ayaz*</title>
+        </query>
+        <then/>
+        <else>
+          <action name="Close"/>
+        </else>
+      </action>
     </keybind>
 
     <!-- Super+D: Masaüstünü göster (Tüm pencereleri küçült) -->
@@ -179,37 +187,70 @@
     <!-- ====================================================================== -->
     <!-- AERO SNAP / PENCERE DÖŞEME (TILING) KISAYOLLARI:                       -->
     <!-- Windows ve modern DE tarzı yarı yarıya ekran bölme                     -->
+    <!-- (Ayaz masaüstü kabuğu asla yeniden konumlandırılmaz / küçültülmez)     -->
     <!-- ====================================================================== -->
     <!-- Super + Sol Ok: Ekranın sol yarısına yasla (%50 genişlik) -->
     <keybind key="W-Left">
-      <action name="Unmaximize"/>
-      <action name="MoveResizeTo">
-        <x>0</x>
-        <y>0</y>
-        <width>50%</width>
-        <height>100%</height>
+      <action name="If">
+        <query target="default">
+          <title>*Ayaz*</title>
+        </query>
+        <then/>
+        <else>
+          <action name="Unmaximize"/>
+          <action name="MoveResizeTo">
+            <x>0</x>
+            <y>0</y>
+            <width>50%</width>
+            <height>100%</height>
+          </action>
+        </else>
       </action>
     </keybind>
 
     <!-- Super + Sağ Ok: Ekranın sağ yarısına yasla (%50 genişlik) -->
     <keybind key="W-Right">
-      <action name="Unmaximize"/>
-      <action name="MoveResizeTo">
-        <x>50%</x>
-        <y>0</y>
-        <width>50%</width>
-        <height>100%</height>
+      <action name="If">
+        <query target="default">
+          <title>*Ayaz*</title>
+        </query>
+        <then/>
+        <else>
+          <action name="Unmaximize"/>
+          <action name="MoveResizeTo">
+            <x>50%</x>
+            <y>0</y>
+            <width>50%</width>
+            <height>100%</height>
+          </action>
+        </else>
       </action>
     </keybind>
 
     <!-- Super + Yukarı Ok: Maksimize Et (Alttaki 56px görev çubuğu hariç) -->
     <keybind key="W-Up">
-      <action name="Maximize"/>
+      <action name="If">
+        <query target="default">
+          <title>*Ayaz*</title>
+        </query>
+        <then/>
+        <else>
+          <action name="Maximize"/>
+        </else>
+      </action>
     </keybind>
 
     <!-- Super + Aşağı Ok: Küçült (Minimize / Restore) -->
     <keybind key="W-Down">
-      <action name="Unmaximize"/>
+      <action name="If">
+        <query target="default">
+          <title>*Ayaz*</title>
+        </query>
+        <then/>
+        <else>
+          <action name="Unmaximize"/>
+        </else>
+      </action>
     </keybind>
 
     <!-- Ctrl+Alt+T: Terminal -->
@@ -242,7 +283,15 @@
         <action name="Unshade"/>
       </mousebind>
       <mousebind button="A-Left" action="Drag">
-        <action name="Move"/>
+        <action name="If">
+          <query target="default">
+            <title>*Ayaz*</title>
+          </query>
+          <then/>
+          <else>
+            <action name="Move"/>
+          </else>
+        </action>
       </mousebind>
       <mousebind button="A-Right" action="Press">
         <action name="Focus"/>
@@ -250,16 +299,40 @@
         <action name="Unshade"/>
       </mousebind>
       <mousebind button="A-Right" action="Drag">
-        <action name="Resize"/>
+        <action name="If">
+          <query target="default">
+            <title>*Ayaz*</title>
+          </query>
+          <then/>
+          <else>
+            <action name="Resize"/>
+          </else>
+        </action>
       </mousebind>
     </context>
 
     <context name="Titlebar">
       <mousebind button="Left" action="Drag">
-        <action name="Move"/>
+        <action name="If">
+          <query target="default">
+            <title>*Ayaz*</title>
+          </query>
+          <then/>
+          <else>
+            <action name="Move"/>
+          </else>
+        </action>
       </mousebind>
       <mousebind button="Left" action="DoubleClick">
-        <action name="ToggleMaximize"/>
+        <action name="If">
+          <query target="default">
+            <title>*Ayaz*</title>
+          </query>
+          <then/>
+          <else>
+            <action name="ToggleMaximize"/>
+          </else>
+        </action>
       </mousebind>
     </context>
 
@@ -302,13 +375,69 @@
   <!-- Ayaz DE Kiosk Penceresi İçin Özel Ayarlar                              -->
   <!-- ====================================================================== -->
   <applications>
-    <!-- Ayaz Masaüstü Kabuğu: Çerçevesiz, masaüstü katmanında, görev çubuğunda görünmez -->
-    <application class="*ayaz*" name="*ayaz*" title="*Ayaz*">
+    <!-- Ayaz Masaüstü Kabuğu: Çerçevesiz, tam ekran sabitlenmiş (0,0), görev çubuğunda görünmez -->
+    <application name="*ayaz*">
       <decor>no</decor>
       <position force="yes">
         <x>0</x>
         <y>0</y>
       </position>
+      <size>
+        <width>100%</width>
+        <height>100%</height>
+      </size>
+      <maximized>no</maximized>
+      <focus>yes</focus>
+      <layer>below</layer>
+      <desktop>all</desktop>
+      <skip_taskbar>yes</skip_taskbar>
+      <skip_pager>yes</skip_pager>
+    </application>
+    <application class="*ayaz*">
+      <decor>no</decor>
+      <position force="yes">
+        <x>0</x>
+        <y>0</y>
+      </position>
+      <size>
+        <width>100%</width>
+        <height>100%</height>
+      </size>
+      <maximized>no</maximized>
+      <focus>yes</focus>
+      <layer>below</layer>
+      <desktop>all</desktop>
+      <skip_taskbar>yes</skip_taskbar>
+      <skip_pager>yes</skip_pager>
+    </application>
+    <application class="*Ayaz*">
+      <decor>no</decor>
+      <position force="yes">
+        <x>0</x>
+        <y>0</y>
+      </position>
+      <size>
+        <width>100%</width>
+        <height>100%</height>
+      </size>
+      <maximized>no</maximized>
+      <focus>yes</focus>
+      <layer>below</layer>
+      <desktop>all</desktop>
+      <skip_taskbar>yes</skip_taskbar>
+      <skip_pager>yes</skip_pager>
+    </application>
+    <application title="*Ayaz*">
+      <decor>no</decor>
+      <position force="yes">
+        <x>0</x>
+        <y>0</y>
+      </position>
+      <size>
+        <width>100%</width>
+        <height>100%</height>
+      </size>
+      <maximized>no</maximized>
       <focus>yes</focus>
       <layer>below</layer>
       <desktop>all</desktop>

@@ -270,7 +270,7 @@
     <!-- 1. ANKORA KARŞILAYICI (DESKTOP PREVIEW İLE BİREBİR)                     -->
     <!-- ======================================================================= -->
     <section class="window welcome-preview-window" id="win-welcome" style="top: calc(50vh - 275px); left: calc(50vw - 250px); width: 500px;" aria-labelledby="welcome-header-title">
-      <div class="window-header" data-tauri-drag-region>
+      <div class="window-header">
         <div class="window-meta">
           <span id="welcome-header-title">Ankora Karşılayıcı - Hoş Geldiniz</span>
         </div>
@@ -445,7 +445,7 @@
     <!-- 2. ANKORA KURULUM ARACI (MODERN OS TARGET INSTALLER)                    -->
     <!-- ======================================================================= -->
     <section class="window" id="win-installer" style="top: 50px; left: 200px; width: 780px; height: 540px;" aria-labelledby="installer-header-title">
-      <div class="window-header" data-tauri-drag-region>
+      <div class="window-header">
         <div class="window-meta">
           <img src="logo.svg" alt="Icon" class="meta-logo">
           <span id="installer-header-title">Ankora Linux Kurulum Aracı (OS Installer)</span>
@@ -603,7 +603,7 @@
     <!-- 3. ANKORA MAĞAZA                                                        -->
     <!-- ======================================================================= -->
     <section class="window" id="win-store" style="top: 60px; left: 80px; width: 920px; height: 580px;" aria-labelledby="store-header-title">
-      <div class="window-header" data-tauri-drag-region>
+      <div class="window-header">
         <div class="window-meta">
           <span id="store-header-title">Ankora Yazılım Merkezi</span>
         </div>
@@ -749,7 +749,7 @@
     <!-- 4. TERMİNAL                                                             -->
     <!-- ======================================================================= -->
     <section class="window" id="win-terminal" style="top: 90px; left: 180px; width: 780px; height: 460px;" aria-labelledby="term-header-title">
-      <div class="window-header" data-tauri-drag-region>
+      <div class="window-header">
         <div class="window-meta">
           <span id="term-header-title">ankora@ankora-os: ~ (bash / native-ipc)</span>
         </div>
@@ -792,7 +792,7 @@
     <!-- 5. AI AJAN                                                              -->
     <!-- ======================================================================= -->
     <section class="window" id="win-ai" style="top: 60px; left: 130px; width: 920px; height: 650px;" aria-labelledby="ai-header-title">
-      <div class="window-header" data-tauri-drag-region>
+      <div class="window-header">
         <div class="window-meta">
           <span class="ai-win-glyph" aria-hidden="true">
             <img src="logo.svg" alt="" style="width:14px;height:14px;display:block;">
@@ -1064,7 +1064,7 @@
     <!-- 6. ANKORA WEB TARAYICI (GÖMÜLÜ AYAZ WEBKIT BROWSER)                   -->
     <!-- ======================================================================= -->
     <section class="window" id="win-browser" style="top: 50px; left: 120px; width: 920px; height: 580px;" aria-labelledby="browser-header-title">
-      <div class="window-header" data-tauri-drag-region>
+      <div class="window-header">
         <div class="window-meta">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width: 15px; height: 15px;">
             <circle cx="12" cy="12" r="10"></circle>
@@ -1161,7 +1161,7 @@
     <!-- 7. ANKORA DOSYA VE BELGE YÖNETİCİSİ (OFFICE & FILES)                   -->
     <!-- ======================================================================= -->
     <section class="window" id="win-office" style="top: 60px; left: 130px; width: 880px; height: 560px;" aria-labelledby="office-header-title">
-      <div class="window-header" data-tauri-drag-region>
+      <div class="window-header">
         <div class="window-meta">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" style="width: 15px; height: 15px;">
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
@@ -1208,7 +1208,7 @@
     <!-- 8. ANKORA DOSYA YÖNETİCİSİ (NATIVE FILE MANAGER)                       -->
     <!-- ======================================================================= -->
     <section class="window" id="win-files" style="top: 55px; left: 160px; width: 860px; height: 550px;" aria-labelledby="files-header-title">
-      <div class="window-header" data-tauri-drag-region>
+      <div class="window-header">
         <div class="window-meta">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width: 16px; height: 16px; color: #38bdf8;">
             <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
@@ -1326,7 +1326,7 @@
     <!-- 7. ANKORA SİSTEM AYARLARI (GELİŞMİŞ DAĞITIM VE KİOSK YÖNETİMİ)          -->
     <!-- ======================================================================= -->
     <section class="window" id="win-settings" style="top: 40px; left: 140px; width: 880px; height: 580px;" aria-labelledby="settings-header-title">
-      <div class="window-header" data-tauri-drag-region>
+      <div class="window-header">
         <div class="window-meta">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width: 16px; height: 16px;"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
           <span id="settings-header-title">Sistem Ayarları - Ankora Linux 4.7 "Bora"</span>
@@ -2535,7 +2535,7 @@
     <!-- TEMA STÜDYOSU (STUDIO: TEMA GALERISI + KENDI TEMANI YAZ)                -->
     <!-- ======================================================================= -->
     <section class="window" id="win-studio" style="top: 70px; left: 190px; width: 860px; height: 560px;" aria-labelledby="studio-header-title">
-      <div class="window-header" data-tauri-drag-region>
+      <div class="window-header">
         <div class="window-meta">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:16px;height:16px;color:#c9a24e;margin-right:6px;"><circle cx="12" cy="12" r="9"></circle><path d="M12 3a9 9 0 0 1 0 18"></path><path d="M12 7v10"></path></svg>
           <span class="window-title" id="studio-header-title">Tema Stüdyosu</span>
@@ -2595,7 +2595,7 @@
     <!-- 8. AYAZ GÜNCELLEYİCİ (AYAZ DE UPDATE MANAGER)                           -->
     <!-- ======================================================================= -->
     <section class="window" id="win-updater" style="top: 80px; left: 220px; width: 680px; height: 510px;" aria-labelledby="updater-header-title">
-      <div class="window-header" data-tauri-drag-region>
+      <div class="window-header">
         <div class="window-meta">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width: 14px; height: 14px; margin-right: 6px; display: inline-block; vertical-align: -2px;">
             <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
@@ -2679,7 +2679,7 @@
     <!-- 9. GÖREV YÖNETİCİSİ & KAYNAK MONİTÖRÜ (TASK MANAGER)                   -->
     <!-- ======================================================================= -->
     <section class="window" id="win-taskmgr" style="top: 70px; left: 180px; width: 820px; height: 530px;" aria-labelledby="taskmgr-header-title">
-      <div class="window-header" data-tauri-drag-region>
+      <div class="window-header">
         <div class="window-meta">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width: 14px; height: 14px; margin-right: 6px; display: inline-block; vertical-align: -2px;">
             <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
@@ -2775,7 +2775,7 @@
     <!-- 10. ANKORA NOT DEFTERİ (NOTEPAD / SCRATCHPAD)                           -->
     <!-- ======================================================================= -->
     <section class="window" id="win-notepad" style="top: 90px; left: 240px; width: 720px; height: 480px;" aria-labelledby="notepad-header-title">
-      <div class="window-header" data-tauri-drag-region>
+      <div class="window-header">
         <div class="window-meta">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width: 14px; height: 14px; margin-right: 6px; display: inline-block; vertical-align: -2px;">
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
@@ -2818,7 +2818,7 @@
     <!-- 11. HESAP MAKİNESİ (CALCULATOR)                                         -->
     <!-- ======================================================================= -->
     <section class="window" id="win-calc" style="top: 100px; left: 320px; width: 340px; height: 490px;" aria-labelledby="calc-header-title">
-      <div class="window-header" data-tauri-drag-region>
+      <div class="window-header">
         <div class="window-meta">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width: 14px; height: 14px; margin-right: 6px; display: inline-block; vertical-align: -2px;">
             <rect x="4" y="2" width="16" height="20" rx="2"></rect>
@@ -2879,7 +2879,7 @@
     <!-- 13. AYAZ WIDGET MERKEZİ (MASAÜSTÜ BİLEŞEN AÇMA / KAPATMA)                -->
     <!-- ======================================================================= -->
     <section class="window" id="win-widgets" style="top: 90px; left: 300px; width: 470px;" aria-labelledby="widgets-header-title">
-      <div class="window-header" data-tauri-drag-region>
+      <div class="window-header">
         <div class="window-meta">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width: 14px; height: 14px; margin-right: 6px; display: inline-block; vertical-align: -2px;">
             <rect x="3" y="3" width="8" height="8" rx="2"></rect>
@@ -2908,7 +2908,7 @@
     <!-- 14. ANKORA REPORT (HATA BİLDİRİMİ, SİSTEM TANILAMA & TOPLULUK İLETİŞİMİ) -->
     <!-- ======================================================================= -->
     <section class="window" id="win-report" style="top: 70px; left: 160px; width: 780px; height: 560px;" aria-labelledby="report-header-title">
-      <div class="window-header" data-tauri-drag-region>
+      <div class="window-header">
         <div class="window-meta">
           <svg class="window-meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;margin-right:6px;color:#ef4444;">
             <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path>
@@ -3065,7 +3065,7 @@
     <!-- 15. EKRAN GÖRÜNTÜSÜ ALMA ARACI (SCREENSHOT TOOL)                         -->
     <!-- ======================================================================= -->
     <section class="window" id="win-screenshot" style="top: 80px; left: 260px; width: 620px; height: 500px;" aria-labelledby="ss-header-title">
-      <div class="window-header" data-tauri-drag-region>
+      <div class="window-header">
         <div class="window-meta">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:16px;height:16px;color:#38bdf8;margin-right:6px;"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
           <span id="ss-header-title">Ekran Alıntısı Aracı · Ankora AyazDE</span>
@@ -3141,7 +3141,7 @@
          15b. PENCERE: BAŞLAT MENÜSÜ DÜZENLEYİCİ (MENU EDITOR)
          ======================================================================= -->
     <section class="window" id="win-menu-editor" style="top: 90px; left: 300px; width: 640px; height: 560px;" aria-labelledby="me-header-title">
-      <div class="window-header" data-tauri-drag-region>
+      <div class="window-header">
         <div class="window-meta">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:16px;height:16px;color:#38bdf8;margin-right:6px;"><path d="M3 6h18"></path><path d="M3 12h12"></path><path d="M3 18h8"></path></svg>
           <span class="window-title" id="me-header-title">Başlat Menüsü Düzenleyici</span>
@@ -3173,7 +3173,7 @@
          16. PENCERE: ANKORA USB & ISO YAZICI (USB FLASHER & FORMATTER)
          ============================================================================== -->
     <section class="window" id="win-flasher" style="top: 90px; left: 280px; width: 640px; height: 520px;" aria-labelledby="flasher-header-title">
-      <div class="window-header" data-tauri-drag-region>
+      <div class="window-header">
         <div class="window-meta">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:16px;height:16px;color:#38bdf8;margin-right:6px;"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect><line x1="7" y1="2" x2="7" y2="22"></line><line x1="17" y1="2" x2="17" y2="22"></line><line x1="2" y1="12" x2="22" y2="12"></line><line x1="2" y1="7" x2="7" y2="7"></line><line x1="2" y1="17" x2="7" y2="17"></line><line x1="17" y1="17" x2="22" y2="17"></line><line x1="17" y1="7" x2="22" y2="7"></line></svg>
           <span class="window-title" id="flasher-header-title">Ankora USB & ISO Yazıcı</span>
@@ -3265,7 +3265,7 @@
     <!-- AYAZ PAKET YÜKLEYİCİ (.deb & .AppImage Grafik Yükleyici) -->
     <!-- ======================================================================= -->
     <section class="window" id="win-pkg-installer" style="top: calc(50vh - 200px); left: calc(50vw - 250px); width: 500px; height: auto; min-height: 320px;" aria-labelledby="pkg-installer-title">
-      <div class="window-header" data-tauri-drag-region>
+      <div class="window-header">
         <div class="window-meta">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:16px;height:16px;color:var(--accent-active,#38bdf8);margin-right:6px;"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
           <span id="pkg-installer-title">Paket Yükleyici</span>
