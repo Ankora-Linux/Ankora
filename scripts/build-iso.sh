@@ -416,6 +416,9 @@ apt-get install -y --no-install-recommends \
     udisks2 \
     polkitd \
     pkexec \
+    elogind \
+    libpam-elogind \
+    zstd \
     fonts-inter \
     fonts-noto-core \
     fonts-noto-color-emoji \
@@ -787,6 +790,9 @@ fi
 if [ -f /etc/init.d/dbus ]; then
     update-rc.d dbus defaults 2>/dev/null || true
 fi
+if [ -f /etc/init.d/elogind ]; then
+    update-rc.d elogind defaults 2>/dev/null || true
+fi
 if [ -f /etc/init.d/network-manager ]; then
     update-rc.d network-manager defaults 2>/dev/null || true
 fi
@@ -942,12 +948,19 @@ else
 fi
 update-initramfs -u -k all
 
-# Canlı imaj için resmi kaynak listesi
+# Canlı imaj için resmi kaynak listesi ve ağ zaman aşımı/yeniden deneme ayarları
 cat << 'SOURCES' > /etc/apt/sources.list
 deb https://pkgmaster.devuan.org/merged excalibur main contrib non-free non-free-firmware
 deb https://pkgmaster.devuan.org/merged excalibur-security main contrib non-free non-free-firmware
 deb https://pkgmaster.devuan.org/merged excalibur-updates main contrib non-free non-free-firmware
 SOURCES
+
+cat << 'APTNET' > /etc/apt/apt.conf.d/03-ankora-network
+DPkg::Lock::Timeout "30";
+Acquire::Retries "3";
+Acquire::http::Timeout "20";
+Acquire::https::Timeout "20";
+APTNET
 
 # Son temizlik
 apt-get clean

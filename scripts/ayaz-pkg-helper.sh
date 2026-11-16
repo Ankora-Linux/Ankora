@@ -16,6 +16,62 @@ fi
 export DEBIAN_FRONTEND=noninteractive
 
 # ---------------------------------------------------------------------
+# ORTAK APT YARDIMCILARI (Kilit bekleme, saat kayması, IPv4 geri düşüşü)
+# ---------------------------------------------------------------------
+safe_apt_get() {
+    local -a opts=(
+        -o "DPkg::Lock::Timeout=30"
+        -o "Acquire::Retries=3"
+        -o "Acquire::http::Timeout=20"
+        -o "Acquire::https::Timeout=20"
+    )
+    local out rc=0
+    out=$(/usr/bin/apt-get "${opts[@]}" "$@" 2>&1) || rc=$?
+    if [[ $rc -ne 0 ]] && printf '%s' "$out" | grep -qiE 'could not connect|network is unreachable|cannot initiate the connection|temporary failure resolving|connection timed out|failed to fetch|ssl|gnutls'; then
+        out=$(/usr/bin/apt-get "${opts[@]}" -o "Acquire::ForceIPv4=true" "$@" 2>&1) && rc=0 || rc=$?
+    fi
+    if [[ -n "$out" ]]; then
+        if [[ $rc -ne 0 ]]; then
+            printf '%s\n' "$out" >&2
+        else
+            printf '%s\n' "$out"
+        fi
+    fi
+    return "$rc"
+}
+
+safe_apt_update() {
+    mkdir -p /var/lib/apt/lists/partial 2>/dev/null || true
+    /usr/bin/dpkg --configure -a >/dev/null 2>&1 || true
+    if command -v chronyc >/dev/null 2>&1; then
+        timeout 4 chronyc -a makestep >/dev/null 2>&1 || true
+    fi
+    local -a opts=(
+        -o "DPkg::Lock::Timeout=30"
+        -o "Acquire::Retries=3"
+        -o "Acquire::http::Timeout=20"
+        -o "Acquire::https::Timeout=20"
+    )
+    local out rc=0
+    out=$(/usr/bin/apt-get "${opts[@]}" update 2>&1) || rc=$?
+    if [[ $rc -ne 0 ]] && printf '%s' "$out" | grep -qiE 'not valid yet|invalid for another'; then
+        # Sanal makine / ikili açılışta BIOS saati kayıksa GPG imzasını koruyarak tarih kilidini aş
+        out=$(/usr/bin/apt-get "${opts[@]}" -o "Acquire::Check-Valid-Until=false" -o "Acquire::Check-Date=false" update 2>&1) && rc=0 || rc=$?
+    fi
+    if [[ $rc -ne 0 ]] && printf '%s' "$out" | grep -qiE 'could not connect|network is unreachable|cannot initiate the connection|temporary failure resolving|connection timed out|failed to fetch'; then
+        out=$(/usr/bin/apt-get "${opts[@]}" -o "Acquire::ForceIPv4=true" -o "Acquire::Check-Valid-Until=false" -o "Acquire::Check-Date=false" update 2>&1) && rc=0 || rc=$?
+    fi
+    if [[ -n "$out" ]]; then
+        if [[ $rc -ne 0 ]]; then
+            printf '%s\n' "$out" >&2
+        else
+            printf '%s\n' "$out"
+        fi
+    fi
+    return "$rc"
+}
+
+# ---------------------------------------------------------------------
 # VENDOR (üçüncü parti resmi depo) kurulumları
 # Ad eşlemesi root-owned bu betiğin İÇİNDE sabittir: arayüz yalnızca bu
 # isimleri gönderebilir, URL/komut/argüman gönderilemez. Tüm adresler
@@ -23,8 +79,8 @@ export DEBIAN_FRONTEND=noninteractive
 # ---------------------------------------------------------------------
 need_net_tools() {
     if ! command -v curl >/dev/null 2>&1 || ! command -v gpg >/dev/null 2>&1; then
-        /usr/bin/apt-get update -qq || true
-        /usr/bin/apt-get install -y --no-install-recommends curl gnupg >/dev/null 2>&1 || true
+        safe_apt_update >/dev/null 2>&1 || true
+        safe_apt_get install -y --no-install-recommends curl gnupg >/dev/null 2>&1 || true
     fi
     if ! command -v curl >/dev/null 2>&1 || ! command -v gpg >/dev/null 2>&1; then
         echo "[HATA] curl/gpg bulunamadı; resmi depo kurulumu yapılamıyor." >&2
@@ -37,8 +93,8 @@ need_net_tools() {
 # apt-get update başarısız olsa bile mevcut curl ile devam edebilmelidir.
 need_curl() {
     if ! command -v curl >/dev/null 2>&1; then
-        /usr/bin/apt-get update -qq || true
-        /usr/bin/apt-get install -y --no-install-recommends curl >/dev/null 2>&1 || true
+        safe_apt_update >/dev/null 2>&1 || true
+        safe_apt_get install -y --no-install-recommends curl >/dev/null 2>&1 || true
     fi
     if ! command -v curl >/dev/null 2>&1; then
         echo "[HATA] curl bulunamadı; MEB sertifikası indirilemiyor." >&2
@@ -54,8 +110,8 @@ vendor_brave() {
         https://brave-browser-apt-release.s3.brave.com/brave-browser-archive-keyring.gpg
     curl -fsSLo /etc/apt/sources.list.d/brave-browser-release.sources \
         https://brave-browser-apt-release.s3.brave.com/brave-browser.sources
-    /usr/bin/apt-get update -qq
-    exec /usr/bin/apt-get install -y --no-install-recommends -- brave-browser
+    safe_apt_update >/dev/null 2>&1 || true
+    safe_apt_get install -y --no-install-recommends -- brave-browser
 }
 
 vendor_helium() {
@@ -80,8 +136,8 @@ vendor_helium() {
     rm -f "$tmp_key"
     echo "deb [arch=amd64,arm64 signed-by=/usr/share/keyrings/helium.gpg] https://pkg.helium.computer/deb stable main" \
         > /etc/apt/sources.list.d/helium.list
-    /usr/bin/apt-get update -qq
-    exec /usr/bin/apt-get install -y --no-install-recommends -- helium-bin
+    safe_apt_update >/dev/null 2>&1 || true
+    safe_apt_get install -y --no-install-recommends -- helium-bin
 }
 
 vendor_antigravity() {
@@ -91,8 +147,8 @@ vendor_antigravity() {
         | gpg --dearmor --yes -o /etc/apt/keyrings/antigravity-repo-key.gpg
     echo "deb [signed-by=/etc/apt/keyrings/antigravity-repo-key.gpg] https://us-central1-apt.pkg.dev/projects/antigravity-auto-updater-dev/ antigravity-debian main" \
         > /etc/apt/sources.list.d/antigravity.list
-    /usr/bin/apt-get update -qq
-    exec /usr/bin/apt-get install -y --no-install-recommends -- antigravity
+    safe_apt_update >/dev/null 2>&1 || true
+    safe_apt_get install -y --no-install-recommends -- antigravity
 }
 
 # ---------------------------------------------------------------------
@@ -556,13 +612,11 @@ helper_usb_format() {
 }
 
 helper_apt_update() {
-    DEBIAN_FRONTEND=noninteractive dpkg --configure -a >/dev/null 2>&1 || true
-    /usr/bin/apt-get update
+    safe_apt_update
 }
 
 helper_apt_upgrade() {
-    DEBIAN_FRONTEND=noninteractive dpkg --configure -a >/dev/null 2>&1 || true
-    DEBIAN_FRONTEND=noninteractive /usr/bin/apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade -y --no-install-recommends
+    safe_apt_get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade -y --no-install-recommends
 }
 
 # ---------------------------------------------------------------------
@@ -657,11 +711,11 @@ case "$ACTION" in
         export DEBIAN_FRONTEND=noninteractive
         /usr/bin/dpkg --configure -a >/dev/null 2>&1 || true
         if ! /usr/bin/apt-cache show "$PKG" >/dev/null 2>&1; then
-            /usr/bin/apt-get update -qq || true
+            safe_apt_update || true
         fi
-        if ! /usr/bin/apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" install -y --no-install-recommends -- "$PKG"; then
-            /usr/bin/apt-get update -qq || true
-            exec /usr/bin/apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" install -y --no-install-recommends -- "$PKG"
+        if ! safe_apt_get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" install -y --no-install-recommends -- "$PKG"; then
+            safe_apt_update || true
+            safe_apt_get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" install -y --no-install-recommends -- "$PKG"
         fi
         ;;
     install-deb-file)

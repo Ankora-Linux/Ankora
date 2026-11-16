@@ -295,6 +295,13 @@ def main():
               "data-tauri-drag-region" not in html_text
               and "data-tauri-drag-region" not in app_js
               and "core:window:allow-start-dragging" not in cap_text)
+        ollama_sh = (ROOT / "scripts/ankora-ollama-install.sh").read_text(encoding="utf-8")
+        check("ollama: .tar.zst + zstd + HOME=/usr/share/ollama desteği",
+              ".tar.zst" in ollama_sh and "HOME=/usr/share/ollama" in ollama_sh and "zstd" in iso)
+        check("apt/polkit: safe_apt_update + elogind + dbus-launch oturumu",
+              "safe_apt_update" in helper
+              and "elogind" in iso and "libpam-elogind" in iso
+              and "dbus-launch" in xin and "dbus-launch" in ayaz_sess)
     except Exception as e:
         check("sürüm rozeti, CUPS/SANE ve ZRAM eşitlemesi", False, str(e)[:200])
 

@@ -1289,29 +1289,27 @@ fn install_deb_package_blocking(package_name: String) -> Result<XdgApplication, 
                     if !res.status.success() {
                         let err = String::from_utf8_lossy(&res.stderr).trim().to_string();
                         let out = String::from_utf8_lossy(&res.stdout).trim().to_string();
-                        let mut detail = if err.is_empty() {
-                            out.lines()
-                                .rev()
-                                .take(4)
-                                .collect::<Vec<_>>()
-                                .into_iter()
-                                .rev()
-                                .collect::<Vec<_>>()
-                                .join("\n")
-                        } else {
-                            err.lines()
-                                .rev()
-                                .take(6)
-                                .collect::<Vec<_>>()
-                                .into_iter()
-                                .rev()
-                                .collect::<Vec<_>>()
-                                .join("\n")
+                        let combined = match (err.is_empty(), out.is_empty()) {
+                            (false, false) => format!("{}\n{}", err, out),
+                            (false, true) => err,
+                            (true, false) => out,
+                            (true, true) => "Bilinmeyen paket yöneticisi hatası".to_string(),
                         };
+                        let mut detail = combined
+                            .lines()
+                            .filter(|l| !l.trim().is_empty())
+                            .rev()
+                            .take(6)
+                            .collect::<Vec<_>>()
+                            .into_iter()
+                            .rev()
+                            .collect::<Vec<_>>()
+                            .join("\n");
                         let detail_l = detail.to_lowercase();
                         if detail_l.contains("temporary failure")
                             || detail_l.contains("connection refused")
                             || detail_l.contains("could not resolve")
+                            || detail_l.contains("network is unreachable")
                         {
                             detail = format!(
                                 " — Ağ bağlantısı yok veya depolara ulaşılamıyor.\n{}",
@@ -1319,7 +1317,7 @@ fn install_deb_package_blocking(package_name: String) -> Result<XdgApplication, 
                             );
                         } else if !sudo_available() && pkexec_available() {
                             detail = format!(
-                                " — Yönetici yetkisi penceresi açılmadıysa tekrar deneyin.\n{}",
+                                " — Yönetici yetkisi penceresi onaylanmadı veya açılamadı.\n{}",
                                 detail
                             );
                         }
@@ -2105,8 +2103,10 @@ fn remove_deb_package_blocking(package_name: String) -> Result<String, String> {
                     }
                     Ok(format!("{} paketi başarıyla kaldırıldı.", clean_pkg))
                 } else {
-                    let err = String::from_utf8_lossy(&out.stderr);
-                    Err(format!("Paket kaldırma başarısız: {}", err))
+                    let err = String::from_utf8_lossy(&out.stderr).trim().to_string();
+                    let stdout_s = String::from_utf8_lossy(&out.stdout).trim().to_string();
+                    let detail = if err.is_empty() { stdout_s } else { err };
+                    Err(format!("Paket kaldırma başarısız: {}", detail))
                 }
             }
             Err(e) => Err(format!("apt-get çalıştırılamadı: {}", e)),
@@ -2189,6 +2189,29 @@ fn sudo_binary_exists() -> bool {
     })
 }
 
+fn run_pkexec(prog: &str, args: &[&str]) -> Option<std::process::Output> {
+    if !pkexec_available() || (!polkit_agent_running() && std::env::var("DISPLAY").is_err()) {
+        return None;
+    }
+    // Parola penceresi Ayaz masaüstü katmanının arkasında kalmasın
+    #[cfg(target_os = "linux")]
+    lower_ayaz_window();
+    let res = Command::new("pkexec")
+        .arg(prog)
+        .args(args)
+        .stdin(Stdio::null())
+        .output()
+        .ok();
+    #[cfg(target_os = "linux")]
+    raise_ayaz_window();
+    let out = res?;
+    if out.status.success() || !out.stderr.is_empty() || !out.stdout.is_empty() {
+        Some(out)
+    } else {
+        None
+    }
+}
+
 // Root gereken yollar: önce sudo -n denenir (kurulu sistemlerde /etc/sudoers.d/ankora-updater
 // izinli alt komutlar için çalışır; canlı sistemde ise tümü izinlidir). Parola/yetki hatası
 // verirse PolicyKit (pkexec) yükseltmesine düşer.
@@ -2210,17 +2233,8 @@ fn root_command(prog: &str, args: &[&str]) -> std::io::Result<std::process::Outp
         if !sudo_denied {
             return Ok(out);
         }
-        if pkexec_available() && (polkit_agent_running() || std::env::var("DISPLAY").is_ok()) {
-            let elevated = Command::new("pkexec")
-                .arg(prog)
-                .args(args)
-                .stdin(Stdio::null())
-                .output();
-            if let Ok(pk) = elevated {
-                if pk.status.success() || !pk.stderr.is_empty() {
-                    return Ok(pk);
-                }
-            }
+        if let Some(pk) = run_pkexec(prog, args) {
+            return Ok(pk);
         }
         return Ok(out);
     }
@@ -2238,16 +2252,9 @@ fn root_command(prog: &str, args: &[&str]) -> std::io::Result<std::process::Outp
             || err_str.contains("failed to open")
             || err_str.contains("could not open lock file")
             || matches!(code, Some(1 | 2 | 6 | 23 | 100 | 126)));
-    if permission_denied && pkexec_available() && (polkit_agent_running() || std::env::var("DISPLAY").is_ok()) {
-        let elevated = Command::new("pkexec")
-            .arg(prog)
-            .args(args)
-            .stdin(Stdio::null())
-            .output();
-        if let Ok(pk) = elevated {
-            if pk.status.success() || !pk.stderr.is_empty() {
-                return Ok(pk);
-            }
+    if permission_denied {
+        if let Some(pk) = run_pkexec(prog, args) {
+            return Ok(pk);
         }
     }
     Ok(direct)
@@ -7078,6 +7085,20 @@ fn pin_ayaz_window_geometry() {
 }
 
 #[cfg(target_os = "linux")]
+fn raise_ayaz_window() {
+    pin_ayaz_window_geometry();
+    for title in ["Ayaz · Ankora", "Ayaz — Ankora"] {
+        let _ = Command::new("wmctrl")
+            .args(["-r", title, "-b", "remove,below"])
+            .output();
+        let _ = Command::new("wmctrl")
+            .args(["-r", title, "-b", "add,above"])
+            .output();
+        let _ = Command::new("wmctrl").args(["-a", title]).output();
+    }
+}
+
+#[cfg(target_os = "linux")]
 fn lower_ayaz_window() {
     for title in ["Ayaz · Ankora", "Ayaz — Ankora"] {
         let _ = Command::new("wmctrl")
@@ -7095,16 +7116,7 @@ fn set_desktop_layer(above: bool) -> Result<bool, String> {
     #[cfg(target_os = "linux")]
     {
         if above {
-            pin_ayaz_window_geometry();
-            for title in ["Ayaz · Ankora", "Ayaz — Ankora"] {
-                let _ = Command::new("wmctrl")
-                    .args(["-r", title, "-b", "remove,below"])
-                    .output();
-                let _ = Command::new("wmctrl")
-                    .args(["-r", title, "-b", "add,above"])
-                    .output();
-                let _ = Command::new("wmctrl").args(["-a", title]).output();
-            }
+            raise_ayaz_window();
         } else {
             lower_ayaz_window();
         }

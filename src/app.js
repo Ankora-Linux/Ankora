@@ -81,6 +81,7 @@
       install_deb_package: 15 * 60 * 1000,
       install_vendor_package: 15 * 60 * 1000,
       install_local_deb_package: 15 * 60 * 1000,
+      install_ollama: 20 * 60 * 1000,
       install_flatpak_app: 20 * 60 * 1000,
       remove_deb_package: 5 * 60 * 1000,
       remove_flatpak_app: 5 * 60 * 1000,
@@ -869,19 +870,82 @@
 
             let wasMax = win.classList.contains('maximized');
             const snapGhost = document.getElementById('snap-ghost-indicator') || document.getElementById('window-snap-preview');
-            let rect = win.getBoundingClientRect();
-            let shiftX = e.clientX - rect.left;
-            let shiftY = e.clientY - rect.top;
+            const rect = win.getBoundingClientRect();
+            let startLeft = rect.left;
+            let startTop = rect.top;
+            let shiftX = e.clientX - startLeft;
+            let shiftY = e.clientY - startTop;
+
+            const tbVar = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--taskbar-height'), 10);
+            const tbH = Number.isFinite(tbVar) ? tbVar : 44;
+            const sw = window.innerWidth;
+            const sh = window.innerHeight - tbH;
+            const maxLeft = Math.max(0, sw - 80);
+            const maxTop = Math.max(0, window.innerHeight - 80);
 
             let rafId = null;
-            let targetX = rect.left;
-            let targetY = rect.top;
+            let targetX = startLeft;
+            let targetY = startTop;
             let activeSnap = null;
+            let renderedSnap = null;
             let draggingActive = false;
 
+            const updateSnapGhost = (nextSnap) => {
+              if (nextSnap === renderedSnap) return;
+              renderedSnap = nextSnap;
+              if (!snapGhost) return;
+              if (!nextSnap) {
+                snapGhost.classList.remove('visible');
+                snapGhost.style.display = 'none';
+                return;
+              }
+              snapGhost.style.display = 'block';
+              const halfW = sw * 0.5;
+              const halfH = sh * 0.5;
+              if (nextSnap === 'corner-tl') {
+                snapGhost.style.left = '4px';
+                snapGhost.style.top = '4px';
+                snapGhost.style.width = `${halfW - 8}px`;
+                snapGhost.style.height = `${halfH - 8}px`;
+              } else if (nextSnap === 'corner-tr') {
+                snapGhost.style.left = `${halfW + 4}px`;
+                snapGhost.style.top = '4px';
+                snapGhost.style.width = `${halfW - 8}px`;
+                snapGhost.style.height = `${halfH - 8}px`;
+              } else if (nextSnap === 'corner-bl') {
+                snapGhost.style.left = '4px';
+                snapGhost.style.top = `${halfH + 4}px`;
+                snapGhost.style.width = `${halfW - 8}px`;
+                snapGhost.style.height = `${halfH - 8}px`;
+              } else if (nextSnap === 'corner-br') {
+                snapGhost.style.left = `${halfW + 4}px`;
+                snapGhost.style.top = `${halfH + 4}px`;
+                snapGhost.style.width = `${halfW - 8}px`;
+                snapGhost.style.height = `${halfH - 8}px`;
+              } else if (nextSnap === 'left') {
+                snapGhost.style.left = '4px';
+                snapGhost.style.top = '4px';
+                snapGhost.style.width = `${halfW - 8}px`;
+                snapGhost.style.height = `${sh - 8}px`;
+              } else if (nextSnap === 'right') {
+                snapGhost.style.left = `${halfW + 4}px`;
+                snapGhost.style.top = '4px';
+                snapGhost.style.width = `${halfW - 8}px`;
+                snapGhost.style.height = `${sh - 8}px`;
+              } else if (nextSnap === 'top') {
+                snapGhost.style.left = '4px';
+                snapGhost.style.top = '4px';
+                snapGhost.style.width = `${sw - 8}px`;
+                snapGhost.style.height = `${sh - 8}px`;
+              }
+              snapGhost.classList.add('visible');
+            };
+
             const applyPos = () => {
-              win.style.left = `${targetX}px`;
-              win.style.top = `${targetY}px`;
+              const dx = Math.round(targetX - startLeft);
+              const dy = Math.round(targetY - startTop);
+              win.style.transform = `translate3d(${dx}px, ${dy}px, 0)`;
+              updateSnapGhost(activeSnap);
               rafId = null;
             };
 
@@ -890,110 +954,41 @@
                 if (Math.abs(moveEvent.clientX - e.clientX) < 5 && Math.abs(moveEvent.clientY - e.clientY) < 5) return;
                 draggingActive = true;
                 if (wasMax) {
-                  const preW = parseFloat(win.dataset.preMaxW) || Math.min(840, window.innerWidth * 0.75);
+                  const preW = parseFloat(win.dataset.preMaxW) || Math.min(840, sw * 0.75);
                   const preH = parseFloat(win.dataset.preMaxH) || Math.min(520, window.innerHeight * 0.7);
-                  const ratio = Math.max(0.1, Math.min(0.9, e.clientX / window.innerWidth));
+                  const ratio = Math.max(0.1, Math.min(0.9, e.clientX / sw));
                   this.toggleMaximize(win);
                   win.style.width = `${preW}px`;
                   win.style.height = `${preH}px`;
                   shiftX = preW * ratio;
                   shiftY = 18;
+                  startLeft = Math.max(0, Math.min(moveEvent.clientX - shiftX, maxLeft));
+                  startTop = Math.max(0, Math.min(moveEvent.clientY - shiftY, maxTop));
                   wasMax = false;
                 }
+                win.style.left = `${Math.round(startLeft)}px`;
+                win.style.top = `${Math.round(startTop)}px`;
                 document.body.classList.add('is-dragging');
                 win.classList.add('is-dragging');
               }
 
-              const maxLeft = Math.max(0, window.innerWidth - 80);
-              const maxTop = Math.max(0, window.innerHeight - 80);
               targetX = Math.max(0, Math.min(moveEvent.clientX - shiftX, maxLeft));
               targetY = Math.max(0, Math.min(moveEvent.clientY - shiftY, maxTop));
-              if (!rafId) {
-                rafId = requestAnimationFrame(applyPos);
-              }
-
-              const tbVar = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--taskbar-height'), 10);
-              const tbH = Number.isFinite(tbVar) ? tbVar : 44;
-              const sw = window.innerWidth;
-              const sh = window.innerHeight - tbH;
 
               // Ayaz DE Akıcı Köşe ve Kenar Kenetleme Algılayıcı (Aero Snap)
-              if (moveEvent.clientX < 20 && moveEvent.clientY < 35) {
-                activeSnap = 'corner-tl';
-                if (snapGhost) {
-                  snapGhost.style.display = 'block';
-                  snapGhost.style.left = '4px';
-                  snapGhost.style.top = '4px';
-                  snapGhost.style.width = `calc(${sw * 0.5}px - 8px)`;
-                  snapGhost.style.height = `calc(${sh * 0.5}px - 8px)`;
-                  snapGhost.classList.add('visible');
-                }
-              } else if (moveEvent.clientX > sw - 20 && moveEvent.clientY < 35) {
-                activeSnap = 'corner-tr';
-                if (snapGhost) {
-                  snapGhost.style.display = 'block';
-                  snapGhost.style.left = `calc(${sw * 0.5}px + 4px)`;
-                  snapGhost.style.top = '4px';
-                  snapGhost.style.width = `calc(${sw * 0.5}px - 8px)`;
-                  snapGhost.style.height = `calc(${sh * 0.5}px - 8px)`;
-                  snapGhost.classList.add('visible');
-                }
-              } else if (moveEvent.clientX < 20 && moveEvent.clientY > window.innerHeight - 80) {
-                activeSnap = 'corner-bl';
-                if (snapGhost) {
-                  snapGhost.style.display = 'block';
-                  snapGhost.style.left = '4px';
-                  snapGhost.style.top = `calc(${sh * 0.5}px + 4px)`;
-                  snapGhost.style.width = `calc(${sw * 0.5}px - 8px)`;
-                  snapGhost.style.height = `calc(${sh * 0.5}px - 8px)`;
-                  snapGhost.classList.add('visible');
-                }
-              } else if (moveEvent.clientX > sw - 20 && moveEvent.clientY > window.innerHeight - 80) {
-                activeSnap = 'corner-br';
-                if (snapGhost) {
-                  snapGhost.style.display = 'block';
-                  snapGhost.style.left = `calc(${sw * 0.5}px + 4px)`;
-                  snapGhost.style.top = `calc(${sh * 0.5}px + 4px)`;
-                  snapGhost.style.width = `calc(${sw * 0.5}px - 8px)`;
-                  snapGhost.style.height = `calc(${sh * 0.5}px - 8px)`;
-                  snapGhost.classList.add('visible');
-                }
-              } else if (moveEvent.clientX < 18) {
-                activeSnap = 'left';
-                if (snapGhost) {
-                  snapGhost.style.display = 'block';
-                  snapGhost.style.left = '4px';
-                  snapGhost.style.top = '4px';
-                  snapGhost.style.width = `calc(${sw * 0.5}px - 8px)`;
-                  snapGhost.style.height = `calc(${sh}px - 8px)`;
-                  snapGhost.classList.add('visible');
-                }
-              } else if (moveEvent.clientX > sw - 18) {
-                activeSnap = 'right';
-                if (snapGhost) {
-                  snapGhost.style.display = 'block';
-                  snapGhost.style.left = `calc(${sw * 0.5}px + 4px)`;
-                  snapGhost.style.top = '4px';
-                  snapGhost.style.width = `calc(${sw * 0.5}px - 8px)`;
-                  snapGhost.style.height = `calc(${sh}px - 8px)`;
-                  snapGhost.classList.add('visible');
-                }
-              } else if (moveEvent.clientY < 14) {
-                activeSnap = 'top';
-                if (snapGhost) {
-                  snapGhost.style.display = 'block';
-                  snapGhost.style.left = '4px';
-                  snapGhost.style.top = '4px';
-                  snapGhost.style.width = `calc(${sw}px - 8px)`;
-                  snapGhost.style.height = `calc(${sh}px - 8px)`;
-                  snapGhost.classList.add('visible');
-                }
-              } else {
-                activeSnap = null;
-                if (snapGhost) {
-                  snapGhost.classList.remove('visible');
-                  snapGhost.style.display = 'none';
-                }
+              const cx = moveEvent.clientX;
+              const cy = moveEvent.clientY;
+              if (cx < 20 && cy < 35) activeSnap = 'corner-tl';
+              else if (cx > sw - 20 && cy < 35) activeSnap = 'corner-tr';
+              else if (cx < 20 && cy > window.innerHeight - 80) activeSnap = 'corner-bl';
+              else if (cx > sw - 20 && cy > window.innerHeight - 80) activeSnap = 'corner-br';
+              else if (cx < 18) activeSnap = 'left';
+              else if (cx > sw - 18) activeSnap = 'right';
+              else if (cy < 14) activeSnap = 'top';
+              else activeSnap = null;
+
+              if (!rafId) {
+                rafId = requestAnimationFrame(applyPos);
               }
             };
 
@@ -1001,15 +996,19 @@
               if (rafId) cancelAnimationFrame(rafId);
               document.body.classList.remove('is-dragging');
               win.classList.remove('is-dragging');
-              if (snapGhost) {
-                snapGhost.classList.remove('visible');
-                snapGhost.style.display = 'none';
-              }
+              updateSnapGhost(null);
 
               document.removeEventListener('mousemove', onMouseMove);
               document.removeEventListener('mouseup', onMouseUp);
 
               if (!draggingActive) return;
+
+              win.style.transition = 'none';
+              win.style.transform = '';
+              win.style.left = `${Math.round(targetX)}px`;
+              win.style.top = `${Math.round(targetY)}px`;
+              void win.offsetWidth;
+              win.style.transition = '';
 
               // Snapping Eylemini Uygula
               if (activeSnap === 'left') {
@@ -1042,22 +1041,53 @@
             this.bringToFront(win);
             const t = e.touches[0];
             const rect = win.getBoundingClientRect();
-            const offX = t.clientX - rect.left;
-            const offY = t.clientY - rect.top;
+            const startLeft = rect.left;
+            const startTop = rect.top;
+            const offX = t.clientX - startLeft;
+            const offY = t.clientY - startTop;
+            const maxLeft = Math.max(0, window.innerWidth - 80);
+            const maxTop = Math.max(0, window.innerHeight - 80);
+            let targetX = startLeft;
+            let targetY = startTop;
+            let touchRaf = null;
             let moved = false;
+
+            const applyTouchPos = () => {
+              const dx = Math.round(targetX - startLeft);
+              const dy = Math.round(targetY - startTop);
+              win.style.transform = `translate3d(${dx}px, ${dy}px, 0)`;
+              touchRaf = null;
+            };
+
             const onTouchMove = (me) => {
               if (me.touches.length !== 1) return;
               if (me.cancelable) me.preventDefault();
               const m = me.touches[0];
-              moved = true;
-              const maxLeft = Math.max(0, window.innerWidth - 80);
-              const maxTop = Math.max(0, window.innerHeight - 80);
-              win.style.left = `${Math.max(0, Math.min(m.clientX - offX, maxLeft))}px`;
-              win.style.top = `${Math.max(0, Math.min(m.clientY - offY, maxTop))}px`;
+              if (!moved) {
+                moved = true;
+                win.style.left = `${Math.round(startLeft)}px`;
+                win.style.top = `${Math.round(startTop)}px`;
+                document.body.classList.add('is-dragging');
+                win.classList.add('is-dragging');
+              }
+              targetX = Math.max(0, Math.min(m.clientX - offX, maxLeft));
+              targetY = Math.max(0, Math.min(m.clientY - offY, maxTop));
+              if (!touchRaf) touchRaf = requestAnimationFrame(applyTouchPos);
             };
             const onTouchEnd = () => {
+              if (touchRaf) cancelAnimationFrame(touchRaf);
               header.removeEventListener('touchmove', onTouchMove);
-              if (moved && typeof SessionManager !== 'undefined') SessionManager.touch();
+              document.body.classList.remove('is-dragging');
+              win.classList.remove('is-dragging');
+              if (moved) {
+                win.style.transition = 'none';
+                win.style.transform = '';
+                win.style.left = `${Math.round(targetX)}px`;
+                win.style.top = `${Math.round(targetY)}px`;
+                void win.offsetWidth;
+                win.style.transition = '';
+                if (typeof SessionManager !== 'undefined') SessionManager.touch();
+              }
             };
             header.addEventListener('touchmove', onTouchMove, { passive: false });
             header.addEventListener('touchend', onTouchEnd, { once: true });
@@ -4877,12 +4907,12 @@
         ? `[DEPO] ${pkg.vendor} resmî deposu hazırlanıp '${pkg.deb}' kuruluyor...`
         : `[APT] sudo apt-get install -y -- ${pkg.deb} yürütülüyor...`, 'cmd');
 
-      let val = 0;
+      let val = 8;
+      if (prog) prog.style.width = `${val}%`;
       const interval = setInterval(() => {
-        val += 20;
+        val = Math.min(85, val + 6);
         if (prog) prog.style.width = `${val}%`;
-        if (val >= 100) clearInterval(interval);
-      }, 100);
+      }, 600);
 
       try {
         // vendor girdileri (Brave/Helium/Antigravity) root-owned
@@ -4890,8 +4920,10 @@
         const xdgApp = pkg.vendor
           ? await TauriBridge.invoke('install_vendor_package', { vendor: pkg.vendor })
           : await TauriBridge.invoke('install_deb_package', { packageName: pkg.deb });
+        clearInterval(interval);
         this.syncInstalledState(pkg.id, true);
-        if (prog) prog.style.width = '0%';
+        if (prog) prog.style.width = '100%';
+        setTimeout(() => { if (prog) prog.style.width = '0%'; }, 400);
 
         this.saveInstalledState();
 
@@ -4917,13 +4949,15 @@
         ReportManager.showToast(`${resolved.name || pkg.name} kuruldu; masaüstüne eklendi.`);
         this.render(document.getElementById('store-search')?.value || '');
       } catch (err) {
+        clearInterval(interval);
         if (btn) {
           btn.disabled = false;
           btn.textContent = 'Kur';
         }
         if (prog) prog.style.width = '0%';
-        Terminal.log(`[ERR] Kurulum başarısız: ${err}`, 'error');
-        ReportManager.showToast(`Kurulum başarısız: ${err.message || err}`, 'error');
+        const errMsg = err && err.message ? err.message : String(err);
+        Terminal.log(`[ERR] Kurulum başarısız: ${errMsg}`, 'error');
+        ReportManager.showToast(`Kurulum başarısız: ${errMsg.slice(0, 220)}`, 'error');
         setTimeout(() => this.render(document.getElementById('store-search')?.value || ''), 1600);
       }
     },

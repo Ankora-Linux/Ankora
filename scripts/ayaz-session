@@ -11,6 +11,9 @@ if command -v plymouth >/dev/null 2>&1 && plymouth --ping >/dev/null 2>&1; then
 fi
 
 # 1. X11 Temel Ayarları
+if [ -z "${DBUS_SESSION_BUS_ADDRESS:-}" ] && command -v dbus-launch >/dev/null 2>&1; then
+    eval "$(dbus-launch --sh-syntax --exit-with-session)" 2>/dev/null || true
+fi
 if command -v xsetroot >/dev/null 2>&1; then
     xsetroot -solid "#13141b"
 fi

@@ -8,6 +8,11 @@ fi
 # Loopback ağ arabirimini ayağa kaldır
 ip link set lo up 2>/dev/null || ifconfig lo 127.0.0.1 up 2>/dev/null || true
 
+# X11 D-Bus oturum veri yolu (lxpolkit/pkexec, gsettings, pulseaudio, flatpak için zorunlu)
+if [ -z "${DBUS_SESSION_BUS_ADDRESS:-}" ] && command -v dbus-launch >/dev/null 2>&1; then
+    eval "$(dbus-launch --sh-syntax --exit-with-session)" 2>/dev/null || true
+fi
+
 xsetroot -solid "#0b0c10" 2>/dev/null || true
 xset -dpms 2>/dev/null || true
 xset s off 2>/dev/null || true
