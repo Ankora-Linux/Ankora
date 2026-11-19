@@ -310,7 +310,8 @@ def main():
         faces_css = (ROOT / "src/faces.css").read_text(encoding="utf-8")
         check("apt3: devuan.sources Signed-By + son doğrulama kapısı + trusted.gpg.d sızıntısı yok",
               "devuan.sources" in iso
-              and "Signed-By: /usr/share/keyrings/devuan-archive-keyring.pgp" in iso
+              and 'DEVUAN_ARCHIVE_KEY="/usr/share/keyrings/devuan-archive-keyring.pgp"' in iso
+              and "Signed-By: ${DEVUAN_ARCHIVE_KEY}" in iso
               and "devuan-keyring-latest.deb" in iso
               and "cp -f /usr/share/keyrings/devuan*" not in iso
               and "ZORUNLU APT 3.0" in iso)
@@ -331,7 +332,7 @@ def main():
               "install ok installed" in main_rs
               and "sudo,audio,video,plugdev,netdev,lp,scanner" in main_rs
               and "ankora-sistem-rehberi.pdf" in iso
-              and "get_xdg_user_dirs" in app_js.split("loadSamplePdf", 1)[1][:600])
+              and "get_xdg_user_dirs" in app_js.split("async loadSamplePdf()", 1)[1][:600])
     except Exception as e:
         check("apt3 ve 60fps render denetimleri", False, str(e)[:200])
 
