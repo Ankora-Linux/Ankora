@@ -16,8 +16,42 @@ fi
 export DEBIAN_FRONTEND=noninteractive
 
 # ---------------------------------------------------------------------
-# ORTAK APT YARDIMCILARI (Kilit bekleme, saat kayması, IPv4 geri düşüşü)
+# ORTAK APT YARDIMCILARI (LC_ALL=C, kilit bekleme, saat/TLS düzeltme, IPv4)
 # ---------------------------------------------------------------------
+sync_clock_if_needed() {
+    if command -v chronyc >/dev/null 2>&1; then
+        timeout 3 chronyc -a makestep >/dev/null 2>&1 || true
+    fi
+    if command -v curl >/dev/null 2>&1; then
+        local hdr srv_date srv_epoch loc_epoch diff
+        hdr=$(curl -4 -fsSI --connect-timeout 4 --max-time 6 http://pkgmaster.devuan.org/merged/dists/excalibur/InRelease 2>/dev/null \
+            || curl -fsSI --connect-timeout 4 --max-time 6 http://pkgmaster.devuan.org/merged/dists/excalibur/InRelease 2>/dev/null \
+            || true)
+        srv_date=$(printf '%s\n' "$hdr" | awk 'BEGIN{IGNORECASE=1} /^Date:/ {sub(/^Date:[ \t]*/,""); sub(/\r$/,""); print; exit}')
+        if [[ -n "$srv_date" ]]; then
+            srv_epoch=$(LC_ALL=C date -u -d "$srv_date" +%s 2>/dev/null || echo "")
+            loc_epoch=$(date -u +%s 2>/dev/null || echo "")
+            if [[ -n "$srv_epoch" && -n "$loc_epoch" ]]; then
+                diff=$(( srv_epoch - loc_epoch ))
+                if (( diff < 0 )); then diff=$(( -diff )); fi
+                if (( diff > 90 )); then
+                    date -u -s "@${srv_epoch}" >/dev/null 2>&1 || true
+                fi
+            fi
+        fi
+    fi
+}
+
+ensure_apt_keyrings_readable() {
+    # _apt kullanıcısı anahtarlıkları okuyamazsa APT 3.0 imza/güvenlik hatası verir;
+    # kaldırılmış eski anahtarlar global trusted.gpg.d içinde kalmışsa temizlenir.
+    chmod 0644 /usr/share/keyrings/*.gpg /usr/share/keyrings/*.pgp /etc/apt/keyrings/*.gpg /etc/apt/keyrings/*.asc 2>/dev/null || true
+    rm -f /etc/apt/trusted.gpg.d/devuan-removed-keys.* \
+          /etc/apt/trusted.gpg.d/devuan-keyring.gpg \
+          /etc/apt/trusted.gpg.d/devuan-keyring.pgp \
+          /etc/apt/trusted.gpg.d/devuan-archive-keyring.* 2>/dev/null || true
+}
+
 safe_apt_get() {
     local -a opts=(
         -o "DPkg::Lock::Timeout=30"
@@ -26,9 +60,14 @@ safe_apt_get() {
         -o "Acquire::https::Timeout=20"
     )
     local out rc=0
-    out=$(/usr/bin/apt-get "${opts[@]}" "$@" 2>&1) || rc=$?
-    if [[ $rc -ne 0 ]] && printf '%s' "$out" | grep -qiE 'could not connect|network is unreachable|cannot initiate the connection|temporary failure resolving|connection timed out|failed to fetch|ssl|gnutls'; then
-        out=$(/usr/bin/apt-get "${opts[@]}" -o "Acquire::ForceIPv4=true" "$@" 2>&1) && rc=0 || rc=$?
+    out=$(LC_ALL=C LANG=C /usr/bin/apt-get "${opts[@]}" "$@" 2>&1) || rc=$?
+    if [[ $rc -ne 0 ]] && printf '%s' "$out" | grep -qiE 'certificate|ssl|gnutls|handshake|not yet valid|expired'; then
+        sync_clock_if_needed
+        /usr/sbin/update-ca-certificates >/dev/null 2>&1 || true
+        out=$(LC_ALL=C LANG=C /usr/bin/apt-get "${opts[@]}" "$@" 2>&1) && rc=0 || rc=$?
+    fi
+    if [[ $rc -ne 0 ]] && printf '%s' "$out" | grep -qiE 'could not connect|network is unreachable|cannot initiate the connection|temporary failure resolving|connection timed out|failed to fetch|ssl|gnutls|certificate'; then
+        out=$(LC_ALL=C LANG=C /usr/bin/apt-get "${opts[@]}" -o "Acquire::ForceIPv4=true" "$@" 2>&1) && rc=0 || rc=$?
     fi
     if [[ -n "$out" ]]; then
         if [[ $rc -ne 0 ]]; then
@@ -42,9 +81,10 @@ safe_apt_get() {
 
 safe_apt_update() {
     mkdir -p /var/lib/apt/lists/partial 2>/dev/null || true
+    ensure_apt_keyrings_readable
     /usr/bin/dpkg --configure -a >/dev/null 2>&1 || true
     if command -v chronyc >/dev/null 2>&1; then
-        timeout 4 chronyc -a makestep >/dev/null 2>&1 || true
+        timeout 3 chronyc -a makestep >/dev/null 2>&1 || true
     fi
     local -a opts=(
         -o "DPkg::Lock::Timeout=30"
@@ -53,13 +93,35 @@ safe_apt_update() {
         -o "Acquire::https::Timeout=20"
     )
     local out rc=0
-    out=$(/usr/bin/apt-get "${opts[@]}" update 2>&1) || rc=$?
-    if [[ $rc -ne 0 ]] && printf '%s' "$out" | grep -qiE 'not valid yet|invalid for another'; then
-        # Sanal makine / ikili açılışta BIOS saati kayıksa GPG imzasını koruyarak tarih kilidini aş
-        out=$(/usr/bin/apt-get "${opts[@]}" -o "Acquire::Check-Valid-Until=false" -o "Acquire::Check-Date=false" update 2>&1) && rc=0 || rc=$?
+    out=$(LC_ALL=C LANG=C /usr/bin/apt-get "${opts[@]}" update 2>&1) || rc=$?
+    if [[ $rc -ne 0 ]] && printf '%s' "$out" | grep -qiE 'not valid yet|invalid for another|expired|invalid since|certificate|ssl|gnutls|handshake'; then
+        # BIOS / sanal makine saat kayması hem InRelease tarihini hem HTTPS sertifikasını kırar.
+        # Saat önce HTTP Date/NTP ile senkronize edilir; GPG imza doğrulaması tam korunur.
+        sync_clock_if_needed
+        /usr/sbin/update-ca-certificates >/dev/null 2>&1 || true
+        out=$(LC_ALL=C LANG=C /usr/bin/apt-get "${opts[@]}" update 2>&1) && rc=0 || rc=$?
+        if [[ $rc -ne 0 ]] && printf '%s' "$out" | grep -qiE 'not valid yet|invalid for another|expired|invalid since'; then
+            out=$(LC_ALL=C LANG=C /usr/bin/apt-get "${opts[@]}" -o "Acquire::Check-Valid-Until=false" -o "Acquire::Check-Date=false" update 2>&1) && rc=0 || rc=$?
+        fi
     fi
     if [[ $rc -ne 0 ]] && printf '%s' "$out" | grep -qiE 'could not connect|network is unreachable|cannot initiate the connection|temporary failure resolving|connection timed out|failed to fetch'; then
-        out=$(/usr/bin/apt-get "${opts[@]}" -o "Acquire::ForceIPv4=true" -o "Acquire::Check-Valid-Until=false" -o "Acquire::Check-Date=false" update 2>&1) && rc=0 || rc=$?
+        out=$(LC_ALL=C LANG=C /usr/bin/apt-get "${opts[@]}" -o "Acquire::ForceIPv4=true" -o "Acquire::Check-Valid-Until=false" -o "Acquire::Check-Date=false" update 2>&1) && rc=0 || rc=$?
+    fi
+    if [[ $rc -ne 0 && -f /etc/apt/sources.list.d/devuan.sources ]]; then
+        # Üçüncü parti tek bir depo (ör. geçici kesinti/anahtar değişimi) resmi Devuan
+        # paket kurulumlarını kilitlemesin diye resmi Devuan kaynağını izole tazele (GPG zorunlu).
+        local tmp_src_dir dev_out dev_rc=0
+        tmp_src_dir=$(mktemp -d /tmp/ankora-apt-src.XXXXXX)
+        cp -f /etc/apt/sources.list.d/devuan.sources "$tmp_src_dir/devuan.sources"
+        dev_out=$(LC_ALL=C LANG=C /usr/bin/apt-get "${opts[@]}" -o "Dir::Etc::sourcelist=/dev/null" -o "Dir::Etc::sourceparts=$tmp_src_dir" update 2>&1) || dev_rc=$?
+        if [[ $dev_rc -ne 0 ]]; then
+            dev_out=$(LC_ALL=C LANG=C /usr/bin/apt-get "${opts[@]}" -o "Dir::Etc::sourcelist=/dev/null" -o "Dir::Etc::sourceparts=$tmp_src_dir" -o "Acquire::ForceIPv4=true" -o "Acquire::Check-Valid-Until=false" -o "Acquire::Check-Date=false" update 2>&1) && dev_rc=0 || dev_rc=$?
+        fi
+        rm -rf "$tmp_src_dir"
+        if [[ $dev_rc -eq 0 ]]; then
+            out="$dev_out"
+            rc=0
+        fi
     fi
     if [[ -n "$out" ]]; then
         if [[ $rc -ne 0 ]]; then
@@ -105,13 +167,16 @@ need_curl() {
 
 vendor_brave() {
     need_net_tools
-    rm -f /etc/apt/sources.list.d/brave-browser-release.list
+    rm -f /etc/apt/sources.list.d/brave-browser-release.list /etc/apt/sources.list.d/brave-browser.sources
     curl -fsSLo /usr/share/keyrings/brave-browser-archive-keyring.gpg \
         https://brave-browser-apt-release.s3.brave.com/brave-browser-archive-keyring.gpg
+    chmod 0644 /usr/share/keyrings/brave-browser-archive-keyring.gpg
     curl -fsSLo /etc/apt/sources.list.d/brave-browser-release.sources \
         https://brave-browser-apt-release.s3.brave.com/brave-browser.sources
+    chmod 0644 /etc/apt/sources.list.d/brave-browser-release.sources
     safe_apt_update >/dev/null 2>&1 || true
     safe_apt_get install -y --no-install-recommends -- brave-browser
+    rm -f /etc/apt/sources.list.d/brave-browser-release.list /etc/apt/sources.list.d/brave-browser.sources 2>/dev/null || true
 }
 
 vendor_helium() {
@@ -133,9 +198,11 @@ vendor_helium() {
         exit 6
     fi
     gpg --dearmor --yes -o /usr/share/keyrings/helium.gpg "$tmp_key"
+    chmod 0644 /usr/share/keyrings/helium.gpg
     rm -f "$tmp_key"
     echo "deb [arch=amd64,arm64 signed-by=/usr/share/keyrings/helium.gpg] https://pkg.helium.computer/deb stable main" \
         > /etc/apt/sources.list.d/helium.list
+    chmod 0644 /etc/apt/sources.list.d/helium.list
     safe_apt_update >/dev/null 2>&1 || true
     safe_apt_get install -y --no-install-recommends -- helium-bin
 }
@@ -145,8 +212,10 @@ vendor_antigravity() {
     mkdir -p /etc/apt/keyrings
     curl -fsSL https://us-central1-apt.pkg.dev/doc/repo-signing-key.gpg \
         | gpg --dearmor --yes -o /etc/apt/keyrings/antigravity-repo-key.gpg
+    chmod 0644 /etc/apt/keyrings/antigravity-repo-key.gpg
     echo "deb [signed-by=/etc/apt/keyrings/antigravity-repo-key.gpg] https://us-central1-apt.pkg.dev/projects/antigravity-auto-updater-dev/ antigravity-debian main" \
         > /etc/apt/sources.list.d/antigravity.list
+    chmod 0644 /etc/apt/sources.list.d/antigravity.list
     safe_apt_update >/dev/null 2>&1 || true
     safe_apt_get install -y --no-install-recommends -- antigravity
 }
@@ -710,12 +779,18 @@ case "$ACTION" in
         # veya indeks eskidiyse apt-get update ile tazelenip yeniden denenir.
         export DEBIAN_FRONTEND=noninteractive
         /usr/bin/dpkg --configure -a >/dev/null 2>&1 || true
+        UPDATED_NOW=0
         if ! /usr/bin/apt-cache show "$PKG" >/dev/null 2>&1; then
             safe_apt_update || true
+            UPDATED_NOW=1
         fi
         if ! safe_apt_get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" install -y --no-install-recommends -- "$PKG"; then
-            safe_apt_update || true
-            safe_apt_get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" install -y --no-install-recommends -- "$PKG"
+            if [[ "$UPDATED_NOW" == "0" ]]; then
+                safe_apt_update || true
+                safe_apt_get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" install -y --no-install-recommends -- "$PKG"
+            else
+                exit 1
+            fi
         fi
         ;;
     install-deb-file)
@@ -736,10 +811,10 @@ case "$ACTION" in
             echo "[HATA] Geçersiz veya bozuk Debian paketi: $DEB_FILE" >&2
             exit 3
         fi
-        exec /usr/bin/apt-get install -y --no-install-recommends -- "$DEB_FILE"
+        safe_apt_get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" install -y --no-install-recommends -- "$DEB_FILE"
         ;;
     remove)
-        exec /usr/bin/apt-get remove -y -- "$PKG"
+        safe_apt_get remove -y -- "$PKG"
         ;;
     vendor)
         case "$PKG" in

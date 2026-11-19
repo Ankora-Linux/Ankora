@@ -305,6 +305,36 @@ def main():
     except Exception as e:
         check("sürüm rozeti, CUPS/SANE ve ZRAM eşitlemesi", False, str(e)[:200])
 
+    # 16. APT 3.0 güvenlik hijyeni ve 3 kademeli GPU/Yazılım yüksek FPS motoru
+    try:
+        faces_css = (ROOT / "src/faces.css").read_text(encoding="utf-8")
+        check("apt3: devuan.sources Signed-By + son doğrulama kapısı + trusted.gpg.d sızıntısı yok",
+              "devuan.sources" in iso
+              and "Signed-By: /usr/share/keyrings/devuan-archive-keyring.pgp" in iso
+              and "devuan-keyring-latest.deb" in iso
+              and "cp -f /usr/share/keyrings/devuan*" not in iso
+              and "ZORUNLU APT 3.0" in iso)
+        check("apt3 helper: LC_ALL=C + saat/anahtar kurtarma",
+              "LC_ALL=C" in helper
+              and "sync_clock_if_needed" in helper
+              and "ensure_apt_keyrings_readable" in helper)
+        check("render: 3 kademeli GPU/NVIDIA/Skia-CPU ortamı (xinitrc + session + main.rs)",
+              all("ANKORA_RENDER_MODE" in s and "WEBKIT_SKIA_ENABLE_CPU_RENDERING" in s
+                  for s in (xin, ayaz_sess, main_rs)))
+        check("render: get_render_mode kaydı + yazılım CSS profili + gece filtresi kapalı",
+              "get_render_mode," in main_rs
+              and "get_render_mode" in app_js
+              and "body.render-software" in css
+              and "body.render-software" in faces_css
+              and re.search(r"\.screen-night\s*\{[^}]*display:\s*none", css, re.S) is not None)
+        check("sistem: dpkg install ok installed + kullanıcı lp,scanner + PDF rehber",
+              "install ok installed" in main_rs
+              and "sudo,audio,video,plugdev,netdev,lp,scanner" in main_rs
+              and "ankora-sistem-rehberi.pdf" in iso
+              and "get_xdg_user_dirs" in app_js.split("loadSamplePdf", 1)[1][:600])
+    except Exception as e:
+        check("apt3 ve 60fps render denetimleri", False, str(e)[:200])
+
     print()
     if FAILURES:
         print(f"SONUÇ: {len(FAILURES)} denetim başarısız: {', '.join(FAILURES)}")

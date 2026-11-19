@@ -252,6 +252,9 @@
 
     async fallback(cmd, args) {
       switch (cmd) {
+        case 'get_render_mode':
+          return 'gpu';
+
         case 'system_poweroff':
           return 'Sistem kapatılıyor...';
 
@@ -792,7 +795,7 @@
       this.windows = Array.from(document.querySelectorAll('.window'));
       this.tabsContainer = document.getElementById('running-tabs');
       setInterval(() => {
-        if (!document.hidden && !(window.LockManager && window.LockManager.isLocked)) {
+        if (!document.hidden && !document.body.classList.contains('is-dragging') && !(window.LockManager && window.LockManager.isLocked)) {
           this.refreshNativeWindows();
         }
       }, 2500);
@@ -867,6 +870,7 @@
             e.preventDefault();
 
             this.bringToFront(win);
+            win.style.willChange = 'transform';
 
             let wasMax = win.classList.contains('maximized');
             const snapGhost = document.getElementById('snap-ghost-indicator') || document.getElementById('window-snap-preview');
@@ -996,6 +1000,7 @@
               if (rafId) cancelAnimationFrame(rafId);
               document.body.classList.remove('is-dragging');
               win.classList.remove('is-dragging');
+              win.style.willChange = '';
               updateSnapGhost(null);
 
               document.removeEventListener('mousemove', onMouseMove);
@@ -1039,6 +1044,7 @@
             if (e.target.closest('.window-controls')) return;
             if (e.touches.length !== 1) return;
             this.bringToFront(win);
+            win.style.willChange = 'transform';
             const t = e.touches[0];
             const rect = win.getBoundingClientRect();
             const startLeft = rect.left;
@@ -1079,6 +1085,7 @@
               header.removeEventListener('touchmove', onTouchMove);
               document.body.classList.remove('is-dragging');
               win.classList.remove('is-dragging');
+              win.style.willChange = '';
               if (moved) {
                 win.style.transition = 'none';
                 win.style.transform = '';
@@ -1114,6 +1121,7 @@
             let resizeRaf = null;
             let targetW = startW;
             let targetH = startH;
+            let resizingActive = false;
 
             const applyResize = () => {
               win.style.width = `${targetW}px`;
@@ -1123,6 +1131,11 @@
 
             const onResizeMove = (moveEvent) => {
               if (win.classList.contains('maximized')) return;
+              if (!resizingActive) {
+                resizingActive = true;
+                document.body.classList.add('is-dragging');
+                win.classList.add('is-dragging');
+              }
               targetW = Math.max(300, startW + (moveEvent.clientX - startX));
               targetH = Math.max(260, startH + (moveEvent.clientY - startY));
               if (!resizeRaf) {
@@ -1132,6 +1145,8 @@
 
             const onResizeUp = () => {
               if (resizeRaf) cancelAnimationFrame(resizeRaf);
+              document.body.classList.remove('is-dragging');
+              win.classList.remove('is-dragging');
               document.removeEventListener('mousemove', onResizeMove);
               document.removeEventListener('mouseup', onResizeUp);
             };
@@ -1150,15 +1165,34 @@
             const startH = win.offsetHeight;
             const startX = t.clientX;
             const startY = t.clientY;
+            let touchResizeRaf = null;
+            let targetW = startW;
+            let targetH = startH;
+            let resizingActive = false;
+
+            const applyTouchResize = () => {
+              win.style.width = `${targetW}px`;
+              win.style.height = `${targetH}px`;
+              touchResizeRaf = null;
+            };
             const onTouchMove = (me) => {
               if (me.touches.length !== 1) return;
               if (me.cancelable) me.preventDefault();
               const m = me.touches[0];
-              win.style.width = `${Math.max(300, startW + (m.clientX - startX))}px`;
-              win.style.height = `${Math.max(260, startH + (m.clientY - startY))}px`;
+              if (!resizingActive) {
+                resizingActive = true;
+                document.body.classList.add('is-dragging');
+                win.classList.add('is-dragging');
+              }
+              targetW = Math.max(300, startW + (m.clientX - startX));
+              targetH = Math.max(260, startH + (m.clientY - startY));
+              if (!touchResizeRaf) touchResizeRaf = requestAnimationFrame(applyTouchResize);
             };
             const onTouchEnd = () => {
+              if (touchResizeRaf) cancelAnimationFrame(touchResizeRaf);
               handle.removeEventListener('touchmove', onTouchMove);
+              document.body.classList.remove('is-dragging');
+              win.classList.remove('is-dragging');
               if (typeof SessionManager !== 'undefined') SessionManager.touch();
             };
             handle.addEventListener('touchmove', onTouchMove, { passive: false });
@@ -6866,10 +6900,30 @@
     },
 
     async loadSamplePdf() {
+      const candidates = [];
       try {
-        const doc = await TauriBridge.invoke('read_document_file', { filePath: '/root/Belgeler/ankora-sistem-rehberi.pdf' });
-        this.renderDocument(doc);
-      } catch (err) {}
+        const dirs = await TauriBridge.invoke('get_xdg_user_dirs');
+        if (dirs && dirs.documents) {
+          candidates.push(`${dirs.documents.replace(/\/+$/, '')}/ankora-sistem-rehberi.pdf`);
+        }
+        if (dirs && dirs.home) {
+          candidates.push(`${dirs.home.replace(/\/+$/, '')}/Belgeler/ankora-sistem-rehberi.pdf`);
+        }
+      } catch (e) {}
+      candidates.push('/home/ankora/Belgeler/ankora-sistem-rehberi.pdf');
+      candidates.push('/root/Belgeler/ankora-sistem-rehberi.pdf');
+      const seen = new Set();
+      for (const filePath of candidates) {
+        if (seen.has(filePath)) continue;
+        seen.add(filePath);
+        try {
+          const doc = await TauriBridge.invoke('read_document_file', { filePath });
+          if (doc) {
+            this.renderDocument(doc);
+            return;
+          }
+        } catch (err) {}
+      }
     },
 
     loadSampleText() {
@@ -10593,7 +10647,11 @@
       const dimmer = document.getElementById('screen-dimmer');
       const applyBrightness = (val) => {
         if (labelBrightness) labelBrightness.textContent = `%${val}`;
-        if (dimmer) dimmer.style.opacity = ((100 - val) / 100 * 0.75).toString();
+        if (dimmer) {
+          const dimOpacity = ((100 - val) / 100) * 0.75;
+          dimmer.style.display = dimOpacity > 0.005 ? 'block' : 'none';
+          dimmer.style.opacity = dimOpacity.toString();
+        }
         const quickBright = document.getElementById('quick-brightness-slider');
         const quickBrightLabel = document.getElementById('quick-brightness-label');
         if (quickBright) quickBright.value = String(val);
@@ -10619,6 +10677,7 @@
       const nightScreen = document.getElementById('screen-night');
       const updateNightState = (enabled) => {
         if (nightScreen) {
+          nightScreen.style.display = enabled ? 'block' : 'none';
           nightScreen.style.opacity = enabled ? '0.35' : '0';
           nightScreen.style.background = enabled ? 'rgba(245, 158, 11, 0.35)' : 'transparent';
         }
@@ -11991,6 +12050,7 @@
         if (quickBrightLabel) quickBrightLabel.textContent = `%${val}`;
         if (screenDimmer) {
           const dimPct = ((100 - val) / 100) * 0.75;
+          screenDimmer.style.display = dimPct > 0.005 ? 'block' : 'none';
           screenDimmer.style.opacity = dimPct.toFixed(2);
         }
         // Ayarlar panelindeki kaydırıcı ve kalıcılık bu değere bağlı.
@@ -13134,8 +13194,8 @@
     },
 
     async tick() {
-      // Arka planda (sekme gizliyken) IPC ve tablo çizimi beklemesin.
-      if (document.hidden) return;
+      // Arka planda (sekme gizliyken) veya pencere sürüklenirken IPC/DOM çizimi beklemesin.
+      if (document.hidden || document.body.classList.contains('is-dragging')) return;
       try {
         const [tele, procs] = await Promise.all([
           TauriBridge.invoke('get_system_telemetry'),
@@ -13840,6 +13900,13 @@
         }).catch(() => {});
       }
 
+      // Render modu: 3D hızlandırmasız VM / yazılım ekran kartı tespit edilirse
+      // ağır backdrop-filter blur ve geniş gölgeler devre dışı bırakılır (60 FPS).
+      TauriBridge.invoke('get_render_mode').then((mode) => {
+        const isSw = String(mode || '').trim().toLowerCase() === 'software';
+        document.body.classList.toggle('render-software', isSw);
+      }).catch(() => {});
+
       const chkEco = document.getElementById('chk-eco-ram-mode');
       if (chkEco) {
         chkEco.checked = this.isEcoMode;
@@ -13859,7 +13926,7 @@
       // 3. Periyodik Hafif Telemetre Sorgusu (5 saniyede bir, sayfa odakta iken)
       this.updateTelemetry();
       this.pollTimer = setInterval(() => {
-        if (!document.hidden) {
+        if (!document.hidden && !document.body.classList.contains('is-dragging')) {
           this.updateTelemetry();
         }
       }, 5000);
@@ -18396,11 +18463,11 @@
       this.update();
       if (this.pollTimer) clearInterval(this.pollTimer);
       this.pollTimer = setInterval(() => {
-        if (!document.hidden && !(window.LockManager && window.LockManager.isLocked)) this.update();
+        if (!document.hidden && !document.body.classList.contains('is-dragging') && !(window.LockManager && window.LockManager.isLocked)) this.update();
       }, 5000);
       if (this.tickTimer) clearInterval(this.tickTimer);
       this.tickTimer = setInterval(() => {
-        if (!document.hidden && this.isPlaying()) this.paintProgress();
+        if (!document.hidden && !document.body.classList.contains('is-dragging') && this.isPlaying()) this.paintProgress();
       }, 1000);
     },
 

@@ -1824,12 +1824,15 @@ html, body {
   background-size: cover;
   background-position: center center;
   background-repeat: no-repeat;
+  contain: strict;
+  transform: translateZ(0);
   z-index: 1;
   transition: background-image 0.25s ease;
 }
 
 /* EKRAN KONTROLLERİ */
 .screen-dimmer {
+  display: none;
   position: fixed;
   inset: 0;
   background: black;
@@ -1839,6 +1842,7 @@ html, body {
 }
 
 .screen-night {
+  display: none;
   position: fixed;
   inset: 0;
   background: #ffaa33;
@@ -2863,10 +2867,14 @@ body.is-dragging .window-body {
   pointer-events: none !important;
 }
 
-body.is-dragging .taskbar,
-body.is-dragging .start-flyout {
+body.is-dragging * {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
+  animation-play-state: paused !important;
+}
+
+body.is-dragging .window:not(.is-dragging) {
+  pointer-events: none !important;
 }
 
 .window.is-dragging {
@@ -3281,6 +3289,8 @@ body.is-dragging .start-flyout {
   border-radius: 10px;
   min-height: 110px;
   box-sizing: border-box;
+  content-visibility: auto;
+  contain-intrinsic-size: 280px 132px;
   transition: border-color 0.14s ease, background 0.14s ease, transform 0.14s ease;
 }
 
@@ -8482,6 +8492,31 @@ body.eco-ram-mode .taskbar,
 body.eco-ram-mode .start-flyout {
   background: var(--bg-deep) !important;
   box-shadow: none !important;
+}
+
+/* Yazılım Render Modu (3D hızlandırmasız VM / llvmpipe):
+   Ağır tam ekran blur ve çok katmanlı Gaussian gölgeleri kapatarak 60 FPS akıcılık sağlar. */
+body.render-software *,
+body.render-software *::before,
+body.render-software *::after {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+body.render-software .window {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.36), 0 0 0 1px var(--border-medium, rgba(255, 255, 255, 0.1)) !important;
+  transition: none !important;
+}
+
+body.render-software .window.active {
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.45), 0 0 0 1px var(--accent-active, #2563eb) !important;
+}
+
+body.render-software .taskbar,
+body.render-software .start-flyout,
+body.render-software .quick-settings-popover,
+body.render-software .calendar-flyout {
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.38) !important;
 }
 
 /* ==============================================================================

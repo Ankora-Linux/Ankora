@@ -18,9 +18,12 @@ xset -dpms 2>/dev/null || true
 xset s off 2>/dev/null || true
 xset s noblank 2>/dev/null || true
 
-# WebKitGTK ve X11 ortam ayarları (fiziksel donanım ve sanal makine uyumluluğu)
+# WebKitGTK 2.54 (Skia) ve X11 akıllı grafik/render algılama:
+#  - Fiziksel Intel/AMD veya 3D hızlandırmalı sanal GPU: tam GPU + DMA-BUF (60 FPS)
+#  - NVIDIA kapalı sürücü: GPU hızlandırma + X11 güvenliği için DMABUF kapalı
+#  - 3D hızlandırmasız sanal makine / yazılımsal llvmpipe: Skia çok çekirdekli CPU
+#    rasterizer (llvmpipe üstünde OpenGL çift öykünmesinin 5 FPS darboğazını kaldırır)
 export GDK_BACKEND=x11
-export WEBKIT_DISABLE_DMABUF_RENDERER=1
 # Bubblewrap (bwrap) kullanıcı ad alanı destekleniyorsa WebKit sandbox etkin kalır;
 # yalnızca kısıtlı container / eski çekirdeklerde geri düşüş uygulanır.
 if command -v bwrap >/dev/null 2>&1 && bwrap --ro-bind / / /bin/true >/dev/null 2>&1; then
@@ -40,9 +43,6 @@ export MALLOC_TRIM_THRESHOLD_=65536
 export MALLOC_MMAP_THRESHOLD_=65536
 export MESA_SHADER_CACHE_MAX_SIZE=16M
 
-# Sanal makine (VirtualBox, QEMU, KVM, VMware) tespiti:
-# Sanal GPU'larda (VMSVGA/QXL) DRI çökmelerini önlemek için yazılımsal render (llvmpipe) devreye alınır;
-# Fiziksel donanımlarda (Intel/AMD/Nvidia) tam GPU hızlandırması korunur.
 IS_VM=0
 for dmi in /sys/class/dmi/id/product_name /sys/class/dmi/id/sys_vendor /sys/class/dmi/id/board_vendor; do
     if [ -r "$dmi" ]; then
@@ -51,8 +51,64 @@ for dmi in /sys/class/dmi/id/product_name /sys/class/dmi/id/sys_vendor /sys/clas
         esac
     fi
 done
-if [ "$IS_VM" = "1" ]; then
+
+HAS_NVIDIA=0
+[ -r /proc/driver/nvidia/version ] && HAS_NVIDIA=1
+
+HAS_DRI=0
+for _rn in /dev/dri/renderD*; do
+    if [ -r "$_rn" ]; then HAS_DRI=1; break; fi
+done
+unset _rn
+
+GL_INFO=""
+if command -v glxinfo >/dev/null 2>&1; then
+    GL_INFO="$(glxinfo -B 2>/dev/null || true)"
+fi
+
+HW_ACCEL=0
+IS_SVGA_OR_VBOX=0
+if [ "$HAS_NVIDIA" = "1" ]; then
+    HW_ACCEL=1
+elif [ "$HAS_DRI" = "1" ]; then
+    if [ -n "$GL_INFO" ]; then
+        if printf '%s\n' "$GL_INFO" | grep -qiE 'Accelerated:[[:space:]]*yes' \
+           && ! printf '%s\n' "$GL_INFO" | grep -qiE 'llvmpipe|softpipe|swrast'; then
+            HW_ACCEL=1
+        fi
+        if printf '%s\n' "$GL_INFO" | grep -qiE 'SVGA3D|vmwgfx|vbox'; then
+            IS_SVGA_OR_VBOX=1
+        fi
+    elif [ "$IS_VM" = "0" ]; then
+        HW_ACCEL=1
+    fi
+fi
+
+if [ "$HAS_NVIDIA" = "1" ]; then
+    unset LIBGL_ALWAYS_SOFTWARE
+    unset WEBKIT_SKIA_ENABLE_CPU_RENDERING
+    export WEBKIT_DISABLE_DMABUF_RENDERER=1
+    export __NV_DISABLE_EXPLICIT_SYNC=1
+    export ANKORA_RENDER_MODE=gpu-nvidia
+elif [ "$HW_ACCEL" = "1" ]; then
+    unset LIBGL_ALWAYS_SOFTWARE
+    unset WEBKIT_SKIA_ENABLE_CPU_RENDERING
+    if [ "$IS_SVGA_OR_VBOX" = "1" ]; then
+        export WEBKIT_DISABLE_DMABUF_RENDERER=1
+    else
+        unset WEBKIT_DISABLE_DMABUF_RENDERER
+    fi
+    export ANKORA_RENDER_MODE=gpu
+else
+    _NCPU=$(nproc 2>/dev/null || echo 2)
+    [ "$_NCPU" -gt 4 ] 2>/dev/null && _NCPU=4
+    [ "$_NCPU" -lt 2 ] 2>/dev/null && _NCPU=2
     export LIBGL_ALWAYS_SOFTWARE=1
+    export WEBKIT_DISABLE_DMABUF_RENDERER=1
+    export WEBKIT_SKIA_ENABLE_CPU_RENDERING=1
+    export WEBKIT_SKIA_CPU_PAINTING_THREADS="$_NCPU"
+    export ANKORA_RENDER_MODE=software
+    unset _NCPU
 fi
 
 # Eco RAM+ (ZRAM): 4 GB altı belleğe sahip cihazlarda (eski MEB / düşük RAM PC)

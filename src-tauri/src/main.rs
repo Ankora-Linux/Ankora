@@ -1228,16 +1228,34 @@ fn scan_xdg_applications_blocking() -> Result<Vec<XdgApplication>, String> {
 // ============================================================================
 // 3. PAKET KURULUMU (DEBIAN .DEB DOĞRULAMALI) - GÜVENLİK BULGUSU #7
 // ============================================================================
+#[cfg(target_os = "linux")]
+fn is_deb_package_installed(pkg: &str) -> bool {
+    Command::new("dpkg-query")
+        .args(["-W", "-f=${Status}\n", pkg])
+        .output()
+        .ok()
+        .map(|o| {
+            o.status.success()
+                && String::from_utf8_lossy(&o.stdout)
+                    .trim()
+                    .eq("install ok installed")
+        })
+        .unwrap_or(false)
+}
+
 #[tauri::command]
 async fn install_deb_package(package_name: String) -> Result<XdgApplication, String> {
     // apt/dpkg sürer; Command::output() senkron çağrısı spawn_blocking
     // içinde çalıştırılır ki pencere donmasın.
-    tauri::async_runtime::spawn_blocking(move || install_deb_package_blocking(package_name))
+    tauri::async_runtime::spawn_blocking(move || install_deb_package_inner(package_name, false))
         .await
         .map_err(|e| format!("Paket kurulumu yürütülemedi: {}", e))?
 }
 
-fn install_deb_package_blocking(package_name: String) -> Result<XdgApplication, String> {
+fn install_deb_package_inner(
+    package_name: String,
+    skip_if_installed: bool,
+) -> Result<XdgApplication, String> {
     let clean_pkg = package_name.trim();
     if clean_pkg.is_empty() {
         return Err("Geçersiz paket adı.".to_string());
@@ -1245,7 +1263,10 @@ fn install_deb_package_blocking(package_name: String) -> Result<XdgApplication, 
 
     #[cfg(target_os = "linux")]
     {
-        if clean_pkg != "fatih-kalem" || !Path::new("/usr/bin/fatih-kalem").exists() {
+        let already_present = (clean_pkg == "fatih-kalem"
+            && Path::new("/usr/bin/fatih-kalem").exists())
+            || (skip_if_installed && is_deb_package_installed(clean_pkg));
+        if !already_present {
             if clean_pkg.ends_with(".deb") {
                 return Err("Güvenlik İlkesi: Yerel .deb paketleri doğrudan kurulamaz; sistem bileşenleri için resmi Ayaz Güncelleyici'yi kullanın.".to_string());
             }
@@ -1287,6 +1308,7 @@ fn install_deb_package_blocking(package_name: String) -> Result<XdgApplication, 
             match attempt {
                 Ok(res) => {
                     if !res.status.success() {
+                        let exit_code = res.status.code().unwrap_or(-1);
                         let err = String::from_utf8_lossy(&res.stderr).trim().to_string();
                         let out = String::from_utf8_lossy(&res.stdout).trim().to_string();
                         let combined = match (err.is_empty(), out.is_empty()) {
@@ -1306,6 +1328,15 @@ fn install_deb_package_blocking(package_name: String) -> Result<XdgApplication, 
                             .collect::<Vec<_>>()
                             .join("\n");
                         let detail_l = detail.to_lowercase();
+                        let auth_failed = matches!(exit_code, 126 | 127)
+                            || detail_l.contains("not authorized")
+                            || detail_l.contains("authentication")
+                            || detail_l.contains("polkit")
+                            || detail_l.contains("dismissed")
+                            || detail_l.contains("authorization")
+                            || detail_l.contains("password is required")
+                            || detail_l.contains("sudo:")
+                            || detail_l.contains("yetki");
                         if detail_l.contains("temporary failure")
                             || detail_l.contains("connection refused")
                             || detail_l.contains("could not resolve")
@@ -1315,7 +1346,27 @@ fn install_deb_package_blocking(package_name: String) -> Result<XdgApplication, 
                                 " — Ağ bağlantısı yok veya depolara ulaşılamıyor.\n{}",
                                 detail
                             );
-                        } else if !sudo_available() && pkexec_available() {
+                        } else if detail_l.contains("not valid yet")
+                            || detail_l.contains("invalid for another")
+                            || detail_l.contains("expired")
+                            || detail_l.contains("henüz geçerli değil")
+                            || detail_l.contains("certificate")
+                            || detail_l.contains("no_pubkey")
+                            || detail_l.contains("inrelease")
+                            || detail_l.contains("güvenli bir şekilde")
+                        {
+                            detail = format!(
+                                " — Depo imza veya sistem saati doğrulama hatası (Ayarlar > Tarih & Saat > NTP Eşitle deneyin).\n{}",
+                                detail
+                            );
+                        } else if detail_l.contains("unable to locate package")
+                            || detail_l.contains("paketi bulunamadı")
+                        {
+                            detail = format!(
+                                " — Paket etkin depolarda bulunamadı.\n{}",
+                                detail
+                            );
+                        } else if auth_failed && !sudo_available() && pkexec_available() {
                             detail = format!(
                                 " — Yönetici yetkisi penceresi onaylanmadı veya açılamadı.\n{}",
                                 detail
@@ -1445,6 +1496,7 @@ fn install_deb_package_blocking(package_name: String) -> Result<XdgApplication, 
 
     #[cfg(not(target_os = "linux"))]
     {
+        let _ = skip_if_installed;
         if !clean_pkg.ends_with(".deb") && !is_valid_deb_package_name(clean_pkg) {
             return Err("Güvenlik Hatası: Geçersiz Debian paket adı biçimi.".to_string());
         }
@@ -1500,8 +1552,9 @@ fn install_vendor_package_blocking(vendor: String) -> Result<XdgApplication, Str
             return Err(format!("Vendor kurulumu başarısız: {}", err));
         }
         // Depo eklendikten ve paket kurulduktan sonra XDG taraması ile
-        // .desktop yerleşimi normal paket akışının kendisi tarafından yapılır.
-        install_deb_package_blocking(pkg.to_string())
+        // .desktop yerleşimi normal paket akışı üzerinden yapılır; paket zaten
+        // kurulduysa ikinci bir pkexec / apt-get çağrısı yapılmaz.
+        install_deb_package_inner(pkg.to_string(), true)
     }
 
     #[cfg(not(target_os = "linux"))]
@@ -2193,6 +2246,22 @@ fn run_pkexec(prog: &str, args: &[&str]) -> Option<std::process::Output> {
     if !pkexec_available() || (!polkit_agent_running() && std::env::var("DISPLAY").is_err()) {
         return None;
     }
+    #[cfg(target_os = "linux")]
+    if !polkit_agent_running() && std::env::var("DISPLAY").is_ok() {
+        for agent in [
+            "/usr/bin/lxpolkit",
+            "/usr/lib/policykit-1-gnome/polkit-gnome-authentication-agent-1",
+            "/usr/libexec/polkit-gnome-authentication-agent-1",
+        ] {
+            if Path::new(agent).exists() {
+                let mut cmd = Command::new(agent);
+                if spawn_reaped(&mut cmd).is_ok() {
+                    std::thread::sleep(Duration::from_millis(350));
+                    break;
+                }
+            }
+        }
+    }
     // Parola penceresi Ayaz masaüstü katmanının arkasında kalmasın
     #[cfg(target_os = "linux")]
     lower_ayaz_window();
@@ -2485,12 +2554,34 @@ fn try_apt_get_passthrough(command: &str) -> Option<Result<String, String>> {
 
     Some((move || {
         let mut combined = String::new();
+        let helper_exists = Path::new("/usr/local/bin/ayaz-pkg-helper").exists();
         for (op, args) in ops {
-            let mut argv: Vec<String> = args.clone();
-            argv.insert(0, op.clone());
-            let argv_ref: Vec<&str> = argv.iter().map(|s| s.as_str()).collect();
-            let out = root_command("apt-get", &argv_ref)
-                .map_err(|e| format!("apt-get çalıştırılamadı: {}", e))?;
+            let out = if helper_exists && op == "update" {
+                root_command("/usr/local/bin/ayaz-pkg-helper", &["apt-update"])
+            } else if helper_exists && op == "upgrade" {
+                root_command("/usr/local/bin/ayaz-pkg-helper", &["apt-upgrade"])
+            } else if helper_exists && op == "install" {
+                let pkgs: Vec<&str> = args
+                    .iter()
+                    .skip_while(|a| a.as_str() != "--")
+                    .skip(1)
+                    .map(|s| s.as_str())
+                    .collect();
+                if pkgs.len() == 1 {
+                    root_command("/usr/local/bin/ayaz-pkg-helper", &["install", pkgs[0]])
+                } else {
+                    let mut argv: Vec<String> = args.clone();
+                    argv.insert(0, op.clone());
+                    let argv_ref: Vec<&str> = argv.iter().map(|s| s.as_str()).collect();
+                    root_command("apt-get", &argv_ref)
+                }
+            } else {
+                let mut argv: Vec<String> = args.clone();
+                argv.insert(0, op.clone());
+                let argv_ref: Vec<&str> = argv.iter().map(|s| s.as_str()).collect();
+                root_command("apt-get", &argv_ref)
+            }
+            .map_err(|e| format!("apt-get çalıştırılamadı: {}", e))?;
             let stdout = String::from_utf8_lossy(&out.stdout).to_string();
             let stderr = String::from_utf8_lossy(&out.stderr).to_string();
             if !out.status.success() {
@@ -3283,7 +3374,7 @@ fn build_local_ai_diagnostic_response(prompt: &str, mode: &str) -> AiResponse {
         || p_lower.contains("ip")
         || p_lower.contains("dns")
     {
-        let net = get_network_info();
+        let net = get_network_info_blocking();
         return AiResponse {
             reply: format!(
                 "Ağ Bağlantı Durumu:\n• Aktif Arayüz: {}\n• Yerel IP Adresi: {}/{}\n• Ağ Geçidi: {}\n• DNS Sunucusu: {}\n• Bağlantı: {}\n\nKablosuz ağ taraması veya MEB sertifikası kurulumu için Sistem Ayarları > Ağ & Kablosuz veya Uygulama Mağazası > MEB Sertifikası aracını kullanabilirsiniz.",
@@ -4957,61 +5048,69 @@ async fn set_brightness(level: u32) -> Result<String, String> {
 }
 
 #[tauri::command]
-fn get_volume() -> Result<u32, String> {
-    #[cfg(target_os = "linux")]
-    {
-        // 1. pactl ile PulseAudio / PipeWire kontrolü
-        if let Ok(out) = Command::new("pactl")
-            .args(["get-sink-volume", "@DEFAULT_SINK@"])
-            .output()
+async fn get_volume() -> Result<u32, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        #[cfg(target_os = "linux")]
         {
-            if out.status.success() {
-                let s = String::from_utf8_lossy(&out.stdout);
-                if let Some(pos) = s.find('%') {
-                    let before = &s[..pos];
-                    if let Some(num_str) = before.split_whitespace().last() {
-                        if let Ok(v) = num_str.parse::<u32>() {
-                            return Ok(v.min(100));
+            // 1. pactl ile PulseAudio / PipeWire kontrolü
+            if let Ok(out) = Command::new("pactl")
+                .args(["get-sink-volume", "@DEFAULT_SINK@"])
+                .output()
+            {
+                if out.status.success() {
+                    let s = String::from_utf8_lossy(&out.stdout);
+                    if let Some(pos) = s.find('%') {
+                        let before = &s[..pos];
+                        if let Some(num_str) = before.split_whitespace().last() {
+                            if let Ok(v) = num_str.parse::<u32>() {
+                                return Ok(v.min(100));
+                            }
                         }
                     }
                 }
             }
-        }
-        // 2. amixer ile ALSA Master kontrolü
-        if let Ok(out) = Command::new("amixer").args(["sget", "Master"]).output() {
-            if out.status.success() {
-                let s = String::from_utf8_lossy(&out.stdout);
-                for part in s.split('[') {
-                    if let Some(pct_pos) = part.find("%]") {
-                        if let Ok(v) = part[..pct_pos].trim().parse::<u32>() {
-                            return Ok(v.min(100));
+            // 2. amixer ile ALSA Master kontrolü
+            if let Ok(out) = Command::new("amixer").args(["sget", "Master"]).output() {
+                if out.status.success() {
+                    let s = String::from_utf8_lossy(&out.stdout);
+                    for part in s.split('[') {
+                        if let Some(pct_pos) = part.find("%]") {
+                            if let Ok(v) = part[..pct_pos].trim().parse::<u32>() {
+                                return Ok(v.min(100));
+                            }
                         }
                     }
                 }
             }
+            Ok(75)
         }
-        Ok(75)
-    }
-    #[cfg(not(target_os = "linux"))]
-    {
-        Ok(75)
-    }
+        #[cfg(not(target_os = "linux"))]
+        {
+            Ok(75)
+        }
+    })
+    .await
+    .map_err(|e| format!("Ses seviyesi okunamadı: {}", e))?
 }
 
 #[tauri::command]
-fn set_volume(level: u32) -> Result<u32, String> {
+async fn set_volume(level: u32) -> Result<u32, String> {
     let clamped = level.min(100);
-    #[cfg(target_os = "linux")]
-    {
-        let arg = format!("{}%", clamped);
-        let _ = Command::new("pactl")
-            .args(["set-sink-volume", "@DEFAULT_SINK@", &arg])
-            .output();
-        let _ = Command::new("amixer")
-            .args(["sset", "Master", &arg])
-            .output();
-    }
-    Ok(clamped)
+    tauri::async_runtime::spawn_blocking(move || {
+        #[cfg(target_os = "linux")]
+        {
+            let arg = format!("{}%", clamped);
+            let _ = Command::new("pactl")
+                .args(["set-sink-volume", "@DEFAULT_SINK@", &arg])
+                .output();
+            let _ = Command::new("amixer")
+                .args(["sset", "Master", &arg])
+                .output();
+        }
+        Ok(clamped)
+    })
+    .await
+    .map_err(|e| format!("Ses seviyesi ayarlanamadı: {}", e))?
 }
 
 #[tauri::command]
@@ -6504,8 +6603,7 @@ fn rfkill_enabled(list_output: &str) -> Option<bool> {
     None
 }
 
-#[tauri::command]
-fn get_radio_state() -> RadioState {
+fn get_radio_state_blocking() -> RadioState {
     let mut state = RadioState {
         available: false,
         backend: String::new(),
@@ -6551,22 +6649,39 @@ fn get_radio_state() -> RadioState {
 }
 
 #[tauri::command]
-fn set_radio_state(kind: String, enabled: bool) -> Result<RadioState, String> {
-    let k = match kind.trim() {
-        "wifi" => "wifi",
-        "bluetooth" => "bluetooth",
-        _ => return Err("Geçersiz radyo türü.".to_string()),
-    };
-    let onoff = if enabled { "on" } else { "off" };
+async fn get_radio_state() -> RadioState {
+    tauri::async_runtime::spawn_blocking(get_radio_state_blocking)
+        .await
+        .unwrap_or(RadioState {
+            available: false,
+            backend: String::new(),
+            wifi_enabled: false,
+            bluetooth_enabled: false,
+            wifi_ssid: String::new(),
+        })
+}
 
-    if run_capture("nmcli", &["radio", k, onoff]).is_some() {
-        return Ok(get_radio_state());
-    }
-    let verb = if enabled { "unblock" } else { "block" };
-    if run_capture("rfkill", &[verb, k]).is_some() {
-        return Ok(get_radio_state());
-    }
-    Err("Ağ yöneticisi bulunamadı: sistemde nmcli veya rfkill yok.".to_string())
+#[tauri::command]
+async fn set_radio_state(kind: String, enabled: bool) -> Result<RadioState, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let k = match kind.trim() {
+            "wifi" => "wifi",
+            "bluetooth" => "bluetooth",
+            _ => return Err("Geçersiz radyo türü.".to_string()),
+        };
+        let onoff = if enabled { "on" } else { "off" };
+
+        if run_capture("nmcli", &["radio", k, onoff]).is_some() {
+            return Ok(get_radio_state_blocking());
+        }
+        let verb = if enabled { "unblock" } else { "block" };
+        if run_capture("rfkill", &[verb, k]).is_some() {
+            return Ok(get_radio_state_blocking());
+        }
+        Err("Ağ yöneticisi bulunamadı: sistemde nmcli veya rfkill yok.".to_string())
+    })
+    .await
+    .map_err(|e| format!("Radyo durumu güncellenemedi: {}", e))?
 }
 
 fn split_nmcli_terse_fields(line: &str) -> Vec<String> {
@@ -6805,8 +6920,7 @@ fn kill_process(pid: i32) -> Result<String, String> {
     }
 }
 
-#[tauri::command]
-fn get_network_info() -> NetworkInfo {
+fn get_network_info_blocking() -> NetworkInfo {
     let mut info = NetworkInfo {
         interface: String::new(),
         ip: String::new(),
@@ -6864,6 +6978,20 @@ fn get_network_info() -> NetworkInfo {
     info
 }
 
+#[tauri::command]
+async fn get_network_info() -> NetworkInfo {
+    tauri::async_runtime::spawn_blocking(get_network_info_blocking)
+        .await
+        .unwrap_or(NetworkInfo {
+            interface: String::new(),
+            ip: String::new(),
+            prefix: 0,
+            gateway: String::new(),
+            dns: Vec::new(),
+            connected: false,
+        })
+}
+
 // ============================================================================
 // 12. X11 YEREL PENCERE YÖNETİMİ (EWMH / WMCTRL ENTEGRASYONU)
 // ============================================================================
@@ -6877,146 +7005,190 @@ pub struct NativeWindowInfo {
 }
 
 #[tauri::command]
-fn get_native_windows() -> Result<Vec<NativeWindowInfo>, String> {
-    #[cfg(target_os = "linux")]
-    {
-        let out = match Command::new("wmctrl").args(["-l", "-x"]).output() {
-            Ok(o) if o.status.success() => String::from_utf8_lossy(&o.stdout).to_string(),
-            _ => return Ok(vec![]),
-        };
-
-        let active_num: Option<u64> = Command::new("xdotool")
-            .arg("getactivewindow")
-            .output()
-            .ok()
-            .and_then(|o| {
-                let s = String::from_utf8_lossy(&o.stdout).trim().to_string();
-                s.parse::<u64>().ok()
-            })
-            .or_else(|| {
-                Command::new("xprop")
-                    .args(["-root", "_NET_ACTIVE_WINDOW"])
-                    .output()
-                    .ok()
-                    .and_then(|o| {
-                        let s = String::from_utf8_lossy(&o.stdout).to_string();
-                        let hex_str = s.split('#').nth(1)?.trim();
-                        let clean = hex_str.split(',').next()?.trim().trim_start_matches("0x");
-                        u64::from_str_radix(clean, 16).ok()
-                    })
-            });
-
-        let mut windows = Vec::new();
-        for line in out.lines() {
-            let parts: Vec<&str> = line.split_whitespace().collect();
-            if parts.len() < 4 || parts[1] == "-1" {
-                continue;
-            }
-            let win_id = parts[0].to_lowercase();
-            let wm_class = parts[2];
-            // wmctrl -l -x biçimi: <win_id> <desktop> <wm_class> <client_machine> <title...>
-            let title = if parts.len() >= 5 {
-                parts[4..].join(" ")
-            } else {
-                parts[3..].join(" ")
+async fn get_native_windows() -> Result<Vec<NativeWindowInfo>, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        #[cfg(target_os = "linux")]
+        {
+            let out = match Command::new("wmctrl").args(["-l", "-x"]).output() {
+                Ok(o) if o.status.success() => String::from_utf8_lossy(&o.stdout).to_string(),
+                _ => return Ok(vec![]),
             };
 
-            let lower_class = wm_class.to_lowercase();
-            let lower_title = title.to_lowercase();
-            let has_exact_desktop = lower_class
-                .split(|c: char| c == '.' || c.is_whitespace())
-                .any(|part| part == "desktop" || part == "desktop_window");
-            if lower_class.contains("ayaz")
-                || lower_class.contains("openbox")
-                || lower_class.contains("trayer")
-                || lower_class.contains("dunst")
-                || lower_class.contains("xfdesktop")
-                || lower_class.contains("nautilus-desktop")
-                || lower_class.contains("nemo-desktop")
-                || lower_class.contains("pcmanfm-desktop")
-                || has_exact_desktop
-                || lower_title.contains("ayaz · ankora")
-                || lower_title.contains("ayaz — ankora")
-                || title == "Desktop"
-            {
-                continue;
+            let active_num: Option<u64> = Command::new("xdotool")
+                .arg("getactivewindow")
+                .output()
+                .ok()
+                .and_then(|o| {
+                    let s = String::from_utf8_lossy(&o.stdout).trim().to_string();
+                    s.parse::<u64>().ok()
+                })
+                .or_else(|| {
+                    Command::new("xprop")
+                        .args(["-root", "_NET_ACTIVE_WINDOW"])
+                        .output()
+                        .ok()
+                        .and_then(|o| {
+                            let s = String::from_utf8_lossy(&o.stdout).to_string();
+                            let hex_str = s.split('#').nth(1)?.trim();
+                            let clean = hex_str.split(',').next()?.trim().trim_start_matches("0x");
+                            u64::from_str_radix(clean, 16).ok()
+                        })
+                });
+
+            let mut windows = Vec::new();
+            for line in out.lines() {
+                let parts: Vec<&str> = line.split_whitespace().collect();
+                if parts.len() < 4 || parts[1] == "-1" {
+                    continue;
+                }
+                let win_id = parts[0].to_lowercase();
+                let wm_class = parts[2];
+                // wmctrl -l -x biçimi: <win_id> <desktop> <wm_class> <client_machine> <title...>
+                let title = if parts.len() >= 5 {
+                    parts[4..].join(" ")
+                } else {
+                    parts[3..].join(" ")
+                };
+
+                let lower_class = wm_class.to_lowercase();
+                let lower_title = title.to_lowercase();
+                let has_exact_desktop = lower_class
+                    .split(|c: char| c == '.' || c.is_whitespace())
+                    .any(|part| part == "desktop" || part == "desktop_window");
+                if lower_class.contains("ayaz")
+                    || lower_class.contains("openbox")
+                    || lower_class.contains("trayer")
+                    || lower_class.contains("dunst")
+                    || lower_class.contains("xfdesktop")
+                    || lower_class.contains("nautilus-desktop")
+                    || lower_class.contains("nemo-desktop")
+                    || lower_class.contains("pcmanfm-desktop")
+                    || has_exact_desktop
+                    || lower_title.contains("ayaz · ankora")
+                    || lower_title.contains("ayaz — ankora")
+                    || title == "Desktop"
+                {
+                    continue;
+                }
+
+                let app_name = wm_class.split('.').last().unwrap_or(wm_class).to_string();
+                let cur_num = u64::from_str_radix(win_id.trim_start_matches("0x"), 16).ok();
+                let is_active = active_num.is_some() && cur_num == active_num;
+
+                windows.push(NativeWindowInfo {
+                    id: parts[0].to_string(),
+                    title,
+                    app_name,
+                    wm_class: wm_class.to_string(),
+                    is_active,
+                });
             }
-
-            let app_name = wm_class.split('.').last().unwrap_or(wm_class).to_string();
-            let cur_num = u64::from_str_radix(win_id.trim_start_matches("0x"), 16).ok();
-            let is_active = active_num.is_some() && cur_num == active_num;
-
-            windows.push(NativeWindowInfo {
-                id: parts[0].to_string(),
-                title,
-                app_name,
-                wm_class: wm_class.to_string(),
-                is_active,
-            });
+            Ok(windows)
         }
-        Ok(windows)
+        #[cfg(not(target_os = "linux"))]
+        {
+            Ok(vec![])
+        }
+    })
+    .await
+    .map_err(|e| format!("Yerel pencereler okunamadı: {}", e))?
+}
+
+#[cfg(target_os = "linux")]
+fn find_ayaz_window_id() -> Option<String> {
+    let out = Command::new("wmctrl").args(["-l", "-x"]).output().ok()?;
+    if !out.status.success() {
+        return None;
     }
-    #[cfg(not(target_os = "linux"))]
-    {
-        Ok(vec![])
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    for line in stdout.lines() {
+        let parts: Vec<&str> = line.split_whitespace().collect();
+        if parts.len() < 4 {
+            continue;
+        }
+        let wm_class = parts[2].to_lowercase();
+        let title = if parts.len() >= 5 {
+            parts[4..].join(" ").to_lowercase()
+        } else {
+            String::new()
+        };
+        if wm_class.contains("ankora-desktop")
+            || title.contains("ayaz · ankora")
+            || title.contains("ayaz — ankora")
+        {
+            return Some(parts[0].to_string());
+        }
     }
+    None
 }
 
 #[tauri::command]
-fn activate_native_window(id: String) -> Result<(), String> {
-    let clean = id.trim();
-    if !is_valid_x11_window_id(clean) {
+async fn activate_native_window(id: String) -> Result<(), String> {
+    let clean = id.trim().to_string();
+    if !is_valid_x11_window_id(&clean) {
         return Err("Geçersiz X11 pencere kimliği.".to_string());
     }
-    #[cfg(target_os = "linux")]
-    {
-        for title in ["Ayaz · Ankora", "Ayaz — Ankora"] {
+    tauri::async_runtime::spawn_blocking(move || {
+        #[cfg(target_os = "linux")]
+        {
+            if let Some(ayaz_id) = find_ayaz_window_id() {
+                let _ = Command::new("wmctrl")
+                    .args(["-i", "-r", &ayaz_id, "-b", "remove,above"])
+                    .output();
+                let _ = Command::new("wmctrl")
+                    .args(["-i", "-r", &ayaz_id, "-b", "add,below"])
+                    .output();
+            }
             let _ = Command::new("wmctrl")
-                .args(["-r", title, "-b", "remove,above"])
+                .args(["-i", "-r", &clean, "-b", "remove,hidden"])
                 .output();
             let _ = Command::new("wmctrl")
-                .args(["-r", title, "-b", "add,below"])
+                .args(["-i", "-r", &clean, "-b", "remove,shaded"])
                 .output();
+            let _ = Command::new("wmctrl").args(["-i", "-a", &clean]).output();
         }
-        let _ = Command::new("wmctrl")
-            .args(["-i", "-r", clean, "-b", "remove,hidden"])
-            .output();
-        let _ = Command::new("wmctrl")
-            .args(["-i", "-r", clean, "-b", "remove,shaded"])
-            .output();
-        let _ = Command::new("wmctrl").args(["-i", "-a", clean]).output();
-    }
-    Ok(())
+        Ok(())
+    })
+    .await
+    .map_err(|e| format!("Pencere etkinleştirilemedi: {}", e))?
 }
 
 #[tauri::command]
-fn close_native_window(id: String) -> Result<(), String> {
-    let clean = id.trim();
-    if !is_valid_x11_window_id(clean) {
+async fn close_native_window(id: String) -> Result<(), String> {
+    let clean = id.trim().to_string();
+    if !is_valid_x11_window_id(&clean) {
         return Err("Geçersiz X11 pencere kimliği.".to_string());
     }
-    #[cfg(target_os = "linux")]
-    {
-        let mut cmd = Command::new("wmctrl");
-        cmd.args(["-i", "-c", clean]);
-        let _ = spawn_reaped(&mut cmd);
-    }
-    Ok(())
+    tauri::async_runtime::spawn_blocking(move || {
+        #[cfg(target_os = "linux")]
+        {
+            let mut cmd = Command::new("wmctrl");
+            cmd.args(["-i", "-c", &clean]);
+            let _ = spawn_reaped(&mut cmd);
+        }
+        Ok(())
+    })
+    .await
+    .map_err(|e| format!("Pencere kapatılamadı: {}", e))?
 }
 
 #[tauri::command]
-fn minimize_native_window(id: String) -> Result<(), String> {
-    let clean = id.trim();
-    if !is_valid_x11_window_id(clean) {
+async fn minimize_native_window(id: String) -> Result<(), String> {
+    let clean = id.trim().to_string();
+    if !is_valid_x11_window_id(&clean) {
         return Err("Geçersiz X11 pencere kimliği.".to_string());
     }
-    #[cfg(target_os = "linux")]
-    {
-        let mut cmd = Command::new("wmctrl");
-        cmd.args(["-i", "-r", clean, "-b", "add,hidden"]);
-        let _ = spawn_reaped(&mut cmd);
-    }
-    Ok(())
+    tauri::async_runtime::spawn_blocking(move || {
+        #[cfg(target_os = "linux")]
+        {
+            let mut cmd = Command::new("wmctrl");
+            cmd.args(["-i", "-r", &clean, "-b", "add,hidden"]);
+            let _ = spawn_reaped(&mut cmd);
+        }
+        Ok(())
+    })
+    .await
+    .map_err(|e| format!("Pencere küçültülemedi: {}", e))?
 }
 
 #[tauri::command]
@@ -7071,57 +7243,86 @@ fn pin_ayaz_window_geometry() {
         Some((w, h)) => format!("0,0,0,{},{}", w, h),
         None => "0,0,0,-1,-1".to_string(),
     };
-    for title in ["Ayaz · Ankora", "Ayaz — Ankora"] {
+    if let Some(win_id) = find_ayaz_window_id() {
         let _ = Command::new("wmctrl")
-            .args(["-r", title, "-b", "remove,maximized_vert,maximized_horz"])
+            .args(["-i", "-r", &win_id, "-b", "remove,maximized_vert,maximized_horz"])
             .output();
         let _ = Command::new("wmctrl")
-            .args(["-r", title, "-e", &geom_arg])
+            .args(["-i", "-r", &win_id, "-e", &geom_arg])
             .output();
         let _ = Command::new("wmctrl")
-            .args(["-r", title, "-b", "add,skip_taskbar,skip_pager"])
+            .args(["-i", "-r", &win_id, "-b", "add,skip_taskbar,skip_pager"])
+            .output();
+    } else {
+        let _ = Command::new("wmctrl")
+            .args(["-r", "Ayaz · Ankora", "-b", "remove,maximized_vert,maximized_horz"])
+            .output();
+        let _ = Command::new("wmctrl")
+            .args(["-r", "Ayaz · Ankora", "-e", &geom_arg])
+            .output();
+        let _ = Command::new("wmctrl")
+            .args(["-r", "Ayaz · Ankora", "-b", "add,skip_taskbar,skip_pager"])
             .output();
     }
 }
 
 #[cfg(target_os = "linux")]
 fn raise_ayaz_window() {
-    pin_ayaz_window_geometry();
-    for title in ["Ayaz · Ankora", "Ayaz — Ankora"] {
+    if let Some(win_id) = find_ayaz_window_id() {
         let _ = Command::new("wmctrl")
-            .args(["-r", title, "-b", "remove,below"])
+            .args(["-i", "-r", &win_id, "-b", "remove,below"])
             .output();
         let _ = Command::new("wmctrl")
-            .args(["-r", title, "-b", "add,above"])
+            .args(["-i", "-r", &win_id, "-b", "add,above"])
             .output();
-        let _ = Command::new("wmctrl").args(["-a", title]).output();
+        let _ = Command::new("wmctrl").args(["-i", "-a", &win_id]).output();
+    } else {
+        let _ = Command::new("wmctrl")
+            .args(["-r", "Ayaz · Ankora", "-b", "remove,below"])
+            .output();
+        let _ = Command::new("wmctrl")
+            .args(["-r", "Ayaz · Ankora", "-b", "add,above"])
+            .output();
+        let _ = Command::new("wmctrl").args(["-a", "Ayaz · Ankora"]).output();
     }
 }
 
 #[cfg(target_os = "linux")]
 fn lower_ayaz_window() {
-    for title in ["Ayaz · Ankora", "Ayaz — Ankora"] {
+    if let Some(win_id) = find_ayaz_window_id() {
         let _ = Command::new("wmctrl")
-            .args(["-r", title, "-b", "remove,above"])
+            .args(["-i", "-r", &win_id, "-b", "remove,above"])
             .output();
         let _ = Command::new("wmctrl")
-            .args(["-r", title, "-b", "add,below"])
+            .args(["-i", "-r", &win_id, "-b", "add,below"])
+            .output();
+    } else {
+        let _ = Command::new("wmctrl")
+            .args(["-r", "Ayaz · Ankora", "-b", "remove,above"])
+            .output();
+        let _ = Command::new("wmctrl")
+            .args(["-r", "Ayaz · Ankora", "-b", "add,below"])
             .output();
     }
-    pin_ayaz_window_geometry();
 }
 
 #[tauri::command]
-fn set_desktop_layer(above: bool) -> Result<bool, String> {
-    #[cfg(target_os = "linux")]
-    {
-        if above {
-            raise_ayaz_window();
-        } else {
-            lower_ayaz_window();
+async fn set_desktop_layer(above: bool) -> Result<bool, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        #[cfg(target_os = "linux")]
+        {
+            if above {
+                raise_ayaz_window();
+            } else {
+                lower_ayaz_window();
+            }
         }
-    }
-    Ok(true)
+        #[cfg(not(target_os = "linux"))]
+        let _ = above;
+        Ok(true)
+    })
+    .await
+    .map_err(|e| format!("Masaüstü katmanı ayarlanamadı: {}", e))?
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -7777,25 +7978,37 @@ fn set_clipboard_text(text: String) -> Result<(), String> {
 }
 
 #[tauri::command]
-fn list_installed_deb_packages() -> Result<Vec<String>, String> {
-    #[cfg(target_os = "linux")]
-    {
-        if let Ok(out) = Command::new("dpkg-query")
-            .args(["-W", "-f=${Package}\n"])
-            .output()
+async fn list_installed_deb_packages() -> Result<Vec<String>, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        #[cfg(target_os = "linux")]
         {
-            if out.status.success() {
-                let s = String::from_utf8_lossy(&out.stdout);
-                let pkgs: Vec<String> = s
-                    .lines()
-                    .map(|l| l.trim().to_string())
-                    .filter(|l| !l.is_empty())
-                    .collect();
-                return Ok(pkgs);
+            if let Ok(out) = Command::new("dpkg-query")
+                .args(["-W", "-f=${Status}\t${Package}\n"])
+                .output()
+            {
+                if out.status.success() {
+                    let s = String::from_utf8_lossy(&out.stdout);
+                    let pkgs: Vec<String> = s
+                        .lines()
+                        .filter_map(|l| {
+                            let (status, pkg) = l.split_once('\t')?;
+                            if status.trim() == "install ok installed" {
+                                let name = pkg.trim();
+                                if !name.is_empty() {
+                                    return Some(name.to_string());
+                                }
+                            }
+                            None
+                        })
+                        .collect();
+                    return Ok(pkgs);
+                }
             }
         }
-    }
-    Ok(vec![])
+        Ok(vec![])
+    })
+    .await
+    .map_err(|e| format!("Kurulu paketler okunamadı: {}", e))?
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -7807,49 +8020,55 @@ pub struct StorageStatsPayload {
 }
 
 #[tauri::command]
-fn get_storage_stats() -> Result<StorageStatsPayload, String> {
-    let mut stats = StorageStatsPayload {
-        disk_total: 0,
-        disk_used: 0,
-        zram_total: 0,
-        zram_used: 0,
-    };
+async fn get_storage_stats() -> Result<StorageStatsPayload, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let mut stats = StorageStatsPayload {
+            disk_total: 0,
+            disk_used: 0,
+            zram_total: 0,
+            zram_used: 0,
+        };
 
-    #[cfg(target_os = "linux")]
-    {
-        if let Ok(out) = Command::new("df").args(["-B1", "/"]).output() {
-            let s = String::from_utf8_lossy(&out.stdout);
-            for line in s.lines().skip(1) {
-                let parts: Vec<&str> = line.split_whitespace().collect();
-                if parts.len() >= 6 {
-                    if let (Ok(tot), Ok(used)) = (parts[1].parse::<u64>(), parts[2].parse::<u64>())
-                    {
-                        stats.disk_total = tot;
-                        stats.disk_used = used;
-                        break;
+        #[cfg(target_os = "linux")]
+        {
+            if let Ok(out) = Command::new("df").args(["-B1", "/"]).output() {
+                let s = String::from_utf8_lossy(&out.stdout);
+                for line in s.lines().skip(1) {
+                    let parts: Vec<&str> = line.split_whitespace().collect();
+                    if parts.len() >= 6 {
+                        if let (Ok(tot), Ok(used)) =
+                            (parts[1].parse::<u64>(), parts[2].parse::<u64>())
+                        {
+                            stats.disk_total = tot;
+                            stats.disk_used = used;
+                            break;
+                        }
+                    } else if parts.len() >= 5 {
+                        if let (Ok(tot), Ok(used)) =
+                            (parts[0].parse::<u64>(), parts[1].parse::<u64>())
+                        {
+                            stats.disk_total = tot;
+                            stats.disk_used = used;
+                            break;
+                        }
                     }
-                } else if parts.len() >= 5 {
-                    if let (Ok(tot), Ok(used)) = (parts[0].parse::<u64>(), parts[1].parse::<u64>())
-                    {
-                        stats.disk_total = tot;
-                        stats.disk_used = used;
-                        break;
-                    }
+                }
+            }
+
+            if let Ok(size_str) = fs::read_to_string("/sys/block/zram0/disksize") {
+                stats.zram_total = size_str.trim().parse::<u64>().unwrap_or(0);
+            }
+            if let Ok(mm_str) = fs::read_to_string("/sys/block/zram0/mm_stat") {
+                if let Some(first) = mm_str.split_whitespace().next() {
+                    stats.zram_used = first.parse::<u64>().unwrap_or(0);
                 }
             }
         }
 
-        if let Ok(size_str) = fs::read_to_string("/sys/block/zram0/disksize") {
-            stats.zram_total = size_str.trim().parse::<u64>().unwrap_or(0);
-        }
-        if let Ok(mm_str) = fs::read_to_string("/sys/block/zram0/mm_stat") {
-            if let Some(first) = mm_str.split_whitespace().next() {
-                stats.zram_used = first.parse::<u64>().unwrap_or(0);
-            }
-        }
-    }
-
-    Ok(stats)
+        Ok(stats)
+    })
+    .await
+    .map_err(|e| format!("Depolama istatistikleri okunamadı: {}", e))?
 }
 
 #[tauri::command]
@@ -8136,28 +8355,32 @@ async fn remove_flatpak_app(app_id: String) -> Result<String, String> {
 }
 
 #[tauri::command]
-fn list_installed_flatpaks() -> Result<Vec<String>, String> {
-    #[cfg(target_os = "linux")]
-    {
-        if let Ok(out) = Command::new("flatpak")
-            .args(["list", "--app", "--columns=application"])
-            .output()
+async fn list_installed_flatpaks() -> Result<Vec<String>, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        #[cfg(target_os = "linux")]
         {
-            if out.status.success() {
-                let s = String::from_utf8_lossy(&out.stdout);
-                let mut seen = std::collections::HashSet::new();
-                let mut apps = Vec::new();
-                for l in s.lines() {
-                    let t = l.trim();
-                    if !t.is_empty() && seen.insert(t.to_string()) {
-                        apps.push(t.to_string());
+            if let Ok(out) = Command::new("flatpak")
+                .args(["list", "--app", "--columns=application"])
+                .output()
+            {
+                if out.status.success() {
+                    let s = String::from_utf8_lossy(&out.stdout);
+                    let mut seen = std::collections::HashSet::new();
+                    let mut apps = Vec::new();
+                    for l in s.lines() {
+                        let t = l.trim();
+                        if !t.is_empty() && seen.insert(t.to_string()) {
+                            apps.push(t.to_string());
+                        }
                     }
+                    return Ok(apps);
                 }
-                return Ok(apps);
             }
         }
-    }
-    Ok(vec![])
+        Ok(vec![])
+    })
+    .await
+    .map_err(|e| format!("Flatpak listesi okunamadı: {}", e))?
 }
 
 #[tauri::command]
@@ -9877,7 +10100,7 @@ fn system_user_add(
             "-s",
             "/bin/bash",
             "-G",
-            "sudo,audio,video,plugdev,netdev",
+            "sudo,audio,video,plugdev,netdev,lp,scanner",
             "-c",
             &full_name,
             &username,
@@ -10027,181 +10250,194 @@ fn mpris_micros_to_sec(raw: &str) -> f64 {
 }
 
 #[tauri::command]
-fn get_mpris_status(player: Option<String>) -> Result<MprisStatus, String> {
-    #[cfg(target_os = "linux")]
-    {
-        let format = format!(
-            "{{{{playerName}}}}{0}{{{{status}}}}{0}{{{{title}}}}{0}{{{{artist}}}}{0}{{{{album}}}}{0}{{{{mpris:artUrl}}}}{0}{{{{position}}}}{0}{{{{mpris:length}}}}",
-            MPRIS_SEP
-        );
-        let out = Command::new("timeout")
-            .args([
-                "1.5",
-                "playerctl",
-                "-a",
-                "metadata",
-                "--format",
-                format.as_str(),
-            ])
-            .output();
-        if let Ok(o) = out {
-            if o.status.success() {
-                let stdout = String::from_utf8_lossy(&o.stdout);
-                let mut parsed: Vec<MprisStatus> = Vec::new();
-                for line in stdout.lines() {
-                    let parts: Vec<&str> = line.split(MPRIS_SEP).collect();
-                    if parts.len() < 8 {
-                        continue;
-                    }
-                    let player_name = parts[0].trim().to_string();
-                    if player_name.is_empty() {
-                        continue;
-                    }
-                    let playback_status = parts[1].trim().to_string();
-                    let title = parts[2].trim().to_string();
-                    let artist = parts[3].trim().to_string();
-                    parsed.push(MprisStatus {
-                        is_active: true,
-                        player_name,
-                        playback_status,
-                        title: if title.is_empty() {
-                            "Bilinmeyen Parça".to_string()
-                        } else {
-                            title
-                        },
-                        artist,
-                        album: parts[4].trim().to_string(),
-                        art_url: parts[5].trim().to_string(),
-                        position_sec: mpris_micros_to_sec(parts[6]),
-                        length_sec: mpris_micros_to_sec(parts[7]),
-                        players: Vec::new(),
-                    });
-                }
-
-                // Duran oynatıcılar (Stopped) eskimiş metadata taşır; yalnızca
-                // gerçekten çalan ya da duraklatılmış oynatıcıyı göster.
-                let is_state = |s: &MprisStatus, state: &str| {
-                    s.playback_status.eq_ignore_ascii_case(state)
-                };
-                let requested = player
-                    .as_deref()
-                    .map(|p| p.trim().to_string())
-                    .filter(|p| !p.is_empty());
-                let chosen_index = requested
-                    .as_ref()
-                    .and_then(|want| {
-                        parsed
-                            .iter()
-                            .position(|s| s.player_name.eq_ignore_ascii_case(want))
-                    })
-                    .or_else(|| parsed.iter().position(|s| is_state(s, "Playing")))
-                    .or_else(|| parsed.iter().position(|s| is_state(s, "Paused")));
-
-                let players: Vec<MprisPlayerInfo> = parsed
-                    .iter()
-                    .map(|s| MprisPlayerInfo {
-                        player_name: s.player_name.clone(),
-                        title: s.title.clone(),
-                        artist: s.artist.clone(),
-                        playback_status: s.playback_status.clone(),
-                    })
-                    .collect();
-
-                if let Some(idx) = chosen_index {
-                    let mut best = parsed[idx].clone();
-                    if is_state(&best, "Stopped") {
-                        return Ok(MprisStatus {
-                            is_active: false,
-                            player_name: best.player_name,
-                            playback_status: "Stopped".to_string(),
-                            title: String::new(),
-                            artist: String::new(),
-                            album: String::new(),
-                            art_url: String::new(),
-                            position_sec: 0.0,
-                            length_sec: 0.0,
-                            players,
+async fn get_mpris_status(player: Option<String>) -> Result<MprisStatus, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        #[cfg(target_os = "linux")]
+        {
+            let format = format!(
+                "{{{{playerName}}}}{0}{{{{status}}}}{0}{{{{title}}}}{0}{{{{artist}}}}{0}{{{{album}}}}{0}{{{{mpris:artUrl}}}}{0}{{{{position}}}}{0}{{{{mpris:length}}}}",
+                MPRIS_SEP
+            );
+            let out = Command::new("timeout")
+                .args([
+                    "1.5",
+                    "playerctl",
+                    "-a",
+                    "metadata",
+                    "--format",
+                    format.as_str(),
+                ])
+                .output();
+            if let Ok(o) = out {
+                if o.status.success() {
+                    let stdout = String::from_utf8_lossy(&o.stdout);
+                    let mut parsed: Vec<MprisStatus> = Vec::new();
+                    for line in stdout.lines() {
+                        let parts: Vec<&str> = line.split(MPRIS_SEP).collect();
+                        if parts.len() < 8 {
+                            continue;
+                        }
+                        let player_name = parts[0].trim().to_string();
+                        if player_name.is_empty() {
+                            continue;
+                        }
+                        let playback_status = parts[1].trim().to_string();
+                        let title = parts[2].trim().to_string();
+                        let artist = parts[3].trim().to_string();
+                        parsed.push(MprisStatus {
+                            is_active: true,
+                            player_name,
+                            playback_status,
+                            title: if title.is_empty() {
+                                "Bilinmeyen Parça".to_string()
+                            } else {
+                                title
+                            },
+                            artist,
+                            album: parts[4].trim().to_string(),
+                            art_url: parts[5].trim().to_string(),
+                            position_sec: mpris_micros_to_sec(parts[6]),
+                            length_sec: mpris_micros_to_sec(parts[7]),
+                            players: Vec::new(),
                         });
                     }
-                    best.players = players;
-                    return Ok(best);
+
+                    // Duran oynatıcılar (Stopped) eskimiş metadata taşır; yalnızca
+                    // gerçekten çalan ya da duraklatılmış oynatıcıyı göster.
+                    let is_state = |s: &MprisStatus, state: &str| {
+                        s.playback_status.eq_ignore_ascii_case(state)
+                    };
+                    let requested = player
+                        .as_deref()
+                        .map(|p| p.trim().to_string())
+                        .filter(|p| !p.is_empty());
+                    let chosen_index = requested
+                        .as_ref()
+                        .and_then(|want| {
+                            parsed
+                                .iter()
+                                .position(|s| s.player_name.eq_ignore_ascii_case(want))
+                        })
+                        .or_else(|| parsed.iter().position(|s| is_state(s, "Playing")))
+                        .or_else(|| parsed.iter().position(|s| is_state(s, "Paused")));
+
+                    let players: Vec<MprisPlayerInfo> = parsed
+                        .iter()
+                        .map(|s| MprisPlayerInfo {
+                            player_name: s.player_name.clone(),
+                            title: s.title.clone(),
+                            artist: s.artist.clone(),
+                            playback_status: s.playback_status.clone(),
+                        })
+                        .collect();
+
+                    if let Some(idx) = chosen_index {
+                        let mut best = parsed[idx].clone();
+                        if is_state(&best, "Stopped") {
+                            return Ok(MprisStatus {
+                                is_active: false,
+                                player_name: best.player_name,
+                                playback_status: "Stopped".to_string(),
+                                title: String::new(),
+                                artist: String::new(),
+                                album: String::new(),
+                                art_url: String::new(),
+                                position_sec: 0.0,
+                                length_sec: 0.0,
+                                players,
+                            });
+                        }
+                        best.players = players;
+                        return Ok(best);
+                    }
+                    return Ok(MprisStatus {
+                        is_active: false,
+                        player_name: String::new(),
+                        playback_status: "Stopped".to_string(),
+                        title: String::new(),
+                        artist: String::new(),
+                        album: String::new(),
+                        art_url: String::new(),
+                        position_sec: 0.0,
+                        length_sec: 0.0,
+                        players,
+                    });
                 }
-                return Ok(MprisStatus {
-                    is_active: false,
-                    player_name: String::new(),
-                    playback_status: "Stopped".to_string(),
-                    title: String::new(),
-                    artist: String::new(),
-                    album: String::new(),
-                    art_url: String::new(),
-                    position_sec: 0.0,
-                    length_sec: 0.0,
-                    players,
-                });
             }
         }
-    }
-    Ok(MprisStatus {
-        is_active: false,
-        player_name: String::new(),
-        playback_status: "Stopped".into(),
-        title: String::new(),
-        artist: String::new(),
-        album: String::new(),
-        art_url: String::new(),
-        position_sec: 0.0,
-        length_sec: 0.0,
-        players: Vec::new(),
+        #[cfg(not(target_os = "linux"))]
+        let _ = player;
+        Ok(MprisStatus {
+            is_active: false,
+            player_name: String::new(),
+            playback_status: "Stopped".into(),
+            title: String::new(),
+            artist: String::new(),
+            album: String::new(),
+            art_url: String::new(),
+            position_sec: 0.0,
+            length_sec: 0.0,
+            players: Vec::new(),
+        })
     })
+    .await
+    .map_err(|e| format!("Medya durumu okunamadı: {}", e))?
 }
 
 #[tauri::command]
-fn send_mpris_command(command: String, player: Option<String>) -> Result<String, String> {
-    #[cfg(target_os = "linux")]
-    {
-        let sub = match command.as_str() {
-            "play-pause" => "play-pause",
-            "play" => "play",
-            "pause" => "pause",
-            "next" => "next",
-            "previous" => "previous",
-            "stop" => "stop",
-            _ => return Err("Geçersiz MPRIS komutu".into()),
-        };
-
-        let target = player.unwrap_or_default().trim().to_string();
-        if !target.is_empty()
-            && (target.len() > 128
-                || !target
-                    .chars()
-                    .all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '-' | ':')))
+async fn send_mpris_command(command: String, player: Option<String>) -> Result<String, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        #[cfg(target_os = "linux")]
         {
-            return Err("Geçersiz oynatıcı adı".to_string());
-        }
+            let sub = match command.as_str() {
+                "play-pause" => "play-pause",
+                "play" => "play",
+                "pause" => "pause",
+                "next" => "next",
+                "previous" => "previous",
+                "stop" => "stop",
+                _ => return Err("Geçersiz MPRIS komutu".into()),
+            };
 
-        let res = if target.is_empty() {
-            Command::new("timeout")
-                .args(["2.0", "playerctl", sub])
-                .output()
-        } else {
-            Command::new("timeout")
-                .args(["2.0", "playerctl", "-p", &target, sub])
-                .output()
-        };
-
-        match res {
-            Ok(o) => {
-                if o.status.success() {
-                    Ok("Başarılı".into())
-                } else {
-                    Err("Oynatıcı yanıt vermedi".into())
-                }
+            let target = player.unwrap_or_default().trim().to_string();
+            if !target.is_empty()
+                && (target.len() > 128
+                    || !target
+                        .chars()
+                        .all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '-' | ':')))
+            {
+                return Err("Geçersiz oynatıcı adı".to_string());
             }
-            Err(e) => Err(format!("playerctl çalıştırılamadı: {}", e)),
+
+            let res = if target.is_empty() {
+                Command::new("timeout")
+                    .args(["2.0", "playerctl", sub])
+                    .output()
+            } else {
+                Command::new("timeout")
+                    .args(["2.0", "playerctl", "-p", &target, sub])
+                    .output()
+            };
+
+            match res {
+                Ok(o) => {
+                    if o.status.success() {
+                        Ok("Başarılı".into())
+                    } else {
+                        Err("Oynatıcı yanıt vermedi".into())
+                    }
+                }
+                Err(e) => Err(format!("playerctl çalıştırılamadı: {}", e)),
+            }
         }
-    }
-    #[cfg(not(target_os = "linux"))]
-    Ok("Simüle edildi".into())
+        #[cfg(not(target_os = "linux"))]
+        {
+            let _ = (command, player);
+            Ok("Simüle edildi".into())
+        }
+    })
+    .await
+    .map_err(|e| format!("MPRIS komutu yürütülemedi: {}", e))?
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -10939,12 +11175,118 @@ fn delete_system_snapshot(snapshot_id: String) -> Result<String, String> {
     Ok("Kurtarma noktası silindi".into())
 }
 
-fn main() {
-    // Hedef ~350 MB boş RAM: dmabuf renderer süreç katmanını kapat;
-    // ayrı NetworkProcess önbellek birikimini önle.
-    // DİKKAT: WebKitGTK 2.42+ sürümlerinde WEBKIT_DISABLE_COMPOSITING_MODE siyah ekrana yol açtığı için kaldırıldı.
+#[tauri::command]
+fn get_render_mode() -> String {
+    std::env::var("ANKORA_RENDER_MODE").unwrap_or_else(|_| "gpu".to_string())
+}
+
+fn configure_render_environment() {
+    // DİKKAT: WebKitGTK 2.42+ sürümlerinde WEBKIT_DISABLE_COMPOSITING_MODE siyah ekrana yol açar.
     std::env::set_var("GDK_BACKEND", "x11");
-    std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
+
+    let mode = match std::env::var("ANKORA_RENDER_MODE") {
+        Ok(val) if matches!(val.as_str(), "gpu" | "gpu-nvidia" | "software") => val,
+        _ => {
+            if Path::new("/proc/driver/nvidia/version").exists() {
+                "gpu-nvidia".to_string()
+            } else {
+                let has_dri_render = fs::read_dir("/dev/dri")
+                    .ok()
+                    .map(|entries| {
+                        entries
+                            .flatten()
+                            .any(|e| e.file_name().to_string_lossy().starts_with("renderD"))
+                    })
+                    .unwrap_or(false);
+
+                let mut detected = "software".to_string();
+                if has_dri_render {
+                    match Command::new("glxinfo").arg("-B").output() {
+                        Ok(out) if out.status.success() => {
+                            let info = String::from_utf8_lossy(&out.stdout).to_lowercase();
+                            let accel = info.contains("accelerated: yes");
+                            let sw_renderer = info.contains("llvmpipe")
+                                || info.contains("softpipe")
+                                || info.contains("swrast");
+                            if accel && !sw_renderer {
+                                detected = "gpu".to_string();
+                                if info.contains("svga3d")
+                                    || info.contains("vmwgfx")
+                                    || info.contains("vbox")
+                                {
+                                    std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
+                                } else {
+                                    std::env::remove_var("WEBKIT_DISABLE_DMABUF_RENDERER");
+                                }
+                            }
+                        }
+                        Ok(_) => {}
+                        Err(_) => {
+                            // glxinfo kurulu değilse yalnızca sanal makine olmayan
+                            // donanım DRI sistemlerinde GPU modunu koru.
+                            let is_vm = [
+                                "/sys/class/dmi/id/product_name",
+                                "/sys/class/dmi/id/sys_vendor",
+                                "/sys/class/dmi/id/board_vendor",
+                            ]
+                            .iter()
+                            .any(|p| {
+                                fs::read_to_string(p)
+                                    .map(|s| {
+                                        let l = s.to_lowercase();
+                                        l.contains("virtualbox")
+                                            || l.contains("vmware")
+                                            || l.contains("kvm")
+                                            || l.contains("qemu")
+                                            || l.contains("bochs")
+                                            || l.contains("innotek")
+                                    })
+                                    .unwrap_or(false)
+                            });
+                            if !is_vm {
+                                detected = "gpu".to_string();
+                                std::env::remove_var("WEBKIT_DISABLE_DMABUF_RENDERER");
+                            }
+                        }
+                    }
+                }
+                detected
+            }
+        }
+    };
+
+    match mode.as_str() {
+        "software" => {
+            // 3D hızlandırmasız VM / yazılım ekran kartı: Skia-GL -> llvmpipe çift
+            // katmanını atlayıp çok iş parçacıklı Skia CPU boyamayı etkinleştir.
+            std::env::set_var("LIBGL_ALWAYS_SOFTWARE", "1");
+            std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
+            std::env::set_var("WEBKIT_SKIA_ENABLE_CPU_RENDERING", "1");
+            if std::env::var("WEBKIT_SKIA_CPU_PAINTING_THREADS").is_err() {
+                let threads = std::thread::available_parallelism()
+                    .map(|n| n.get().clamp(2, 4))
+                    .unwrap_or(2);
+                std::env::set_var("WEBKIT_SKIA_CPU_PAINTING_THREADS", threads.to_string());
+            }
+            std::env::set_var("ANKORA_RENDER_MODE", "software");
+        }
+        "gpu-nvidia" => {
+            std::env::remove_var("LIBGL_ALWAYS_SOFTWARE");
+            std::env::remove_var("WEBKIT_SKIA_ENABLE_CPU_RENDERING");
+            std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
+            std::env::set_var("__NV_DISABLE_EXPLICIT_SYNC", "1");
+            std::env::set_var("ANKORA_RENDER_MODE", "gpu-nvidia");
+        }
+        _ => {
+            std::env::remove_var("LIBGL_ALWAYS_SOFTWARE");
+            std::env::remove_var("WEBKIT_SKIA_ENABLE_CPU_RENDERING");
+            std::env::set_var("ANKORA_RENDER_MODE", "gpu");
+        }
+    }
+}
+
+fn main() {
+    configure_render_environment();
     // WebKit Bubblewrap (bwrap) sandbox varsayılan olarak etkindir; yalnızca
     // kullanıcı ad alanı desteklemeyen kısıtlı ortamlarda devre dışı kalır.
     let bwrap_supported = Command::new("bwrap")
@@ -10959,21 +11301,6 @@ fn main() {
     } else {
         std::env::set_var("WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS", "1");
     }
-
-    // Sanal makine (VirtualBox, QEMU, KVM, VMware) tespiti
-    let is_vm = ["/sys/class/dmi/id/product_name", "/sys/class/dmi/id/sys_vendor", "/sys/class/dmi/id/board_vendor"]
-        .iter()
-        .any(|p| {
-            std::fs::read_to_string(p)
-                .map(|s| {
-                    let l = s.to_lowercase();
-                    l.contains("virtualbox") || l.contains("vmware") || l.contains("kvm") || l.contains("qemu") || l.contains("bochs") || l.contains("innotek")
-                })
-                .unwrap_or(false)
-        });
-    if is_vm {
-        std::env::set_var("LIBGL_ALWAYS_SOFTWARE", "1");
-    }
     let sys_path = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin";
     match std::env::var("PATH") {
         Ok(cur) if cur.contains("/usr/sbin") => {}
@@ -10983,6 +11310,7 @@ fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .invoke_handler(tauri::generate_handler![
+            get_render_mode,
             drag_window,
             scan_xdg_applications,
             install_deb_package,

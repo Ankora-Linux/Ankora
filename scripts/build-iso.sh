@@ -72,36 +72,46 @@ fi
 # Devuan GPG resmi anahtarlık denetimi (Excalibur anahtarları için güncel paket öncelikli)
 LOCAL_KEYRING="$ROOT_DIR/third_party/devuan-keyring/gpg/devuan-archive-keyring.gpg"
 LOCAL_DEB="$ROOT_DIR/third_party/devuan-keyring/devuan-keyring_2022.09.04_all.deb"
+STAGED_DEVUAN_KEYRING_DEB=""
 
-if [ ! -f /usr/share/keyrings/devuan-archive-keyring.gpg ] && [ ! -f /etc/apt/trusted.gpg.d/devuan-archive-keyring.gpg ]; then
-    echo "[BİLGİ] Devuan resmi GPG anahtarlığı (devuan-keyring Excalibur) indiriliyor..."
-    TMP_KEYRING_DEB=$(mktemp /tmp/devuan-keyring.XXXXXX.deb)
-    rm -f "$TMP_KEYRING_DEB"
-    wget -qO "$TMP_KEYRING_DEB" https://pkgmaster.devuan.org/devuan/pool/main/d/devuan-keyring/devuan-keyring_2026.01.13_all.deb 2>/dev/null \
-        || wget -qO "$TMP_KEYRING_DEB" https://pkgmaster.devuan.org/devuan/pool/main/d/devuan-keyring/devuan-keyring_2025.08.09_all.deb 2>/dev/null \
-        || true
-    if [ -s "$TMP_KEYRING_DEB" ] && dpkg-deb -I "$TMP_KEYRING_DEB" >/dev/null 2>&1; then
-        TMP_KEY_DIR=$(mktemp -d /tmp/devuan-key-verify.XXXXXX)
-        dpkg-deb -x "$TMP_KEYRING_DEB" "$TMP_KEY_DIR" 2>/dev/null || true
-        KEY_CAND="$TMP_KEY_DIR/usr/share/keyrings/devuan-archive-keyring.gpg"
-        # Devuan archive signing fingerprints (2022/2025/2026 release keys)
-        if [ -f "$KEY_CAND" ] && command -v gpg >/dev/null 2>&1 \
-           && gpg --batch --with-colons --show-keys "$KEY_CAND" 2>/dev/null | grep -qiE "94532124541922FB|BB23C00C61FC752C|72E3CB773315DFA2|Devuan"; then
+TMP_KEYRING_DEB=$(mktemp /tmp/devuan-keyring.XXXXXX.deb)
+rm -f "$TMP_KEYRING_DEB"
+echo "[BİLGİ] Devuan resmi GPG anahtarlığı (devuan-keyring Excalibur) denetleniyor..."
+wget -qO "$TMP_KEYRING_DEB" https://pkgmaster.devuan.org/devuan/pool/main/d/devuan-keyring/devuan-keyring_2026.01.13_all.deb 2>/dev/null \
+    || wget -qO "$TMP_KEYRING_DEB" https://pkgmaster.devuan.org/devuan/pool/main/d/devuan-keyring/devuan-keyring_2025.08.09_all.deb 2>/dev/null \
+    || true
+if [ -s "$TMP_KEYRING_DEB" ] && dpkg-deb -I "$TMP_KEYRING_DEB" >/dev/null 2>&1; then
+    TMP_KEY_DIR=$(mktemp -d /tmp/devuan-key-verify.XXXXXX)
+    dpkg-deb -x "$TMP_KEYRING_DEB" "$TMP_KEY_DIR" 2>/dev/null || true
+    KEY_CAND="$TMP_KEY_DIR/usr/share/keyrings/devuan-archive-keyring.pgp"
+    [ -f "$KEY_CAND" ] || KEY_CAND="$TMP_KEY_DIR/usr/share/keyrings/devuan-archive-keyring.gpg"
+    # Devuan archive signing fingerprints (2022/2025/2026 release keys)
+    if [ -f "$KEY_CAND" ] && command -v gpg >/dev/null 2>&1 \
+       && gpg --batch --with-colons --show-keys "$KEY_CAND" 2>/dev/null | grep -qiE "9F8D6C74DE661075FD171BE3B3982868D104092C|94532124541922FB|BB23C00C61FC752C|72E3CB773315DFA2|Devuan"; then
+        STAGED_DEVUAN_KEYRING_DEB="$TMP_KEYRING_DEB"
+        if [ ! -f /usr/share/keyrings/devuan-archive-keyring.pgp ] && [ ! -f /usr/share/keyrings/devuan-archive-keyring.gpg ]; then
             dpkg -i "$TMP_KEYRING_DEB" 2>/dev/null || apt-get install -f -y 2>/dev/null || true
-        elif [ -f "$LOCAL_DEB" ]; then
+        fi
+    else
+        rm -f "$TMP_KEYRING_DEB"
+        if [ ! -f /usr/share/keyrings/devuan-archive-keyring.gpg ] && [ ! -f /etc/apt/trusted.gpg.d/devuan-archive-keyring.gpg ] && [ -f "$LOCAL_DEB" ]; then
             echo "[UYARI] İndirilen Devuan anahtarlık parmak izi doğrulanamadı; depo içi anahtarlık kuruluyor." >&2
             dpkg -i "$LOCAL_DEB" 2>/dev/null || true
         fi
-        rm -rf "$TMP_KEY_DIR"
-    elif [ -f "$LOCAL_DEB" ]; then
+    fi
+    rm -rf "$TMP_KEY_DIR"
+else
+    rm -f "$TMP_KEYRING_DEB"
+    if [ ! -f /usr/share/keyrings/devuan-archive-keyring.gpg ] && [ ! -f /etc/apt/trusted.gpg.d/devuan-archive-keyring.gpg ] && [ -f "$LOCAL_DEB" ]; then
         echo "[BİLGİ] Yerel Devuan anahtarlık paketi kuruluyor ($LOCAL_DEB)..."
         dpkg -i "$LOCAL_DEB" 2>/dev/null || true
     fi
-    rm -f "$TMP_KEYRING_DEB"
 fi
 
 KEYRING_ARGS=()
-if [ -f /usr/share/keyrings/devuan-archive-keyring.gpg ]; then
+if [ -f /usr/share/keyrings/devuan-archive-keyring.pgp ]; then
+    KEYRING_ARGS=("--keyring=/usr/share/keyrings/devuan-archive-keyring.pgp")
+elif [ -f /usr/share/keyrings/devuan-archive-keyring.gpg ]; then
     KEYRING_ARGS=("--keyring=/usr/share/keyrings/devuan-archive-keyring.gpg")
 elif [ -f /etc/apt/trusted.gpg.d/devuan-archive-keyring.gpg ]; then
     KEYRING_ARGS=("--keyring=/etc/apt/trusted.gpg.d/devuan-archive-keyring.gpg")
@@ -111,8 +121,8 @@ else
     # Anahtarlıksız kurulum imzasız taban sistem demektir; sessizce geçilmez.
     echo "[HATA] Devuan GPG anahtarlığı bulunamadı:" >&2
     echo "       $LOCAL_KEYRING" >&2
+    echo "       /usr/share/keyrings/devuan-archive-keyring.pgp" >&2
     echo "       /usr/share/keyrings/devuan-archive-keyring.gpg" >&2
-    echo "       /etc/apt/trusted.gpg.d/devuan-archive-keyring.gpg" >&2
     echo "[HATA] Kurulum imzasız olacağı için durduruldu." >&2
     exit 1
 fi
@@ -148,22 +158,24 @@ debootstrap --arch=amd64 \
     --include=sysvinit-core,sysvinit-utils,insserv,initramfs-tools,live-boot,live-config,live-config-sysvinit,ca-certificates \
     "$DEVUAN_SUITE" "$CHROOT_DIR" "$DEVUAN_MIRROR"
 
-# 5. Sanal Dosya Sistemlerinin Bağlanması (Mount) ve Anahtarlık Transferi
-mkdir -p "$CHROOT_DIR/etc/apt/trusted.gpg.d" "$CHROOT_DIR/usr/share/keyrings"
-cp -f /usr/share/keyrings/devuan* "$CHROOT_DIR/etc/apt/trusted.gpg.d/" 2>/dev/null || true
-cp -f /usr/share/keyrings/devuan* "$CHROOT_DIR/usr/share/keyrings/" 2>/dev/null || true
-if ! ls "$CHROOT_DIR/usr/share/keyrings/"devuan*.gpg >/dev/null 2>&1 && [ -d "$ROOT_DIR/third_party/devuan-keyring/gpg" ]; then
-    cp -f "$ROOT_DIR/third_party/devuan-keyring/gpg/"devuan* "$CHROOT_DIR/etc/apt/trusted.gpg.d/" 2>/dev/null || true
-    cp -f "$ROOT_DIR/third_party/devuan-keyring/gpg/"devuan* "$CHROOT_DIR/usr/share/keyrings/" 2>/dev/null || true
+# 5. Sanal Dosya Sistemlerinin Bağlanması (Mount) ve Yalnızca Resmî Arşiv Anahtarlığı Transferi
+# KRİTİK (APT 3.0 / sqv): /usr/share/keyrings/devuan* toplu kopyalanmaz; aksi halde
+# devuan-removed-keys.gpg (süresi dolmuş/SHA-1 anahtarlar) /etc/apt/trusted.gpg.d içine
+# sızar ve APT 3.0 güvenlik uyarısı/hatası üretir. Yalnızca arşiv anahtarlığı aktarılır.
+mkdir -p "$CHROOT_DIR/usr/share/keyrings" "$CHROOT_DIR/etc/apt/sources.list.d"
+if [ -n "$STAGED_DEVUAN_KEYRING_DEB" ] && [ -f "$STAGED_DEVUAN_KEYRING_DEB" ]; then
+    cp -f "$STAGED_DEVUAN_KEYRING_DEB" "$CHROOT_DIR/tmp/devuan-keyring-latest.deb"
+    rm -f "$STAGED_DEVUAN_KEYRING_DEB"
 fi
-# Baz sistemler anahtarlığı yalnızca /etc/apt/trusted.gpg.d altında tutar.
-# Ama bu dosyalar devuan-keyring paketinin conffile'larıyla aynı yolda
-# çakışır: önceden konursa dpkg conffile sorusunda stdin'de eof alır, paketi
-# yarı bırakır ve sonraki apt-get'i `set -e` ile durdurur. Yalnızca yukarıdaki
-# kopyalama hiçbir şey koymadıysa yedeğe başvur.
-if ! ls "$CHROOT_DIR/etc/apt/trusted.gpg.d/"devuan*.gpg >/dev/null 2>&1; then
-    cp -f /etc/apt/trusted.gpg.d/devuan* "$CHROOT_DIR/etc/apt/trusted.gpg.d/" 2>/dev/null || true
+if [ -f /usr/share/keyrings/devuan-archive-keyring.pgp ]; then
+    cp -Lf /usr/share/keyrings/devuan-archive-keyring.pgp "$CHROOT_DIR/usr/share/keyrings/devuan-archive-keyring.pgp"
+    ln -sf devuan-archive-keyring.pgp "$CHROOT_DIR/usr/share/keyrings/devuan-archive-keyring.gpg"
+elif [ -f /usr/share/keyrings/devuan-archive-keyring.gpg ]; then
+    cp -Lf /usr/share/keyrings/devuan-archive-keyring.gpg "$CHROOT_DIR/usr/share/keyrings/devuan-archive-keyring.gpg"
+elif [ -f "$LOCAL_KEYRING" ]; then
+    cp -Lf "$LOCAL_KEYRING" "$CHROOT_DIR/usr/share/keyrings/devuan-archive-keyring.gpg"
 fi
+chmod 0644 "$CHROOT_DIR/usr/share/keyrings/"devuan-archive-keyring.* 2>/dev/null || true
 
 mount --bind /dev "$CHROOT_DIR/dev"
 mount --bind /dev/pts "$CHROOT_DIR/dev/pts"
@@ -238,18 +250,43 @@ apt_update_retry() {
     return 1
 }
 
-# Depo kaynakları
-cat << 'SOURCES' > /etc/apt/sources.list
-deb https://pkgmaster.devuan.org/merged excalibur main contrib non-free non-free-firmware
-deb https://pkgmaster.devuan.org/merged excalibur-security main contrib non-free non-free-firmware
-deb https://pkgmaster.devuan.org/merged excalibur-updates main contrib non-free non-free-firmware
-SOURCES
+# Güncel devuan-keyring (2026 Excalibur anahtarları) önce chroot içine kurulur;
+# aksi halde eski 2025 paketi güncel anahtarları ezebilir.
+if [ -f /tmp/devuan-keyring-latest.deb ]; then
+    dpkg -i /tmp/devuan-keyring-latest.deb 2>/dev/null || true
+    rm -f /tmp/devuan-keyring-latest.deb
+fi
 
-# trusted=yes imza denetimini tamamen kapatıyordu. Anahtarlık yukarıda
-# zaten chroot'a kopyalandığından Release dosyaları GPG ile doğrulanır;
+DEVUAN_ARCHIVE_KEY="/usr/share/keyrings/devuan-archive-keyring.pgp"
+[ -f "$DEVUAN_ARCHIVE_KEY" ] || DEVUAN_ARCHIVE_KEY="/usr/share/keyrings/devuan-archive-keyring.gpg"
+chmod 0644 /usr/share/keyrings/devuan-archive-keyring.* 2>/dev/null || true
+
+# APT 3.0 modern deb822 depo tanımı (açık Signed-By ile global trusted.gpg.d riski yok)
+cat << SOURCES > /etc/apt/sources.list.d/devuan.sources
+Types: deb
+URIs: https://pkgmaster.devuan.org/merged
+Suites: excalibur excalibur-security excalibur-updates
+Components: main contrib non-free non-free-firmware
+Signed-By: ${DEVUAN_ARCHIVE_KEY}
+SOURCES
+cat << 'LEGACY_COMMENT' > /etc/apt/sources.list
+# Ankora Linux (Devuan 6 Excalibur) resmî APT 3.0 kaynakları
+# /etc/apt/sources.list.d/devuan.sources dosyasında Signed-By ile tanımlıdır.
+LEGACY_COMMENT
+
+# trusted=yes imza denetimini tamamen kapatıyordu. Anahtarlık Signed-By ile
+# doğrudan bağlandığından Release dosyaları GPG/sqv ile doğrulanır;
 # doğrulanamazsa `set -e` kurulumu burada durdurur.
 apt_update_retry
-apt-get install -y --no-install-recommends devuan-keyring || true
+if ! dpkg -s devuan-keyring >/dev/null 2>&1; then
+    apt-get install -y --no-install-recommends devuan-keyring || true
+fi
+# APT 3.0 / sqv: süresi dolmuş veya kaldırılmış anahtarların global trusted.gpg.d
+# altında bırakılması güvenlik uyarısı/hatası doğurur; temizlenir.
+rm -f /etc/apt/trusted.gpg.d/devuan-removed-keys.* \
+      /etc/apt/trusted.gpg.d/devuan-keyring.gpg \
+      /etc/apt/trusted.gpg.d/devuan-keyring.pgp \
+      /etc/apt/trusted.gpg.d/devuan-archive-keyring.* 2>/dev/null || true
 
 # -----------------------------------------------------------------------
 # FARZ 1: Linux Çekirdeği ve temel araçlar (alan kontrolü ile)
@@ -266,6 +303,7 @@ apt-get install -y --no-install-recommends \
     live-config \
     live-config-sysvinit \
     initramfs-tools \
+    zstd \
     busybox \
     console-setup \
     console-data \
@@ -327,6 +365,10 @@ apt-get install -y --no-install-recommends \
 # sonuç doğrulanıyor.
 # -----------------------------------------------------------------------
 for fw_pkg in firmware-linux-nonfree firmware-amd-graphics firmware-radeon; do
+    if ! apt-cache show "$fw_pkg" >/dev/null 2>&1; then
+        echo "[BİLGİ] $fw_pkg bu depoda ayrıca bulunmuyor (firmware-amd-graphics kapsar)"
+        continue
+    fi
     if apt-get install -y --no-install-recommends "$fw_pkg"; then
         echo "[OK] $fw_pkg kuruldu"
     else
@@ -486,7 +528,7 @@ apt-get install -y --no-install-recommends \
 # Flathub Resmi Deposu Entegrasyonu (Spotify, Discord, Steam, VS Code 1-Tık)
 flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo 2>/dev/null || true
 
-# Brave Browser Resmi Deposu Kurulumu (Varsayılan Web Tarayıcı)
+# Brave Browser Resmi Deposu Kurulumu (Varsayılan Web Tarayıcı — APT 3.0 deb822)
 # Brave zorunludur: kurulamazsa derleme durur. Eskiden hata sessizce
 # yutuluyor, ISO Brave'siz çıkıyor ama mimeapps yine Brave'i gösteriyordu.
 mkdir -p /usr/share/keyrings /etc/apt/sources.list.d
@@ -497,7 +539,19 @@ for i in 1 2 3; do
     sleep 5
 done
 [ -s "$BRAVE_KEY" ] || { echo "[HATA] Brave imza anahtarı indirilemedi." >&2; exit 1; }
-echo "deb [arch=amd64 signed-by=$BRAVE_KEY] $BRAVE_URL/ stable main" > /etc/apt/sources.list.d/brave-browser-release.list
+chmod 0644 "$BRAVE_KEY"
+rm -f /etc/apt/sources.list.d/brave-browser-release.list
+if ! curl -fsSL --retry 3 -o /etc/apt/sources.list.d/brave-browser-release.sources "$BRAVE_URL/brave-browser.sources" || [ ! -s /etc/apt/sources.list.d/brave-browser-release.sources ]; then
+    cat << BRAVE_SRC > /etc/apt/sources.list.d/brave-browser-release.sources
+Types: deb
+URIs: https://brave-browser-apt-release.s3.brave.com
+Suites: stable
+Components: main
+Architectures: amd64
+Signed-By: /usr/share/keyrings/brave-browser-archive-keyring.gpg
+BRAVE_SRC
+fi
+chmod 0644 /etc/apt/sources.list.d/brave-browser-release.sources
 BRAVE_OK=0
 for i in 1 2 3; do
     if apt_update_retry && apt-get install -y --no-install-recommends brave-browser; then
@@ -505,6 +559,8 @@ for i in 1 2 3; do
     fi
     sleep 10
 done
+rm -f /etc/apt/sources.list.d/brave-browser-release.list 2>/dev/null || true
+chmod 0644 "$BRAVE_KEY" 2>/dev/null || true
 if [ "$BRAVE_OK" != 1 ] || [ ! -x /usr/bin/brave-browser ]; then
     echo "[HATA] brave-browser kurulamadı; ISO varsayılan tarayıcısız çıkmasın diye derleme durduruldu." >&2
     exit 1
@@ -948,12 +1004,28 @@ else
 fi
 update-initramfs -u -k all
 
-# Canlı imaj için resmi kaynak listesi ve ağ zaman aşımı/yeniden deneme ayarları
-cat << 'SOURCES' > /etc/apt/sources.list
-deb https://pkgmaster.devuan.org/merged excalibur main contrib non-free non-free-firmware
-deb https://pkgmaster.devuan.org/merged excalibur-security main contrib non-free non-free-firmware
-deb https://pkgmaster.devuan.org/merged excalibur-updates main contrib non-free non-free-firmware
+# Canlı imaj için resmi APT 3.0 deb822 kaynak listesi ve ağ zaman aşımı/yeniden deneme ayarları
+DEVUAN_ARCHIVE_KEY="/usr/share/keyrings/devuan-archive-keyring.pgp"
+[ -f "$DEVUAN_ARCHIVE_KEY" ] || DEVUAN_ARCHIVE_KEY="/usr/share/keyrings/devuan-archive-keyring.gpg"
+chmod 0644 /usr/share/keyrings/*.gpg /usr/share/keyrings/*.pgp 2>/dev/null || true
+rm -f /etc/apt/trusted.gpg.d/devuan-removed-keys.* \
+      /etc/apt/trusted.gpg.d/devuan-keyring.gpg \
+      /etc/apt/trusted.gpg.d/devuan-keyring.pgp \
+      /etc/apt/trusted.gpg.d/devuan-archive-keyring.* \
+      /etc/apt/sources.list.d/brave-browser-release.list \
+      /etc/apt/sources.list.d/brave-browser.sources 2>/dev/null || true
+
+cat << SOURCES > /etc/apt/sources.list.d/devuan.sources
+Types: deb
+URIs: https://pkgmaster.devuan.org/merged
+Suites: excalibur excalibur-security excalibur-updates
+Components: main contrib non-free non-free-firmware
+Signed-By: ${DEVUAN_ARCHIVE_KEY}
 SOURCES
+cat << 'LEGACY_COMMENT' > /etc/apt/sources.list
+# Ankora Linux (Devuan 6 Excalibur) resmî APT 3.0 kaynakları
+# /etc/apt/sources.list.d/devuan.sources dosyasında Signed-By ile tanımlıdır.
+LEGACY_COMMENT
 
 cat << 'APTNET' > /etc/apt/apt.conf.d/03-ankora-network
 DPkg::Lock::Timeout "30";
@@ -961,6 +1033,25 @@ Acquire::Retries "3";
 Acquire::http::Timeout "20";
 Acquire::https::Timeout "20";
 APTNET
+
+# ZORUNLU APT 3.0 GÜVENLİK KAPISI: dist-upgrade sonrası (apt 3.0.4devuan1 + sqv)
+# tüm depoların GPG/OpenPGP imza doğrulaması hatasız ve uyarısız geçmelidir.
+echo "[DOĞRULAMA] Final APT 3.0 depo imza ve güvenlik denetimi..."
+APT_VERIFY_RC=1
+for _vtry in 1 2; do
+    if LC_ALL=C apt-get update >/tmp/apt-final-verify.log 2>&1; then
+        APT_VERIFY_RC=0
+        break
+    fi
+    sleep 5
+done
+cat /tmp/apt-final-verify.log
+if [ "$APT_VERIFY_RC" -ne 0 ] || grep -qiE '^(E:|W:.*(GPG|NO_PUBKEY|EXPKEYSIG|BADSIG|SHA1|sqv|insecure|not signed|untrusted|Signed-By|policy|conflict|Configured multiple times))' /tmp/apt-final-verify.log; then
+    echo "[HATA] Final APT 3.0 güvenlik/imza denetimi başarısız (rc=$APT_VERIFY_RC)!" >&2
+    exit 1
+fi
+rm -f /tmp/apt-final-verify.log
+echo "[OK] Final APT 3.0 depo güvenlik ve OpenPGP imza denetimi hatasız geçti."
 
 # Son temizlik
 apt-get clean
@@ -982,20 +1073,70 @@ chroot "$CHROOT_DIR" /chroot-setup.sh
 rm -f "$CHROOT_DIR/chroot-setup.sh" "$CHROOT_DIR/.ankora-xinitrc"
 
 # 6.b Örnek belgeler: canlı oturum ankora ile çalışır, /root/Belgeler'e
-# erişemez. Ofis ve Dosyalar GERÇEK açılan dosyalar göstermeli; PDF
-# içeriğinin tek doğruluk kaynağı src/app.js'teki yerleşik base64 gömülüdür.
+# erişemez. Ofis ve Dosyalar GERÇEK açılan belgeler (PDF, MD, TXT) sunar;
+# aynı örnek belgeler /etc/skel/Belgeler altına da kopyalanır ki kurulu
+# sistemdeki yeni kullanıcılar da doğrudan açabilsin.
 BDIR="$CHROOT_DIR/home/ankora/Belgeler"
 mkdir -p "$BDIR"
-_src_app_js="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)/src/app.js"
-if [ -f "$_src_app_js" ]; then
-    sed -n "s/.*base64,\([A-Za-z0-9+/=]\{50,\}\).*/\1/p" "$_src_app_js" \
-        | head -n 1 | base64 -d > "$BDIR/ankora-sistem-rehberi.pdf" 2>/dev/null || true
+if command -v python3 >/dev/null 2>&1; then
+    python3 - "$BDIR/ankora-sistem-rehberi.pdf" "$AYAZ_VERSION" <<'PYPDF'
+import sys
+out_path, ver = sys.argv[1], sys.argv[2]
+lines = [
+    f"Ankora Linux {ver} 'Bora' - Sistem Rehberi",
+    "================================================",
+    "",
+    "Taban Sistem   : Devuan GNU/Linux 6 (Excalibur)",
+    "Init Sistemi   : SysVinit (systemd-free)",
+    "Cekirdek       : Linux 6.12 LTS",
+    "Masaustu       : Ayaz DE (Tauri 2 + WebKitGTK 4.1)",
+    "Paket Sistemi  : APT 3.0 (Signed-By) + Flathub",
+    "Varsayilan Web : Brave Browser",
+    "Akilli Tahta   : Fatih Kalem + ETA Dokunmatik Surucu",
+    "Yazici/Tarayici: CUPS + Gutenprint + SANE",
+    "",
+    "Hizli Kisayollar:",
+    "  Super / Ctrl+Space : Baslat Menusu",
+    "  Alt+Space          : Evrensel Hizli Arama (Spotlight)",
+    "  Ctrl+Alt+T         : Terminal",
+    "  Super+L            : Ekrani Kilitle",
+    "  Super+Sol/Sag/Ust  : Pencere Hizalama (Snap)",
+    "",
+    "Resmi Depo: https://github.com/Ankora-Linux/Ankora",
+]
+def esc(s):
+    return s.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
+ops = ["BT", "/F1 15 Tf", "50 760 Td", f"({esc(lines[0])}) Tj", "/F1 10.5 Tf", "0 -22 Td"]
+for ln in lines[1:]:
+    ops.append(f"({esc(ln)}) Tj")
+    ops.append("0 -16 Td")
+ops.append("ET")
+stream = "\n".join(ops).encode("latin-1", "replace")
+objs = [
+    b"1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n",
+    b"2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n",
+    b"3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>\nendobj\n",
+    b"4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>\nendobj\n",
+    f"5 0 obj\n<< /Length {len(stream)} >>\nstream\n".encode("ascii") + stream + b"\nendstream\nendobj\n",
+]
+buf = bytearray(b"%PDF-1.4\n")
+offsets = [0]
+for obj in objs:
+    offsets.append(len(buf))
+    buf.extend(obj)
+xref_pos = len(buf)
+buf.extend(f"xref\n0 {len(offsets)}\n0000000000 65535 f \n".encode("ascii"))
+for off in offsets[1:]:
+    buf.extend(f"{off:010d} 00000 n \n".encode("ascii"))
+buf.extend(f"trailer\n<< /Size {len(offsets)} /Root 1 0 R >>\nstartxref\n{xref_pos}\n%%EOF\n".encode("ascii"))
+with open(out_path, "wb") as f:
+    f.write(buf)
+PYPDF
 fi
 if grep -q '%PDF' "$BDIR/ankora-sistem-rehberi.pdf" 2>/dev/null; then
     echo "[BELGE] ankora-sistem-rehberi.pdf yazildi ($(stat -c%s "$BDIR/ankora-sistem-rehberi.pdf") bayt)"
 else
-    echo "[BELGE] UYARI: PDF olusturulamadi — $_src_app_js kontrol edin"
-    # Bozuk 0 baytlık kalıntı Ofis/Dosyalar listesinde kırık dosya gösterir; kaldırılır.
+    echo "[BELGE] UYARI: PDF olusturulamadi"
     rm -f "$BDIR/ankora-sistem-rehberi.pdf"
 fi
 cat << 'KIOSKTXT' > "$BDIR/kiosk-ayarlari.txt"
@@ -1062,6 +1203,7 @@ cp "$XDG_HOME/.config/mimeapps.list" "$CHROOT_DIR/etc/skel/.config/mimeapps.list
 for xdg_d in Masaüstü İndirilenler Belgeler Müzik Resimler Videolar; do
     mkdir -p "$CHROOT_DIR/etc/skel/$xdg_d"
 done
+cp -f "$BDIR/"* "$CHROOT_DIR/etc/skel/Belgeler/" 2>/dev/null || true
 cp "$XDG_HOME/.config/user-dirs.dirs" "$CHROOT_DIR/etc/skel/.config/user-dirs.dirs"
 chown -R 1000:1000 "$XDG_HOME/.config" \
     "$XDG_HOME/Masaüstü" "$XDG_HOME/İndirilenler" "$XDG_HOME/Belgeler" \
