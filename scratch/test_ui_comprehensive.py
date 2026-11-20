@@ -238,14 +238,21 @@ def run_tests():
                 window.WindowManager.syncTabs();
             }
 
-            // Mağaza 378 Uygulama Kataloğu ve Tümü Görünümü Denetimi
+            // Mağaza >= 500 Uygulama Kataloğu, Tümü ve Oyun & Yardımcılar Görünümü Denetimi
             if (window.StoreManager && Array.isArray(window.StoreManager.packages)) {
-                assert('Mağaza: Toplam 378 uygulama yüklü', window.StoreManager.packages.length === 378, `sayı=${window.StoreManager.packages.length}`);
+                const totalPkgs = window.StoreManager.packages.length;
+                assert('Mağaza: Toplam >= 500 uygulama yüklü', totalPkgs >= 500, `sayı=${totalPkgs}`);
                 window.StoreManager.currentCat = 'all';
                 window.StoreManager.currentSource = 'all';
                 window.StoreManager.render('');
                 const cards = document.querySelectorAll('#store-grid .store-card');
-                assert('Mağaza: 378 uygulamanın tamamı kart olarak çizildi', cards.length === 378, `çizilen=${cards.length}`);
+                assert('Mağaza: tüm uygulamalar kart olarak çizildi', cards.length === totalPkgs, `çizilen=${cards.length}/${totalPkgs}`);
+                const utilBtn = document.querySelector('#win-store .store-filter-btn[data-cat="util"]');
+                assert('Mağaza: Oyun & Yardımcılar kategori düğmesi var', !!utilBtn);
+                window.StoreManager.currentCat = 'util';
+                window.StoreManager.render('');
+                const utilCards = document.querySelectorAll('#store-grid .store-card');
+                assert('Mağaza: Oyun & Yardımcılar filtresi >= 40 kart çizdi', utilCards.length >= 40, `util=${utilCards.length}`);
                 window.StoreManager.currentCat = 'featured';
                 window.StoreManager.render('');
             }
