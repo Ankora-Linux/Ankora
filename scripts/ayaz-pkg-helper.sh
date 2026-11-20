@@ -80,6 +80,7 @@ safe_apt_get() {
 }
 
 safe_apt_update() {
+    rm -rf /var/lib/apt/lists/partial/* 2>/dev/null || true
     mkdir -p /var/lib/apt/lists/partial 2>/dev/null || true
     ensure_apt_keyrings_readable
     /usr/bin/dpkg --configure -a >/dev/null 2>&1 || true
@@ -200,10 +201,19 @@ vendor_helium() {
     gpg --dearmor --yes -o /usr/share/keyrings/helium.gpg "$tmp_key"
     chmod 0644 /usr/share/keyrings/helium.gpg
     rm -f "$tmp_key"
-    echo "deb [arch=amd64,arm64 signed-by=/usr/share/keyrings/helium.gpg] https://pkg.helium.computer/deb stable main" \
-        > /etc/apt/sources.list.d/helium.list
-    chmod 0644 /etc/apt/sources.list.d/helium.list
-    safe_apt_update >/dev/null 2>&1 || true
+    rm -f /etc/apt/sources.list.d/helium.list
+    cat << 'HELIUMSRC' > /etc/apt/sources.list.d/helium.sources
+Types: deb
+URIs: https://pkg.helium.computer/deb
+Suites: stable
+Components: main
+Architectures: amd64 arm64
+Signed-By: /usr/share/keyrings/helium.gpg
+HELIUMSRC
+    chmod 0644 /etc/apt/sources.list.d/helium.sources
+    if ! safe_apt_update >/dev/null 2>&1; then
+        safe_apt_update || true
+    fi
     safe_apt_get install -y --no-install-recommends -- helium-bin
 }
 
@@ -213,10 +223,18 @@ vendor_antigravity() {
     curl -fsSL https://us-central1-apt.pkg.dev/doc/repo-signing-key.gpg \
         | gpg --dearmor --yes -o /etc/apt/keyrings/antigravity-repo-key.gpg
     chmod 0644 /etc/apt/keyrings/antigravity-repo-key.gpg
-    echo "deb [signed-by=/etc/apt/keyrings/antigravity-repo-key.gpg] https://us-central1-apt.pkg.dev/projects/antigravity-auto-updater-dev/ antigravity-debian main" \
-        > /etc/apt/sources.list.d/antigravity.list
-    chmod 0644 /etc/apt/sources.list.d/antigravity.list
-    safe_apt_update >/dev/null 2>&1 || true
+    rm -f /etc/apt/sources.list.d/antigravity.list
+    cat << 'AGYSRC' > /etc/apt/sources.list.d/antigravity.sources
+Types: deb
+URIs: https://us-central1-apt.pkg.dev/projects/antigravity-auto-updater-dev/
+Suites: antigravity-debian
+Components: main
+Signed-By: /etc/apt/keyrings/antigravity-repo-key.gpg
+AGYSRC
+    chmod 0644 /etc/apt/sources.list.d/antigravity.sources
+    if ! safe_apt_update >/dev/null 2>&1; then
+        safe_apt_update || true
+    fi
     safe_apt_get install -y --no-install-recommends -- antigravity
 }
 
@@ -779,6 +797,7 @@ case "$ACTION" in
         # veya indeks eskidiyse apt-get update ile tazelenip yeniden denenir.
         export DEBIAN_FRONTEND=noninteractive
         /usr/bin/dpkg --configure -a >/dev/null 2>&1 || true
+        rm -rf /var/lib/apt/lists/partial/* 2>/dev/null || true
         UPDATED_NOW=0
         if ! /usr/bin/apt-cache show "$PKG" >/dev/null 2>&1; then
             safe_apt_update || true

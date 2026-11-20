@@ -333,6 +333,21 @@ def main():
               and "sudo,audio,video,plugdev,netdev,lp,scanner" in main_rs
               and "ankora-sistem-rehberi.pdf" in iso
               and "get_xdg_user_dirs" in app_js.split("async loadSamplePdf()", 1)[1][:600])
+        pkg_deb_sh = (ROOT / "scripts/package-deb.sh").read_text(encoding="utf-8")
+        check("polkit/oturum: rules+policy hem ISO hem .deb + startx VT sabitleme",
+              "49-ankora-admin.rules" in iso
+              and "org.ankora.ayaz.pkg-helper.policy" in iso
+              and "49-ankora-admin.rules" in pkg_deb_sh
+              and "org.ankora.ayaz.pkg-helper.policy" in pkg_deb_sh
+              and (ROOT / "scripts/49-ankora-admin.rules").exists()
+              and (ROOT / "scripts/org.ankora.ayaz.pkg-helper.policy").exists()
+              and 'vt${XDG_VTNR:-1}' in iso
+              and 'vt${XDG_VTNR:-1}' in pkg_deb_sh)
+        check("mağaza/güvenlik: util sekmesi + deb822 helium/antigravity + pkexec GUI izni",
+              'data-cat="util"' in html_text
+              and "helium.sources" in helper
+              and "antigravity.sources" in helper
+              and "is_allowed_pkexec_gui_app" in main_rs)
     except Exception as e:
         check("apt3 ve 60fps render denetimleri", False, str(e)[:200])
 

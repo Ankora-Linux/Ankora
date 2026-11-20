@@ -25,7 +25,13 @@ const ok = (name, cond, detail = '') => {
 };
 
 const CATS = new Set(['dev', 'media', 'graphics', 'net', 'office', 'sys', 'util']);
-ok('mağaza: kayıt sayısı >= 378', packages.length >= 378, String(packages.length));
+ok('mağaza: kayıt sayısı >= 500', packages.length >= 500, String(packages.length));
+const DEB_NAME_RE = /^[a-z0-9][a-z0-9+._-]*$/;
+const FLATPAK_ID_RE = /^[A-Za-z0-9_-]+(\.[A-Za-z0-9_-]+)+$/;
+const badDeb = packages.filter(p => p.deb && !DEB_NAME_RE.test(p.deb)).map(p => `${p.id}:${p.deb}`);
+const badFlatpak = packages.filter(p => p.flatpak && !FLATPAK_ID_RE.test(p.flatpak)).map(p => `${p.id}:${p.flatpak}`);
+ok('mağaza: deb paket adları geçerli', badDeb.length === 0, badDeb.join(', '));
+ok('mağaza: flatpak kimlikleri geçerli', badFlatpak.length === 0, badFlatpak.join(', '));
 
 const bad = packages.filter(p => !p.id || !p.name || !p.desc || !p.cat || !p.size);
 ok('mağaza: zorunlu alanlar dolu', bad.length === 0, bad.map(p => p.id).join(','));

@@ -2242,10 +2242,7 @@ fn sudo_binary_exists() -> bool {
     })
 }
 
-fn run_pkexec(prog: &str, args: &[&str]) -> Option<std::process::Output> {
-    if !pkexec_available() || (!polkit_agent_running() && std::env::var("DISPLAY").is_err()) {
-        return None;
-    }
+fn ensure_polkit_agent_running() {
     #[cfg(target_os = "linux")]
     if !polkit_agent_running() && std::env::var("DISPLAY").is_ok() {
         for agent in [
@@ -2256,12 +2253,24 @@ fn run_pkexec(prog: &str, args: &[&str]) -> Option<std::process::Output> {
             if Path::new(agent).exists() {
                 let mut cmd = Command::new(agent);
                 if spawn_reaped(&mut cmd).is_ok() {
-                    std::thread::sleep(Duration::from_millis(350));
+                    for _ in 0..6 {
+                        std::thread::sleep(Duration::from_millis(200));
+                        if polkit_agent_running() {
+                            break;
+                        }
+                    }
                     break;
                 }
             }
         }
     }
+}
+
+fn run_pkexec(prog: &str, args: &[&str]) -> Option<std::process::Output> {
+    if !pkexec_available() || (!polkit_agent_running() && std::env::var("DISPLAY").is_err()) {
+        return None;
+    }
+    ensure_polkit_agent_running();
     // Parola penceresi Ayaz masaüstü katmanının arkasında kalmasın
     #[cfg(target_os = "linux")]
     lower_ayaz_window();
@@ -2483,14 +2492,23 @@ fn is_terminal_command_permitted(command: &str) -> Result<(), String> {
 /// Terminalde yazılan `apt-get` işlemlerini kabuktan (bash -c) çıkarmadan,
 /// doğrudan root_command üzerinden güvenli şekilde yürütür. Güncelleme ve
 /// kurulum bu geçit üzerinden mümkündür; kara liste ikilileri hâlâ engellidir.
-fn try_apt_get_passthrough(command: &str) -> Option<Result<String, String>> {
+fn is_valid_apt_search_term(term: &str) -> bool {
+    !term.is_empty()
+        && term.len() <= 64
+        && !term.starts_with('-')
+        && term
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '+' | '-' | '.' | '_' | ':'))
+}
+
+fn parse_apt_passthrough(command: &str) -> Option<Vec<(String, Vec<String>)>> {
     let segments: Vec<&str> = command
         .split("&&")
         .map(|s| s.trim())
         .filter(|s| !s.is_empty())
         .collect();
 
-    if segments.len() > 2 {
+    if segments.is_empty() || segments.len() > 2 {
         return None;
     }
 
@@ -2498,21 +2516,30 @@ fn try_apt_get_passthrough(command: &str) -> Option<Result<String, String>> {
 
     for seg in &segments {
         let parts: Vec<&str> = seg.split_whitespace().collect();
-        if parts.is_empty() || parts[0] != "apt-get" {
+        if parts.is_empty() {
+            return None;
+        }
+        // İsteğe bağlı `sudo` öneki yalnızca güvenli apt/apt-get alt komutlarıyla kabul edilir
+        let cmd_parts = if parts[0] == "sudo" {
+            &parts[1..]
+        } else {
+            &parts[..]
+        };
+        if cmd_parts.is_empty() || (cmd_parts[0] != "apt-get" && cmd_parts[0] != "apt") {
             return None;
         }
 
-        match parts.get(1).copied().unwrap_or("") {
+        match cmd_parts.get(1).copied().unwrap_or("") {
             "update" => {
-                if parts.len() != 2 {
+                if cmd_parts.len() != 2 {
                     return None;
                 }
                 ops.push(("update".into(), vec![]));
             }
-            "upgrade" => {
-                // Yalnızca -y / yes bayraklarına izin verilir; bağımsız ek
+            "upgrade" | "full-upgrade" | "dist-upgrade" => {
+                // Yalnızca -y / --yes bayraklarına izin verilir; bağımsız ek
                 // argüman reddedilirse geçit devralmaz (None → normal yol).
-                let extra: Vec<&&str> = parts[2..]
+                let extra: Vec<&&str> = cmd_parts[2..]
                     .iter()
                     .filter(|f| **f != "-y" && **f != "--yes")
                     .collect();
@@ -2520,11 +2547,11 @@ fn try_apt_get_passthrough(command: &str) -> Option<Result<String, String>> {
                     return None;
                 }
                 let mut args = vec!["-y".to_string()];
-                args.extend(parts[2..].iter().map(|s| s.to_string()));
+                args.extend(cmd_parts[2..].iter().map(|s| (*s).to_string()));
                 ops.push(("upgrade".into(), args));
             }
             "install" => {
-                let pkgs: Vec<&&str> = parts[2..]
+                let pkgs: Vec<&&str> = cmd_parts[2..]
                     .iter()
                     .filter(|f| **f != "-y" && **f != "--yes" && **f != "--no-install-recommends")
                     .collect();
@@ -2541,40 +2568,114 @@ fn try_apt_get_passthrough(command: &str) -> Option<Result<String, String>> {
                     "--no-install-recommends".to_string(),
                     "--".to_string(),
                 ];
-                args.extend(pkgs.iter().map(|s| s.to_string()));
+                args.extend(pkgs.iter().map(|s| (*s).to_string()));
                 ops.push(("install".into(), args));
+            }
+            "remove" => {
+                let pkgs: Vec<&&str> = cmd_parts[2..]
+                    .iter()
+                    .filter(|f| **f != "-y" && **f != "--yes")
+                    .collect();
+                if pkgs.is_empty() {
+                    return None;
+                }
+                for p in &pkgs {
+                    if !is_valid_deb_package_name(p) {
+                        return None;
+                    }
+                }
+                let mut args = vec!["-y".to_string(), "--".to_string()];
+                args.extend(pkgs.iter().map(|s| (*s).to_string()));
+                ops.push(("remove".into(), args));
+            }
+            "search" => {
+                let terms: Vec<&&str> = cmd_parts[2..].iter().collect();
+                if terms.is_empty() || terms.iter().any(|t| !is_valid_apt_search_term(t)) {
+                    return None;
+                }
+                ops.push(("search".into(), terms.iter().map(|s| (*s).to_string()).collect()));
+            }
+            "show" => {
+                let pkgs: Vec<&&str> = cmd_parts[2..].iter().collect();
+                if pkgs.is_empty() || pkgs.iter().any(|p| !is_valid_deb_package_name(p)) {
+                    return None;
+                }
+                ops.push(("show".into(), pkgs.iter().map(|s| (*s).to_string()).collect()));
             }
             _ => return None,
         }
     }
 
     if ops.is_empty() {
-        return None;
+        None
+    } else {
+        Some(ops)
     }
+}
+
+fn append_apt_output(
+    op: &str,
+    out: std::process::Output,
+    combined: &mut String,
+) -> Result<(), String> {
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    if !out.status.success() {
+        if !stderr.trim().is_empty() {
+            return Err(format!("apt-get {}: {}", op, stderr.trim()));
+        }
+        return Err(format!(
+            "apt-get {} komutu hata verdi (çıkış kodu {}).",
+            op,
+            out.status.code().unwrap_or(-1)
+        ));
+    }
+    if !stdout.is_empty() {
+        combined.push_str(&stdout);
+        if !combined.ends_with('\n') {
+            combined.push('\n');
+        }
+    }
+    Ok(())
+}
+
+/// Terminal'deki doğrudan apt/apt-get çağrılarını güvenli geçiş kapısı üzerinden yürütür.
+fn try_apt_get_passthrough(command: &str) -> Option<Result<String, String>> {
+    let ops = parse_apt_passthrough(command)?;
 
     Some((move || {
         let mut combined = String::new();
         let helper_exists = Path::new("/usr/local/bin/ayaz-pkg-helper").exists();
         for (op, args) in ops {
-            let out = if helper_exists && op == "update" {
-                root_command("/usr/local/bin/ayaz-pkg-helper", &["apt-update"])
-            } else if helper_exists && op == "upgrade" {
-                root_command("/usr/local/bin/ayaz-pkg-helper", &["apt-upgrade"])
-            } else if helper_exists && op == "install" {
+            if op == "search" || op == "show" {
+                let out = Command::new("apt-cache")
+                    .arg(&op)
+                    .arg("--")
+                    .args(&args)
+                    .output()
+                    .map_err(|e| format!("apt-cache çalıştırılamadı: {}", e))?;
+                append_apt_output(&op, out, &mut combined)?;
+                continue;
+            }
+            if helper_exists && (op == "install" || op == "remove") {
                 let pkgs: Vec<&str> = args
                     .iter()
                     .skip_while(|a| a.as_str() != "--")
                     .skip(1)
                     .map(|s| s.as_str())
                     .collect();
-                if pkgs.len() == 1 {
-                    root_command("/usr/local/bin/ayaz-pkg-helper", &["install", pkgs[0]])
-                } else {
-                    let mut argv: Vec<String> = args.clone();
-                    argv.insert(0, op.clone());
-                    let argv_ref: Vec<&str> = argv.iter().map(|s| s.as_str()).collect();
-                    root_command("apt-get", &argv_ref)
+                let action = op.as_str();
+                for pkg in pkgs {
+                    let out = root_command("/usr/local/bin/ayaz-pkg-helper", &[action, pkg])
+                        .map_err(|e| format!("apt-get çalıştırılamadı: {}", e))?;
+                    append_apt_output(&op, out, &mut combined)?;
                 }
+                continue;
+            }
+            let out = if helper_exists && op == "update" {
+                root_command("/usr/local/bin/ayaz-pkg-helper", &["apt-update"])
+            } else if helper_exists && op == "upgrade" {
+                root_command("/usr/local/bin/ayaz-pkg-helper", &["apt-upgrade"])
             } else {
                 let mut argv: Vec<String> = args.clone();
                 argv.insert(0, op.clone());
@@ -2582,24 +2683,7 @@ fn try_apt_get_passthrough(command: &str) -> Option<Result<String, String>> {
                 root_command("apt-get", &argv_ref)
             }
             .map_err(|e| format!("apt-get çalıştırılamadı: {}", e))?;
-            let stdout = String::from_utf8_lossy(&out.stdout).to_string();
-            let stderr = String::from_utf8_lossy(&out.stderr).to_string();
-            if !out.status.success() {
-                if !stderr.is_empty() {
-                    return Err(format!("apt-get {}: {}", op, stderr.trim()));
-                }
-                return Err(format!(
-                    "apt-get {} komutu hata verdi (çıkış kodu {}).",
-                    op,
-                    out.status.code().unwrap_or(-1)
-                ));
-            }
-            if !stdout.is_empty() {
-                combined.push_str(&stdout);
-                if !combined.ends_with('\n') {
-                    combined.push('\n');
-                }
-            }
+            append_apt_output(&op, out, &mut combined)?;
         }
         Ok(combined)
     })())
@@ -4625,12 +4709,98 @@ exit 0
 // ============================================================================
 // 8. GÜVENLİ UYGULAMA BAŞLATICI - GÜVENLİK BULGUSU #4
 // ============================================================================
+fn has_disallowed_shell_metachars(input: &str) -> bool {
+    let mut chars = input.chars().peekable();
+    while let Some(c) = chars.next() {
+        if c == '\\' {
+            // Masaüstü .desktop Exec satırlarındaki kaçışlı boşluğa (`\ `) izin verilir
+            if chars.peek() == Some(&' ') {
+                chars.next();
+                continue;
+            }
+            return true;
+        }
+        if matches!(
+            c,
+            ';' | '&' | '|' | '`' | '$' | '>' | '<' | '(' | ')' | '\n' | '\r'
+        ) {
+            return true;
+        }
+    }
+    false
+}
+
+fn strip_env_prefix(parts: &mut Vec<String>) {
+    while parts.len() >= 2
+        && Path::new(&parts[0])
+            .file_name()
+            .and_then(|s| s.to_str())
+            == Some("env")
+    {
+        parts.remove(0);
+        while !parts.is_empty()
+            && parts[0].contains('=')
+            && !parts[0].starts_with('/')
+            && !parts[0].starts_with('-')
+        {
+            parts.remove(0);
+        }
+    }
+}
+
+fn is_allowed_pkexec_gui_app(bin: &str) -> bool {
+    if bin.is_empty() || bin.contains("..") {
+        return false;
+    }
+    let allowed_dirs = [
+        "/usr/bin/",
+        "/usr/sbin/",
+        "/sbin/",
+        "/bin/",
+        "/usr/local/bin/",
+        "/opt/",
+    ];
+    if bin.contains('/') && !allowed_dirs.iter().any(|d| bin.starts_with(d)) {
+        return false;
+    }
+    let base = Path::new(bin)
+        .file_name()
+        .and_then(|s| s.to_str())
+        .unwrap_or(bin);
+    matches!(
+        base,
+        "gparted"
+            | "gpartedbin"
+            | "synaptic"
+            | "timeshift"
+            | "timeshift-gtk"
+            | "timeshift-launcher"
+            | "gufw"
+            | "gufw-pkexec"
+            | "bleachbit"
+            | "partitionmanager"
+            | "baobab"
+            | "gnome-disks"
+            | "mintstick"
+            | "usb-creator-gtk"
+            | "lightdm-gtk-greeter-settings"
+            | "lxappearance"
+            | "system-config-printer"
+    )
+}
+
 fn split_exec_args(input: &str) -> Vec<String> {
     let mut out = Vec::new();
     let mut cur = String::new();
     let mut in_single = false;
     let mut in_double = false;
-    for ch in input.chars() {
+    let mut chars = input.chars().peekable();
+    while let Some(ch) = chars.next() {
+        if ch == '\\' && !in_single && chars.peek() == Some(&' ') {
+            chars.next();
+            cur.push(' ');
+            continue;
+        }
         if ch == '\'' && !in_double {
             in_single = !in_single;
             continue;
@@ -4660,14 +4830,8 @@ async fn launch_application(exec: String) -> Result<String, String> {
         return Err("Uygulama komutu belirtilmedi.".to_string());
     }
 
-    // 1. Kabuk kontrol karakterleri koruması
-    let has_shell_metachars = clean.chars().any(|c| {
-        matches!(
-            c,
-            ';' | '&' | '|' | '`' | '$' | '>' | '<' | '\\' | '(' | ')' | '\n' | '\r'
-        )
-    });
-    if has_shell_metachars {
+    // 1. Kabuk kontrol karakterleri koruması (\ kaçışlı boşluk hariç)
+    if has_disallowed_shell_metachars(clean) {
         return Err(
             "Güvenlik Hatası: Uygulama komutunda kabuk kontrol karakterleri tespit edildi."
                 .to_string(),
@@ -4679,21 +4843,7 @@ async fn launch_application(exec: String) -> Result<String, String> {
         .into_iter()
         .filter(|t| !matches!(t.as_str(), "%f" | "%F" | "%u" | "%U" | "%i" | "%c" | "%k"))
         .collect();
-    while parts.len() >= 2
-        && Path::new(&parts[0])
-            .file_name()
-            .and_then(|s| s.to_str())
-            == Some("env")
-    {
-        parts.remove(0);
-        while !parts.is_empty()
-            && parts[0].contains('=')
-            && !parts[0].starts_with('/')
-            && !parts[0].starts_with('-')
-        {
-            parts.remove(0);
-        }
-    }
+    strip_env_prefix(&mut parts);
     if parts.is_empty() {
         return Err("Çalıştırılacak uygulama tespit edilemedi.".to_string());
     }
@@ -4723,7 +4873,38 @@ async fn launch_application(exec: String) -> Result<String, String> {
         .and_then(|s| s.to_str())
         .unwrap_or(bin_name);
 
-    if FORBIDDEN_LAUNCH_BINARIES.contains(&base_bin) {
+    // Onaylı masaüstü yönetim GUI araçlarının pkexec ile başlatılmasına izin verilir
+    // (FORBIDDEN_LAUNCH_BINARIES içinde "pkexec" korunur, keyfi pkexec kullanımı engellenir).
+    let is_pkexec_gui = base_bin == "pkexec" && {
+        let mut idx = 0;
+        while idx < args.len() && args[idx] == "--disable-internal-agent" {
+            idx += 1;
+        }
+        if idx < args.len() && is_allowed_pkexec_gui_app(&args[idx]) {
+            let target_ok = match fs::canonicalize(&args[idx]) {
+                Ok(canonical) => {
+                    let cb = canonical.file_name().and_then(|s| s.to_str()).unwrap_or("");
+                    !FORBIDDEN_LAUNCH_BINARIES.contains(&cb)
+                }
+                Err(_) => true,
+            };
+            target_ok
+                && !args[idx + 1..].iter().any(|a| {
+                    if a.starts_with('-') || a.contains("://") {
+                        return false;
+                    }
+                    let ab = Path::new(a.as_str())
+                        .file_name()
+                        .and_then(|s| s.to_str())
+                        .unwrap_or(a.as_str());
+                    FORBIDDEN_LAUNCH_BINARIES.contains(&ab)
+                })
+        } else {
+            false
+        }
+    };
+
+    if !is_pkexec_gui && FORBIDDEN_LAUNCH_BINARIES.contains(&base_bin) {
         return Err(format!(
             "Güvenlik İlkesi İhlali: '{}' sistem aracı güvenlik nedeniyle doğrudan başlatılamaz.",
             base_bin
@@ -4750,13 +4931,24 @@ async fn launch_application(exec: String) -> Result<String, String> {
     }
 
     if bin_name.contains('/') {
+        let home_dir = std::env::var("HOME")
+            .ok()
+            .filter(|h| !h.is_empty() && h.starts_with('/') && !h.contains(".."))
+            .unwrap_or_else(|| "/home/ankora".to_string());
+        let trimmed_home = home_dir.trim_end_matches('/');
+        let user_flatpak_bin = format!("{}/.local/share/flatpak/exports/bin/", trimmed_home);
+        let user_local_bin = format!("{}/.local/bin/", trimmed_home);
         let allowed_prefixes = [
             "/usr/bin/",
             "/bin/",
+            "/usr/sbin/",
+            "/sbin/",
             "/usr/local/bin/",
             "/usr/games/",
             "/opt/",
             "/var/lib/flatpak/exports/bin/",
+            user_flatpak_bin.as_str(),
+            user_local_bin.as_str(),
         ];
         if !allowed_prefixes
             .iter()
@@ -4771,27 +4963,31 @@ async fn launch_application(exec: String) -> Result<String, String> {
         // Kanonik hedef kontrolü (symlink bypass önleme)
         if let Ok(canonical) = fs::canonicalize(bin_name) {
             let canon_base = canonical.file_name().and_then(|s| s.to_str()).unwrap_or("");
-            if FORBIDDEN_LAUNCH_BINARIES.contains(&canon_base) {
+            if !is_pkexec_gui && FORBIDDEN_LAUNCH_BINARIES.contains(&canon_base) {
                 return Err("Güvenlik İlkesi İhlali: Program kısayolu izin verilmeyen bir sistem aracına işaret ediyor.".to_string());
             }
         }
-    } else {
-        if !bin_name
-            .chars()
-            .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-' || c == '.')
-        {
-            return Err("Güvenlik Hatası: Geçersiz uygulama adı karakterleri.".to_string());
-        }
+    } else if !bin_name
+        .chars()
+        .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-' || c == '.')
+    {
+        return Err("Güvenlik Hatası: Geçersiz uygulama adı karakterleri.".to_string());
     }
 
     #[cfg(target_os = "linux")]
     {
+        if is_pkexec_gui {
+            ensure_polkit_agent_running();
+        }
         let dsp = std::env::var("DISPLAY").unwrap_or_else(|_| ":0".to_string());
         const CLI_APPS: &[&str] = &[
             "htop", "btop", "ncdu", "fastfetch", "neofetch", "screenfetch", "inxi",
             "iotop", "iftop", "wavemon", "cpupower", "speedtest-cli", "hexedit",
-            "dhex", "mutt", "irssi", "lftp", "chkrootkit", "rkhunter", "powertop",
+            "dhex", "mutt", "neomutt", "irssi", "lftp", "chkrootkit", "rkhunter", "powertop",
             "lsscsi", "dmidecode", "ethtool", "hdparm", "nvme", "aptitude", "nmap",
+            "vim", "nvim", "nano", "micro", "cmus", "yt-dlp", "lazygit", "rclone",
+            "atop", "nmon", "ranger", "mc", "nnn", "tmux", "glances", "lynx",
+            "links", "newsboat", "tig", "gdb", "ipython3", "gh", "http",
         ];
         if CLI_APPS.contains(&base_bin) {
             let mut x_args: Vec<String> = vec![
@@ -6134,13 +6330,14 @@ async fn execute_desktop_program(path: String) -> Result<String, String> {
         }
         #[cfg(target_os = "linux")]
         {
-            if exec_cmd.chars().any(|c| matches!(c, ';' | '&' | '|' | '`' | '$' | '>' | '<' | '\\' | '(' | ')' | '\n' | '\r')) {
+            if has_disallowed_shell_metachars(&exec_cmd) {
                 return Err("Güvenlik Hatası: .desktop Exec komutunda kabuk kontrol karakterleri tespit edildi.".to_string());
             }
-            let parts: Vec<String> = split_exec_args(&exec_cmd)
+            let mut parts: Vec<String> = split_exec_args(&exec_cmd)
                 .into_iter()
                 .filter(|t| !matches!(t.as_str(), "%f" | "%F" | "%u" | "%U" | "%i" | "%c" | "%k"))
                 .collect();
+            strip_env_prefix(&mut parts);
             if let Some((bin, rest)) = parts.split_first() {
                 let base_bin = Path::new(bin.as_str())
                     .file_name()
@@ -11733,5 +11930,99 @@ mod tests {
         assert!(!is_valid_flatpak_app_id("vlc"));
         assert!(!is_valid_flatpak_app_id("../foo.Bar"));
         assert!(!is_valid_flatpak_app_id("com.foo;rm"));
+    }
+
+    #[test]
+    fn test_is_allowed_pkexec_gui_app() {
+        assert!(is_allowed_pkexec_gui_app("gparted"));
+        assert!(is_allowed_pkexec_gui_app("/usr/sbin/gparted"));
+        assert!(is_allowed_pkexec_gui_app("/usr/sbin/synaptic"));
+        assert!(is_allowed_pkexec_gui_app("timeshift-gtk"));
+
+        assert!(!is_allowed_pkexec_gui_app(""));
+        assert!(!is_allowed_pkexec_gui_app("bash"));
+        assert!(!is_allowed_pkexec_gui_app("/tmp/gparted"));
+        assert!(!is_allowed_pkexec_gui_app("/usr/sbin/../bin/bash"));
+
+        assert!(!has_disallowed_shell_metachars("/opt/My\\ App/run --flag"));
+        assert!(has_disallowed_shell_metachars("gparted; rm -rf /"));
+        assert!(has_disallowed_shell_metachars("app\\n"));
+        assert_eq!(
+            split_exec_args("/opt/My\\ App/run --ok"),
+            vec!["/opt/My App/run", "--ok"]
+        );
+    }
+
+    #[test]
+    fn test_process_github_release_and_sha256() {
+        const HASH: &str = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+        assert_eq!(
+            extract_sha256_from_digest(Some(&format!("sha256:{}", HASH))),
+            Some(HASH.to_string())
+        );
+        assert_eq!(
+            extract_sha256_from_digest(Some(&format!("SHA256:{}", HASH.to_uppercase()))),
+            Some(HASH.to_string())
+        );
+        assert_eq!(extract_sha256_from_digest(Some("sha256:bad")), None);
+
+        let release = GitHubRelease {
+            tag_name: "v4.8.0".to_string(),
+            name: Some("Ankora 4.8.0".to_string()),
+            body: Some("Yeni sürüm notları".to_string()),
+            published_at: Some("2026-11-20T00:00:00Z".to_string()),
+            assets: Some(vec![
+                GitHubAsset {
+                    name: "ayaz-de-latest-amd64.deb".to_string(),
+                    browser_download_url: "https://github.com/Ankora-Linux/Ankora/releases/download/v4.8.0/ayaz-de-latest-amd64.deb".to_string(),
+                    size: 7_340_032,
+                    digest: Some(format!("sha256:{}", HASH)),
+                },
+                GitHubAsset {
+                    name: "SHA256SUMS".to_string(),
+                    browser_download_url: "https://github.com/Ankora-Linux/Ankora/releases/download/v4.8.0/SHA256SUMS".to_string(),
+                    size: 256,
+                    digest: None,
+                },
+            ]),
+        };
+
+        let info = process_github_release(release, "4.7.0");
+        assert!(info.has_update);
+        assert_eq!(info.latest_version, "v4.8.0");
+        assert_eq!(
+            info.download_url.as_deref(),
+            Some("https://github.com/Ankora-Linux/Ankora/releases/download/v4.8.0/ayaz-de-latest-amd64.deb")
+        );
+        assert_eq!(info.expected_sha256.as_deref(), Some(HASH));
+        assert_eq!(
+            info.sha256_url.as_deref(),
+            Some("https://github.com/Ankora-Linux/Ankora/releases/download/v4.8.0/SHA256SUMS")
+        );
+
+        let same_release = GitHubRelease {
+            tag_name: "v4.8.0".to_string(),
+            name: None,
+            body: None,
+            published_at: None,
+            assets: None,
+        };
+        assert!(!process_github_release(same_release, "4.8.0").has_update);
+    }
+
+    #[test]
+    fn test_apt_passthrough_validation() {
+        assert!(parse_apt_passthrough("apt update").is_some());
+        assert!(parse_apt_passthrough("sudo apt update && sudo apt upgrade -y").is_some());
+        assert!(parse_apt_passthrough("sudo apt-get install -y htop git").is_some());
+        assert!(parse_apt_passthrough("apt remove htop").is_some());
+        assert!(parse_apt_passthrough("apt search gimp").is_some());
+        assert!(parse_apt_passthrough("apt show vlc").is_some());
+
+        assert!(parse_apt_passthrough("sudo rm -rf /").is_none());
+        assert!(parse_apt_passthrough("apt install -o DPkg::Pre-Invoke=sh").is_none());
+        assert!(parse_apt_passthrough("apt update; id").is_none());
+        assert!(parse_apt_passthrough("sudo bash").is_none());
+        assert!(is_terminal_command_permitted("apt-get update").is_err());
     }
 }

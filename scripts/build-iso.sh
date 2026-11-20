@@ -975,7 +975,7 @@ if [ -z "$DISPLAY" ] && [ "$(tty 2>/dev/null)" = "/dev/tty1" ]; then
         if command -v plymouth >/dev/null 2>&1 && plymouth --ping >/dev/null 2>&1; then
             plymouth quit 2>/dev/null || sudo plymouth quit 2>/dev/null || true
         fi
-        exec startx > ~/.xsession-errors 2>&1
+        exec startx -- "vt${XDG_VTNR:-1}" > ~/.xsession-errors 2>&1
     fi
 fi
 PROFILE
@@ -1327,6 +1327,12 @@ sed -i 's/\r$//' "$CHROOT_DIR/etc/sudoers.d/ankora-updater" 2>/dev/null || true
 chmod 0440 "$CHROOT_DIR/etc/sudoers.d/ankora-updater" || true
 chown root:root "$CHROOT_DIR/etc/sudoers.d/ankora-updater" 2>/dev/null || true
 
+mkdir -p "$CHROOT_DIR/etc/polkit-1/rules.d" "$CHROOT_DIR/usr/share/polkit-1/actions"
+cp "$ROOT_DIR/scripts/49-ankora-admin.rules" "$CHROOT_DIR/etc/polkit-1/rules.d/49-ankora-admin.rules" || true
+cp "$ROOT_DIR/scripts/org.ankora.ayaz.pkg-helper.policy" "$CHROOT_DIR/usr/share/polkit-1/actions/org.ankora.ayaz.pkg-helper.policy" || true
+chmod 0644 "$CHROOT_DIR/etc/polkit-1/rules.d/49-ankora-admin.rules" "$CHROOT_DIR/usr/share/polkit-1/actions/org.ankora.ayaz.pkg-helper.policy" || true
+chown root:root "$CHROOT_DIR/etc/polkit-1/rules.d/49-ankora-admin.rules" "$CHROOT_DIR/usr/share/polkit-1/actions/org.ankora.ayaz.pkg-helper.policy" 2>/dev/null || true
+
 if command -v visudo >/dev/null 2>&1; then
     visudo -cf "$CHROOT_DIR/etc/sudoers.d/ankora-updater" || {
         echo "[HATA] Sudoers kural doğrulama hatası!" >&2
@@ -1346,6 +1352,8 @@ echo "[BİLGİ] Windows satır sonları (CRLF) temizleniyor..."
 for f in \
     "$CHROOT_DIR/etc/sudoers.d/ankora-updater" \
     "$CHROOT_DIR/etc/sudoers.d/ankora" \
+    "$CHROOT_DIR/etc/polkit-1/rules.d/49-ankora-admin.rules" \
+    "$CHROOT_DIR/usr/share/polkit-1/actions/org.ankora.ayaz.pkg-helper.policy" \
     "$CHROOT_DIR/etc/inittab" \
     "$CHROOT_DIR/etc/X11/Xwrapper.config" \
     "$CHROOT_DIR/usr/local/bin/ayaz-update-helper" \

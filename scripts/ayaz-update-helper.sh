@@ -330,12 +330,16 @@ rollback_now() {
 
 # 7. Dpkg ile Ayaz DE paketini kur
 DPKG_RC=0
-dpkg -i "$CANONICAL_PATH" || DPKG_RC=$?
+LC_ALL=C LANG=C dpkg -i "$CANONICAL_PATH" || DPKG_RC=$?
 if [[ $DPKG_RC -ne 0 ]]; then
     echo "[UYARI] dpkg hata verdi (kod $DPKG_RC); eksik bağımlılıklar deneniyor (apt-get install -f)..."
     export DEBIAN_FRONTEND=noninteractive
-    apt-get update -qq || true
-    apt-get install -f -y -qq || true
+    if [[ -x /usr/local/bin/ayaz-pkg-helper ]]; then
+        /usr/local/bin/ayaz-pkg-helper apt-update >/dev/null 2>&1 || true
+    else
+        LC_ALL=C LANG=C apt-get update -qq || true
+    fi
+    LC_ALL=C LANG=C apt-get install -f -y -qq || true
 fi
 
 # 8. Kurulum sonucunu doğrula

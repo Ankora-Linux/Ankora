@@ -79,6 +79,8 @@ mkdir -p \
     "$STAGE_ROOT/usr/bin" \
     "$STAGE_ROOT/usr/local/bin" \
     "$STAGE_ROOT/etc/sudoers.d" \
+    "$STAGE_ROOT/etc/polkit-1/rules.d" \
+    "$STAGE_ROOT/usr/share/polkit-1/actions" \
     "$STAGE_ROOT/etc/skel/.config/openbox" \
     "$STAGE_ROOT/etc/ankora" \
     "$STAGE_ROOT/usr/share/ayaz/grub-theme-ankora" \
@@ -100,6 +102,8 @@ install -m 0755 "$ROOT_DIR/scripts/ankora-doctor.sh" "$STAGE_ROOT/usr/local/bin/
 install -m 0755 "$ROOT_DIR/scripts/ankora-ollama-install.sh" "$STAGE_ROOT/usr/local/bin/ankora-ollama-install"
 
 install -m 0440 "$ROOT_DIR/scripts/ankora-updater-sudoers" "$STAGE_ROOT/etc/sudoers.d/ankora-updater"
+install -m 0644 "$ROOT_DIR/scripts/49-ankora-admin.rules" "$STAGE_ROOT/etc/polkit-1/rules.d/49-ankora-admin.rules"
+install -m 0644 "$ROOT_DIR/scripts/org.ankora.ayaz.pkg-helper.policy" "$STAGE_ROOT/usr/share/polkit-1/actions/org.ankora.ayaz.pkg-helper.policy"
 install -m 0755 "$ROOT_DIR/scripts/xinitrc" "$STAGE_ROOT/etc/skel/.xinitrc"
 
 cp -r "$ROOT_DIR/src/"* "$STAGE_ROOT/usr/share/ayaz/"
@@ -129,6 +133,8 @@ for txtf in \
     "$STAGE_ROOT/usr/local/bin/ankora-doctor" \
     "$STAGE_ROOT/usr/local/bin/ankora-ollama-install" \
     "$STAGE_ROOT/etc/sudoers.d/ankora-updater" \
+    "$STAGE_ROOT/etc/polkit-1/rules.d/49-ankora-admin.rules" \
+    "$STAGE_ROOT/usr/share/polkit-1/actions/org.ankora.ayaz.pkg-helper.policy" \
     "$STAGE_ROOT/etc/skel/.xinitrc" \
     "$STAGE_ROOT/usr/share/applications/ayaz.desktop" \
     "$STAGE_ROOT/usr/share/xsessions/ayaz.desktop"; do
@@ -175,6 +181,12 @@ if [ -f /etc/skel/.xinitrc ]; then
         fi
     done
 fi
+for pf in /etc/skel/.profile /home/*/.profile; do
+    [ -f "$pf" ] || continue
+    if grep -qE 'exec startx[[:space:]]*>[[:space:]]*~/\.xsession-errors' "$pf" 2>/dev/null; then
+        sed -i -E 's|exec startx[[:space:]]*>[[:space:]]*~/\.xsession-errors|exec startx -- "vt${XDG_VTNR:-1}" > ~/.xsession-errors|g' "$pf"
+    fi
+done
 
 if command -v gtk-update-icon-cache >/dev/null 2>&1; then
     gtk-update-icon-cache -f /usr/share/icons/hicolor 2>/dev/null || true
