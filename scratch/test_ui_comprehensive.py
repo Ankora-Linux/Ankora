@@ -331,13 +331,96 @@ def run_tests():
         });
         assert('24 Temanın Tümü Başarıyla Uygulandı', themeErrors === 0);
 
-        // 8. Başlat Menüsü Aç/Kapa Denetimi
+        // 8. Başlat Menüsü Aç/Kapa ve 2 Sütunlu Dağıtım Menüsü Denetimi
         const startFlyout = document.getElementById('start-flyout');
         if (window.toggleStartMenu) {
             window.toggleStartMenu(true);
             assert('Başlat Menüsü Açıldı (open sınıfı)', startFlyout.classList.contains('open'));
+            assert('Dağıtım kategori kenar çubuğu var', document.querySelectorAll('#start-cat-sidebar .start-cat-btn').length >= 8);
             window.toggleStartMenu(false);
             assert('Başlat Menüsü Kapandı', !startFlyout.classList.contains('open'));
+        }
+
+        // 9. Bakır (2), Bostan (3) ve Cıvata (8) Güvenli Çalışma Alanı & Kapat Düğmesi Hit-Test + Dağıtım Menüsü
+        if (window.FaceManager && window.WindowManager) {
+            const winSettings = document.getElementById('win-settings');
+            const waitFrame = (ms = 80) => new Promise(r => setTimeout(r, ms));
+            for (const f of ['2', '3', '8']) {
+                window.FaceManager.setFace(f);
+                await waitFrame(90);
+
+                window.WindowManager.open('win-settings');
+                await waitFrame(60);
+                const topPanel = document.getElementById('face-top-panel');
+                const bottomDock = document.getElementById('face-bottom-dock');
+                const topBottom = topPanel ? topPanel.getBoundingClientRect().bottom : 0;
+                const openRect = winSettings.getBoundingClientRect();
+                assert(`Yüz ${f}: Açılan pencere üst panelin altında değil`,
+                    openRect.top >= topBottom - 1,
+                    `winTop=${Math.round(openRect.top)}, panelBottom=${Math.round(topBottom)}`);
+
+                if (!winSettings.classList.contains('maximized')) {
+                    window.WindowManager.toggleMaximize('win-settings');
+                    await waitFrame(240);
+                }
+                const maxRect = winSettings.getBoundingClientRect();
+                const topRect = topPanel ? topPanel.getBoundingClientRect() : { bottom: 0 };
+                const dockRect = bottomDock ? bottomDock.getBoundingClientRect() : { top: window.innerHeight };
+                assert(`Yüz ${f}: Büyütülmüş pencere üst panelin altında kalmaz`,
+                    maxRect.top >= topRect.bottom - 1,
+                    `maxTop=${Math.round(maxRect.top)}, panelBottom=${Math.round(topRect.bottom)}`);
+                assert(`Yüz ${f}: Büyütülmüş pencere alt dock altında kalmaz`,
+                    maxRect.bottom <= dockRect.top + 2,
+                    `maxBottom=${Math.round(maxRect.bottom)}, dockTop=${Math.round(dockRect.top)}`);
+
+                const closeBtn = winSettings.querySelector('.ctrl-btn.close');
+                const btnRect = closeBtn ? closeBtn.getBoundingClientRect() : null;
+                const cx = btnRect ? btnRect.left + btnRect.width / 2 : -1;
+                const cy = btnRect ? btnRect.top + btnRect.height / 2 : -1;
+                const hit = btnRect ? document.elementFromPoint(cx, cy) : null;
+                assert(`Yüz ${f}: Kapat düğmesi görünür ve doğrudan tıklanabilir`,
+                    !!(closeBtn && hit && (hit === closeBtn || closeBtn.contains(hit))),
+                    `hit=${hit ? hit.tagName + '.' + hit.className : 'null'} @ (${Math.round(cx)},${Math.round(cy)})`);
+
+                if (winSettings.classList.contains('maximized')) {
+                    window.WindowManager.toggleMaximize('win-settings');
+                }
+                window.WindowManager.close('win-settings');
+
+                if (window.toggleStartMenu) {
+                    window.toggleStartMenu(true);
+                    await waitFrame(200);
+                    const flyRect = startFlyout.getBoundingClientRect();
+                    assert(`Yüz ${f}: Uygulama menüsü üst paneli aşmaz`,
+                        flyRect.top >= topRect.bottom - 1 && flyRect.bottom <= window.innerHeight + 1,
+                        `flyTop=${Math.round(flyRect.top)}, panelBottom=${Math.round(topRect.bottom)}, flyBottom=${Math.round(flyRect.bottom)}`);
+                    window.toggleStartMenu(false);
+                }
+            }
+
+            // 2 sütunlu dağıtım menüsü kategori geçişleri
+            window.FaceManager.setFace('default');
+            await waitFrame(90);
+            if (window.toggleStartMenu) {
+                window.toggleStartMenu(true);
+                await waitFrame(180);
+                for (const [cat, expectedTitle] of [
+                    ['all', 'Tüm Uygulamalar'],
+                    ['internet', 'İnternet & Ağ'],
+                    ['favorites', 'Sık Kullanılanlar']
+                ]) {
+                    const btn = document.querySelector(`#start-cat-sidebar .start-cat-btn[data-cat="${cat}"]`);
+                    btn?.click();
+                    await waitFrame(30);
+                    const heading = document.getElementById('start-active-cat-title')?.textContent?.trim();
+                    const visibleCards = Array.from(document.querySelectorAll('#start-pinned-grid > .pinned-app-card'))
+                        .filter(el => getComputedStyle(el).display !== 'none').length;
+                    assert(`Uygulama menüsü '${cat}' kategorisi`,
+                        heading === expectedTitle && visibleCards > 0,
+                        `başlık=${heading}, kart=${visibleCards}`);
+                }
+                window.toggleStartMenu(false);
+            }
         }
 
         document.body.setAttribute('data-test-done', '1');

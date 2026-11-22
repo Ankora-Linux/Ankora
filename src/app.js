@@ -764,6 +764,61 @@
     // Tembel render: kapatılıp DOM'dan çıkarılan pencereler açılışta geri takılır.
     detached: new Map(),
 
+    getWorkArea() {
+      const rootCs = getComputedStyle(document.documentElement);
+      let top = parseInt(rootCs.getPropertyValue('--workarea-top'), 10);
+      let bottom = parseInt(rootCs.getPropertyValue('--workarea-bottom'), 10);
+      top = Number.isFinite(top) ? top : 0;
+      const tbVar = parseInt(rootCs.getPropertyValue('--taskbar-height'), 10);
+      bottom = Number.isFinite(bottom) ? bottom : (Number.isFinite(tbVar) ? tbVar : 44);
+
+      const topPanel = document.getElementById('face-top-panel');
+      if (topPanel && getComputedStyle(topPanel).display !== 'none') {
+        const tpRect = topPanel.getBoundingClientRect();
+        if (tpRect.bottom > top) top = Math.ceil(tpRect.bottom);
+      }
+      const dock = document.getElementById('face-bottom-dock');
+      if (dock && getComputedStyle(dock).display !== 'none') {
+        const dRect = dock.getBoundingClientRect();
+        if (dRect.height > 0 && dRect.top < window.innerHeight) {
+          const usedBottom = Math.ceil(window.innerHeight - dRect.top);
+          if (usedBottom > bottom && usedBottom < window.innerHeight * 0.35) bottom = usedBottom;
+        }
+      }
+      const width = Math.max(320, window.innerWidth);
+      const height = Math.max(260, window.innerHeight - top - bottom);
+      return { top, bottom, width, height };
+    },
+
+    clampWindow(win) {
+      if (!win || !win.classList.contains('open') || win.classList.contains('maximized')) return;
+      const wa = this.getWorkArea();
+      const minTop = wa.top + 6;
+      const maxTop = Math.max(minTop, window.innerHeight - wa.bottom - 44);
+      const rect = win.getBoundingClientRect();
+      const curTop = parseFloat(win.style.top);
+      const curLeft = parseFloat(win.style.left);
+      const effectiveTop = Number.isFinite(curTop) ? curTop : rect.top;
+      const effectiveLeft = Number.isFinite(curLeft) ? curLeft : rect.left;
+
+      const maxAvailH = Math.max(260, wa.height - 12);
+      if (rect.height > maxAvailH) {
+        win.style.height = `${maxAvailH}px`;
+      }
+      const clampedTop = Math.max(minTop, Math.min(effectiveTop, maxTop));
+      const maxLeft = Math.max(0, wa.width - Math.min(rect.width || 300, 160));
+      const clampedLeft = Math.max(0, Math.min(effectiveLeft, maxLeft));
+
+      win.style.top = `${Math.round(clampedTop)}px`;
+      win.style.left = `${Math.round(clampedLeft)}px`;
+    },
+
+    clampAllWindows() {
+      this.windows.forEach(w => {
+        if (w.classList.contains('open')) this.clampWindow(w);
+      });
+    },
+
     ensureDesktopLayer(above) {
       if (this._isLayerAbove === above) return;
       this._isLayerAbove = above;
@@ -792,6 +847,7 @@
       window.addEventListener('scroll', () => {
         if (window.scrollX !== 0 || window.scrollY !== 0) window.scrollTo(0, 0);
       }, { passive: true });
+      window.addEventListener('resize', () => this.clampAllWindows(), { passive: true });
       this.windows = Array.from(document.querySelectorAll('.window'));
       this.tabsContainer = document.getElementById('running-tabs');
       setInterval(() => {
@@ -880,12 +936,12 @@
             let shiftX = e.clientX - startLeft;
             let shiftY = e.clientY - startTop;
 
-            const tbVar = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--taskbar-height'), 10);
-            const tbH = Number.isFinite(tbVar) ? tbVar : 44;
-            const sw = window.innerWidth;
-            const sh = window.innerHeight - tbH;
+            const wa = this.getWorkArea();
+            const sw = wa.width;
+            const sh = wa.height;
+            const minTop = wa.top + 4;
             const maxLeft = Math.max(0, sw - 80);
-            const maxTop = Math.max(0, window.innerHeight - 80);
+            const maxTop = Math.max(minTop, window.innerHeight - wa.bottom - 44);
 
             let rafId = null;
             let targetX = startLeft;
@@ -908,37 +964,37 @@
               const halfH = sh * 0.5;
               if (nextSnap === 'corner-tl') {
                 snapGhost.style.left = '4px';
-                snapGhost.style.top = '4px';
+                snapGhost.style.top = `${wa.top + 4}px`;
                 snapGhost.style.width = `${halfW - 8}px`;
                 snapGhost.style.height = `${halfH - 8}px`;
               } else if (nextSnap === 'corner-tr') {
                 snapGhost.style.left = `${halfW + 4}px`;
-                snapGhost.style.top = '4px';
+                snapGhost.style.top = `${wa.top + 4}px`;
                 snapGhost.style.width = `${halfW - 8}px`;
                 snapGhost.style.height = `${halfH - 8}px`;
               } else if (nextSnap === 'corner-bl') {
                 snapGhost.style.left = '4px';
-                snapGhost.style.top = `${halfH + 4}px`;
+                snapGhost.style.top = `${wa.top + halfH + 4}px`;
                 snapGhost.style.width = `${halfW - 8}px`;
                 snapGhost.style.height = `${halfH - 8}px`;
               } else if (nextSnap === 'corner-br') {
                 snapGhost.style.left = `${halfW + 4}px`;
-                snapGhost.style.top = `${halfH + 4}px`;
+                snapGhost.style.top = `${wa.top + halfH + 4}px`;
                 snapGhost.style.width = `${halfW - 8}px`;
                 snapGhost.style.height = `${halfH - 8}px`;
               } else if (nextSnap === 'left') {
                 snapGhost.style.left = '4px';
-                snapGhost.style.top = '4px';
+                snapGhost.style.top = `${wa.top + 4}px`;
                 snapGhost.style.width = `${halfW - 8}px`;
                 snapGhost.style.height = `${sh - 8}px`;
               } else if (nextSnap === 'right') {
                 snapGhost.style.left = `${halfW + 4}px`;
-                snapGhost.style.top = '4px';
+                snapGhost.style.top = `${wa.top + 4}px`;
                 snapGhost.style.width = `${halfW - 8}px`;
                 snapGhost.style.height = `${sh - 8}px`;
               } else if (nextSnap === 'top') {
                 snapGhost.style.left = '4px';
-                snapGhost.style.top = '4px';
+                snapGhost.style.top = `${wa.top + 4}px`;
                 snapGhost.style.width = `${sw - 8}px`;
                 snapGhost.style.height = `${sh - 8}px`;
               }
@@ -959,7 +1015,7 @@
                 draggingActive = true;
                 if (wasMax) {
                   const preW = parseFloat(win.dataset.preMaxW) || Math.min(840, sw * 0.75);
-                  const preH = parseFloat(win.dataset.preMaxH) || Math.min(520, window.innerHeight * 0.7);
+                  const preH = parseFloat(win.dataset.preMaxH) || Math.min(520, sh * 0.75);
                   const ratio = Math.max(0.1, Math.min(0.9, e.clientX / sw));
                   this.toggleMaximize(win);
                   win.style.width = `${preW}px`;
@@ -967,7 +1023,7 @@
                   shiftX = preW * ratio;
                   shiftY = 18;
                   startLeft = Math.max(0, Math.min(moveEvent.clientX - shiftX, maxLeft));
-                  startTop = Math.max(0, Math.min(moveEvent.clientY - shiftY, maxTop));
+                  startTop = Math.max(minTop, Math.min(moveEvent.clientY - shiftY, maxTop));
                   wasMax = false;
                 }
                 win.style.left = `${Math.round(startLeft)}px`;
@@ -977,18 +1033,18 @@
               }
 
               targetX = Math.max(0, Math.min(moveEvent.clientX - shiftX, maxLeft));
-              targetY = Math.max(0, Math.min(moveEvent.clientY - shiftY, maxTop));
+              targetY = Math.max(minTop, Math.min(moveEvent.clientY - shiftY, maxTop));
 
               // Ayaz DE Akıcı Köşe ve Kenar Kenetleme Algılayıcı (Aero Snap)
               const cx = moveEvent.clientX;
               const cy = moveEvent.clientY;
-              if (cx < 20 && cy < 35) activeSnap = 'corner-tl';
-              else if (cx > sw - 20 && cy < 35) activeSnap = 'corner-tr';
-              else if (cx < 20 && cy > window.innerHeight - 80) activeSnap = 'corner-bl';
-              else if (cx > sw - 20 && cy > window.innerHeight - 80) activeSnap = 'corner-br';
+              if (cx < 20 && cy < wa.top + 35) activeSnap = 'corner-tl';
+              else if (cx > sw - 20 && cy < wa.top + 35) activeSnap = 'corner-tr';
+              else if (cx < 20 && cy > window.innerHeight - wa.bottom - 36) activeSnap = 'corner-bl';
+              else if (cx > sw - 20 && cy > window.innerHeight - wa.bottom - 36) activeSnap = 'corner-br';
               else if (cx < 18) activeSnap = 'left';
               else if (cx > sw - 18) activeSnap = 'right';
-              else if (cy < 14) activeSnap = 'top';
+              else if (cy <= wa.top + 14) activeSnap = 'top';
               else activeSnap = null;
 
               if (!rafId) {
@@ -1051,8 +1107,10 @@
             const startTop = rect.top;
             const offX = t.clientX - startLeft;
             const offY = t.clientY - startTop;
-            const maxLeft = Math.max(0, window.innerWidth - 80);
-            const maxTop = Math.max(0, window.innerHeight - 80);
+            const wa = this.getWorkArea();
+            const minTop = wa.top + 4;
+            const maxLeft = Math.max(0, wa.width - 80);
+            const maxTop = Math.max(minTop, window.innerHeight - wa.bottom - 44);
             let targetX = startLeft;
             let targetY = startTop;
             let touchRaf = null;
@@ -1077,7 +1135,7 @@
                 win.classList.add('is-dragging');
               }
               targetX = Math.max(0, Math.min(m.clientX - offX, maxLeft));
-              targetY = Math.max(0, Math.min(m.clientY - offY, maxTop));
+              targetY = Math.max(minTop, Math.min(m.clientY - offY, maxTop));
               if (!touchRaf) touchRaf = requestAnimationFrame(applyTouchPos);
             };
             const onTouchEnd = () => {
@@ -1265,6 +1323,7 @@
       WorkspaceManager.adopt(win);
       win.classList.remove('minimized');
       win.classList.add('open');
+      this.clampWindow(win);
       this.bringToFront(win);
       this.syncTabs();
 
@@ -1358,6 +1417,7 @@
           win.style.left = win.dataset.preMaxLeft;
           win.style.top = win.dataset.preMaxTop;
         }
+        this.clampWindow(win);
       }
       const maxBtn = win.querySelector('.ctrl-btn.max');
       if (maxBtn) {
@@ -1376,75 +1436,75 @@
       win.classList.add('open');
       this.bringToFront(win);
 
-      const tbVar = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--taskbar-height'), 10);
-      const tbHeight = Number.isFinite(tbVar) ? tbVar : 44;
-      const sw = window.innerWidth;
-      const sh = window.innerHeight - tbHeight;
+      const wa = this.getWorkArea();
+      const wt = wa.top;
+      const sw = wa.width;
+      const sh = wa.height;
 
       switch(layout) {
         case 'left-half':
           win.style.left = '0px';
-          win.style.top = '0px';
+          win.style.top = `${wt}px`;
           win.style.width = `${sw * 0.5}px`;
           win.style.height = `${sh}px`;
           break;
         case 'right-half':
           win.style.left = `${sw * 0.5}px`;
-          win.style.top = '0px';
+          win.style.top = `${wt}px`;
           win.style.width = `${sw * 0.5}px`;
           win.style.height = `${sh}px`;
           break;
         case 'left-focus':
           win.style.left = '0px';
-          win.style.top = '0px';
+          win.style.top = `${wt}px`;
           win.style.width = `${sw * 0.7}px`;
           win.style.height = `${sh}px`;
           break;
         case 'right-sidebar':
           win.style.left = `${sw * 0.7}px`;
-          win.style.top = '0px';
+          win.style.top = `${wt}px`;
           win.style.width = `${sw * 0.3}px`;
           win.style.height = `${sh}px`;
           break;
         case 'col-left':
           win.style.left = '0px';
-          win.style.top = '0px';
+          win.style.top = `${wt}px`;
           win.style.width = `${sw * 0.25}px`;
           win.style.height = `${sh}px`;
           break;
         case 'col-center':
           win.style.left = `${sw * 0.25}px`;
-          win.style.top = '0px';
+          win.style.top = `${wt}px`;
           win.style.width = `${sw * 0.5}px`;
           win.style.height = `${sh}px`;
           break;
         case 'col-right':
           win.style.left = `${sw * 0.75}px`;
-          win.style.top = '0px';
+          win.style.top = `${wt}px`;
           win.style.width = `${sw * 0.25}px`;
           win.style.height = `${sh}px`;
           break;
         case 'corner-tl':
           win.style.left = '0px';
-          win.style.top = '0px';
+          win.style.top = `${wt}px`;
           win.style.width = `${sw * 0.5}px`;
           win.style.height = `${sh * 0.5}px`;
           break;
         case 'corner-tr':
           win.style.left = `${sw * 0.5}px`;
-          win.style.top = '0px';
+          win.style.top = `${wt}px`;
           win.style.width = `${sw * 0.5}px`;
           win.style.height = `${sh * 0.5}px`;
           break;
         case 'corner-bl':
           win.style.left = '0px';
-          win.style.top = `${sh * 0.5}px`;
+          win.style.top = `${wt + sh * 0.5}px`;
           win.style.width = `${sw * 0.5}px`;
           win.style.height = `${sh * 0.5}px`;
           break;
         case 'corner-br':
           win.style.left = `${sw * 0.5}px`;
-          win.style.top = `${sh * 0.5}px`;
+          win.style.top = `${wt + sh * 0.5}px`;
           win.style.width = `${sw * 0.5}px`;
           win.style.height = `${sh * 0.5}px`;
           break;
@@ -1479,16 +1539,15 @@
       const openWins = this.windows.filter(w => w.classList.contains('open') && !w.classList.contains('minimized'));
       if (openWins.length === 0) return;
       const count = openWins.length;
-      const tbVar = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--taskbar-height'), 10);
-      const tbHeight = Number.isFinite(tbVar) ? tbVar : 44;
-      const sw = window.innerWidth;
-      const sh = window.innerHeight - tbHeight;
+      const wa = this.getWorkArea();
+      const sw = wa.width;
+      const sh = wa.height;
 
       if (count === 1) {
         openWins[0].style.left = '10vw';
-        openWins[0].style.top = '8vh';
+        openWins[0].style.top = `${wa.top + Math.round(sh * 0.06)}px`;
         openWins[0].style.width = '80vw';
-        openWins[0].style.height = `${sh * 0.8}px`;
+        openWins[0].style.height = `${Math.round(sh * 0.8)}px`;
       } else if (count === 2) {
         this.snapWindow(openWins[0], 'left-half');
         this.snapWindow(openWins[1], 'right-half');
@@ -1498,7 +1557,7 @@
       } else {
         openWins.forEach((w, i) => {
           w.style.left = `${30 + i * 40}px`;
-          w.style.top = `${30 + i * 36}px`;
+          w.style.top = `${wa.top + 18 + i * 36}px`;
           w.style.width = '60vw';
           w.style.height = '60vh';
           this.bringToFront(w);
@@ -1932,6 +1991,7 @@
         section.appendChild(card);
       });
       if (window.IconResolver) window.IconResolver.upgradeScope(section);
+      if (window.StartMenuManager) window.StartMenuManager.refresh();
     },
 
     // Görev çubuğuna özel sabitlenen simgeler (statik pin'lerin önüne eklenir).
@@ -3145,6 +3205,7 @@
       });
       container.appendChild(frag);
       IconResolver.upgradeScope(container);
+      if (window.StartMenuManager) window.StartMenuManager.refresh();
     },
 
     getAppSvgIcon(app) {
@@ -9475,15 +9536,25 @@
   // ============================================================================
   const InstallerWizard = {
     selectedDisk: null,
+    _installing: false,
+    _progressUnlisten: null,
 
     async init() {
       const step1Next = document.getElementById('btn-step1-next');
+      const btnRefresh = document.getElementById('btn-refresh-disks');
       const step2Prev = document.getElementById('btn-step2-prev');
       const step2Next = document.getElementById('btn-step2-next');
       const step3Prev = document.getElementById('btn-step3-prev');
       const btnStart = document.getElementById('btn-start-real-install');
+      const btnRetry = document.getElementById('btn-installer-retry');
       const btnReboot = document.getElementById('btn-installer-reboot');
 
+      if (btnRefresh) {
+        btnRefresh.addEventListener('click', () => {
+          btnRefresh.disabled = true;
+          this.loadDisks().finally(() => { btnRefresh.disabled = false; });
+        });
+      }
       if (step1Next) step1Next.addEventListener('click', () => this.goToStep(2));
       if (step2Prev) step2Prev.addEventListener('click', () => this.goToStep(1));
       if (step2Next) step2Next.addEventListener('click', () => this.goToStep(3));
@@ -9491,6 +9562,11 @@
 
       if (btnStart) {
         btnStart.addEventListener('click', () => this.runInstall());
+      }
+      if (btnRetry) {
+        btnRetry.addEventListener('click', () => {
+          if (!this._installing) this.goToStep(1);
+        });
       }
 
       if (btnReboot) {
@@ -9602,6 +9678,7 @@
     },
 
     async runInstall() {
+      if (this._installing) return;
       if (!this.selectedDisk) {
         alert('Lütfen önce kurulum yapılacak hedef diski seçin!');
         this.goToStep(1);
@@ -9623,10 +9700,29 @@
         return;
       }
 
+      this._installing = true;
+      const btnStart = document.getElementById('btn-start-real-install');
+      if (btnStart) btnStart.disabled = true;
+
       this.goToStep(4);
       const progress = document.getElementById('inst-wizard-progress');
       const logs = document.getElementById('installer-logs-view');
       const finishNav = document.getElementById('installer-finish-nav');
+      const btnRetry = document.getElementById('btn-installer-retry');
+      const btnReboot = document.getElementById('btn-installer-reboot');
+      const execTitle = document.getElementById('inst-exec-title');
+      const execDesc = document.getElementById('inst-exec-desc');
+
+      if (logs) logs.replaceChildren();
+      if (finishNav) finishNav.style.display = 'none';
+      if (btnRetry) btnRetry.style.display = 'none';
+      if (btnReboot) btnReboot.style.display = '';
+      if (execTitle) execTitle.textContent = 'Ankora Linux Kuruluyor...';
+      if (execDesc) execDesc.textContent = 'Lütfen bekleyin, canlı imaj hedef diske kopyalanıyor.';
+      if (progress) {
+        progress.style.backgroundColor = '';
+        progress.style.width = '5%';
+      }
 
       const append = (msg, cls = 'muted') => {
         if (!logs) return;
@@ -9637,13 +9733,26 @@
         logs.scrollTop = logs.scrollHeight;
       };
 
-      append(`[1/5] Hedef disk hazırlanıyor: ${this.selectedDisk}...`);
-      if (progress) progress.style.width = '15%';
+      if (this._progressUnlisten) {
+        try { this._progressUnlisten(); } catch (e) {}
+        this._progressUnlisten = null;
+      }
+      if (window.__TAURI__?.event?.listen) {
+        try {
+          this._progressUnlisten = await window.__TAURI__.event.listen('install-progress', (ev) => {
+            const d = ev?.payload || {};
+            if (progress && Number.isFinite(Number(d.percent))) {
+              progress.style.width = `${Math.max(5, Math.min(100, Number(d.percent)))}%`;
+            }
+            if (d.message) append(d.message, d.level || 'muted');
+          });
+        } catch (e) {}
+      }
+
+      append(`Hedef disk hazırlanıyor: ${this.selectedDisk}...`);
+      if (progress) progress.style.width = '10%';
 
       try {
-        append(`[2/5] Hibrit GPT bölüm tablosu (BIOS + UEFI) ve dosya sistemleri oluşturuluyor...`);
-        if (progress) progress.style.width = '35%';
-
         const res = await TauriBridge.invoke('execute_system_installation', {
           payload: {
             target_disk: this.selectedDisk,
@@ -9659,14 +9768,28 @@
         });
 
         if (progress) progress.style.width = '100%';
-        append(`[3/5] Canlı kök sistem dosyaları hedef diske başarıyla kopyalandı.`);
-        append(`[4/5] GRUB önyükleyici (UEFI + BIOS) ve sistem yapılandırması tamamlandı.`);
-        append(`[5/5] ${res}`, 'cmd');
+        if (execTitle) execTitle.textContent = 'Kurulum Tamamlandı';
+        if (execDesc) execDesc.textContent = 'Sistemi yeniden başlatıp USB belleği çıkarabilirsiniz.';
+        append(`${res}`, 'cmd');
         if (finishNav) finishNav.style.display = 'flex';
+        if (btnRetry) btnRetry.style.display = 'none';
+        if (btnReboot) btnReboot.style.display = '';
       } catch (err) {
         if (progress) progress.style.backgroundColor = 'var(--danger, #ef4444)';
+        if (execTitle) execTitle.textContent = 'Kurulum Başarısız Oldu';
+        if (execDesc) execDesc.textContent = 'Hata ayrıntıları aşağıdadır; diski kontrol edip tekrar deneyebilirsiniz.';
         append(`[KURULUM HATASI] ${err.message || err}`, 'error');
         ReportManager.showToast(`Kurulum hatası: ${err.message || err}`);
+        if (finishNav) finishNav.style.display = 'flex';
+        if (btnReboot) btnReboot.style.display = 'none';
+        if (btnRetry) btnRetry.style.display = '';
+      } finally {
+        this._installing = false;
+        if (btnStart) btnStart.disabled = false;
+        if (this._progressUnlisten) {
+          try { this._progressUnlisten(); } catch (e) {}
+          this._progressUnlisten = null;
+        }
       }
     }
   };
@@ -11285,10 +11408,178 @@
     .replace(/ö/g, 'o').replace(/ç/g, 'c').replace(/ı/g, 'i').replace(/â/g, 'a')
     .replace(/[\s\-_.()/,:]+/g, '');
 
+  // Klasik İki Sütunlu Dağıtım Uygulama Menüsü Yöneticisi (Kategori Filtresi)
+  const START_MENU_CAT_LABELS = {
+    favorites: 'Sık Kullanılanlar',
+    all: 'Tüm Uygulamalar',
+    internet: 'İnternet & Ağ',
+    office: 'Ofis & Belgeler',
+    media: 'Çoklu Ortam & Grafik',
+    dev: 'Geliştirme & Terminal',
+    games: 'Oyun',
+    system: 'Sistem Araçları',
+    settings: 'Ayarlar & Tercihler'
+  };
+
+  const StartMenuManager = {
+    activeCat: 'favorites',
+    initialized: false,
+
+    resolveDynamicCat(card) {
+      const appId = card.getAttribute('data-app-id') || '';
+      const appObj = (typeof XdgDesktopEngine !== 'undefined' && Array.isArray(XdgDesktopEngine.installedApps))
+        ? XdgDesktopEngine.installedApps.find(a => a.id === appId)
+        : null;
+      const rawCat = String((appObj && appObj.cat) || '').toLowerCase();
+      const rawCats = Array.isArray(appObj && appObj.categories)
+        ? appObj.categories.map(c => String(c).toLowerCase()).join(' ')
+        : '';
+      const hay = `${appId.toLowerCase()} ${rawCat} ${rawCats} ${card.className.toLowerCase()}`;
+
+      if (hay.includes('game') || hay.includes('steam') || hay.includes('heroic') || hay.includes('lutris') || hay.includes('wine') || hay.includes('proton') || hay.includes('supertux') || hay.includes('minetest')) return 'games';
+      if (rawCat === 'net' || hay.includes('network') || hay.includes('webbrowser') || hay.includes('firefox') || hay.includes('chromium') || hay.includes('telegram') || hay.includes('discord') || hay.includes('zoom') || hay.includes('thunderbird')) return 'internet';
+      if (rawCat === 'dev' || hay.includes('development') || hay.includes('ide') || hay.includes('vscode') || hay.includes('vscodium')) return 'dev';
+      if (rawCat === 'office' || hay.includes('office') || hay.includes('onlyoffice') || hay.includes('libreoffice') || hay.includes('obsidian')) return 'office';
+      if (rawCat === 'media' || rawCat === 'graphics' || hay.includes('audio') || hay.includes('video') || hay.includes('graphics') || hay.includes('vlc') || hay.includes('mpv') || hay.includes('spotify') || hay.includes('gimp') || hay.includes('inkscape') || hay.includes('kdenlive') || hay.includes('obs')) return 'media';
+      if (hay.includes('settings') || hay.includes('preferences') || hay.includes('controlcenter')) return 'settings';
+      return 'system';
+    },
+
+    matchesStaticCat(card, cat, hiddenSet) {
+      const key = card.getAttribute('data-open') || card.getAttribute('data-launch') || (card.querySelector('.app-title')?.textContent || '').trim();
+      const isHiddenFav = hiddenSet.has(key);
+      if (cat === 'all') return true;
+      const cats = (card.getAttribute('data-cats') || '').split(/\s+/).filter(Boolean);
+      if (cat === 'favorites') return !isHiddenFav && cats.includes('favorites');
+      return cats.includes(cat);
+    },
+
+    selectCategory(cat) {
+      this.activeCat = START_MENU_CAT_LABELS[cat] ? cat : 'favorites';
+      document.querySelectorAll('#start-cat-sidebar .start-cat-btn').forEach(btn => {
+        const isSel = btn.getAttribute('data-cat') === this.activeCat;
+        btn.classList.toggle('active', isSel);
+        btn.setAttribute('aria-selected', isSel ? 'true' : 'false');
+      });
+      this.refresh();
+    },
+
+    refresh() {
+      const staticGrid = document.getElementById('start-pinned-grid');
+      if (!staticGrid) return;
+
+      let hiddenList = [];
+      try {
+        hiddenList = JSON.parse(SafeStorage.getItem('ankora_hidden_static_pins') || '[]');
+        if (!Array.isArray(hiddenList)) hiddenList = [];
+      } catch (e) {
+        hiddenList = [];
+      }
+      const hiddenSet = new Set(hiddenList);
+
+      const staticCards = Array.from(staticGrid.querySelectorAll(':scope > .pinned-app-card'));
+      const dynGrid = document.getElementById('dynamic-start-apps');
+      const dynHeading = document.getElementById('start-installed-heading');
+      const dynCountEl = document.getElementById('start-installed-count');
+      const dynCards = dynGrid ? Array.from(dynGrid.querySelectorAll(':scope > .pinned-app-card')) : [];
+      const userPinSection = document.getElementById('ankora-menu-pins');
+
+      // Sol kenar çubuğu kategori sayaçlarını güncelle
+      const counts = {
+        favorites: userPinSection ? userPinSection.querySelectorAll('.pinned-app-card').length : 0,
+        all: staticCards.length + dynCards.length,
+        internet: 0, office: 0, media: 0, dev: 0, games: 0, system: 0, settings: 0
+      };
+      staticCards.forEach(card => {
+        const cats = (card.getAttribute('data-cats') || '').split(/\s+/).filter(Boolean);
+        const key = card.getAttribute('data-open') || card.getAttribute('data-launch') || (card.querySelector('.app-title')?.textContent || '').trim();
+        if (cats.includes('favorites') && !hiddenSet.has(key)) counts.favorites++;
+        Object.keys(counts).forEach(k => {
+          if (k !== 'favorites' && k !== 'all' && cats.includes(k)) counts[k]++;
+        });
+      });
+      dynCards.forEach(card => {
+        const mapped = this.resolveDynamicCat(card);
+        card.dataset.menuCat = mapped;
+        if (counts[mapped] !== undefined) counts[mapped]++;
+      });
+      Object.entries(counts).forEach(([k, v]) => {
+        const badge = document.querySelector(`.cat-count[data-cat-count="${k}"]`);
+        if (badge) badge.textContent = v > 0 ? String(v) : '';
+      });
+
+      const cat = this.activeCat || 'favorites';
+      let visibleCount = 0;
+
+      if (userPinSection) {
+        const pinCount = userPinSection.querySelectorAll('.pinned-app-card').length;
+        const showPins = cat === 'favorites' && pinCount > 0;
+        userPinSection.style.display = showPins ? 'grid' : 'none';
+        if (showPins) visibleCount += pinCount;
+      }
+
+      let visibleStatic = 0;
+      staticCards.forEach(card => {
+        const show = this.matchesStaticCat(card, cat, hiddenSet);
+        card.style.display = show ? 'flex' : 'none';
+        if (show) { visibleStatic++; visibleCount++; }
+      });
+      staticGrid.style.display = visibleStatic > 0 ? 'grid' : 'none';
+
+      let visibleDyn = 0;
+      dynCards.forEach(card => {
+        const mapped = card.dataset.menuCat || this.resolveDynamicCat(card);
+        const show = cat === 'all' || (cat !== 'favorites' && mapped === cat);
+        card.style.display = show ? 'flex' : 'none';
+        if (show) { visibleDyn++; visibleCount++; }
+      });
+
+      if (dynGrid) {
+        dynGrid.style.display = visibleDyn > 0 ? 'grid' : 'none';
+      }
+      if (dynHeading) {
+        dynHeading.style.display = visibleDyn > 0 ? 'flex' : 'none';
+      }
+      if (dynCountEl) {
+        dynCountEl.textContent = `${visibleDyn} Uygulama`;
+      }
+
+      const emptyBox = document.getElementById('start-empty-cat');
+      if (emptyBox) {
+        emptyBox.hidden = visibleCount > 0;
+      }
+
+      const titleEl = document.getElementById('start-active-cat-title');
+      const countEl = document.getElementById('start-active-cat-count');
+      const allBtn = document.getElementById('btn-show-all-apps');
+      if (titleEl) titleEl.textContent = START_MENU_CAT_LABELS[cat] || 'Uygulamalar';
+      if (countEl) countEl.textContent = `${visibleCount} Uygulama`;
+      if (allBtn) allBtn.textContent = cat === 'all' ? 'Sık Kullanılanlar' : 'Tümü >';
+    },
+
+    init() {
+      if (this.initialized) {
+        this.refresh();
+        return;
+      }
+      this.initialized = true;
+      const sidebar = document.getElementById('start-cat-sidebar');
+      if (sidebar) {
+        sidebar.querySelectorAll('.start-cat-btn[data-cat]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            this.selectCategory(btn.getAttribute('data-cat'));
+          });
+        });
+      }
+      this.refresh();
+    }
+  };
+  window.StartMenuManager = StartMenuManager;
+
   // Arama kutusu doluken menünün kendi bölümleri gizlenir ve tek sonuç listesi
   // açılır. Profil ile güç eylemleri her durumda erişilebilir kalır.
   const LauncherSearch = {
-    sectionSel: '.start-section-heading, #start-pinned-grid, #dynamic-start-apps, .start-dual-section',
+    sectionSel: '.start-distro-body',
     hits: [],
 
     // Kaynaklar her sorguda DOM'dan okunur; sabitlenenler, kurulu uygulamalar,
@@ -11470,9 +11761,8 @@
           TauriBridge.invoke('set_desktop_layer', { above: isOpen }).catch(() => {});
         }
       } catch (e) {}
-      if (!isOpen) {
-        const drawer = document.getElementById('start-all-apps-drawer');
-        if (drawer) drawer.hidden = true;
+      if (isOpen) {
+        StartMenuManager.init();
       }
       if (startSearch) {
         // Menü her açılışta temiz başlar: önceki sorgu alttaki bölümleri gizli
@@ -11653,13 +11943,9 @@
     };
     const cardPinKey = (card) => card.getAttribute('data-open') || card.getAttribute('data-launch') || (card.querySelector('.app-title')?.textContent || '').trim();
     const syncStaticPinnedVisibility = () => {
-      const hiddenSet = new Set(readHiddenStaticPins());
-      document.querySelectorAll('#start-pinned-grid > .pinned-app-card').forEach(card => {
-        const key = cardPinKey(card);
-        card.style.display = hiddenSet.has(key) ? 'none' : '';
-      });
+      StartMenuManager.refresh();
     };
-    syncStaticPinnedVisibility();
+    StartMenuManager.init();
 
     document.querySelectorAll('.pinned-app-card').forEach(card => {
       card.addEventListener('click', () => {
@@ -11946,78 +12232,22 @@
     const btnShowAllApps = document.getElementById('btn-show-all-apps');
     if (btnShowAllApps) {
       btnShowAllApps.addEventListener('click', async () => {
-        const drawer = document.getElementById('start-all-apps-drawer');
-        if (!drawer) {
-          WindowManager.open('win-store');
-          toggleStart(false);
-          return;
-        }
-        const opening = drawer.hidden;
-        if (!opening) {
-          drawer.hidden = true;
-          btnShowAllApps.textContent = 'Tümü >';
-          return;
-        }
-        btnShowAllApps.textContent = 'Kapat ▾';
-        drawer.hidden = false;
-        if (typeof XdgDesktopEngine !== 'undefined' && XdgDesktopEngine.rescanXdgApps) {
+        const nextCat = StartMenuManager.activeCat === 'all' ? 'favorites' : 'all';
+        StartMenuManager.selectCategory(nextCat);
+        if (nextCat === 'all' && typeof XdgDesktopEngine !== 'undefined' && XdgDesktopEngine.rescanXdgApps) {
           await XdgDesktopEngine.rescanXdgApps(false).catch(() => {});
         }
-        const apps = ((typeof XdgDesktopEngine !== 'undefined' && Array.isArray(XdgDesktopEngine.installedApps))
-          ? XdgDesktopEngine.installedApps
-          : []).slice().sort((a, b) => String(a.name || a.id).localeCompare(String(b.name || b.id), 'tr'));
-        const hiddenStatic = readHiddenStaticPins();
-        drawer.innerHTML = `
-          <div class="start-all-apps-hdr">
-            <span>Sistemdeki Uygulamalar (/usr/share/applications · ${apps.length})</span>
-            <div style="display:flex;gap:8px;align-items:center;">
-              ${hiddenStatic.length ? '<button type="button" class="btn-all-apps" id="btn-reset-static-pins" style="font-size:10.5px;">Sabitleri Sıfırla</button>' : ''}
-              <button type="button" class="btn-all-apps" id="btn-all-open-store" style="font-size:10.5px;">Mağaza</button>
-            </div>
-          </div>
-          <div class="start-all-apps-grid" id="start-all-apps-grid"></div>
-        `;
-        const grid = drawer.querySelector('#start-all-apps-grid');
-        apps.forEach(app => {
-          const row = document.createElement('button');
-          row.type = 'button';
-          row.className = 'start-all-app-row';
-          row.title = `${app.name || app.id}${app.desktopFile ? '\n' + app.desktopFile : ''}\nSağ tık: sabitle / kaldır`;
-          const iconHtml = (typeof IconResolver !== 'undefined' && IconResolver.getIconSvg)
-            ? IconResolver.getIconSvg(app)
-            : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="3"/></svg>';
-          row.innerHTML = `<span class="start-all-app-ico">${iconHtml}</span><span class="start-all-app-name">${escapeHtml(app.name || app.id)}</span>`;
-          const ico = row.querySelector('.start-all-app-ico');
-          if (ico && typeof IconResolver !== 'undefined' && IconResolver.tagIcon) IconResolver.tagIcon(ico, app);
-          row.addEventListener('click', () => {
-            if (typeof XdgDesktopEngine !== 'undefined' && XdgDesktopEngine.launchApp) XdgDesktopEngine.launchApp(app);
-            else TauriBridge.invoke('launch_application', { exec: app.exec || app.id }).catch(() => {});
-            toggleStart(false);
-          });
-          row.addEventListener('contextmenu', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            if (typeof XdgDesktopEngine !== 'undefined' && XdgDesktopEngine.showShortcutContextMenu) {
-              XdgDesktopEngine.showShortcutContextMenu(e, app);
-            }
-          });
-          grid.appendChild(row);
-        });
-        if (typeof IconResolver !== 'undefined' && IconResolver.upgradeScope) {
-          IconResolver.upgradeScope(grid);
-        }
-        drawer.querySelector('#btn-all-open-store')?.addEventListener('click', () => {
-          WindowManager.open('win-store');
-          toggleStart(false);
-        });
-        drawer.querySelector('#btn-reset-static-pins')?.addEventListener('click', () => {
-          writeHiddenStaticPins([]);
-          syncStaticPinnedVisibility();
-          ReportManager?.showToast('Sabitlenen uygulamalar geri yüklendi.');
-          btnShowAllApps.click();
-        });
       });
     }
+
+    document.getElementById('btn-start-open-store')?.addEventListener('click', () => {
+      WindowManager.open('win-store');
+      toggleStart(false);
+    });
+    document.getElementById('btn-empty-open-store')?.addEventListener('click', () => {
+      WindowManager.open('win-store');
+      toggleStart(false);
+    });
 
     // 5. AYAZ DE HIZLI AYARLAR & EYLEM MERKEZİ (QUICK SETTINGS FLYOUT)
     const qsFlyout = document.getElementById('quick-settings-popover');

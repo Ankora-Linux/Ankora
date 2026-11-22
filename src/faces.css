@@ -179,6 +179,8 @@
    YÜZ 2 · BAKIR (IBM Plex Sans & Mono · Üst Panel + Alt Bakır Yüzen Dock)
    ========================================================================== */
 [data-face="2"] {
+  --workarea-top: 38px;
+  --workarea-bottom: 84px;
   --bg-desktop: #141519;
   --copper: #d1794f;
   --copper-2: #8a4d33;
@@ -225,7 +227,7 @@
 
 /* Yüz 2 Üst Panel */
 [data-face="2"] #face-top-panel {
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
   right: 0;
@@ -236,7 +238,7 @@
   align-items: center;
   padding: 0 14px;
   gap: 14px;
-  z-index: 100;
+  z-index: 9200;
   font: 500 12.5px var(--font-face-mono, "IBM Plex Mono", monospace);
   color: #e9e4da;
 }
@@ -311,9 +313,9 @@
 
 /* Yüz 2 Yüzen Alt Dock */
 [data-face="2"] #face-bottom-dock {
-  position: absolute;
+  position: fixed;
   left: 50%;
-  bottom: 18px;
+  bottom: 14px;
   transform: translateX(-50%);
   display: flex;
   gap: 10px;
@@ -324,7 +326,7 @@
   border: 1px solid #2e3138;
   border-radius: 12px;
   padding: 9px;
-  z-index: 100;
+  z-index: 9200;
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
 }
 
@@ -424,6 +426,8 @@
    YÜZ 3 · BOSTAN (Newsreader & Figtree · Üst Menü + Dev Serif Saat + Yeşil Dock)
    ========================================================================== */
 [data-face="3"] {
+  --workarea-top: 40px;
+  --workarea-bottom: 82px;
   --leaf: #e6ebd8;
   --leaf-2: #d7dfc2;
   --card: #faf8ef;
@@ -452,7 +456,7 @@
 
 /* Yüz 3 Üst Çubuk */
 [data-face="3"] #face-top-panel {
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
   right: 0;
@@ -461,8 +465,10 @@
   align-items: center;
   padding: 0 18px;
   gap: 16px;
-  z-index: 100;
-  background: transparent;
+  z-index: 9200;
+  background: rgba(240, 243, 229, 0.94);
+  border-bottom: 1px solid #d7dfc2;
+  backdrop-filter: blur(8px);
   color: #26321f;
   font-family: var(--font-sans);
 }
@@ -572,9 +578,9 @@
 
 /* Yüz 3 Alt Yeşil Kapsül Dock */
 [data-face="3"] #face-bottom-dock {
-  position: absolute;
+  position: fixed;
   left: 50%;
-  bottom: 20px;
+  bottom: 14px;
   transform: translateX(-50%);
   display: flex;
   gap: 8px;
@@ -586,7 +592,7 @@
   border-radius: 16px;
   padding: 8px;
   box-shadow: 0 10px 26px -14px rgba(38, 50, 31, 0.3);
-  z-index: 100;
+  z-index: 9200;
 }
 
 [data-face="3"] .face-dock-app {
@@ -662,19 +668,26 @@
 
 [data-face="3"] .ctrl-btn {
   border-radius: 50% !important;
-  width: 13px !important;
-  height: 13px !important;
-  font-size: 0 !important;
+  width: 22px !important;
+  height: 22px !important;
+  font-size: 12px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: #26321f !important;
   background: #d7dfc2 !important;
 }
 [data-face="3"] .ctrl-btn.close {
   background: #3d6b45 !important;
+  color: #faf8ef !important;
 }
 
 /* ==========================================================================
    YÜZ 8 · CIVATA (Bricolage Grotesque & Instrument Sans · Limon/İs Siyah Üst Çubuk)
    ========================================================================== */
 [data-face="8"] {
+  --workarea-top: 32px;
+  --workarea-bottom: 74px;
   --civata: #fcfcf9;
   --is: #161309;
   --limon: #c7e42b;
@@ -701,7 +714,7 @@
 
 /* Yüz 8 Üst Teknik Siyah Çubuk */
 [data-face="8"] #face-top-panel {
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
   right: 0;
@@ -712,7 +725,7 @@
   align-items: center;
   font: 500 11.5px var(--font-sans);
   padding: 0 14px;
-  z-index: 100;
+  z-index: 9200;
   gap: 14px;
 }
 
@@ -792,9 +805,9 @@
 
 /* Yüz 8 Alt Teknik Dock & Üst Sekme Şeridi */
 [data-face="8"] #face-bottom-dock {
-  position: absolute;
+  position: fixed;
   left: 50%;
-  bottom: 14px;
+  bottom: 12px;
   transform: translateX(-50%);
   display: flex;
   align-items: center;
@@ -807,7 +820,7 @@
   border-radius: 12px;
   padding: 6px 8px;
   box-shadow: 0 6px 0 #161309;
-  z-index: 100;
+  z-index: 9200;
 }
 
 [data-face="8"] .face-dock-app {
@@ -1429,21 +1442,24 @@ body.theme-light .ctx-submenu-list,
 
 /* 6. Başlat Menüsü Yüz Konumlandırması */
 [data-face="2"] .start-flyout {
-  bottom: 74px !important;
-  left: max(10px, calc(50% - 230px)) !important;
+  bottom: calc(var(--workarea-bottom, 84px) + 10px) !important;
+  left: max(12px, calc(50% - 320px)) !important;
   top: auto !important;
+  max-height: calc(100vh - var(--workarea-top, 38px) - var(--workarea-bottom, 84px) - 22px) !important;
 }
 
 [data-face="3"] .start-flyout {
-  top: 44px !important;
+  top: calc(var(--workarea-top, 40px) + 8px) !important;
   bottom: auto !important;
-  left: 18px !important;
+  left: 16px !important;
+  max-height: calc(100vh - var(--workarea-top, 40px) - var(--workarea-bottom, 82px) - 20px) !important;
 }
 
 [data-face="8"] .start-flyout {
-  top: 36px !important;
+  top: calc(var(--workarea-top, 32px) + 8px) !important;
   bottom: auto !important;
-  left: 14px !important;
+  left: 12px !important;
+  max-height: calc(100vh - var(--workarea-top, 32px) - var(--workarea-bottom, 74px) - 20px) !important;
 }
 
 /* 7. Açık Temalarda Dock ve Panel Uyumu */
@@ -1657,9 +1673,10 @@ body.theme-meltem .face-ws-btn.active {
 [data-face="3"] #face-ai-bubble,
 [data-face="8"] #face-ai-bubble {
   position: fixed;
-  top: 46px;
-  right: 14px;
-  z-index: 8600;
+  top: auto;
+  bottom: 18px;
+  right: 18px;
+  z-index: 9250;
   display: inline-flex;
   align-items: center;
   gap: 7px;
@@ -2181,6 +2198,197 @@ body.theme-meltem .face-ws-btn.active {
 [data-face="8"] .power-modal-item {
   background: rgba(0, 0, 0, 0.04) !important;
   border-color: rgba(0, 0, 0, 0.14) !important;
+}
+
+/* 2 Sütunlu Dağıtım Uygulama Menüsü · Açık Tema & Bakır/Bostan/Cıvata Kontrastı */
+body.is-light-theme .start-cat-sidebar,
+body.theme-light .start-cat-sidebar,
+body.theme-arctic .start-cat-sidebar,
+body.theme-cinar .start-cat-sidebar,
+body.theme-meltem .start-cat-sidebar,
+body.theme-matbaa .start-cat-sidebar,
+body.theme-konsol .start-cat-sidebar,
+body.theme-kesit .start-cat-sidebar,
+body.theme-meridyen .start-cat-sidebar {
+  background: rgba(15, 23, 42, 0.04) !important;
+  border-right-color: rgba(15, 23, 42, 0.1) !important;
+}
+body.is-light-theme .start-cat-btn,
+body.theme-light .start-cat-btn,
+body.theme-arctic .start-cat-btn,
+body.theme-cinar .start-cat-btn,
+body.theme-meltem .start-cat-btn,
+body.theme-matbaa .start-cat-btn,
+body.theme-konsol .start-cat-btn,
+body.theme-kesit .start-cat-btn,
+body.theme-meridyen .start-cat-btn {
+  color: #334155 !important;
+}
+body.is-light-theme .start-cat-btn:hover,
+body.theme-light .start-cat-btn:hover,
+body.theme-arctic .start-cat-btn:hover,
+body.theme-cinar .start-cat-btn:hover,
+body.theme-meltem .start-cat-btn:hover,
+body.theme-matbaa .start-cat-btn:hover,
+body.theme-konsol .start-cat-btn:hover,
+body.theme-kesit .start-cat-btn:hover,
+body.theme-meridyen .start-cat-btn:hover {
+  background: rgba(15, 23, 42, 0.07) !important;
+  color: #0f172a !important;
+}
+body.is-light-theme .start-cat-btn.active,
+body.theme-light .start-cat-btn.active,
+body.theme-arctic .start-cat-btn.active,
+body.theme-cinar .start-cat-btn.active,
+body.theme-meltem .start-cat-btn.active,
+body.theme-matbaa .start-cat-btn.active,
+body.theme-konsol .start-cat-btn.active,
+body.theme-kesit .start-cat-btn.active,
+body.theme-meridyen .start-cat-btn.active {
+  background: rgba(37, 99, 235, 0.12) !important;
+  border-color: rgba(37, 99, 235, 0.32) !important;
+  color: #0f172a !important;
+}
+body.is-light-theme .start-pane-header,
+body.theme-light .start-pane-header,
+body.theme-arctic .start-pane-header,
+body.theme-cinar .start-pane-header,
+body.theme-meltem .start-pane-header,
+body.theme-matbaa .start-pane-header,
+body.theme-konsol .start-pane-header,
+body.theme-kesit .start-pane-header,
+body.theme-meridyen .start-pane-header {
+  border-bottom-color: rgba(15, 23, 42, 0.1) !important;
+}
+body.is-light-theme .start-pane-title,
+body.theme-light .start-pane-title,
+body.theme-arctic .start-pane-title,
+body.theme-cinar .start-pane-title,
+body.theme-meltem .start-pane-title,
+body.theme-matbaa .start-pane-title,
+body.theme-konsol .start-pane-title,
+body.theme-kesit .start-pane-title,
+body.theme-meridyen .start-pane-title {
+  color: #0f172a !important;
+}
+body.is-light-theme .start-pane-count,
+body.theme-light .start-pane-count,
+body.theme-arctic .start-pane-count,
+body.theme-cinar .start-pane-count,
+body.theme-meltem .start-pane-count,
+body.theme-matbaa .start-pane-count,
+body.theme-konsol .start-pane-count,
+body.theme-kesit .start-pane-count,
+body.theme-meridyen .start-pane-count {
+  color: #64748b !important;
+}
+body.is-light-theme .start-quick-actions,
+body.theme-light .start-quick-actions,
+body.theme-arctic .start-quick-actions,
+body.theme-cinar .start-quick-actions,
+body.theme-meltem .start-quick-actions,
+body.theme-matbaa .start-quick-actions,
+body.theme-konsol .start-quick-actions,
+body.theme-kesit .start-quick-actions,
+body.theme-meridyen .start-quick-actions {
+  background: rgba(15, 23, 42, 0.04) !important;
+  border-top-color: rgba(15, 23, 42, 0.1) !important;
+}
+
+/* Yüz 2 · Bakır */
+[data-face="2"] .start-flyout .start-cat-sidebar {
+  background: #141519 !important;
+  border-right-color: #2e3138 !important;
+}
+[data-face="2"] .start-flyout .start-cat-btn {
+  color: #c2bbb0 !important;
+}
+[data-face="2"] .start-flyout .start-cat-btn:hover {
+  background: #23262e !important;
+  color: #f3eee5 !important;
+}
+[data-face="2"] .start-flyout .start-cat-btn.active {
+  background: rgba(209, 121, 79, 0.2) !important;
+  border-color: #d1794f !important;
+  color: #f3eee5 !important;
+}
+[data-face="2"] .start-flyout .start-pane-header {
+  border-bottom-color: #2e3138 !important;
+}
+[data-face="2"] .start-flyout .start-pane-title {
+  color: #e9e4da !important;
+}
+[data-face="2"] .start-flyout .start-pane-count,
+[data-face="2"] .start-flyout .start-empty-cat {
+  color: #a49e92 !important;
+}
+[data-face="2"] .start-flyout .start-quick-actions {
+  background: #17191f !important;
+  border-top-color: #2e3138 !important;
+}
+
+/* Yüz 3 · Bostan */
+[data-face="3"] .start-flyout .start-cat-sidebar {
+  background: #eef1e2 !important;
+  border-right-color: #d4dac0 !important;
+}
+[data-face="3"] .start-flyout .start-cat-btn {
+  color: #2e3d26 !important;
+}
+[data-face="3"] .start-flyout .start-cat-btn:hover {
+  background: rgba(65, 114, 48, 0.1) !important;
+  color: #1f2b18 !important;
+}
+[data-face="3"] .start-flyout .start-cat-btn.active {
+  background: rgba(65, 114, 48, 0.16) !important;
+  border-color: #4b8238 !important;
+  color: #1c2815 !important;
+}
+[data-face="3"] .start-flyout .start-pane-header {
+  border-bottom-color: #d4dac0 !important;
+}
+[data-face="3"] .start-flyout .start-pane-title {
+  color: #26321f !important;
+}
+[data-face="3"] .start-flyout .start-pane-count,
+[data-face="3"] .start-flyout .start-empty-cat {
+  color: #55634b !important;
+}
+[data-face="3"] .start-flyout .start-quick-actions {
+  background: #eef1e2 !important;
+  border-top-color: #d4dac0 !important;
+}
+
+/* Yüz 8 · Cıvata */
+[data-face="8"] .start-flyout .start-cat-sidebar {
+  background: #f0f0ea !important;
+  border-right: 1.5px solid #161309 !important;
+}
+[data-face="8"] .start-flyout .start-cat-btn {
+  color: #161309 !important;
+  border-radius: 3px !important;
+}
+[data-face="8"] .start-flyout .start-cat-btn:hover {
+  background: rgba(22, 19, 9, 0.08) !important;
+}
+[data-face="8"] .start-flyout .start-cat-btn.active {
+  background: #161309 !important;
+  border-color: #161309 !important;
+  color: #fcfcf9 !important;
+}
+[data-face="8"] .start-flyout .start-pane-header {
+  border-bottom: 1.5px solid #161309 !important;
+}
+[data-face="8"] .start-flyout .start-pane-title {
+  color: #161309 !important;
+}
+[data-face="8"] .start-flyout .start-pane-count,
+[data-face="8"] .start-flyout .start-empty-cat {
+  color: #4b473b !important;
+}
+[data-face="8"] .start-flyout .start-quick-actions {
+  background: #f0f0ea !important;
+  border-top: 1.5px solid #161309 !important;
 }
 
 /* ==============================================================================

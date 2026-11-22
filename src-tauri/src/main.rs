@@ -3916,28 +3916,61 @@ async fn execute_agent_confirmed_action(command: String, token: String) -> Resul
 // ============================================================================
 // 7. GÜVENLİ KURULUM MOTORU (COMMAND ARGS & STDIN CHPASSWD) - BULGULAR #3 & #8
 // ============================================================================
+#[cfg(target_os = "linux")]
+fn resolve_parent_disk(dev_path: &str) -> String {
+    let mut cur = dev_path.trim().to_string();
+    for _ in 0..4 {
+        if let Ok(out) = Command::new("lsblk")
+            .args(["-ndo", "PKNAME", &cur])
+            .output()
+        {
+            let pk = String::from_utf8_lossy(&out.stdout).trim().to_string();
+            if pk.is_empty() {
+                break;
+            }
+            cur = if pk.starts_with("/dev/") {
+                pk
+            } else {
+                format!("/dev/{}", pk)
+            };
+        } else {
+            break;
+        }
+    }
+    let raw = cur.trim_start_matches("/dev/");
+    if (raw.starts_with("nvme") || raw.starts_with("mmcblk")) && raw.contains('p') {
+        if let Some((head, tail)) = raw.rsplit_once('p') {
+            if !tail.is_empty() && tail.chars().all(|c| c.is_ascii_digit()) {
+                return head.to_string();
+            }
+        }
+        return raw.to_string();
+    }
+    if raw.starts_with("loop") || raw.starts_with("zram") || raw.starts_with("sr") {
+        return raw.to_string();
+    }
+    raw.trim_end_matches(|c: char| c.is_ascii_digit())
+        .to_string()
+}
+
 fn live_boot_disks() -> Vec<String> {
     let mut boot_disks = Vec::new();
-    let live_mounts = ["/run/live/medium", "/lib/live/mount/medium", "/cdrom", "/"];
+    let live_mounts = [
+        "/run/live/medium",
+        "/lib/live/mount/medium",
+        "/cdrom",
+        "/",
+    ];
     if let Ok(mounts) = fs::read_to_string("/proc/mounts") {
         for line in mounts.lines() {
             let parts: Vec<&str> = line.split_whitespace().collect();
             if parts.len() >= 2 && live_mounts.contains(&parts[1]) && parts[0].starts_with("/dev/")
             {
-                let raw = parts[0].trim_start_matches("/dev/");
-                let base = if (raw.starts_with("nvme") || raw.starts_with("mmcblk"))
-                    && raw.contains('p')
-                {
-                    if let Some((head, tail)) = raw.rsplit_once('p') {
-                        if !tail.is_empty() && tail.chars().all(|c| c.is_ascii_digit()) {
-                            head.to_string()
-                        } else {
-                            raw.to_string()
-                        }
-                    } else {
-                        raw.to_string()
-                    }
-                } else {
+                #[cfg(target_os = "linux")]
+                let base = resolve_parent_disk(parts[0]);
+                #[cfg(not(target_os = "linux"))]
+                let base = {
+                    let raw = parts[0].trim_start_matches("/dev/");
                     raw.trim_end_matches(|c: char| c.is_ascii_digit())
                         .to_string()
                 };
@@ -3962,67 +3995,73 @@ fn get_storage_devices_blocking() -> Result<Vec<StorageDisk>, String> {
     #[cfg(target_os = "linux")]
     {
         let boot_disks = live_boot_disks();
-        // JSON formatında parse ederek boşluklu MODEL adlarını doğru yakalıyoruz
         let output = Command::new("lsblk")
             .args(["-d", "-b", "-J", "-o", "NAME,SIZE,MODEL,RM,TYPE"])
-            .output();
-        if let Ok(out) = output {
-            if out.status.success() {
-                let stdout = String::from_utf8_lossy(&out.stdout);
-                if let Ok(json_data) = serde_json::from_str::<serde_json::Value>(&stdout) {
-                    let mut disks = Vec::new();
-                    if let Some(devices) = json_data["blockdevices"].as_array() {
-                        for dev in devices {
-                            let dtype = dev["type"].as_str().unwrap_or("");
-                            if dtype != "disk" {
-                                continue;
-                            }
-                            let name = dev["name"].as_str().unwrap_or("").to_string();
-                            if name.is_empty()
-                                || name.starts_with("loop")
-                                || name.starts_with("zram")
-                                || name.starts_with("sr")
-                                || boot_disks.contains(&name)
-                            {
-                                continue;
-                            }
-                            let size_bytes = dev["size"]
-                                .as_u64()
-                                .or_else(|| dev["size"].as_str().and_then(|s| s.parse().ok()))
-                                .unwrap_or(0);
-                            let model = dev["model"]
-                                .as_str()
-                                .unwrap_or("Sabit Disk")
-                                .trim()
-                                .to_string();
-                            let model = if model.is_empty() {
-                                "Sabit Disk".to_string()
-                            } else {
-                                model
-                            };
-                            let is_removable = dev["rm"]
-                                .as_bool()
-                                .or_else(|| dev["rm"].as_str().map(|s| s == "1"))
-                                .or_else(|| dev["rm"].as_u64().map(|v| v == 1))
-                                .unwrap_or(false);
-                            let size_gb = (size_bytes as f64) / (1024.0 * 1024.0 * 1024.0);
-                            disks.push(StorageDisk {
-                                path: format!("/dev/{}", name),
-                                name,
-                                size_gb: (size_gb * 10.0).round() / 10.0,
-                                model,
-                                is_removable,
-                            });
-                        }
-                    }
-                    if !disks.is_empty() {
-                        return Ok(disks);
-                    }
+            .output()
+            .map_err(|e| format!("Depolama aygıtları taranamadı (lsblk): {}", e))?;
+        if !output.status.success() {
+            return Err(format!(
+                "lsblk başarısız oldu: {}",
+                String::from_utf8_lossy(&output.stderr).trim()
+            ));
+        }
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        let json_data: serde_json::Value = serde_json::from_str(&stdout)
+            .map_err(|e| format!("Depolama listesi çözümlenemedi: {}", e))?;
+        let mut disks = Vec::new();
+        if let Some(devices) = json_data["blockdevices"].as_array() {
+            for dev in devices {
+                let dtype = dev["type"].as_str().unwrap_or("");
+                if dtype != "disk" {
+                    continue;
                 }
+                let name = dev["name"].as_str().unwrap_or("").to_string();
+                if name.is_empty()
+                    || name.starts_with("loop")
+                    || name.starts_with("zram")
+                    || name.starts_with("sr")
+                    || name.starts_with("fd")
+                    || name.starts_with("ram")
+                    || boot_disks.contains(&name)
+                {
+                    continue;
+                }
+                let size_bytes = dev["size"]
+                    .as_u64()
+                    .or_else(|| dev["size"].as_str().and_then(|s| s.parse().ok()))
+                    .unwrap_or(0);
+                if size_bytes == 0 {
+                    continue;
+                }
+                let model = dev["model"]
+                    .as_str()
+                    .unwrap_or("Sabit Disk")
+                    .trim()
+                    .to_string();
+                let model = if model.is_empty() {
+                    "Sabit Disk".to_string()
+                } else {
+                    model
+                };
+                let is_removable = dev["rm"]
+                    .as_bool()
+                    .or_else(|| dev["rm"].as_str().map(|s| s == "1"))
+                    .or_else(|| dev["rm"].as_u64().map(|v| v == 1))
+                    .unwrap_or(false);
+                let size_gb = (size_bytes as f64) / (1024.0 * 1024.0 * 1024.0);
+                disks.push(StorageDisk {
+                    path: format!("/dev/{}", name),
+                    name,
+                    size_gb: (size_gb * 10.0).round() / 10.0,
+                    model,
+                    is_removable,
+                });
             }
         }
+        return Ok(disks);
     }
 
+    #[cfg(not(target_os = "linux"))]
     Ok(vec![
         StorageDisk {
             name: "sda".to_string(),
@@ -4041,15 +4080,33 @@ fn get_storage_devices_blocking() -> Result<Vec<StorageDisk>, String> {
     ])
 }
 
+#[cfg(target_os = "linux")]
+fn emit_install_progress(app: &tauri::AppHandle, percent: u8, message: &str, level: &str) {
+    let _ = app.emit(
+        "install-progress",
+        serde_json::json!({
+            "percent": percent,
+            "message": message,
+            "level": level
+        }),
+    );
+}
+
 #[tauri::command]
-async fn execute_system_installation(payload: InstallPayload) -> Result<String, String> {
+async fn execute_system_installation(
+    app: tauri::AppHandle,
+    payload: InstallPayload,
+) -> Result<String, String> {
     // Bölümleme/kurulum dakikalarca sürer; tamamı bloklayıcı iş parçacığında.
-    tauri::async_runtime::spawn_blocking(move || execute_system_installation_blocking(payload))
+    tauri::async_runtime::spawn_blocking(move || execute_system_installation_blocking(app, payload))
         .await
         .map_err(|e| format!("Kurulum görevi yürütülemedi: {}", e))?
 }
 
-fn execute_system_installation_blocking(payload: InstallPayload) -> Result<String, String> {
+fn execute_system_installation_blocking(
+    app: tauri::AppHandle,
+    payload: InstallPayload,
+) -> Result<String, String> {
     let target = payload.target_disk.trim();
     if !is_valid_disk_target(target) {
         return Err("Geçersiz hedef disk seçimi (Örn: /dev/sda, /dev/nvme0n1 veya /dev/mmcblk0; bölümler seçilemez).".to_string());
@@ -4063,6 +4120,9 @@ fn execute_system_installation_blocking(payload: InstallPayload) -> Result<Strin
                 "Canlı oturumun çalıştığı önyükleme medyası hedef disk olarak seçilemez."
                     .to_string(),
             );
+        }
+        if !Path::new(target).exists() {
+            return Err(format!("Hedef disk aygıtı bulunamadı: {}", target));
         }
     }
 
@@ -4105,19 +4165,85 @@ fn execute_system_installation_blocking(payload: InstallPayload) -> Result<Strin
                 .map_err(|e| format!("'{}' süreci başlatılamadı: {}", prog, e))?;
             if !res.status.success() {
                 let err = String::from_utf8_lossy(&res.stderr);
+                let out = String::from_utf8_lossy(&res.stdout);
                 cleanup_mounts();
                 return Err(format!(
-                    "'{}' işlemi başarısız oldu (Çıkış Kodu {}): {}",
+                    "'{}' işlemi başarısız oldu (Çıkış Kodu {}): {} {}",
                     prog,
                     res.status.code().unwrap_or(-1),
-                    err.trim()
+                    err.trim(),
+                    out.trim()
                 ));
             }
             Ok(())
         };
 
+        let chroot_cmd = |args: &[&str]| -> std::io::Result<std::process::Output> {
+            let mut full = Vec::with_capacity(args.len() + 4);
+            full.push("/target");
+            full.push("/usr/bin/env");
+            full.push("PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin");
+            full.push("DEBIAN_FRONTEND=noninteractive");
+            full.extend_from_slice(args);
+            root_command("chroot", &full)
+        };
+
+        // 0. Ön Denetim: root yetkisi doğrulaması
+        emit_install_progress(
+            &app,
+            5,
+            &format!("[1/6] Root yetkileri ve hedef disk ({}) doğrulanıyor...", target),
+            "muted",
+        );
+        let id_check = root_command("id", &["-u"])
+            .map_err(|e| format!("Root yetkisi kontrol edilemedi: {}", e))?;
+        let uid_str = String::from_utf8_lossy(&id_check.stdout).trim().to_string();
+        if !id_check.status.success() || uid_str != "0" {
+            return Err("Kurulum başlatılamadı: Yönetici (root/sudo) yetkisi alınamadı.".to_string());
+        }
+
+        // Eski bağlamaları ve hedef disk üzerindeki açık takas/bölüm kilitlerini temizle
+        cleanup_mounts();
+        if let Ok(ls_out) = Command::new("lsblk")
+            .args(["-ln", "-o", "PATH,TYPE", target])
+            .output()
+        {
+            let text = String::from_utf8_lossy(&ls_out.stdout);
+            let mut has_lvm_crypt = false;
+            let mut paths = Vec::new();
+            for line in text.lines() {
+                let mut cols = line.split_whitespace();
+                if let (Some(p), Some(tp)) = (cols.next(), cols.next()) {
+                    if tp == "lvm" || tp == "crypt" {
+                        has_lvm_crypt = true;
+                    }
+                    paths.push(p.to_string());
+                }
+            }
+            for p in paths.iter().rev() {
+                let _ = root_command("swapoff", &[p]);
+                let _ = root_command("umount", &["-lf", p]);
+            }
+            if has_lvm_crypt {
+                let _ = root_command("vgchange", &["-an"]);
+                let _ = root_command("dmsetup", &["remove_all"]);
+            }
+        }
+
         // 1. Bölümleme: Hibrit BIOS + UEFI Uyumlu GPT Bölümleme
+        emit_install_progress(
+            &app,
+            12,
+            &format!("[2/6] {} diski temizleniyor ve GPT bölümleri oluşturuluyor...", target),
+            "muted",
+        );
         let _ = root_command("wipefs", &["-a", "-f", target]);
+        let _ = root_command("sgdisk", &["--zap-all", target]);
+        let dd_arg = format!("of={}", target);
+        let _ = root_command(
+            "dd",
+            &["if=/dev/zero", &dd_arg, "bs=1M", "count=2", "conv=notrunc"],
+        );
         run_step("parted", &["-s", target, "mklabel", "gpt"])?;
         run_step(
             "parted",
@@ -4135,7 +4261,7 @@ fn execute_system_installation_blocking(payload: InstallPayload) -> Result<Strin
         )?;
 
         let _ = root_command("partprobe", &[target]);
-        let _ = root_command("udevadm", &["settle"]);
+        let _ = root_command("udevadm", &["settle", "--timeout=15"]);
 
         let (_bios_part, efi_part, root_part) =
             if target.chars().last().map_or(false, |c| c.is_ascii_digit()) {
@@ -4152,41 +4278,96 @@ fn execute_system_installation_blocking(payload: InstallPayload) -> Result<Strin
                 )
             };
 
+        let mut parts_ready = false;
+        for attempt in 0..40 {
+            if Path::new(&efi_part).exists() && Path::new(&root_part).exists() {
+                parts_ready = true;
+                break;
+            }
+            if attempt > 0 && attempt % 10 == 0 {
+                let _ = root_command("partprobe", &[target]);
+                let _ = root_command("udevadm", &["settle", "--timeout=5"]);
+            }
+            std::thread::sleep(Duration::from_millis(250));
+        }
+        if !parts_ready {
+            cleanup_mounts();
+            return Err(format!(
+                "Disk bölümleri ({} ve {}) çekirdek tarafından tanınamadı. Lütfen diskin başka bir işlem tarafından kullanılmadığından emin olun.",
+                efi_part, root_part
+            ));
+        }
+
         // 2. Dosya Sistemleri
-        run_step("mkfs.vfat", &["-F32", &efi_part])?;
+        emit_install_progress(
+            &app,
+            22,
+            &format!("[2/6] Dosya sistemleri biçimlendiriliyor ({}, {})...", efi_part, root_part),
+            "muted",
+        );
+        run_step("mkfs.vfat", &["-F", "32", "-n", "ANKORA_EFI", &efi_part])?;
         run_step("mkfs.ext4", &["-F", "-L", "ANKORA_ROOT", &root_part])?;
 
-        // 3. Bağlama Noktaları (Mounts) — dizinler de root gerektirir
-        let _ = run_step("mkdir", &["-p", "/target"]);
+        // 3. Bağlama Noktaları (Mounts)
+        run_step("mkdir", &["-p", "/target"])?;
         run_step("mount", &[&root_part, "/target"])?;
-        let _ = run_step("mkdir", &["-p", "/target/boot/efi"]);
+        run_step("mkdir", &["-p", "/target/boot/efi"])?;
         run_step("mount", &[&efi_part, "/target/boot/efi"])?;
 
-        // 4. Kök Dosya Sistemini Kopyalama (Önce tertemiz squashfs kontrolü)
+        // 4. Kök Dosya Sistemini Kopyalama (Önce doğrulanmış unsquashfs, yoksa rsync)
+        emit_install_progress(
+            &app,
+            32,
+            "[3/6] Canlı sistem dosyaları hedef diske açılıyor (bu işlem birkaç dakika sürebilir)...",
+            "muted",
+        );
         let sq_paths = [
             "/run/live/medium/live/filesystem.squashfs",
             "/lib/live/mount/medium/live/filesystem.squashfs",
             "/run/live/rootfs/filesystem.squashfs",
         ];
         let found_sq = sq_paths.iter().find(|p| Path::new(p).is_file());
+        let has_unsquashfs = Path::new("/usr/bin/unsquashfs").is_file()
+            || Path::new("/bin/unsquashfs").is_file()
+            || Command::new("which")
+                .arg("unsquashfs")
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .status()
+                .map(|s| s.success())
+                .unwrap_or(false);
+
+        let mut squash_ok = false;
         if let Some(sq) = found_sq {
-            let _ = root_command("unsquashfs", &["-f", "-d", "/target", sq]);
-            if Path::new("/usr/share/ayaz/vendor-debs/eta-touchdrv.deb").is_file() {
-                let _ = root_command("mkdir", &["-p", "/target/usr/share/ayaz/vendor-debs"]);
-                let _ = root_command(
-                    "cp",
-                    &[
-                        "/usr/share/ayaz/vendor-debs/eta-touchdrv.deb",
-                        "/target/usr/share/ayaz/vendor-debs/eta-touchdrv.deb",
-                    ],
+            if has_unsquashfs {
+                if let Ok(res) = root_command("unsquashfs", &["-f", "-no-progress", "-d", "/target", sq]) {
+                    if res.status.success() {
+                        squash_ok = true;
+                    } else {
+                        let err = String::from_utf8_lossy(&res.stderr);
+                        emit_install_progress(
+                            &app,
+                            35,
+                            &format!("[UYARI] unsquashfs hata verdi ({}), rsync yedeğine geçiliyor...", err.trim()),
+                            "muted",
+                        );
+                    }
+                }
+            } else {
+                emit_install_progress(
+                    &app,
+                    35,
+                    "[BİLGİ] unsquashfs bulunamadı, rsync tam sistem kopyalaması kullanılıyor...",
+                    "muted",
                 );
             }
-        } else {
+        }
+
+        if !squash_ok {
             run_step(
                 "rsync",
                 &[
                     "-aAX",
-                    "--info=progress2",
                     "/",
                     "/target/",
                     "--exclude=/proc/*",
@@ -4200,19 +4381,56 @@ fn execute_system_installation_blocking(payload: InstallPayload) -> Result<Strin
                     "--exclude=/home/*",
                     "--exclude=/lib/live/mount/*",
                     "--exclude=/var/log/*",
+                    "--exclude=/lost+found",
                 ],
             )?;
         }
 
-        // 5. /etc/fstab Yapılandırması (UUID eşlemesi ile kalıcı ve hatasız bağlama)
-        let root_uuid = Command::new("blkid")
-            .args(["-s", "UUID", "-o", "value", &root_part])
-            .output()
+        // Bütünlük Kapısı: hedef kökte /etc ve /usr/bin yoksa devam etme
+        if !Path::new("/target/etc").is_dir() || !Path::new("/target/usr/bin").is_dir() {
+            cleanup_mounts();
+            return Err("Kök dosya sistemi kopyalama başarısız oldu (/target/etc veya /target/usr/bin eksik).".to_string());
+        }
+
+        let _ = root_command(
+            "mkdir",
+            &[
+                "-p",
+                "/target/proc",
+                "/target/sys",
+                "/target/dev",
+                "/target/dev/pts",
+                "/target/run",
+                "/target/tmp",
+                "/target/mnt",
+                "/target/media",
+                "/target/var/log",
+                "/target/var/tmp",
+            ],
+        );
+        let _ = root_command("chmod", &["1777", "/target/tmp", "/target/var/tmp"]);
+
+        if Path::new("/usr/share/ayaz/vendor-debs/eta-touchdrv.deb").is_file() {
+            let _ = root_command("mkdir", &["-p", "/target/usr/share/ayaz/vendor-debs"]);
+            let _ = root_command(
+                "cp",
+                &[
+                    "/usr/share/ayaz/vendor-debs/eta-touchdrv.deb",
+                    "/target/usr/share/ayaz/vendor-debs/eta-touchdrv.deb",
+                ],
+            );
+        }
+
+        // 5. /etc/fstab Yapılandırması (Root blkid -p UUID eşlemesi)
+        emit_install_progress(&app, 62, "[4/6] /etc/fstab ve ağ kimliği yapılandırılıyor...", "muted");
+        let root_uuid = root_command("blkid", &["-p", "-s", "UUID", "-o", "value", &root_part])
+            .ok()
+            .filter(|o| o.status.success())
             .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
             .unwrap_or_default();
-        let efi_uuid = Command::new("blkid")
-            .args(["-s", "UUID", "-o", "value", &efi_part])
-            .output()
+        let efi_uuid = root_command("blkid", &["-p", "-s", "UUID", "-o", "value", &efi_part])
+            .ok()
+            .filter(|o| o.status.success())
             .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
             .unwrap_or_default();
 
@@ -4231,7 +4449,10 @@ fn execute_system_installation_blocking(payload: InstallPayload) -> Result<Strin
             "# /etc/fstab generated by Ankora Linux Installer\n{} / ext4 errors=remount-ro 0 1\n{} /boot/efi vfat umask=0077 0 1\ntmpfs /tmp tmpfs defaults,noatime,mode=1777 0 0\n",
             root_dev, efi_dev
         );
-        let _ = root_write("/target/etc/fstab", &fstab_content);
+        if let Err(e) = root_write("/target/etc/fstab", &fstab_content) {
+            cleanup_mounts();
+            return Err(format!("/etc/fstab dosyası yazılamadı: {}", e));
+        }
 
         // 6. Hostname ve Hosts
         if let Err(e) = root_write("/target/etc/hostname", &format!("{}\n", hostname)) {
@@ -4242,14 +4463,17 @@ fn execute_system_installation_blocking(payload: InstallPayload) -> Result<Strin
             "127.0.0.1\tlocalhost\n127.0.1.1\t{}\n\n::1\tlocalhost ip6-localhost ip6-loopback\nff02::1\tip6-allnodes\nff02::2\tip6-allrouters\n",
             hostname
         );
-        let _ = root_write("/target/etc/hosts", &hosts_content);
+        if let Err(e) = root_write("/target/etc/hosts", &hosts_content) {
+            cleanup_mounts();
+            return Err(format!("/etc/hosts dosyası yazılamadı: {}", e));
+        }
 
         // 7. Chroot için Gerekli Bind Mount'lar
         let bind_mounts = ["/dev", "/dev/pts", "/proc", "/sys", "/run"];
         for bm in &bind_mounts {
             let target_bm = format!("/target{}", bm);
             let _ = root_command("mkdir", &["-p", &target_bm]);
-            let _ = root_command("mount", &["--bind", bm, &target_bm]);
+            run_step("mount", &["--bind", bm, &target_bm])?;
         }
         if Path::new("/sys/firmware/efi/efivars").is_dir() {
             let _ = root_command("mkdir", &["-p", "/target/sys/firmware/efi/efivars"]);
@@ -4264,6 +4488,12 @@ fn execute_system_installation_blocking(payload: InstallPayload) -> Result<Strin
         }
 
         // 8. Kullanıcı Oluşturma: ankora zaten varsa ezmeden ev dizinini yapılandır
+        emit_install_progress(
+            &app,
+            72,
+            &format!("[5/6] Kullanıcı hesabı ({}) ve bölge ayarları yapılandırılıyor...", username),
+            "muted",
+        );
         if username == "ankora" {
             let _ = root_command("mkdir", &["-p", "/target/home/ankora"]);
             let _ = root_command(
@@ -4273,26 +4503,19 @@ fn execute_system_installation_blocking(payload: InstallPayload) -> Result<Strin
                     "cp -rT /target/etc/skel /target/home/ankora 2>/dev/null || true",
                 ],
             );
-            let _ = root_command(
-                "chroot",
-                &["/target", "chown", "-R", "ankora:ankora", "/home/ankora"],
-            );
-            let _ = root_command(
-                "chroot",
-                &[
-                    "/target",
-                    "usermod",
-                    "-aG",
-                    "sudo,audio,video,plugdev,netdev,lp,scanner",
-                    "ankora",
-                ],
-            );
-            let _ = root_command("chroot", &["/target", "usermod", "-U", "ankora"]);
+            let _ = chroot_cmd(&["chown", "-R", "ankora:ankora", "/home/ankora"]);
+            let _ = chroot_cmd(&[
+                "usermod",
+                "-aG",
+                "sudo,audio,video,plugdev,netdev,lp,scanner",
+                "ankora",
+            ]);
+            let _ = chroot_cmd(&["usermod", "-U", "ankora"]);
         } else {
-            run_step(
-                "chroot",
-                &[
-                    "/target",
+            let exists_res = chroot_cmd(&["id", username]);
+            let already_exists = exists_res.map(|o| o.status.success()).unwrap_or(false);
+            if !already_exists {
+                let useradd_res = chroot_cmd(&[
                     "useradd",
                     "-m",
                     "-s",
@@ -4300,46 +4523,79 @@ fn execute_system_installation_blocking(payload: InstallPayload) -> Result<Strin
                     "-G",
                     "sudo,audio,video,plugdev,netdev,lp,scanner",
                     username,
-                ],
-            )?;
+                ])
+                .map_err(|e| format!("useradd başlatılamadı: {}", e))?;
+                if !useradd_res.status.success() {
+                    let err = String::from_utf8_lossy(&useradd_res.stderr);
+                    cleanup_mounts();
+                    return Err(format!("Kullanıcı oluşturulamadı ({}): {}", username, err.trim()));
+                }
+            }
+        }
+        let clean_fullname: String = payload
+            .fullname
+            .trim()
+            .chars()
+            .filter(|c| !matches!(c, ':' | '\n' | '\r' | '\0'))
+            .take(64)
+            .collect();
+        if !clean_fullname.is_empty() {
+            let _ = chroot_cmd(&["usermod", "-c", &clean_fullname, username]);
         }
 
         // 9. Parola Belirleme: Parola doğrudan STDIN borusundan beslenir
         let mut chpasswd_cmd = if sudo_available() {
             let mut c = Command::new("sudo");
-            c.args(["-n", "chroot"]);
+            c.args([
+                "-n",
+                "chroot",
+                "/target",
+                "/usr/bin/env",
+                "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+                "chpasswd",
+            ]);
             c
         } else {
-            Command::new("chroot")
+            let mut c = Command::new("chroot");
+            c.args([
+                "/target",
+                "/usr/bin/env",
+                "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+                "chpasswd",
+            ]);
+            c
         };
         let mut chpasswd_child = chpasswd_cmd
-            .args(["/target", "chpasswd"])
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .spawn()
-            .map_err(|e| format!("chpasswd süreci başlatılamadı: {}", e))?;
+            .map_err(|e| {
+                cleanup_mounts();
+                format!("chpasswd süreci başlatılamadı: {}", e)
+            })?;
 
         if let Some(mut stdin) = chpasswd_child.stdin.take() {
             let pair = format!("{}:{}\n", username, password);
-            stdin
-                .write_all(pair.as_bytes())
-                .map_err(|e| format!("Parola stdin'e aktarılamadı: {}", e))?;
+            if let Err(e) = stdin.write_all(pair.as_bytes()) {
+                cleanup_mounts();
+                return Err(format!("Parola stdin'e aktarılamadı: {}", e));
+            }
             drop(stdin);
         }
-        let chpasswd_res = chpasswd_child
-            .wait_with_output()
-            .map_err(|e| e.to_string())?;
+        let chpasswd_res = chpasswd_child.wait_with_output().map_err(|e| {
+            cleanup_mounts();
+            e.to_string()
+        })?;
         if !chpasswd_res.status.success() {
             cleanup_mounts();
-            return Err("Kullanıcı parolası güncellenemedi.".to_string());
+            return Err(format!(
+                "Kullanıcı parolası güncellenemedi: {}",
+                String::from_utf8_lossy(&chpasswd_res.stderr).trim()
+            ));
         }
 
-        // 10. Canlı oturumun izleri kurulu sisteme taşımaz: rsync /etc'i de
-        //     kopyaladığı için `ankora` hesabının herkese açık bilinen parolası
-        //     ve şifresiz sudo yetkisi kurulan makinede parolasız root açardı.
-        //     Önce otomatik giriş satırı kurulu kullanıcıya bağlanır, ancak
-        //     ondan sonra canlı hesabın parolası kilitlenir.
+        // 10. Canlı oturumun izleri kurulu sisteme taşınmaz
         let inittab_path = "/target/etc/inittab";
         let mut inittab_yazildi = false;
         if let Ok(icerik) = fs::read_to_string(inittab_path) {
@@ -4373,25 +4629,13 @@ fn execute_system_installation_blocking(payload: InstallPayload) -> Result<Strin
         }
 
         if username == "ankora" {
-            // Canlı kullanıcı seçildiyse: parola korumalı standart sudoers
             let _ = root_write("/target/etc/sudoers.d/ankora", "ankora ALL=(ALL:ALL) ALL\n");
             let _ = root_command("chmod", &["0440", "/target/etc/sudoers.d/ankora"]);
         } else {
             let _ = root_command("rm", &["-f", "/target/etc/sudoers.d/ankora"]);
-            // Kurulu sistem güvenliği: Kullanıcı sudo grubuna eklenir (parolalı tam yönetim).
-            // Kullanıcıya sınırsız şifresiz NOPASSWD: ALL verilmez; yalnızca onaylı sistem yardımcıları NOPASSWD alır.
-            let _ = root_command("chroot", &["/target", "usermod", "-aG", "sudo", &username]);
-            let _ = root_command("chroot", &["/target", "gpasswd", "-d", "ankora", "sudo"]);
-            let _ = root_command(
-                "chroot",
-                &[
-                    "/target",
-                    "sed",
-                    "-i",
-                    "/^ankora /d",
-                    "/etc/sudoers.d/ankora-updater",
-                ],
-            );
+            let _ = chroot_cmd(&["usermod", "-aG", "sudo", username]);
+            let _ = chroot_cmd(&["gpasswd", "-d", "ankora", "sudo"]);
+            let _ = chroot_cmd(&["sed", "-i", "/^ankora /d", "/etc/sudoers.d/ankora-updater"]);
             let upd_entry = format!(
                 "{0} ALL=(root) NOPASSWD: /usr/local/bin/ayaz-update-helper --fetch-and-install https\\://github.com/Ankora-Linux/*, \
                  /usr/local/bin/ayaz-update-helper --check-and-apply, \
@@ -4426,14 +4670,11 @@ fn execute_system_installation_blocking(payload: InstallPayload) -> Result<Strin
             let _ = root_write("/target/etc/sudoers.d/ankora-updater", &upd_entry);
             let _ = root_command("chmod", &["0440", "/target/etc/sudoers.d/ankora-updater"]);
             if inittab_yazildi {
-                // Otomatik giriş artık canlı hesaba bağlı değil: bilinen parola
-                // geçersiz kılınır, hesap silinmez ki başka referanslar kırılmasın.
-                let _ = root_command("chroot", &["/target", "usermod", "-L", "ankora"]);
+                let _ = chroot_cmd(&["usermod", "-L", "ankora"]);
             }
         }
 
-        // 10b. Bölge / dil / saat kurulu sisteme taşınır: kurulum sihirbazındaki
-        // seçimler (yoksa canlı oturumun değerleri) hedefe yazılır.
+        // 10b. Bölge / dil / saat kurulu sisteme taşınır
         let want_tz = payload
             .timezone
             .clone()
@@ -4458,12 +4699,18 @@ fn execute_system_installation_blocking(payload: InstallPayload) -> Result<Strin
                 "/target/etc/localtime",
             ],
         );
-        let _ = root_command("chroot", &["/target", "sh", "-c", "DEBIAN_FRONTEND=noninteractive dpkg-reconfigure -f noninteractive tzdata 2>/dev/null; true"]);
+        let _ = chroot_cmd(&["dpkg-reconfigure", "-f", "noninteractive", "tzdata"]);
         let (kb_layout, kb_variant) = match want_kb.as_str() {
             "tr_f" => ("tr", "f"),
             other => (other, ""),
         };
-        let _ = root_write("/target/etc/default/keyboard", &format!("XKBMODEL=\"pc105\"\nXKBLAYOUT=\"{}\"\nXKBVARIANT=\"{}\"\nXKBOPTIONS=\"\"\nBACKSPACE=\"guess\"\n", kb_layout, kb_variant));
+        let _ = root_write(
+            "/target/etc/default/keyboard",
+            &format!(
+                "XKBMODEL=\"pc105\"\nXKBLAYOUT=\"{}\"\nXKBVARIANT=\"{}\"\nXKBOPTIONS=\"\"\nBACKSPACE=\"guess\"\n",
+                kb_layout, kb_variant
+            ),
+        );
         let lang_short = want_lang.split('.').next().unwrap_or(&want_lang);
         let _ = root_write(
             "/target/etc/default/locale",
@@ -4475,11 +4722,24 @@ fn execute_system_installation_blocking(payload: InstallPayload) -> Result<Strin
                 want_lang
             ),
         );
-        let _ = root_command("chroot", &["/target", "sh", "-c", &format!("command -v update-locale >/dev/null && update-locale LANG={} 2>/dev/null; command -v locale-gen >/dev/null && locale-gen {} en_US.UTF-8 2>/dev/null; true", want_lang, want_lang)]);
+        let _ = chroot_cmd(&[
+            "sh",
+            "-c",
+            &format!(
+                "command -v update-locale >/dev/null && update-locale LANG={} 2>/dev/null; command -v locale-gen >/dev/null && locale-gen {} en_US.UTF-8 2>/dev/null; true",
+                want_lang, want_lang
+            ),
+        ]);
 
-        // ZRAM Takas Servisi ve Optimizasyonunu kurulu sisteme kur
-        let _ = root_write("/target/etc/default/rcS", "# Ankora Linux 4.7.0 Hızlı Paralel Açılış\nCONCURRENCY=makefile\nUTC=yes\nVERBOSE=no\nFSCKFIX=no\n");
-        let _ = root_write("/target/etc/sysctl.d/99-zram.conf", "vm.swappiness = 100\nvm.vfs_cache_pressure = 50\nvm.watermark_boost_factor = 0\nvm.dirty_background_ratio = 5\nvm.dirty_ratio = 10\n");
+        // ZRAM Takas Servisi
+        let _ = root_write(
+            "/target/etc/default/rcS",
+            "# Ankora Linux 4.7.0 Hızlı Paralel Açılış\nCONCURRENCY=makefile\nUTC=yes\nVERBOSE=no\nFSCKFIX=no\n",
+        );
+        let _ = root_write(
+            "/target/etc/sysctl.d/99-zram.conf",
+            "vm.swappiness = 100\nvm.vfs_cache_pressure = 50\nvm.watermark_boost_factor = 0\nvm.dirty_background_ratio = 5\nvm.dirty_ratio = 10\n",
+        );
         let zram_script = r#"#!/bin/sh
 ### BEGIN INIT INFO
 # Provides:          zram-swap
@@ -4530,69 +4790,80 @@ exit 0
 "#;
         let _ = root_write("/target/etc/init.d/zram-swap", zram_script);
         let _ = root_command("chmod", &["0755", "/target/etc/init.d/zram-swap"]);
-        let _ = root_command(
-            "chroot",
-            &[
-                "/target",
-                "update-rc.d",
-                "zram-swap",
-                "defaults",
-                "05",
-                "95",
-            ],
-        );
+        let _ = chroot_cmd(&["update-rc.d", "zram-swap", "defaults", "05", "95"]);
 
-        // 11. Grub & Temizlik (Hibrit EFI + BIOS desteği)
+        // 11. Canlı oturum paketlerini ÖNCE temizle, sonra GRUB & initramfs kur
+        emit_install_progress(
+            &app,
+            84,
+            "[6/6] Canlı kalıntılar temizleniyor ve GRUB önyükleyici (UEFI + BIOS) kuruluyor...",
+            "muted",
+        );
+        let _ = chroot_cmd(&[
+            "sh",
+            "-c",
+            "dpkg --purge live-config live-config-sysvinit live-boot live-boot-initramfs-tools live-tools 2>/dev/null || true; rm -f /etc/rcS.d/S*live-config* /etc/init.d/live-config*",
+        ]);
+
         let is_efi = Path::new("/sys/firmware/efi").is_dir();
         if is_efi {
-            let _ = run_step(
-                "chroot",
-                &[
-                    "/target",
-                    "grub-install",
-                    "--target=x86_64-efi",
-                    "--efi-directory=/boot/efi",
-                    "--bootloader-id=ankora",
-                    "--recheck",
-                ],
-            );
-            let _ = root_command(
-                "chroot",
-                &[
-                    "/target",
-                    "grub-install",
-                    "--target=x86_64-efi",
-                    "--efi-directory=/boot/efi",
-                    "--bootloader-id=ankora",
-                    "--removable",
-                    "--recheck",
-                ],
-            );
-            let _ = root_command(
-                "chroot",
-                &[
-                    "/target",
-                    "grub-install",
-                    "--target=i386-pc",
-                    "--recheck",
-                    target,
-                ],
-            );
+            let r_nvram = chroot_cmd(&[
+                "grub-install",
+                "--target=x86_64-efi",
+                "--efi-directory=/boot/efi",
+                "--bootloader-id=ankora",
+                "--recheck",
+            ]);
+            let r_rem = chroot_cmd(&[
+                "grub-install",
+                "--target=x86_64-efi",
+                "--efi-directory=/boot/efi",
+                "--bootloader-id=ankora",
+                "--removable",
+                "--no-nvram",
+                "--recheck",
+            ]);
+            let nvram_ok = r_nvram.as_ref().map(|o| o.status.success()).unwrap_or(false);
+            let rem_ok = r_rem.as_ref().map(|o| o.status.success()).unwrap_or(false);
+            if !nvram_ok && !rem_ok {
+                let err1 = r_nvram
+                    .as_ref()
+                    .map(|o| String::from_utf8_lossy(&o.stderr).trim().to_string())
+                    .unwrap_or_default();
+                let err2 = r_rem
+                    .as_ref()
+                    .map(|o| String::from_utf8_lossy(&o.stderr).trim().to_string())
+                    .unwrap_or_default();
+                cleanup_mounts();
+                return Err(format!(
+                    "UEFI GRUB önyükleyici kurulamadı: {} | {}",
+                    err1, err2
+                ));
+            }
+            let _ = chroot_cmd(&["grub-install", "--target=i386-pc", "--recheck", target]);
         } else {
-            run_step(
-                "chroot",
-                &[
-                    "/target",
-                    "grub-install",
-                    "--target=i386-pc",
-                    "--recheck",
-                    target,
-                ],
-            )?;
+            let r_bios = chroot_cmd(&["grub-install", "--target=i386-pc", "--recheck", target])
+                .map_err(|e| {
+                    cleanup_mounts();
+                    format!("BIOS grub-install başlatılamadı: {}", e)
+                })?;
+            if !r_bios.status.success() {
+                let err = String::from_utf8_lossy(&r_bios.stderr).trim().to_string();
+                cleanup_mounts();
+                return Err(format!("BIOS GRUB önyükleyici kurulamadı: {}", err));
+            }
+            let _ = chroot_cmd(&[
+                "grub-install",
+                "--target=x86_64-efi",
+                "--efi-directory=/boot/efi",
+                "--bootloader-id=ankora",
+                "--removable",
+                "--no-nvram",
+                "--recheck",
+            ]);
         }
-        // 11b. Ankora önyükleyici görünümü: modern GRUB menüsü + açılış ekranı.
-        // Tema ve varsayılanlar canlı sistemden (/usr/share/ayaz) hedefe
-        // taşınır; eksiklerse kurulum durmaz, yalnızca varsayılan GRUB kalır.
+
+        // 11b. Ankora önyükleyici görünümü: modern GRUB menüsü + açılış ekranı
         let grub_theme_src = "/usr/share/ayaz/grub-theme-ankora/theme.txt";
         let grub_default_src = "/usr/share/ayaz/ankora-grub-default";
         let plymouth_src_dir = "/usr/share/ayaz/plymouth-theme-ankora";
@@ -4607,7 +4878,7 @@ exit 0
         if Path::new(grub_default_src).is_file() {
             let _ = root_command("cp", &[grub_default_src, "/target/etc/default/grub"]);
         } else {
-            let grub_defaults = "GRUB_DEFAULT=0\nGRUB_TIMEOUT_STYLE=menu\nGRUB_TIMEOUT=5\nGRUB_DISTRIBUTOR=\"Ankora Linux\"\nGRUB_CMDLINE_LINUX_DEFAULT=\"quiet splash loglevel=3\"\nGRUB_CMDLINE_LINUX=\"\"\nGRUB_GFXMODE=1920x1080,1366x768,auto\nGRUB_GFXPAYLOAD_LINUX=keep\nGRUB_DISABLE_OS_PROBER=false\nGRUB_DISABLE_RECOVERY=true\n";
+            let grub_defaults = "GRUB_DEFAULT=0\nGRUB_TIMEOUT_STYLE=menu\nGRUB_TIMEOUT=5\nGRUB_DISTRIBUTOR=\"Ankora Linux\"\nGRUB_CMDLINE_LINUX_DEFAULT=\"quiet splash loglevel=3\"\nGRUB_CMDLINE_LINUX=\"\"\nGRUB_GFXMODE=1920x1080,1366x768,auto\nGRUB_GFXPAYLOAD_LINUX=auto\nGRUB_DISABLE_OS_PROBER=false\nGRUB_DISABLE_RECOVERY=true\n";
             let with_theme = if theme_ok {
                 format!(
                     "{}GRUB_THEME=/boot/grub/themes/ankora/theme.txt\n",
@@ -4618,17 +4889,13 @@ exit 0
             };
             let _ = root_write("/target/etc/default/grub", &with_theme);
         }
-        // Plymouth açılış ekranı: tema hedefe kopyalanır, varsayılan yapılır.
-        // initramfs yeniden derlemesi 12. adımda zaten çalışır.
+
         if Path::new(&format!("{}/ankora.plymouth", plymouth_src_dir)).is_file() {
             let _ = root_command("mkdir", &["-p", "/target/usr/share/plymouth/themes/ankora"]);
             let _ = root_command("sh", &["-c", "cp -r /usr/share/ayaz/plymouth-theme-ankora/* /target/usr/share/plymouth/themes/ankora/ 2>/dev/null || true"]);
-            let _ = root_command(
-                "chroot",
-                &["/target", "plymouth-set-default-theme", "-R", "ankora"],
-            );
+            let _ = chroot_cmd(&["plymouth-set-default-theme", "-R", "ankora"]);
         }
-        // Faz tahta dokunmatik sürücüsü kurulu sisteme taşınır.
+
         let faz_files = [
             ("/usr/bin/eta-touchdrv", "/target/usr/bin/eta-touchdrv"),
             (
@@ -4652,9 +4919,20 @@ exit 0
                 let _ = root_command("cp", &["-af", src, dst]);
             }
         }
-        run_step("chroot", &["/target", "update-grub"])?;
 
-        // 12. Sistem Temizliği: machine-id sıfırlama ve eski SSH anahtarlarının temizlenmesi
+        // 12. initramfs ve update-grub doğrulaması
+        let _ = chroot_cmd(&["update-initramfs", "-u", "-k", "all"]);
+        let upd_grub = chroot_cmd(&["update-grub"]).map_err(|e| {
+            cleanup_mounts();
+            format!("update-grub çalıştırılamadı: {}", e)
+        })?;
+        if !upd_grub.status.success() || !Path::new("/target/boot/grub/grub.cfg").is_file() {
+            let err = String::from_utf8_lossy(&upd_grub.stderr).trim().to_string();
+            cleanup_mounts();
+            return Err(format!("grub.cfg oluşturulamadı (update-grub): {}", err));
+        }
+
+        // Machine ID, SSH ve log temizliği
         let _ = root_command(
             "rm",
             &[
@@ -4663,42 +4941,29 @@ exit 0
                 "/target/var/lib/dbus/machine-id",
             ],
         );
-        let _ = root_command(
-            "chroot",
-            &[
-                "/target",
-                "dbus-uuidgen",
-                "--ensure=/var/lib/dbus/machine-id",
-            ],
-        );
+        let _ = chroot_cmd(&["dbus-uuidgen", "--ensure=/var/lib/dbus/machine-id"]);
         let _ = root_command(
             "cp",
             &["/target/var/lib/dbus/machine-id", "/target/etc/machine-id"],
         );
         let _ = root_command("sh", &["-c", "rm -f /target/etc/ssh/ssh_host_* /target/var/lib/dhcp/* /target/root/.bash_history"]);
         let _ = root_command("sh", &["-c", "find /target/var/log -type f -delete 2>/dev/null; rm -rf /target/var/tmp/* 2>/dev/null; true"]);
-        // Canlı paketler kurulu sistemde kalırsa live-config her açılışta
-        // canlı kullanıcıyı ve otomatik girişi yeniden kurabilir.
-        let _ = root_command("sh", &["-c", "chroot /target dpkg --purge live-config live-config-sysvinit live-boot live-boot-initramfs-tools live-tools 2>/dev/null; rm -f /target/etc/rcS.d/S*live-config* /target/etc/init.d/live-config*; true"]);
-        let _ = root_command(
-            "chroot",
-            &["/target", "update-initramfs", "-u", "-k", "all"],
-        );
-        let _ = root_command(
+        let _ = chroot_cmd(&[
             "sh",
-            &[
-                "-c",
-                "[ -x /target/usr/bin/ssh-keygen ] && chroot /target ssh-keygen -A; true",
-            ],
-        );
+            "-c",
+            "[ -x /usr/bin/ssh-keygen ] && ssh-keygen -A; true",
+        ]);
+        let _ = root_command("sync", &[]);
 
         cleanup_mounts();
+        emit_install_progress(&app, 100, "Ankora Linux kurulumu başarıyla tamamlandı.", "cmd");
 
         Ok("Ankora Linux başarıyla kuruldu.".to_string())
     }
 
     #[cfg(not(target_os = "linux"))]
     {
+        let _ = app;
         Ok(format!(
             "Kurulum simülasyonu başarıyla tamamlandı: {} -> {}",
             target, username
@@ -7520,6 +7785,67 @@ async fn set_desktop_layer(above: bool) -> Result<bool, String> {
     })
     .await
     .map_err(|e| format!("Masaüstü katmanı ayarlanamadı: {}", e))?
+}
+
+#[tauri::command]
+async fn set_openbox_margins(top: u32, bottom: u32) -> Result<bool, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let clamped_top = top.min(120);
+        let clamped_bottom = bottom.min(140);
+        #[cfg(target_os = "linux")]
+        {
+            if let Ok(home) = std::env::var("HOME") {
+                let ob_dir = PathBuf::from(&home).join(".config").join("openbox");
+                let rc_path = ob_dir.join("rc.xml");
+                if !rc_path.is_file() && Path::new("/etc/xdg/openbox/rc.xml").is_file() {
+                    let _ = fs::create_dir_all(&ob_dir);
+                    let _ = fs::copy("/etc/xdg/openbox/rc.xml", &rc_path);
+                }
+                if let Ok(mut content) = fs::read_to_string(&rc_path) {
+                    if let Some(m_start) = content.find("<margins>") {
+                        if let Some(m_end_rel) = content[m_start..].find("</margins>") {
+                            let m_end = m_start + m_end_rel + "</margins>".len();
+                            let block = format!(
+                                "<margins>\n    <top>{}</top>\n    <bottom>{}</bottom>\n    <left>0</left>\n    <right>0</right>\n  </margins>",
+                                clamped_top, clamped_bottom
+                            );
+                            content.replace_range(m_start..m_end, &block);
+                            let _ = fs::write(&rc_path, content);
+                            let _ = Command::new("openbox").arg("--reconfigure").output();
+                        }
+                    }
+                }
+            }
+            if clamped_top > 0 {
+                if let Ok(out) = Command::new("wmctrl").args(["-lG"]).output() {
+                    let stdout = String::from_utf8_lossy(&out.stdout);
+                    for line in stdout.lines() {
+                        let cols: Vec<&str> = line.split_whitespace().collect();
+                        if cols.len() >= 8 {
+                            let wid = cols[0];
+                            let title = cols[7..].join(" ");
+                            if title.contains("Ayaz") {
+                                continue;
+                            }
+                            if let Ok(y) = cols[3].parse::<i32>() {
+                                if y < clamped_top as i32 && is_valid_x11_window_id(wid) {
+                                    let geom = format!("0,-1,{},-1,-1", clamped_top);
+                                    let _ = Command::new("wmctrl")
+                                        .args(["-i", "-r", wid, "-e", &geom])
+                                        .output();
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        #[cfg(not(target_os = "linux"))]
+        let _ = (clamped_top, clamped_bottom);
+        Ok(true)
+    })
+    .await
+    .map_err(|e| format!("Openbox kenar boşluğu ayarlanamadı: {}", e))?
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -11590,6 +11916,7 @@ fn main() {
             minimize_native_window,
             minimize_all_windows,
             set_desktop_layer,
+            set_openbox_margins,
             get_display_modes,
             set_display_mode,
             get_removable_drives,

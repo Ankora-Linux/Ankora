@@ -33,6 +33,8 @@
   --desktop-bg: #040405;
 
   --taskbar-height: 44px;
+  --workarea-top: 0px;
+  --workarea-bottom: var(--taskbar-height, 44px);
   --radius-window: 8px;
   --radius-ui: 6px;
 
@@ -2820,10 +2822,10 @@ html, body {
 }
 
 .window.maximized {
-  top: 0 !important;
+  top: var(--workarea-top, 0px) !important;
   left: 0 !important;
   width: 100vw !important;
-  height: calc(100vh - var(--taskbar-height)) !important;
+  height: calc(100vh - var(--workarea-top, 0px) - var(--workarea-bottom, var(--taskbar-height))) !important;
   border-radius: 0 !important;
   border: none !important;
   transform: none !important;
@@ -6323,14 +6325,12 @@ body.is-light-theme .desktop-context-menu {
    ============================================================================== */
 .start-flyout {
   position: fixed;
-  bottom: calc(var(--taskbar-height) + 8px);
-  /* Başlat butonu ortada; menü de aynı eksende açılır, küçük ekranda kenara yapışır. */
-  left: max(10px, calc(50% - 230px));
-  /* Kullanıcı geri bildirimi: menü açılışta aşırı büyük duruyordu;
-     genişlik iki kez düşürüldü (580 → 500 → 460 px). */
-  width: 460px;
-  max-width: calc(100vw - 20px);
-  max-height: calc(100vh - var(--taskbar-height) - 76px);
+  bottom: calc(var(--workarea-bottom, var(--taskbar-height)) + 10px);
+  left: max(12px, calc(50% - 320px));
+  width: 640px;
+  height: 500px;
+  max-width: calc(100vw - 24px);
+  max-height: calc(100vh - var(--workarea-top, 0px) - var(--workarea-bottom, var(--taskbar-height)) - 22px);
   background: #12141c;
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 12px;
@@ -6543,8 +6543,9 @@ body.is-light-theme .desktop-context-menu {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: 4px 12px 6px;
-  max-height: 330px;
+  padding: 6px 12px 8px;
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
 }
 
@@ -6657,55 +6658,193 @@ body.is-light-theme .desktop-context-menu {
   color: var(--accent-active);
 }
 
-/* 2. Sabitlenmiş Uygulamalar Izgarası (Ayaz 6-Sütun Grid) */
-.start-pinned-grid {
-  padding: 6px 18px 14px 18px;
+/* 2. Klasik İki Sütunlu Dağıtım Uygulama Menüsü */
+.start-distro-body {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: 196px 1fr;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.start-cat-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px;
+  border-right: 1px solid var(--border-subtle);
+  background: rgba(0, 0, 0, 0.18);
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.start-cat-divider {
+  height: 1px;
+  margin: 5px 6px;
+  background: var(--border-subtle);
+}
+
+.start-cat-btn {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+
+.start-cat-btn svg {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  opacity: 0.85;
+}
+
+.start-cat-btn .cat-label {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.start-cat-btn .cat-count {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  opacity: 0.65;
+}
+
+.start-cat-btn:hover {
+  background: var(--bg-surface-hover);
+  color: var(--text-primary);
+}
+
+.start-cat-btn.active {
+  background: rgba(56, 189, 248, 0.14);
+  border-color: rgba(56, 189, 248, 0.34);
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.start-apps-pane {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.start-pane-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: 8px;
+  padding: 9px 14px 7px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.start-pane-heading-group {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.start-pane-title {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.start-pane-count {
+  font-size: 10.5px;
+  color: var(--text-muted);
+}
+
+.start-pane-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.start-apps-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 8px 10px 10px;
+  scrollbar-width: thin;
+}
+
+.start-pinned-grid,
+.dynamic-start-grid {
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.start-apps-scroll #start-installed-heading {
+  padding: 10px 4px 6px;
 }
 
 .pinned-app-card {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  text-align: center;
-  padding: 10px 8px;
-  border-radius: var(--radius-ui);
-  background: rgba(255, 255, 255, 0.02);
+  text-align: left;
+  gap: 10px;
+  padding: 6px 9px;
+  border-radius: 6px;
+  background: transparent;
   border: 1px solid transparent;
   cursor: pointer;
-  transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease, transform 0.15s ease;
+  min-width: 0;
+  transition: color 0.12s ease, background-color 0.12s ease, border-color 0.12s ease;
 }
 
-.pinned-app-card:hover {
+.pinned-app-card:hover,
+.pinned-app-card:focus-visible {
   background: var(--bg-surface-hover);
   border-color: var(--border-subtle);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
-}
-
-.pinned-app-card:active {
-  transform: translateY(0);
+  outline: none;
 }
 
 .pinned-icon-box {
-  width: 42px;
-  height: 42px;
-  border-radius: 8px;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border-radius: 7px;
   background: var(--bg-surface);
   border: 1px solid var(--border-medium);
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 8px;
+  margin-bottom: 0;
   color: var(--text-primary);
   transition: border-color 0.12s ease;
 }
 
 .pinned-icon-box svg {
-  width: 22px;
-  height: 22px;
+  width: 19px;
+  height: 19px;
+}
+
+.pinned-icon-box img,
+.pinned-icon-box .real-app-icon {
+  width: 20px;
+  height: 20px;
+  max-width: 22px;
+  max-height: 22px;
+  object-fit: contain;
 }
 
 .pinned-app-card:hover .pinned-icon-box {
@@ -6715,23 +6854,72 @@ body.is-light-theme .desktop-context-menu {
 .pinned-app-meta {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
+  min-width: 0;
+  flex: 1;
 }
 
-.app-title {
-  font-size: 11.5px;
+.app-title,
+.pinned-app-name {
+  font-size: 12px;
   font-weight: 500;
   color: var(--text-primary);
-}
-
-.app-desc {
-  font-size: 9.5px;
-  color: var(--text-muted);
-  margin-top: 2px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 100px;
+  max-width: 100%;
+}
+
+.app-desc {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.start-empty-cat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 28px 16px;
+  color: var(--text-muted);
+  font-size: 12px;
+  text-align: center;
+}
+
+.start-empty-cat[hidden] {
+  display: none;
+}
+
+.start-quick-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border-top: 1px solid var(--border-subtle);
+  background: rgba(0, 0, 0, 0.16);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.start-quick-actions .recent-doc-row,
+.start-quick-actions .shortcut-action-row {
+  padding: 4px 8px;
+  font-size: 11px;
+  gap: 6px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.start-quick-actions .recent-file-icon {
+  width: 20px;
+  height: 20px;
+  font-size: 8px;
 }
 
 /* 3. 2 Sütunlu Alt Bölüm: Son Belgeler & Kısayollar */
@@ -13041,33 +13229,20 @@ html[data-iconset='nordic'] .ayaz-desktop-shortcut:hover .item-icon {
 .copyto-row:hover { background: var(--bg-surface-hover); border-radius: 6px; }
 
 /* ==============================================================================
-   DÜŞÜK ÇÖZÜNÜRLÜK DÜZELTMESİ (hata #3): eski 4:3 / 1366x768 makinelerde
-   uygulama menüsü ekranı aşınca taşardı. Kolon sayısı ve yükseklik ölçeklenir.
+   DÜŞÜK ÇÖZÜNÜRLÜK DÜZELTMESİ: eski 4:3 / 1366x768 makinelerde
+   uygulama menüsü ve paneller güvenli çalışma alanı içinde ölçeklenir.
    ============================================================================== */
-.start-flyout .start-pinned-grid,
-.start-flyout .dynamic-start-grid {
-  max-height: 42vh;
-  overflow-y: auto;
-  scrollbar-width: thin;
-}
-
-@media (max-width: 1200px) {
-  .start-pinned-grid { grid-template-columns: repeat(4, 1fr); }
-  .start-flyout { width: 400px; max-width: calc(100vw - 20px); }
-}
-
 @media (max-width: 900px) {
-  .start-pinned-grid { grid-template-columns: repeat(3, 1fr); }
-  .pinned-icon-box { width: 36px; height: 36px; }
-  .start-flyout { width: 340px; }
+  .start-flyout { width: calc(100vw - 24px); }
+  .start-distro-body { grid-template-columns: 156px 1fr; }
+  .start-pinned-grid,
+  .dynamic-start-grid { grid-template-columns: 1fr; }
 }
 
 @media (max-height: 760px) {
-  .start-flyout { max-height: calc(100vh - var(--taskbar-height) - 40px); }
-  .start-flyout .start-pinned-grid,
-  .start-flyout .dynamic-start-grid { max-height: 34vh; }
-  .pinned-app-card { padding: 6px 4px; }
-  .pinned-icon-box { width: 30px; height: 30px; margin-bottom: 4px; }
+  .start-flyout {
+    height: min(460px, calc(100vh - var(--workarea-top, 0px) - var(--workarea-bottom, var(--taskbar-height)) - 18px));
+  }
 }
 
 /* ==========================================================================

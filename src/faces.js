@@ -109,6 +109,14 @@
         window.XdgDesktopEngine.layoutDesktopIcons();
         requestAnimationFrame(() => window.XdgDesktopEngine.layoutDesktopIcons());
       }
+      if (window.WindowManager && typeof window.WindowManager.clampAllWindows === 'function') {
+        window.WindowManager.clampAllWindows();
+        requestAnimationFrame(() => window.WindowManager.clampAllWindows());
+      }
+      if (window.TauriBridge && typeof window.TauriBridge.invoke === 'function') {
+        const faceMargins = { default: [0, 56], '2': [38, 84], '3': [40, 82], '8': [32, 74] }[this.currentFace] || [0, 56];
+        window.TauriBridge.invoke('set_openbox_margins', { top: faceMargins[0], bottom: faceMargins[1] }).catch(() => {});
+      }
     },
 
     renderFaceShell() {

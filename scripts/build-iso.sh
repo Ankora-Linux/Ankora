@@ -470,14 +470,18 @@ apt-get install -y --no-install-recommends \
     net-tools \
     wpasupplicant \
     parted \
+    gdisk \
+    squashfs-tools \
     dosfstools \
     e2fsprogs \
     exfat-fuse \
     exfatprogs \
     rsync \
+    grub-common \
     grub-efi-amd64-bin \
     grub-pc-bin \
     grub2-common \
+    os-prober \
     efibootmgr \
     xdg-utils \
     file \
@@ -524,6 +528,16 @@ apt-get install -y --no-install-recommends \
     sane-utils \
     libsane1 \
     simple-scan
+
+# Kurulum aracı zorunlu ikili doğrulama kapısı (eksik ikili varsa ISO üretilmez)
+for _inst_bin in unsquashfs parted mkfs.vfat mkfs.ext4 rsync grub-install update-grub efibootmgr blkid; do
+    if ! command -v "$_inst_bin" >/dev/null 2>&1; then
+        echo "[HATA] Kurulum aracı için zorunlu ikili eksik: $_inst_bin" >&2
+        exit 1
+    fi
+done
+unset _inst_bin
+echo "[OK] Kurulum aracı zorunlu ikilileri doğrulandı (unsquashfs, parted, mkfs, rsync, grub-install, update-grub, efibootmgr, blkid)."
 
 # Flathub Resmi Deposu Entegrasyonu (Spotify, Discord, Steam, VS Code 1-Tık)
 flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo 2>/dev/null || true

@@ -348,6 +348,21 @@ def main():
               and "helium.sources" in helper
               and "antigravity.sources" in helper
               and "is_allowed_pkexec_gui_app" in main_rs)
+        check("iso/kurulum: squashfs-tools, gdisk, grub-common, os-prober ve unsquashfs kapısı",
+              all(p in iso for p in ("squashfs-tools", "gdisk", "grub-common", "os-prober"))
+              and "unsquashfs" in iso)
+        check("rust/kurulum+yüzler: set_openbox_margins, güvenli unsquashfs kontrolü ve std modülleri",
+              "fn set_openbox_margins(" in main_rs
+              and "set_openbox_margins," in main_rs
+              and 'let _ = root_command("unsquashfs"' not in main_rs
+              and "std::thread::sleep(" in main_rs
+              and 'std::env::var("HOME")' in main_rs)
+        check("menü/yüzler: 2 sütunlu dağıtım menüsü ve çalışma alanı CSS/JS korumaları",
+              'id="start-cat-sidebar"' in html_text
+              and "StartMenuManager" in app_js
+              and "getWorkArea(" in app_js
+              and "--workarea-top" in css
+              and "--workarea-top" in faces_css)
     except Exception as e:
         check("apt3 ve 60fps render denetimleri", False, str(e)[:200])
 
