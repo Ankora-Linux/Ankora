@@ -26,15 +26,25 @@
 }
 
 .face-card-choice:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.2);
-  transform: translateY(-2px);
+  background: var(--bg-surface-hover, rgba(255, 255, 255, 0.08));
+  border-color: var(--accent-active, #cc5d35);
 }
 
 .face-card-choice.active {
-  background: rgba(37, 99, 235, 0.12);
-  border-color: var(--accent-active, #2563eb);
-  box-shadow: 0 0 0 1px var(--accent-active, #2563eb);
+  background: rgba(204, 93, 53, 0.09);
+  border-color: var(--accent-active, #cc5d35);
+  box-shadow: 0 0 0 1px var(--accent-active, #cc5d35);
+}
+
+body[data-face="8"] .face-card-choice {
+  border: 1.5px solid #161309;
+  background: #fffef9;
+}
+
+body[data-face="8"] .face-card-choice.active {
+  border: 2px solid #1d4ed8;
+  background: #eff6ff;
+  box-shadow: none;
 }
 
 .face-card-choice strong {
@@ -60,7 +70,7 @@
 }
 
 .face-preview-default {
-  background: #13141b;
+  background: #15171a;
 }
 .face-preview-default .fp-preview-dock-default {
   position: absolute;
@@ -69,8 +79,9 @@
   transform: translateX(-50%);
   width: 70%;
   height: 8px;
-  border-radius: 4px;
-  background: rgba(255, 255, 255, 0.18);
+  border-radius: 3px;
+  background: #22252b;
+  border-top: 1px solid #cc5d35;
 }
 
 .face-preview-2 {
@@ -137,8 +148,32 @@
   top: 14px;
   width: 24px;
   height: 14px;
-  background: #c7e42b;
+  background: #1d4ed8;
   border-radius: 3px;
+}
+
+.face-preview-legacy {
+  background: linear-gradient(145deg, #101424 0%, #1c2745 100%);
+}
+.face-preview-legacy .fp-preview-bar {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  bottom: 4px;
+  height: 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+.face-preview-legacy .fp-preview-win {
+  position: absolute;
+  left: 10px;
+  top: 8px;
+  width: 28px;
+  height: 18px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(59, 130, 246, 0.55);
 }
 
 /* --------------------------------------------------------------------------
@@ -214,12 +249,11 @@
   top: 48px;
   font: 400 11.5px var(--font-face-mono, "IBM Plex Mono", monospace);
   color: #d6d0c4;
-  background: rgba(20, 21, 25, 0.62);
-  backdrop-filter: blur(6px);
+  background: #1c1e23;
   padding: 3px 9px;
   border-radius: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
+  border: 1px solid #2e3138;
+  text-shadow: none;
   z-index: 5;
   pointer-events: none;
   letter-spacing: 0.2px;
@@ -327,7 +361,7 @@
   border-radius: 12px;
   padding: 9px;
   z-index: 9200;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.36);
 }
 
 [data-face="2"] .face-dock-app {
@@ -441,7 +475,7 @@
 }
 
 [data-face="3"] body {
-  background: #26321f !important;
+  background: #e6ebd8 !important;
   color: #26321f !important;
   font-family: var(--font-sans) !important;
 }
@@ -466,9 +500,8 @@
   padding: 0 18px;
   gap: 16px;
   z-index: 9200;
-  background: rgba(240, 243, 229, 0.94);
+  background: #f0f3e5;
   border-bottom: 1px solid #d7dfc2;
-  backdrop-filter: blur(8px);
   color: #26321f;
   font-family: var(--font-sans);
 }
@@ -513,12 +546,11 @@
   pointer-events: auto;
   display: flex;
   flex-direction: column;
-  background: rgba(250, 248, 239, 0.78);
-  backdrop-filter: blur(10px);
+  background: #faf8ef;
   padding: 14px 20px;
   border-radius: 16px;
-  border: 1px solid rgba(228, 224, 207, 0.9);
-  box-shadow: 0 8px 24px rgba(38, 50, 31, 0.14);
+  border: 1px solid #e4e0cf;
+  box-shadow: 0 6px 18px rgba(38, 50, 31, 0.1);
 }
 
 [data-face="3"] .bostan-hero-time {
@@ -644,7 +676,7 @@
   background: #faf8ef !important;
   border-radius: 18px !important;
   border: 1px solid #e4e0cf !important;
-  box-shadow: 0 24px 48px -22px rgba(38, 50, 31, 0.35), 0 1px 0 rgba(255, 255, 255, 0.6) inset !important;
+  box-shadow: 0 14px 32px -12px rgba(38, 50, 31, 0.25) !important;
   color: #26321f !important;
   font-family: var(--font-sans) !important;
 }
@@ -683,15 +715,15 @@
 }
 
 /* ==========================================================================
-   YÜZ 8 · CIVATA (Bricolage Grotesque & Instrument Sans · Limon/İs Siyah Üst Çubuk)
+   YÜZ 8 · CIVATA (Bricolage Grotesque & Instrument Sans · Mürekkep/Kobalt Üst Çubuk)
    ========================================================================== */
 [data-face="8"] {
   --workarea-top: 32px;
   --workarea-bottom: 74px;
   --civata: #fcfcf9;
   --is: #161309;
-  --limon: #c7e42b;
-  --limon-2: #e6f4a3;
+  --limon: #1d4ed8;
+  --limon-2: #dbeafe;
   --mute: #77745f;
   --rule: #e3e1d3;
   --font-disp: "Bricolage Grotesque", sans-serif;
@@ -741,11 +773,11 @@
 }
 
 [data-face="8"] .civata-nav-item:hover {
-  color: #c7e42b;
+  color: #93c5fd;
 }
 
 [data-face="8"] .civata-highlight {
-  color: #c7e42b;
+  color: #93c5fd;
   font-style: normal;
   font-weight: 600;
 }
@@ -760,8 +792,7 @@
   display: flex;
   flex-direction: column;
   pointer-events: none;
-  background: rgba(252, 252, 249, 0.84);
-  backdrop-filter: blur(10px);
+  background: #fcfcf9;
   padding: 14px 18px;
   border-radius: 14px;
   border: 2px solid #161309;
@@ -789,9 +820,10 @@
 }
 
 [data-face="8"] .civata-hero-weather b {
-  background: #c7e42b;
+  background: #1d4ed8;
+  color: #fcfcf9;
   padding: 2px 8px;
-  border-radius: 6px;
+  border-radius: 4px;
   font-weight: 600;
 }
 
@@ -839,17 +871,19 @@
 }
 
 [data-face="8"] .face-dock-app:hover {
-  background: #e6f4a3;
+  background: #e8e5d5;
+  border-color: #1d4ed8;
 }
 
 [data-face="8"] .face-dock-app.running {
-  background: #e6f4a3;
+  background: #e8e5d5;
   color: #161309;
+  border-color: #1d4ed8;
 }
 
 [data-face="8"] .face-dock-app.active {
   background: #161309;
-  color: #c7e42b;
+  color: #fcfcf9;
 }
 
 [data-face="8"] .face-dock-app svg {
@@ -909,14 +943,14 @@
 }
 
 [data-face="8"] .civata-tab-pill:hover {
-  border-color: #c7e42b;
-  color: #c7e42b;
+  border-color: #93c5fd;
+  color: #dbeafe;
 }
 
 [data-face="8"] .civata-tab-pill.active {
-  background: #c7e42b;
-  border-color: #c7e42b;
-  color: #161309;
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+  color: #fcfcf9;
 }
 
 /* Yüz 2, 3 ve 8 ortak dinamik dock ayracı ve harici uygulama rozeti */
@@ -1012,9 +1046,9 @@
 }
 
 [data-face="8"] .ctrl-btn.close:hover {
-  background: #c7e42b !important;
-  color: #161309 !important;
-  border-color: #c7e42b !important;
+  background: #1d4ed8 !important;
+  color: #fcfcf9 !important;
+  border-color: #1d4ed8 !important;
 }
 
 /* ==========================================================================
@@ -1140,7 +1174,14 @@ html[data-face="8"][data-iconset] .desktop-item .item-icon svg {
   font-weight: 500 !important;
 }
 
-[data-face="3"] .settings-card-group,
+[data-face="3"] .settings-card-group {
+  background: #fdfcf6 !important;
+  border: 1px solid #e8e4d3 !important;
+  border-radius: 12px !important;
+  padding: 16px 18px !important;
+  color: #26321f !important;
+}
+
 [data-face="3"] .preview-feature-row {
   background: #fdfcf6 !important;
   border: 1px solid #e8e4d3 !important;
@@ -1188,7 +1229,7 @@ html[data-face="8"][data-iconset] .desktop-item .item-icon svg {
 [data-face="8"] .files-nav-item:hover,
 [data-face="8"] .store-category-btn:hover,
 [data-face="8"] .store-filter-btn:hover {
-  background: #e6f4a3 !important;
+  background: #e8e5d5 !important;
   color: #161309 !important;
 }
 
@@ -1197,11 +1238,18 @@ html[data-face="8"][data-iconset] .desktop-item .item-icon svg {
 [data-face="8"] .store-category-btn.active,
 [data-face="8"] .store-filter-btn.active {
   background: #161309 !important;
-  color: #c7e42b !important;
+  color: #fcfcf9 !important;
   font-weight: 600 !important;
 }
 
-[data-face="8"] .settings-card-group,
+[data-face="8"] .settings-card-group {
+  background: #fcfcf6 !important;
+  border: 2px solid #161309 !important;
+  border-radius: 12px !important;
+  padding: 16px 18px !important;
+  color: #161309 !important;
+}
+
 [data-face="8"] .preview-feature-row {
   background: #fcfcf6 !important;
   border: 2px solid #161309 !important;
@@ -1232,34 +1280,24 @@ html[data-face="8"][data-iconset] .desktop-item .item-icon svg {
 body.is-light-theme .desk-widget,
 body.theme-light .desk-widget,
 body.theme-arctic .desk-widget,
-body.theme-cinar .desk-widget,
-body.theme-meltem .desk-widget,
-body.theme-matbaa .desk-widget,
 body.theme-bostan .desk-widget,
-body.theme-konsol .desk-widget,
-body.theme-kesit .desk-widget,
-body.theme-civata .desk-widget,
-body.theme-meridyen .desk-widget {
-  background: rgba(255, 255, 255, 0.88) !important;
+body.theme-civata .desk-widget {
+  background: rgba(255, 255, 255, 0.94) !important;
   border: 1px solid rgba(0, 0, 0, 0.12) !important;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.09) !important;
-  color: #0f172a !important;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08) !important;
+  color: #18181b !important;
 }
 
 body.is-light-theme .dw-time,
 body.theme-light .dw-time,
-body.theme-arctic .dw-time,
-body.theme-cinar .dw-time,
-body.theme-meltem .dw-time {
-  color: #0f172a !important;
+body.theme-arctic .dw-time {
+  color: #18181b !important;
 }
 
 body.is-light-theme .dw-date,
 body.theme-light .dw-date,
-body.theme-arctic .dw-date,
-body.theme-cinar .dw-date,
-body.theme-meltem .dw-date {
-  color: #475569 !important;
+body.theme-arctic .dw-date {
+  color: #52525b !important;
 }
 
 body.is-light-theme .dw-head,
@@ -1274,38 +1312,32 @@ body.theme-light .dw-meter {
 
 body.is-light-theme .dw-meter-fill,
 body.theme-light .dw-meter-fill {
-  background: var(--accent-active, #059669) !important;
+  background: var(--accent-active, #b84a24) !important;
 }
 
 /* 2. Dinamik Durum Kapsülü (Ada) Açık Tema */
 body.is-light-theme .dynamic-island,
 body.theme-light .dynamic-island,
-body.theme-arctic .dynamic-island,
-body.theme-cinar .dynamic-island,
-body.theme-meltem .dynamic-island {
+body.theme-arctic .dynamic-island {
   background: rgba(255, 255, 255, 0.94) !important;
   border-color: rgba(0, 0, 0, 0.12) !important;
-  color: #0f172a !important;
+  color: #18181b !important;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08) !important;
 }
 
 /* 3. Masaüstü Simgeleri Açık Tema Kontrastı */
 body.is-light-theme .desktop-item .item-name,
 body.theme-light .desktop-item .item-name,
-body.theme-arctic .desktop-item .item-name,
-body.theme-cinar .desktop-item .item-name,
-body.theme-meltem .desktop-item .item-name {
-  color: #0f172a !important;
+body.theme-arctic .desktop-item .item-name {
+  color: #18181b !important;
   text-shadow: 0 1px 3px rgba(255, 255, 255, 0.95), 0 0 10px rgba(255, 255, 255, 0.8) !important;
   font-weight: 600 !important;
 }
 
 body.is-light-theme .desktop-item .item-icon svg,
 body.theme-light .desktop-item .item-icon svg,
-body.theme-arctic .desktop-item .item-icon svg,
-body.theme-cinar .desktop-item .item-icon svg,
-body.theme-meltem .desktop-item .item-icon svg {
-  stroke: #0f172a !important;
+body.theme-arctic .desktop-item .item-icon svg {
+  stroke: #18181b !important;
   filter: drop-shadow(0 2px 4px rgba(255, 255, 255, 0.9)) !important;
 }
 
@@ -1313,18 +1345,12 @@ body.theme-meltem .desktop-item .item-icon svg {
 body.is-light-theme .start-flyout,
 body.theme-light .start-flyout,
 body.theme-arctic .start-flyout,
-body.theme-cinar .start-flyout,
-body.theme-meltem .start-flyout,
-body.theme-matbaa .start-flyout,
 body.theme-bostan .start-flyout,
-body.theme-konsol .start-flyout,
-body.theme-kesit .start-flyout,
-body.theme-civata .start-flyout,
-body.theme-meridyen .start-flyout {
-  background: rgba(255, 255, 255, 0.96) !important;
-  border: 1px solid rgba(0, 0, 0, 0.12) !important;
-  color: #0f172a !important;
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.16) !important;
+body.theme-civata .start-flyout {
+  background: var(--surface-flyout, #f5f3ee) !important;
+  border: 1px solid rgba(24, 24, 27, 0.14) !important;
+  color: #18181b !important;
+  box-shadow: 0 18px 42px rgba(24, 24, 27, 0.16) !important;
 }
 
 body.is-light-theme .start-section-heading span,
@@ -1407,8 +1433,6 @@ body.theme-light .power-action-btn:hover {
 body.is-light-theme .desktop-context-menu,
 body.theme-light .desktop-context-menu,
 body.theme-arctic .desktop-context-menu,
-body.theme-cinar .desktop-context-menu,
-body.theme-meltem .desktop-context-menu,
 [data-face="3"] .desktop-context-menu,
 [data-face="8"] .desktop-context-menu {
   background: rgba(255, 255, 255, 0.96) !important;
@@ -1465,9 +1489,7 @@ body.theme-light .ctx-submenu-list,
 /* 7. Açık Temalarda Dock ve Panel Uyumu */
 body.is-light-theme[data-face="2"] .face-dock-app,
 body.theme-light[data-face="2"] .face-dock-app,
-body.theme-arctic[data-face="2"] .face-dock-app,
-body.theme-cinar[data-face="2"] .face-dock-app,
-body.theme-meltem[data-face="2"] .face-dock-app {
+body.theme-arctic[data-face="2"] .face-dock-app {
   background: rgba(255, 255, 255, 0.9);
   border-color: rgba(0, 0, 0, 0.14);
   color: #1e293b;
@@ -1480,9 +1502,7 @@ body.is-light-theme[data-face="2"] #face-bottom-dock {
 
 body.is-light-theme[data-face="2"] #face-top-panel,
 body.theme-light[data-face="2"] #face-top-panel,
-body.theme-arctic[data-face="2"] #face-top-panel,
-body.theme-cinar[data-face="2"] #face-top-panel,
-body.theme-meltem[data-face="2"] #face-top-panel {
+body.theme-arctic[data-face="2"] #face-top-panel {
   background: rgba(255, 255, 255, 0.95);
   border-bottom: 1px solid rgba(0, 0, 0, 0.1);
   color: #0f172a;
@@ -1494,9 +1514,7 @@ body.is-light-theme[data-face="2"] .face-tray-group svg {
 
 body.is-light-theme .face-clock-capsule,
 body.theme-light .face-clock-capsule,
-body.theme-arctic .face-clock-capsule,
-body.theme-cinar .face-clock-capsule,
-body.theme-meltem .face-clock-capsule {
+body.theme-arctic .face-clock-capsule {
   background: rgba(0, 0, 0, 0.05);
   border-color: rgba(0, 0, 0, 0.1);
   color: #0f172a;
@@ -1504,9 +1522,7 @@ body.theme-meltem .face-clock-capsule {
 
 body.is-light-theme .face-ws-btn,
 body.theme-light .face-ws-btn,
-body.theme-arctic .face-ws-btn,
-body.theme-cinar .face-ws-btn,
-body.theme-meltem .face-ws-btn {
+body.theme-arctic .face-ws-btn {
   background: rgba(0, 0, 0, 0.04);
   border-color: rgba(0, 0, 0, 0.12);
   color: #334155;
@@ -1514,9 +1530,7 @@ body.theme-meltem .face-ws-btn {
 
 body.is-light-theme .face-ws-btn.active,
 body.theme-light .face-ws-btn.active,
-body.theme-arctic .face-ws-btn.active,
-body.theme-cinar .face-ws-btn.active,
-body.theme-meltem .face-ws-btn.active {
+body.theme-arctic .face-ws-btn.active {
   background: var(--accent-active, #d1794f);
   border-color: var(--accent-active, #d1794f);
   color: #ffffff;
@@ -1653,7 +1667,7 @@ body.theme-meltem .face-ws-btn.active {
 }
 
 [data-face="8"] .face-media-progress-bar {
-  background: var(--limon, #c7e42b);
+  background: #1d4ed8;
 }
 
 [data-face="8"] .face-media-progress {
@@ -1666,98 +1680,13 @@ body.theme-meltem .face-ws-btn.active {
    Yüz paletini kendi değişkenlerinden alır, ana temaya dokunmaz.
    -------------------------------------------------------------------------- */
 #face-ai-bubble {
-  display: none;
+  display: none !important;
 }
 
 [data-face="2"] #face-ai-bubble,
 [data-face="3"] #face-ai-bubble,
 [data-face="8"] #face-ai-bubble {
-  position: fixed;
-  top: auto;
-  bottom: 18px;
-  right: 18px;
-  z-index: 9250;
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  height: 30px;
-  padding: 0 12px 0 9px;
-  border-radius: 999px;
-  border: 1px solid transparent;
-  background: transparent;
-  color: inherit;
-  cursor: pointer;
-  font-family: inherit;
-  font-size: 11.5px;
-  font-weight: 600;
-  letter-spacing: 0.1px;
-  transition: background-color 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
-}
-
-#face-ai-bubble .face-ai-glyph {
-  width: 15px;
-  height: 15px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.7;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-#face-ai-bubble:focus-visible {
-  outline: 2px solid currentColor;
-  outline-offset: 2px;
-}
-
-/* Yüz 2 · Bakır (koyu) */
-[data-face="2"] #face-ai-bubble {
-  background: rgba(34, 36, 43, 0.92);
-  border-color: #2e3138;
-  color: #e9e4da;
-}
-
-[data-face="2"] #face-ai-bubble .face-ai-glyph {
-  color: #d1794f;
-}
-
-[data-face="2"] #face-ai-bubble:hover {
-  border-color: #d1794f;
-  box-shadow: 0 4px 14px rgba(209, 121, 79, 0.22);
-  transform: translateY(-1px);
-}
-
-/* Yüz 3 · Bostan (açık kağıt) */
-[data-face="3"] #face-ai-bubble {
-  background: #faf8ef;
-  border-color: rgba(38, 50, 31, 0.18);
-  color: #26321f;
-}
-
-[data-face="3"] #face-ai-bubble .face-ai-glyph {
-  color: #3d6b45;
-}
-
-[data-face="3"] #face-ai-bubble:hover {
-  border-color: #3d6b45;
-  box-shadow: 0 4px 14px rgba(61, 107, 69, 0.18);
-  transform: translateY(-1px);
-}
-
-/* Yüz 8 · Cıvata (açık, limon vurgu) */
-[data-face="8"] #face-ai-bubble {
-  background: #fcfcf9;
-  border-color: #e3e1d3;
-  color: #161309;
-}
-
-[data-face="8"] #face-ai-bubble .face-ai-glyph {
-  color: #161309;
-}
-
-[data-face="8"] #face-ai-bubble:hover {
-  border-color: #161309;
-  box-shadow: 0 4px 14px rgba(22, 19, 9, 0.14);
-  transform: translateY(-1px);
+  display: none !important;
 }
 
 /* --------------------------------------------------------------------------
@@ -1864,7 +1793,7 @@ body.theme-meltem .face-ws-btn.active {
 [data-face="8"] #win-store .store-source-btn.active {
   background: #161309 !important;
   background-color: #161309 !important;
-  color: #c7e42b !important;
+  color: #fcfcf9 !important;
   box-shadow: none !important;
 }
 
@@ -2017,7 +1946,13 @@ body.theme-meltem .face-ws-btn.active {
   border-right: 1px solid #2e3138 !important;
   color: #a49e92 !important;
 }
-[data-face="2"] .settings-card-group,
+[data-face="2"] .settings-card-group {
+  background: #22252b !important;
+  border: 1px solid #343842 !important;
+  border-radius: 10px !important;
+  padding: 16px 18px !important;
+  color: #e9e4da !important;
+}
 [data-face="2"] .preview-feature-row,
 [data-face="2"] .store-card {
   background: #22252b !important;
@@ -2204,47 +2139,31 @@ body.theme-meltem .face-ws-btn.active {
 body.is-light-theme .start-cat-sidebar,
 body.theme-light .start-cat-sidebar,
 body.theme-arctic .start-cat-sidebar,
-body.theme-cinar .start-cat-sidebar,
-body.theme-meltem .start-cat-sidebar,
-body.theme-matbaa .start-cat-sidebar,
-body.theme-konsol .start-cat-sidebar,
-body.theme-kesit .start-cat-sidebar,
-body.theme-meridyen .start-cat-sidebar {
+body.theme-bostan .start-cat-sidebar,
+body.theme-civata .start-cat-sidebar {
   background: rgba(15, 23, 42, 0.04) !important;
   border-right-color: rgba(15, 23, 42, 0.1) !important;
 }
 body.is-light-theme .start-cat-btn,
 body.theme-light .start-cat-btn,
 body.theme-arctic .start-cat-btn,
-body.theme-cinar .start-cat-btn,
-body.theme-meltem .start-cat-btn,
-body.theme-matbaa .start-cat-btn,
-body.theme-konsol .start-cat-btn,
-body.theme-kesit .start-cat-btn,
-body.theme-meridyen .start-cat-btn {
+body.theme-bostan .start-cat-btn,
+body.theme-civata .start-cat-btn {
   color: #334155 !important;
 }
 body.is-light-theme .start-cat-btn:hover,
 body.theme-light .start-cat-btn:hover,
 body.theme-arctic .start-cat-btn:hover,
-body.theme-cinar .start-cat-btn:hover,
-body.theme-meltem .start-cat-btn:hover,
-body.theme-matbaa .start-cat-btn:hover,
-body.theme-konsol .start-cat-btn:hover,
-body.theme-kesit .start-cat-btn:hover,
-body.theme-meridyen .start-cat-btn:hover {
+body.theme-bostan .start-cat-btn:hover,
+body.theme-civata .start-cat-btn:hover {
   background: rgba(15, 23, 42, 0.07) !important;
   color: #0f172a !important;
 }
 body.is-light-theme .start-cat-btn.active,
 body.theme-light .start-cat-btn.active,
 body.theme-arctic .start-cat-btn.active,
-body.theme-cinar .start-cat-btn.active,
-body.theme-meltem .start-cat-btn.active,
-body.theme-matbaa .start-cat-btn.active,
-body.theme-konsol .start-cat-btn.active,
-body.theme-kesit .start-cat-btn.active,
-body.theme-meridyen .start-cat-btn.active {
+body.theme-bostan .start-cat-btn.active,
+body.theme-civata .start-cat-btn.active {
   background: rgba(37, 99, 235, 0.12) !important;
   border-color: rgba(37, 99, 235, 0.32) !important;
   color: #0f172a !important;
@@ -2252,45 +2171,29 @@ body.theme-meridyen .start-cat-btn.active {
 body.is-light-theme .start-pane-header,
 body.theme-light .start-pane-header,
 body.theme-arctic .start-pane-header,
-body.theme-cinar .start-pane-header,
-body.theme-meltem .start-pane-header,
-body.theme-matbaa .start-pane-header,
-body.theme-konsol .start-pane-header,
-body.theme-kesit .start-pane-header,
-body.theme-meridyen .start-pane-header {
+body.theme-bostan .start-pane-header,
+body.theme-civata .start-pane-header {
   border-bottom-color: rgba(15, 23, 42, 0.1) !important;
 }
 body.is-light-theme .start-pane-title,
 body.theme-light .start-pane-title,
 body.theme-arctic .start-pane-title,
-body.theme-cinar .start-pane-title,
-body.theme-meltem .start-pane-title,
-body.theme-matbaa .start-pane-title,
-body.theme-konsol .start-pane-title,
-body.theme-kesit .start-pane-title,
-body.theme-meridyen .start-pane-title {
+body.theme-bostan .start-pane-title,
+body.theme-civata .start-pane-title {
   color: #0f172a !important;
 }
 body.is-light-theme .start-pane-count,
 body.theme-light .start-pane-count,
 body.theme-arctic .start-pane-count,
-body.theme-cinar .start-pane-count,
-body.theme-meltem .start-pane-count,
-body.theme-matbaa .start-pane-count,
-body.theme-konsol .start-pane-count,
-body.theme-kesit .start-pane-count,
-body.theme-meridyen .start-pane-count {
+body.theme-bostan .start-pane-count,
+body.theme-civata .start-pane-count {
   color: #64748b !important;
 }
 body.is-light-theme .start-quick-actions,
 body.theme-light .start-quick-actions,
 body.theme-arctic .start-quick-actions,
-body.theme-cinar .start-quick-actions,
-body.theme-meltem .start-quick-actions,
-body.theme-matbaa .start-quick-actions,
-body.theme-konsol .start-quick-actions,
-body.theme-kesit .start-quick-actions,
-body.theme-meridyen .start-quick-actions {
+body.theme-bostan .start-quick-actions,
+body.theme-civata .start-quick-actions {
   background: rgba(15, 23, 42, 0.04) !important;
   border-top-color: rgba(15, 23, 42, 0.1) !important;
 }
@@ -2389,6 +2292,54 @@ body.theme-meridyen .start-quick-actions {
 [data-face="8"] .start-flyout .start-quick-actions {
   background: #f0f0ea !important;
   border-top: 1.5px solid #161309 !important;
+}
+
+/* Karşılayıcı penceresi: Bakır, Bostan ve Cıvata yüz kromu uyumu */
+body[data-face="2"] .welcome-preview-window {
+  background: #1c1e23 !important;
+  border: 1px solid #2e3138 !important;
+  border-top: 2px solid #d1794f !important;
+}
+body[data-face="2"] .welcome-preview-window .window-header {
+  background: #1c1e23 !important;
+  border-bottom: 1px solid #2e3138 !important;
+}
+body[data-face="3"] .welcome-preview-window {
+  background: #faf8ef !important;
+  border: 1px solid #e4e0cf !important;
+}
+body[data-face="3"] .welcome-preview-window .window-header {
+  background: #faf8ef !important;
+  border-bottom: 1px solid #e4e0cf !important;
+}
+body[data-face="3"] .welcome-preview-window #welcome-header-title {
+  color: #26321f !important;
+}
+body[data-face="3"] .welcome-preview-window .ctrl-btn.close {
+  background: #3d6b45 !important;
+  color: #faf8ef !important;
+}
+body[data-face="8"] .welcome-preview-window {
+  background: #fffef9 !important;
+  border: 2px solid #161309 !important;
+}
+body[data-face="8"] .welcome-preview-window .window-header {
+  background: #161309 !important;
+  border-bottom: 2px solid #161309 !important;
+  color: #f4f2e6 !important;
+}
+body[data-face="8"] .welcome-preview-window #welcome-header-title {
+  color: #f4f2e6 !important;
+}
+body[data-face="8"] .welcome-preview-window .ctrl-btn.close {
+  background: transparent !important;
+  border: 1px solid #f4f2e6 !important;
+  color: #f4f2e6 !important;
+}
+body[data-face="8"] .welcome-preview-window .ctrl-btn.close:hover {
+  background: #1d4ed8 !important;
+  border-color: #1d4ed8 !important;
+  color: #fcfcf9 !important;
 }
 
 /* ==============================================================================

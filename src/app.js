@@ -770,7 +770,19 @@
       let bottom = parseInt(rootCs.getPropertyValue('--workarea-bottom'), 10);
       top = Number.isFinite(top) ? top : 0;
       const tbVar = parseInt(rootCs.getPropertyValue('--taskbar-height'), 10);
-      bottom = Number.isFinite(bottom) ? bottom : (Number.isFinite(tbVar) ? tbVar : 44);
+      bottom = Number.isFinite(bottom) ? bottom : (Number.isFinite(tbVar) ? tbVar : 40);
+
+      const taskbar = document.getElementById('taskbar');
+      if (taskbar && getComputedStyle(taskbar).display !== 'none') {
+        const tbRect = taskbar.getBoundingClientRect();
+        if (document.body.classList.contains('panel-top') || tbRect.top < window.innerHeight * 0.5) {
+          if (tbRect.bottom > top) top = Math.ceil(tbRect.bottom);
+          if (document.body.classList.contains('panel-top')) bottom = 0;
+        } else {
+          const usedBottom = Math.ceil(window.innerHeight - tbRect.top);
+          if (usedBottom > bottom && usedBottom < window.innerHeight * 0.35) bottom = usedBottom;
+        }
+      }
 
       const topPanel = document.getElementById('face-top-panel');
       if (topPanel && getComputedStyle(topPanel).display !== 'none') {
@@ -9803,63 +9815,51 @@
   const ThemeManager = {
     currentTheme: 'theme-dark',
     // Açık temaları ayrı liste olarak yürüt; GTK tarafına da bunlar 'isDark=false' gider.
-    LIGHT_THEMES: ['theme-light', 'theme-arctic', 'theme-cinar', 'theme-meltem',
-      'theme-matbaa', 'theme-bostan', 'theme-konsol', 'theme-kesit',
-      'theme-civata', 'theme-meridyen'],
+    LIGHT_THEMES: ['theme-light', 'theme-arctic', 'theme-bostan', 'theme-civata'],
     // TÜM SİSTEM TEMA PAKETLERİ: Bir tema seçildiğinde yalnızca pencere
     // renkleri değil, eşleşen duvar kağıdı + ikon seti + vurgu rengi de
     // birlikte uygulanır (kullanıcı "bütün sistemin teması değişsin" isteği).
     // 'ankora_theme_fullsystem' kaydı ile kapatılabilir.
     THEME_BUNDLES: {
-      'theme-dark':      { wallpaper: 'wallpaper-kobalt.jpg',       iconset: 'nordic',   accent: '#2563eb' },
-      'theme-light':     { wallpaper: 'wallpaper-karli-safak.jpg',  iconset: 'outline',  accent: '#059669' },
-      'theme-midnight':  { wallpaper: 'wallpaper-kozmik.jpg',       iconset: 'ink',      accent: '#3b82f6' },
-      'theme-nord':      { wallpaper: 'wallpaper-gece-yolu.jpg',    iconset: 'nordic',   accent: '#ffffff' },
-      'theme-evergreen': { wallpaper: 'wallpaper-gece-yolu.jpg',    iconset: 'emerald',  accent: '#059669' },
-      'theme-ember':     { wallpaper: 'wallpaper-kozmik.jpg',       iconset: 'sunset',   accent: '#ea580c' },
-      'theme-arctic':    { wallpaper: 'wallpaper-karli-safak.jpg',  iconset: 'pastel',   accent: '#059669' },
-      'theme-cinar':     { wallpaper: 'wallpaper-karli-safak.jpg',  iconset: 'outline',  accent: '#3f6b45' },
-      'theme-meltem':    { wallpaper: 'wallpaper-karli-safak.jpg',  iconset: 'outline',  accent: '#0d7a8c' },
-      'theme-kor':       { wallpaper: 'wallpaper-gece-yolu.jpg',    iconset: 'sunset',   accent: '#e08a3c' },
-      'theme-dem':       { wallpaper: 'wallpaper-kozmik.jpg',       iconset: 'monokrom', accent: '#d64545' },
-      'theme-bogaz':     { wallpaper: 'wallpaper-gece-yolu.jpg',    iconset: 'ink',      accent: '#c9a24b' },
-      'theme-ayna':      { wallpaper: 'wallpaper-kobalt.jpg',       iconset: 'monokrom', accent: '#06b6d4' },
-      'theme-cumhuriyet':{ wallpaper: 'wallpaper-kozmik.jpg',       iconset: 'monokrom', accent: '#e23744' },
-      // Studio ekleri: 10 kompozisyon teması da kendi tonuna göre yeni varsayılan
-      // duvar kağıtlarıyla eşlenir; kullanıcı Ayarlar'dan istediğini seçebilir.
-      'theme-matbaa':    { wallpaper: 'wallpaper-karli-safak.jpg',  iconset: 'outline',  accent: '#b4462a' },
-      'theme-bakir':     { wallpaper: 'wallpaper-kozmik.jpg',       iconset: 'monokrom', accent: '#d1794f' },
-      'theme-bostan':    { wallpaper: 'wallpaper-karli-safak.jpg',  iconset: 'outline',  accent: '#3d6b45' },
-      'theme-hat':       { wallpaper: 'wallpaper-gece-yolu.jpg',    iconset: 'ink',      accent: '#c9a24e' },
-      'theme-konsol':    { wallpaper: 'wallpaper-karli-safak.jpg',  iconset: 'monokrom', accent: '#186a3f' },
-      'theme-kesit':     { wallpaper: 'wallpaper-karli-safak.jpg',  iconset: 'monokrom', accent: '#b08c00' },
-      'theme-fener':     { wallpaper: 'wallpaper-gece-yolu.jpg',    iconset: 'sunset',   accent: '#e0553a' },
-      'theme-civata':    { wallpaper: 'wallpaper-karli-safak.jpg',  iconset: 'monokrom', accent: '#6d7d0f' },
-      'theme-mina':      { wallpaper: 'wallpaper-gece-yolu.jpg',    iconset: 'emerald',  accent: '#e8674a' },
-      'theme-meridyen':  { wallpaper: 'wallpaper-kobalt.jpg',       iconset: 'nordic',   accent: '#2244d8' }
+      'theme-dark':         { wallpaper: 'wallpaper-arduvaz.svg',      iconset: 'monokrom', accent: '#cc5d35' },
+      'theme-light':        { wallpaper: 'wallpaper-arduvaz-acik.svg', iconset: 'outline',  accent: '#b84a24' },
+      'theme-bakir':        { wallpaper: 'wallpaper-bakir.svg',        iconset: 'monokrom', accent: '#c96f45' },
+      'theme-bostan':       { wallpaper: 'wallpaper-bostan.svg',       iconset: 'outline',  accent: '#3d6b45' },
+      'theme-civata':       { wallpaper: 'wallpaper-civata.svg',       iconset: 'monokrom', accent: '#1d4ed8' },
+      // Yayımlanan 4.7 Klasik Temalar (isteğe bağlı korundu)
+      'theme-classic-dark': { wallpaper: 'wallpaper-kobalt.jpg',       iconset: 'nordic',   accent: '#2563eb' },
+      'theme-midnight':     { wallpaper: 'wallpaper-kozmik.jpg',       iconset: 'ink',      accent: '#3b82f6' },
+      'theme-nord':         { wallpaper: 'wallpaper-gece-yolu.jpg',    iconset: 'nordic',   accent: '#ffffff' },
+      'theme-evergreen':    { wallpaper: 'wallpaper-gece-yolu.jpg',    iconset: 'emerald',  accent: '#059669' },
+      'theme-ember':        { wallpaper: 'wallpaper-kozmik.jpg',       iconset: 'sunset',   accent: '#ea580c' },
+      'theme-arctic':       { wallpaper: 'wallpaper-karli-safak.jpg',  iconset: 'pastel',   accent: '#059669' },
+      'theme-cumhuriyet':   { wallpaper: 'wallpaper-kozmik.jpg',       iconset: 'monokrom', accent: '#e23744' }
     },
 
     isFullSystemTheme() {
       // Varsayılan: açık (kullanıcı isteği: tema tüm sistemi kapsasın).
       return SafeStorage.getItem('ankora_theme_fullsystem') !== 'false';
     },
-    currentAccent: '#2563eb',
-    currentWallpaper: 'wallpaper-kobalt.jpg',
+    currentAccent: '#cc5d35',
+    currentWallpaper: 'wallpaper-arduvaz.svg',
     currentRadius: '6px',
     currentGlass: 'solid',
     currentTaskbarAlign: 'left',
-    currentTaskbarHeight: '44px',
+    currentTaskbarHeight: '40px',
+    currentPanelPos: 'bottom',
     currentAnimSpeed: 'smooth',
 
     init() {
-      // 1. Kaydedilmiş tercihleri yükle
-      const savedTheme = SafeStorage.getItem('ankora_theme_mode') || 'theme-dark';
-      const savedAccent = SafeStorage.getItem('ankora_accent_color') || '#2563eb';
-      const savedWp = SafeStorage.getItem('ankora_wallpaper') || 'wallpaper-kobalt.jpg';
+      // 1. Kaydedilmiş tercihleri yükle (kaldırılmış tema ID'leri Arduvaz Koyu'na düşer)
+      const rawSavedTheme = SafeStorage.getItem('ankora_theme_mode') || 'theme-dark';
+      const savedTheme = this.THEME_BUNDLES[rawSavedTheme] ? rawSavedTheme : 'theme-dark';
+      const savedAccent = SafeStorage.getItem('ankora_accent_color') || '#cc5d35';
+      const savedWp = SafeStorage.getItem('ankora_wallpaper') || 'wallpaper-arduvaz.svg';
       const savedRadius = SafeStorage.getItem('ankora_corner_radius') || '6px';
       const savedGlass = SafeStorage.getItem('ankora_window_glass') || 'solid';
       const savedAlign = SafeStorage.getItem('ankora_taskbar_align') || 'center';
-      const savedHeight = SafeStorage.getItem('ankora_taskbar_height') || '44px';
+      const savedHeight = SafeStorage.getItem('ankora_taskbar_height') || '40px';
+      const savedPanelPos = SafeStorage.getItem('ankora_panel_pos') || 'bottom';
       const savedAnim = SafeStorage.getItem('ankora_anim_speed') || 'smooth';
       const savedIconSet = SafeStorage.getItem('ankora_icon_set') || 'monokrom';
 
@@ -9870,6 +9870,7 @@
       this.setWindowGlass(savedGlass, false);
       this.setTaskbarAlign(savedAlign, false);
       this.setTaskbarHeight(savedHeight, false);
+      this.setPanelPos(savedPanelPos, false);
       this.setAnimSpeed(savedAnim, false);
       this.setIconSet(savedIconSet, false);
 
@@ -9935,6 +9936,13 @@
           if (h) this.setTaskbarHeight(h);
         }
 
+        // Panel Konumu (Alt / Üst - Arduvaz Yüzü)
+        const panelPosBtn = e.target.closest('#group-panel-position .option-pill-btn');
+        if (panelPosBtn) {
+          const p = panelPosBtn.getAttribute('data-panel-pos');
+          if (p) this.setPanelPos(p);
+        }
+
         // Animasyon Seviyesi
         const animBtn = e.target.closest('#group-anim-speed .option-pill-btn');
         if (animBtn) {
@@ -9952,9 +9960,11 @@
     },
 
     setTheme(themeName, persist = true) {
+      if (!this.THEME_BUNDLES[themeName]) {
+        themeName = 'theme-dark';
+      }
       this.currentTheme = themeName;
-      // Tüm theme-* sınıfları kaldırılır; geniş tema seti büyürken sabit
-      // liste bakımı hata doğuruyordu.
+      // Tüm theme-* sınıfları kaldırılır; yalnızca aktif tema eklenir.
       Array.from(document.body.classList)
         .filter(c => c.startsWith('theme-'))
         .forEach(c => document.body.classList.remove(c));
@@ -9993,7 +10003,7 @@
 
       // XSettings & GTK Tema Senkronizasyonu (xsettingsd, GTK-2/3/4, gsettings)
       const isDark = !this.LIGHT_THEMES.includes(themeName);
-      TauriBridge.invoke('sync_desktop_theme', { isDark, accent: this.currentAccent || '#2563eb' }).catch(() => {});
+      TauriBridge.invoke('sync_desktop_theme', { isDark, accent: this.currentAccent || '#cc5d35' }).catch(() => {});
     },
 
     setAccent(colorHex, persist = true) {
@@ -10026,7 +10036,9 @@
       this.currentWallpaper = cleanWp;
       const elWp = document.getElementById('desktop-wallpaper');
       if (elWp && cleanWp) {
-        elWp.classList.toggle('is-svg-wp', cleanWp.toLowerCase().endsWith('.svg'));
+        const darkSvgNames = ['wallpaper.svg', 'wallpaper-topo.svg', 'wallpaper-nordic.svg'];
+        const wpBase = cleanWp.split('/').pop().toLowerCase();
+        elWp.classList.toggle('is-svg-wp', darkSvgNames.includes(wpBase));
         elWp.style.backgroundImage = `url("${encodeURI(cleanWp)}")`;
       }
 
@@ -10100,9 +10112,50 @@
         btn.classList.toggle('active', btn.getAttribute('data-height') === height);
       });
 
+      if (typeof WindowManager !== 'undefined' && typeof WindowManager.clampAllWindows === 'function') {
+        WindowManager.clampAllWindows();
+      }
+      if (window.FaceManager && window.FaceManager.currentFace === 'default' && typeof TauriBridge !== 'undefined' && typeof TauriBridge.invoke === 'function') {
+        const tbH = parseInt(height, 10) || 40;
+        const isTop = this.currentPanelPos === 'top';
+        TauriBridge.invoke('set_openbox_margins', { top: isTop ? tbH : 0, bottom: isTop ? 0 : tbH }).catch(() => {});
+      }
+
       if (persist) {
         SafeStorage.setItem('ankora_taskbar_height', height);
         Terminal.log(`[KİŞİSELLEŞTİRME] Görev çubuğu yüksekliği: ${height}`, 'cmd');
+      }
+    },
+
+    setPanelPos(pos, persist = true) {
+      const cleanPos = pos === 'top' ? 'top' : 'bottom';
+      this.currentPanelPos = cleanPos;
+      document.documentElement.classList.toggle('panel-top', cleanPos === 'top');
+      document.body.classList.toggle('panel-top', cleanPos === 'top');
+
+      document.querySelectorAll('#group-panel-position .option-pill-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('data-panel-pos') === cleanPos);
+      });
+
+      if (typeof XdgDesktopEngine !== 'undefined' && typeof XdgDesktopEngine.layoutDesktopIcons === 'function') {
+        XdgDesktopEngine.layoutDesktopIcons();
+        requestAnimationFrame(() => XdgDesktopEngine.layoutDesktopIcons());
+      }
+      if (typeof WindowManager !== 'undefined' && typeof WindowManager.clampAllWindows === 'function') {
+        WindowManager.clampAllWindows();
+        requestAnimationFrame(() => WindowManager.clampAllWindows());
+      }
+      if (window.FaceManager && window.FaceManager.currentFace === 'default' && typeof TauriBridge !== 'undefined' && typeof TauriBridge.invoke === 'function') {
+        const tbH = parseInt(this.currentTaskbarHeight, 10) || 40;
+        TauriBridge.invoke('set_openbox_margins', {
+          top: cleanPos === 'top' ? tbH : 0,
+          bottom: cleanPos === 'bottom' ? tbH : 0
+        }).catch(() => {});
+      }
+
+      if (persist) {
+        SafeStorage.setItem('ankora_panel_pos', cleanPos);
+        Terminal.log(`[KİŞİSELLEŞTİRME] Panel konumu: ${cleanPos === 'top' ? 'Üst' : 'Alt'}`, 'cmd');
       }
     },
 
@@ -10145,9 +10198,7 @@
   // TEMA STÜDYOSU (STUDIO: GALERI + KENDI TEMA PAKETI)
   // ============================================================================
   const Studio = {
-    STUDIO_THEME_IDS: ['theme-matbaa', 'theme-bakir', 'theme-bostan', 'theme-hat',
-      'theme-konsol', 'theme-kesit', 'theme-fener', 'theme-civata',
-      'theme-mina', 'theme-meridyen'],
+    STUDIO_THEME_IDS: ['theme-dark', 'theme-light', 'theme-bakir', 'theme-bostan', 'theme-civata'],
 
     // Galeri ürünü: yalnız ThemeManager.setTheme çağırır; kendisi CSS yazmaz.
     lastRemoteWarned: null,
@@ -10177,16 +10228,11 @@
       const list = document.getElementById('studio-theme-list');
       if (!list || typeof ThemeManager === 'undefined') return;
       const META = {
-        'theme-matbaa':   { name: 'Matbaa',   desc: 'Kâğıt krem + oksit kırmızı',   bg: '#f2ecdf' },
-        'theme-bakir':    { name: 'Bakır',    desc: 'Grafit + bakır vurgu',          bg: '#141519' },
-        'theme-bostan':   { name: 'Bostan',   desc: 'Adaçayı yeşili, açık',          bg: '#e9edda' },
-        'theme-hat':      { name: 'Hat',      desc: 'Gece petrolü + pirinç',         bg: '#10202b' },
-        'theme-konsol':   { name: 'Konsol',   desc: 'Buz beyaz + terminal yeşili',   bg: '#f5f6f3' },
-        'theme-kesit':    { name: 'Kesit',    desc: 'Işık gri + bizon sarısı',       bg: '#f1f0ec' },
-        'theme-fener':    { name: 'Fener',    desc: 'Köz siyahı + kor turuncu',      bg: '#101113' },
-        'theme-civata':   { name: 'Cıvata',   desc: 'Beyaz + is + limon',            bg: '#fcfcf9' },
-        'theme-mina':     { name: 'Mina',     desc: 'Çam yeşili + mercan',           bg: '#0d211c' },
-        'theme-meridyen': { name: 'Meridyen', desc: 'Kerpiç krem + kobalt',          bg: '#f4f2ea' }
+        'theme-dark':   { name: 'Arduvaz Koyu', desc: 'Mat kömür ve terakota vurgu',    bg: '#15171a' },
+        'theme-light':  { name: 'Arduvaz Açık', desc: 'Sıcak keten ve koyu mürekkep',  bg: '#eae7df' },
+        'theme-bakir':  { name: 'Bakır',        desc: 'Grafit ve sıcak bakır vurgu',    bg: '#141519' },
+        'theme-bostan': { name: 'Bostan',       desc: 'Adaçayı yeşili, mat açık',       bg: '#e6ebd8' },
+        'theme-civata': { name: 'Cıvata',       desc: 'Teknik kâğıt, is ve kobalt',     bg: '#fcfcf9' }
       };
       const current = ThemeManager.currentTheme;
       list.replaceChildren();
@@ -11384,7 +11430,7 @@
 
       const chkDynamicIsland = document.getElementById('settings-dynamic-island');
       if (chkDynamicIsland) {
-        chkDynamicIsland.checked = SafeStorage.getItem('ankora_dynamic_island') !== '0';
+        chkDynamicIsland.checked = SafeStorage.getItem('ankora_dynamic_island') === '1';
         chkDynamicIsland.addEventListener('change', () => {
           if (typeof DynamicIsland !== 'undefined' && DynamicIsland.setEnabled) {
             DynamicIsland.setEnabled(chkDynamicIsland.checked);
@@ -15227,7 +15273,7 @@
       const enabled = this.isEnabled();
       container.style.display = enabled ? 'flex' : 'none';
 
-      // Ayarlar toggle bağlantısı
+      // Ayarlar ve Hızlı Ayarlar toggle senkronizasyonu
       const chk = document.getElementById('settings-dynamic-island');
       if (chk) {
         chk.checked = enabled;
@@ -15235,6 +15281,10 @@
           this.setEnabled(chk.checked);
         });
       }
+      const qsTile = document.getElementById('qs-island-toggle');
+      const qsSub = document.getElementById('qs-island-sub');
+      if (qsTile) qsTile.classList.toggle('active', enabled);
+      if (qsSub) qsSub.textContent = enabled ? 'Açık' : 'Kapalı';
 
       // Kapsüle tıklayınca aç/kapat (toggle)
       this.el.addEventListener('click', (e) => {
@@ -15370,7 +15420,7 @@
     },
 
     isEnabled() {
-      return SafeStorage.getItem(this.KEY) !== '0';
+      return SafeStorage.getItem(this.KEY) === '1';
     },
 
     toggleEnabled() {
@@ -16106,9 +16156,9 @@
       box.appendChild(this.make('div', 'dw-weather-desc', 'dw-weather-desc', 'Yükleniyor…'));
 
       const meta = this.make('div', 'dw-weather-meta');
-      meta.appendChild(this.make('span', null, 'dw-weather-high', 'En yüksek —'));
-      meta.appendChild(this.make('span', null, 'dw-weather-low', 'En düşük —'));
-      meta.appendChild(this.make('span', null, 'dw-weather-wind', 'Rüzgâr —'));
+      meta.appendChild(this.make('span', null, 'dw-weather-high', 'En yüksek -'));
+      meta.appendChild(this.make('span', null, 'dw-weather-low', 'En düşük -'));
+      meta.appendChild(this.make('span', null, 'dw-weather-wind', 'Rüzgâr -'));
       box.appendChild(meta);
       box.appendChild(this.make('div', 'dw-weather-days', 'dw-weather-days'));
 
@@ -16331,13 +16381,13 @@
       const max = Array.isArray(daily.temperature_2m_max) ? daily.temperature_2m_max[0] : null;
       const min = Array.isArray(daily.temperature_2m_min) ? daily.temperature_2m_min[0] : null;
       const high = document.getElementById('dw-weather-high');
-      if (high) high.textContent = 'En yüksek ' + (Number.isFinite(Number(max)) ? Math.round(Number(max)) + '°' : '—');
+      if (high) high.textContent = 'En yüksek ' + (Number.isFinite(Number(max)) ? Math.round(Number(max)) + '°' : '-');
       const low = document.getElementById('dw-weather-low');
-      if (low) low.textContent = 'En düşük ' + (Number.isFinite(Number(min)) ? Math.round(Number(min)) + '°' : '—');
+      if (low) low.textContent = 'En düşük ' + (Number.isFinite(Number(min)) ? Math.round(Number(min)) + '°' : '-');
       const wind = document.getElementById('dw-weather-wind');
       if (wind) {
         const w = Number(cur.wind_speed_10m);
-        wind.textContent = 'Rüzgâr ' + (Number.isFinite(w) ? Math.round(w) + ' km/sa' : '—');
+        wind.textContent = 'Rüzgâr ' + (Number.isFinite(w) ? Math.round(w) + ' km/sa' : '-');
       }
 
       const daysEl = document.getElementById('dw-weather-days');

@@ -3,7 +3,7 @@
 
   // ============================================================================
   // AYAZ DE · ARAYÜZ YÜZLERİ / FACES YÖNETİCİSİ (FaceManager)
-  // Antislop UI Mimarisi: 2 (Bakır), 3 (Bostan), 8 (Cıvata)
+  // Antislop UI Mimarisi: default (Arduvaz), 2 (Bakır), 3 (Bostan), 8 (Cıvata) + legacy (4.7)
   // ============================================================================
 
   const FaceManager = {
@@ -88,7 +88,9 @@
     },
 
     setFace(faceId, persist = true) {
-      this.currentFace = String(faceId);
+      let id = String(faceId || 'default');
+      if (!['default', 'legacy', '2', '3', '8'].includes(id)) id = 'default';
+      this.currentFace = id;
       document.documentElement.setAttribute('data-face', this.currentFace);
       document.body.setAttribute('data-face', this.currentFace);
 
@@ -104,6 +106,25 @@
         }
       }
 
+      if (persist && window.ThemeManager && typeof window.ThemeManager.setTheme === 'function') {
+        const isFull = typeof window.ThemeManager.isFullSystemTheme === 'function'
+          ? window.ThemeManager.isFullSystemTheme()
+          : true;
+        if (isFull) {
+          const faceThemes = {
+            default: 'theme-dark',
+            '2': 'theme-bakir',
+            '3': 'theme-bostan',
+            '8': 'theme-civata',
+            legacy: 'theme-classic-dark'
+          };
+          const targetTheme = faceThemes[this.currentFace];
+          if (targetTheme && window.ThemeManager.currentTheme !== targetTheme) {
+            window.ThemeManager.setTheme(targetTheme, true);
+          }
+        }
+      }
+
       this.renderFaceShell();
       if (window.XdgDesktopEngine && typeof window.XdgDesktopEngine.layoutDesktopIcons === 'function') {
         window.XdgDesktopEngine.layoutDesktopIcons();
@@ -114,8 +135,20 @@
         requestAnimationFrame(() => window.WindowManager.clampAllWindows());
       }
       if (window.TauriBridge && typeof window.TauriBridge.invoke === 'function') {
-        const faceMargins = { default: [0, 56], '2': [38, 84], '3': [40, 82], '8': [32, 74] }[this.currentFace] || [0, 56];
-        window.TauriBridge.invoke('set_openbox_margins', { top: faceMargins[0], bottom: faceMargins[1] }).catch(() => {});
+        const tbH = (window.ThemeManager && parseInt(window.ThemeManager.currentTaskbarHeight, 10))
+          || parseInt(getComputedStyle(document.documentElement).getPropertyValue('--taskbar-height'), 10)
+          || 40;
+        const isPanelTop = document.body.classList.contains('panel-top');
+        let margins = { top: 0, bottom: tbH };
+        if (this.currentFace === 'default') {
+          margins = isPanelTop ? { top: tbH, bottom: 0 } : { top: 0, bottom: tbH };
+        } else if (this.currentFace === 'legacy') {
+          margins = { top: 0, bottom: tbH };
+        } else {
+          const fm = { '2': [38, 84], '3': [40, 82], '8': [32, 74] }[this.currentFace];
+          if (fm) margins = { top: fm[0], bottom: fm[1] };
+        }
+        window.TauriBridge.invoke('set_openbox_margins', margins).catch(() => {});
       }
     },
 
@@ -131,15 +164,20 @@
       hero.innerHTML = '';
       meta.innerHTML = '';
 
-      if (this.currentFace === 'default') {
+      if (this.currentFace === 'default' || this.currentFace === 'legacy') {
         const island = document.getElementById('dynamic-island-container');
-        if (island) island.style.removeProperty('display');
+        if (island) {
+          const diEnabled = window.DynamicIsland && typeof window.DynamicIsland.isEnabled === 'function'
+            ? window.DynamicIsland.isEnabled()
+            : false;
+          island.style.display = diEnabled ? 'flex' : 'none';
+        }
         return;
       }
-      // Dinamik Ada (Kapsül) kontrolü
+      // Dinamik Ada (Kapsül) 2/3/8 yüzlerinde gizlenir; kendi üst panelleri vardır.
       const island = document.getElementById('dynamic-island-container');
       if (island) {
-        island.style.setProperty('display', this.currentFace === 'default' ? 'flex' : 'none', 'important');
+        island.style.setProperty('display', 'none', 'important');
       }
 
 
@@ -399,7 +437,7 @@
         <span class="civata-nav-item civata-btn-wins">açık pencereler <em class="civata-highlight civata-open-count">0</em></span>
         <div class="civata-running-tabs" id="civata-running-tabs"></div>
         <div style="flex:1;"></div>
-        <span class="civata-nav-item civata-btn-ai" style="margin-right:12px;">ada: <em class="civata-highlight">genişletilmiş</em></span>
+        <span class="civata-nav-item civata-btn-ai" style="margin-right:12px;">yardımcı</span>
         <span class="civata-top-datetime"></span>
       `;
       this.ensureMediaBar(topPanel);
@@ -521,7 +559,7 @@
     },
 
     syncRunningState() {
-      if (this.currentFace === 'default') return;
+      if (this.currentFace === 'default' || this.currentFace === 'legacy') return;
 
       const wm = window.WindowManager;
       const openWins = Array.from(document.querySelectorAll('.window.open:not(.ws-hide)'));

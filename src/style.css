@@ -4,37 +4,38 @@
    ============================================================================== */
 
 :root {
-  --bg-deep: #0c0d12;
-  --bg-base: #13141b;
-  --bg-panel: #1b1c26;
-  --bg-surface: #242533;
-  --bg-surface-hover: #2e3042;
-  --bg-surface-active: #393b51;
+  --bg-deep: #0f1114;
+  --bg-base: #15171a;
+  --bg-panel: #1a1d21;
+  --bg-surface: #22252b;
+  --bg-surface-hover: #2a2e35;
+  --bg-surface-active: #343942;
 
   --border-subtle: rgba(255, 255, 255, 0.08);
-  --border-medium: rgba(255, 255, 255, 0.15);
-  --border-focus: rgba(255, 255, 255, 0.38);
-  --border-active-window: #60627e;
+  --border-medium: rgba(255, 255, 255, 0.14);
+  --border-focus: #cc5d35;
+  --border-active-window: var(--accent-active, #cc5d35);
   --border-highlight: #ffffff;
 
-  --text-primary: #f5f6fa;
-  --text-secondary: #a3a6be;
-  /* WCAG AA (4.5:1) için en açık yüzeyde bile tutacak şekilde açıldı */
-  --text-muted: #9597b6;
-  --text-inverse: #050508;
+  --text-primary: #ececef;
+  --text-secondary: #a1a6b0;
+  --text-muted: #8b919d;
+  --text-inverse: #0f1114;
 
   --accent-white: #ffffff;
-  --accent-gray: #888a9f;
-  --accent-active: #2563eb;
+  --accent-gray: #8b919d;
+  --accent-active: #cc5d35;
 
-  /* Cam yüzeyler ve masaüstü zemini tema değişkenleri (tema paketleri override eder) */
-  --glass-taskbar: rgba(14, 16, 23, 0.64);
-  --glass-flyout: rgba(18, 20, 28, 0.7);
-  --desktop-bg: #040405;
+  /* Masaüstü ve panel değişkenleri (tema paketleri override eder) */
+  --glass-taskbar: rgba(26, 29, 33, 0.96);
+  --glass-flyout: rgba(26, 29, 33, 0.98);
+  --surface-flyout: #1a1d21;
+  --taskbar-bg: #1a1d21;
+  --desktop-bg: #111316;
 
-  --taskbar-height: 44px;
+  --taskbar-height: 40px;
   --workarea-top: 0px;
-  --workarea-bottom: var(--taskbar-height, 44px);
+  --workarea-bottom: var(--taskbar-height, 40px);
   --radius-window: 8px;
   --radius-ui: 6px;
 
@@ -48,6 +49,12 @@
 
   --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-mono: ui-monospace, "Cascadia Code", "Fira Code", Menlo, Consolas, monospace;
+}
+
+html[data-face="default"].panel-top,
+body[data-face="default"].panel-top {
+  --workarea-top: var(--taskbar-height, 40px);
+  --workarea-bottom: 0px;
 }
 
 /* ==============================================================================
@@ -102,34 +109,64 @@
    TEMA MOTORU (THEME ENGINE: LIGHT / DARK / MIDNIGHT)
    ============================================================================== */
 body.theme-light {
-  --bg-deep: #f1f5f9;
-  --bg-base: #ffffff;
-  --bg-panel: #f8fafc;
-  --bg-surface: #f1f5f9;
-  --bg-surface-hover: #e2e8f0;
-  --bg-surface-active: #cbd5e1;
+  --bg-deep: #dcd9d0;
+  --bg-base: #eae7df;
+  --bg-panel: #f5f3ee;
+  --bg-surface: #e4e1d8;
+  --bg-surface-hover: #dad6cc;
+  --bg-surface-active: #cfcac0;
 
-  --border-subtle: rgba(0, 0, 0, 0.08);
-  --border-medium: rgba(0, 0, 0, 0.14);
-  --border-focus: rgba(37, 99, 235, 0.45);
-  --border-active-window: var(--accent-active, #2563eb);
-  --border-highlight: #0f172a;
+  --border-subtle: rgba(24, 24, 27, 0.09);
+  --border-medium: rgba(24, 24, 27, 0.16);
+  --border-focus: rgba(184, 74, 36, 0.45);
+  --border-active-window: var(--accent-active, #b84a24);
+  --border-highlight: #18181b;
 
-  --text-primary: #0f172a;
-  --text-secondary: #475569;
-  /* WCAG AA (4.5:1) için en koyu yüzeyde bile tutacak şekilde koyulaştıldı */
-  --text-muted: #5a687d;
+  --text-primary: #18181b;
+  --text-secondary: #52525b;
+  --text-muted: #5e5e66;
   --text-inverse: #ffffff;
 
-  --accent-white: #0f172a;
-  --accent-gray: #64748b;
+  --accent-white: #18181b;
+  --accent-gray: #71717a;
+  --accent-active: #b84a24;
+
+  --desktop-bg: #e3dfd6;
+  --glass-taskbar: rgba(245, 243, 238, 0.9);
+  --glass-flyout: rgba(245, 243, 238, 0.95);
+  --surface-flyout: #f5f3ee;
+  --taskbar-bg: #f0ede6;
+}
+
+/* Yayımlanan 4.7 Modern Grafit (isteğe bağlı korunan koyu tema) */
+body.theme-classic-dark {
+  --bg-deep: #0c0d12;
+  --bg-base: #13141b;
+  --bg-panel: #1b1c26;
+  --bg-surface: #242533;
+  --bg-surface-hover: #2e3042;
+  --bg-surface-active: #393b51;
+
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-medium: rgba(255, 255, 255, 0.15);
+  --border-focus: rgba(255, 255, 255, 0.38);
+  --border-active-window: #60627e;
+  --border-highlight: #ffffff;
+
+  --text-primary: #f5f6fa;
+  --text-secondary: #a3a6be;
+  --text-muted: #9597b6;
+  --text-inverse: #050508;
+
+  --accent-white: #ffffff;
+  --accent-gray: #888a9f;
   --accent-active: #2563eb;
 
-  --desktop-bg: #f8fafc;
-  --glass-taskbar: rgba(255, 255, 255, 0.76);
-  --glass-flyout: rgba(255, 255, 255, 0.88);
-  --surface-flyout: #ffffff;
-  --taskbar-bg: rgba(248, 250, 252, 0.94);
+  --desktop-bg: #040405;
+  --glass-taskbar: rgba(14, 16, 23, 0.64);
+  --glass-flyout: rgba(18, 20, 28, 0.7);
+  --surface-flyout: #12141c;
+  --taskbar-bg: rgba(10, 11, 16, 0.92);
 }
 
 body.theme-midnight {
@@ -259,168 +296,6 @@ body.theme-arctic {
   --glass-flyout: rgba(255, 255, 255, 0.88);
 }
 
-/* Yeni tema seti: Çınar, Meltem, Kor, Dem, Boğaz (kullanıcı önizlemelerinden) */
-body.theme-cinar {
-  --bg-deep: #eae4d4;
-  --bg-base: #f4efe3;
-  --bg-panel: #fbf8f0;
-  --bg-surface: #fffdf7;
-  --bg-surface-hover: #f2ecdd;
-  --bg-surface-active: #e7dfcc;
-
-  --border-subtle: rgba(64, 51, 28, 0.10);
-  --border-medium: rgba(64, 51, 28, 0.18);
-  --border-focus: rgba(63, 107, 69, 0.5);
-  --border-active-window: var(--accent-active, #3f6b45);
-  --border-highlight: #2b2415;
-
-  --text-primary: #2b2415;
-  --text-secondary: #6d6250;
-  --text-muted: #7a6f5c;
-  --text-inverse: #ffffff;
-
-  --accent-white: #2b2415;
-  --accent-gray: #6d6250;
-  --accent-active: #3f6b45;
-  --accent-hover: rgba(63, 107, 69, 0.12);
-
-  --surface-flyout: #fbf8f0;
-  --taskbar-bg: rgba(251, 248, 240, 0.94);
-  --desktop-bg: #f4efe3;
-  --glass-taskbar: rgba(251, 248, 240, 0.66);
-  --glass-flyout: rgba(251, 248, 240, 0.78);
-}
-
-body.theme-meltem {
-  --bg-deep: #dbe6ec;
-  --bg-base: #e8eef2;
-  --bg-panel: #f4f8fa;
-  --bg-surface: #ffffff;
-  --bg-surface-hover: #e6eef2;
-  --bg-surface-active: #d5e1e8;
-
-  --border-subtle: rgba(24, 45, 55, 0.09);
-  --border-medium: rgba(24, 45, 55, 0.16);
-  --border-focus: rgba(13, 122, 140, 0.5);
-  --border-active-window: var(--accent-active, #0d7a8c);
-  --border-highlight: #1f2b33;
-
-  --text-primary: #1f2b33;
-  --text-secondary: #5d6f7a;
-  --text-muted: #6b7e89;
-  --text-inverse: #ffffff;
-
-  --accent-white: #1f2b33;
-  --accent-gray: #5d6f7a;
-  --accent-active: #0d7a8c;
-  --accent-hover: rgba(13, 122, 140, 0.12);
-
-  --surface-flyout: #f4f8fa;
-  --taskbar-bg: rgba(244, 248, 250, 0.94);
-  --desktop-bg: #e8eef2;
-  --glass-taskbar: rgba(244, 248, 250, 0.7);
-  --glass-flyout: rgba(255, 255, 255, 0.78);
-}
-
-body.theme-kor {
-  --bg-deep: #140f0a;
-  --bg-base: #1b1611;
-  --bg-panel: #241e17;
-  --bg-surface: #2a231b;
-  --bg-surface-hover: #332a20;
-  --bg-surface-active: #3d3226;
-
-  --border-subtle: rgba(241, 232, 219, 0.09);
-  --border-medium: rgba(241, 232, 219, 0.17);
-  --border-focus: rgba(224, 138, 60, 0.5);
-  --border-active-window: #e08a3c;
-
-  --text-primary: #f1e8db;
-  --text-secondary: #a89a86;
-  --text-muted: #b3a592;
-
-  --surface-flyout: #241e17;
-  --taskbar-bg: rgba(27, 22, 17, 0.92);
-  --desktop-bg: #140f0a;
-  --glass-taskbar: rgba(36, 30, 23, 0.66);
-  --glass-flyout: rgba(36, 30, 23, 0.72);
-}
-
-body.theme-dem {
-  --bg-deep: #0f1013;
-  --bg-base: #131417;
-  --bg-panel: #191a1f;
-  --bg-surface: #1e2026;
-  --bg-surface-hover: #272931;
-  --bg-surface-active: #30333c;
-
-  --border-subtle: rgba(232, 234, 240, 0.08);
-  --border-medium: rgba(232, 234, 240, 0.15);
-  --border-focus: rgba(214, 69, 69, 0.55);
-  --border-active-window: #d64545;
-
-  --text-primary: #e8eaf0;
-  --text-secondary: #8f94a3;
-  --text-muted: #9aa0af;
-
-  --surface-flyout: #191a1f;
-  --taskbar-bg: rgba(19, 20, 23, 0.94);
-  --desktop-bg: #0f1013;
-  --glass-taskbar: rgba(19, 20, 23, 0.7);
-  --glass-flyout: rgba(19, 20, 23, 0.74);
-}
-
-body.theme-bogaz {
-  --bg-deep: #09121a;
-  --bg-base: #0d171b;
-  --bg-panel: #112028;
-  --bg-surface: #14232b;
-  --bg-surface-hover: #1a2c35;
-  --bg-surface-active: #21363f;
-
-  --border-subtle: rgba(230, 238, 242, 0.08);
-  --border-medium: rgba(230, 238, 242, 0.15);
-  --border-focus: rgba(201, 162, 75, 0.55);
-  --border-active-window: #c9a24b;
-
-  --text-primary: #e6eef2;
-  --text-secondary: #8ba4b0;
-  --text-muted: #97aeb9;
-
-  --surface-flyout: #112028;
-  --taskbar-bg: rgba(13, 23, 27, 0.92);
-  --desktop-bg: #09121a;
-  --glass-taskbar: rgba(17, 30, 36, 0.68);
-  --glass-flyout: rgba(17, 30, 36, 0.74);
-}
-
-/* Ayna: Hyprland esintili aşırı modern tema. Keskin köşe, ince vurgu çizgisi,
-   mono durum bilgisi. Vurgu camgöbeği tek noktada. */
-body.theme-ayna {
-  --bg-deep: #040507;
-  --bg-base: #060709;
-  --bg-panel: #0d0f14;
-  --bg-surface: #101319;
-  --bg-surface-hover: #171b22;
-  --bg-surface-active: #1e242d;
-
-  --border-subtle: rgba(232, 236, 241, 0.07);
-  --border-medium: rgba(232, 236, 241, 0.13);
-  --border-focus: rgba(6, 182, 212, 0.55);
-  --border-active-window: #06b6d4;
-
-  --text-primary: #e8ecf1;
-  --text-secondary: #7c8695;
-  --text-muted: #87919f;
-
-  --surface-flyout: #0d0f14;
-  --taskbar-bg: rgba(13, 15, 20, 0.94);
-  --desktop-bg: #040507;
-  --glass-taskbar: rgba(13, 15, 20, 0.7);
-  --glass-flyout: rgba(13, 15, 20, 0.74);
-  --accent-active: #06b6d4;
-}
-
 /* 29 Ekim Cumhuriyet Bayramı özel teması: bayrak kırmızısı zemin, ay-yıldız
    beyazı metin. Mevcut monokrom cam sisteminin palet varyantı: yeni yerleşim
    ya da parlama yok; kimlik yalnız renk ve duvar kağıdı motifi taşır. */
@@ -458,26 +333,24 @@ body.theme-cumhuriyet {
 /* Tema değişkenlerine bağlanan sabit yüzeyler · koyu temalarda varsayılan
    değer, theme-* sınıfıyla override edilir. */
 .start-flyout {
-  background: var(--surface-flyout, #12141c);
+  background: var(--surface-flyout, #1a1d21);
 }
 .taskbar {
-  background: var(--taskbar-bg, rgba(0, 0, 0, 0.9));
+  background: var(--taskbar-bg, #1a1d21);
 }
 .ayaz-quick-settings-flyout,
 .ayaz-calendar-flyout {
-  background: var(--surface-flyout, #141622);
+  background: var(--surface-flyout, #1a1d21);
 }
 .desktop-context-menu {
-  background: var(--surface-flyout, #141724);
+  background: var(--surface-flyout, #1a1d21);
 }
 body.theme-light .start-flyout,
 body.is-light-theme .start-flyout,
-body.theme-arctic .start-flyout,
-body.theme-cinar .start-flyout,
-body.theme-meltem .start-flyout {
-  background: var(--surface-flyout, #ffffff);
+body.theme-arctic .start-flyout {
+  background: var(--surface-flyout, #f5f3ee);
 }
-/* Yeni koyu temalarda pencere yüzeyi tema değişkenlerinden okunur. */
+/* Klasik 4.7 koyu temalarda pencere yüzeyi tema değişkenlerinden okunur. */
 body.theme-nord .window,
 body.theme-evergreen .window,
 body.theme-ember .window {
@@ -489,84 +362,8 @@ body.theme-evergreen .window-header,
 body.theme-ember .window-header {
   background: transparent;
 }
-/* Yeni koyu temalar (Kor, Dem, Boğaz) kendi pencere yüzeyini taşır. */
-body.theme-kor .window {
-  background: rgba(27, 22, 17, 0.88);
-  border-color: var(--border-medium);
-}
-body.theme-dem .window {
-  background: rgba(19, 20, 23, 0.9);
-  border-color: var(--border-medium);
-}
-body.theme-bogaz .window {
-  background: rgba(13, 23, 27, 0.88);
-  border-color: var(--border-medium);
-}
-body.theme-kor .window-header,
-body.theme-dem .window-header,
-body.theme-bogaz .window-header {
-  background: transparent;
-}
-/* Yeni açık temalar (Çınar, Meltem) pencere yüzeyi: tam okunur, sıcak/serin tint. */
-body.theme-cinar .window {
-  background: rgba(255, 253, 247, 0.96);
-  box-shadow: 0 16px 48px rgba(90, 75, 40, 0.12);
-  border-color: rgba(64, 51, 28, 0.16);
-}
-body.theme-meltem .window {
-  background: rgba(255, 255, 255, 0.96);
-  box-shadow: 0 16px 48px rgba(40, 70, 85, 0.12);
-  border-color: rgba(24, 45, 55, 0.14);
-}
-body.theme-cinar .window.active {
-  border-color: var(--accent-active, #3f6b45);
-  box-shadow: 0 20px 52px rgba(63, 107, 69, 0.16), 0 0 0 1px rgba(63, 107, 69, 0.42);
-}
-body.theme-meltem .window.active {
-  border-color: var(--accent-active, #0d7a8c);
-  box-shadow: 0 20px 52px rgba(13, 122, 140, 0.16), 0 0 0 1px rgba(13, 122, 140, 0.42);
-}
-body.theme-cinar .window-header {
-  background: #fbf8f0;
-  border-bottom-color: rgba(64, 51, 28, 0.1);
-}
-body.theme-meltem .window-header {
-  background: #f4f8fa;
-  border-bottom-color: rgba(24, 45, 55, 0.09);
-}
-/* --- Studio ekleyi: 10 kompozisyon teması (Masaüstü yönlerinden) ---
-   Paletler gerçek seçmelerin kapril çekیمی; yalnızca değişken bloğu. */
 
-body.theme-matbaa {
-  --bg-deep: #e8e0cc;
-  --bg-base: #f2ecdf;
-  --bg-panel: #f7f3e8;
-  --bg-surface: #f4eee1;
-  --bg-surface-hover: #ece4d0;
-  --bg-surface-active: #e0d8c2;
-
-  --border-subtle: rgba(35, 32, 26, 0.09);
-  --border-medium: rgba(35, 32, 26, 0.18);
-  --border-focus: rgba(180, 70, 42, 0.45);
-  --border-active-window: #b4462a;
-  --border-highlight: #23201a;
-
-  --text-primary: #23201a;
-  --text-secondary: #5c5546;
-  --text-muted: #6b6552;
-  --text-inverse: #ffffff;
-
-  --accent-white: #23201a;
-  --accent-gray: #84796a;
-  --accent-active: #b4462a;
-
-  --surface-flyout: #fbf8f1;
-  --taskbar-bg: rgba(242, 236, 223, 0.94);
-  --desktop-bg: #e9e1cd;
-  --glass-taskbar: rgba(247, 243, 232, 0.78);
-  --glass-flyout: rgba(251, 248, 241, 0.9);
-}
-
+/* --- Anti-Slop Çekirdek Tema Değişkenleri: Bakır, Bostan, Cıvata --- */
 body.theme-bakir {
   --bg-deep: #101114;
   --bg-base: #141519;
@@ -591,10 +388,10 @@ body.theme-bakir {
   --accent-active: #d1794f;
 
   --surface-flyout: #202227;
-  --taskbar-bg: rgba(20, 21, 25, 0.92);
+  --taskbar-bg: #1c1e23;
   --desktop-bg: #0d0e10;
-  --glass-taskbar: rgba(23, 25, 29, 0.7);
-  --glass-flyout: rgba(23, 25, 29, 0.78);
+  --glass-taskbar: rgba(23, 25, 29, 0.96);
+  --glass-flyout: rgba(23, 25, 29, 0.98);
 }
 
 body.theme-bostan {
@@ -621,130 +418,10 @@ body.theme-bostan {
   --accent-active: #3d6b45;
 
   --surface-flyout: #faf8ef;
-  --taskbar-bg: rgba(250, 248, 239, 0.94);
-  --desktop-bg: #e4ead8;
-  --glass-taskbar: rgba(250, 248, 239, 0.8);
-  --glass-flyout: rgba(250, 248, 239, 0.9);
-}
-
-body.theme-hat {
-  --bg-deep: #0b1822;
-  --bg-base: #10202b;
-  --bg-panel: #152632;
-  --bg-surface: #182a37;
-  --bg-surface-hover: #1e3240;
-  --bg-surface-active: #243a48;
-
-  --border-subtle: rgba(231, 226, 212, 0.08);
-  --border-medium: rgba(231, 226, 212, 0.17);
-  --border-focus: rgba(201, 162, 78, 0.45);
-  --border-active-window: #c9a24e;
-  --border-highlight: #e7e2d4;
-
-  --text-primary: #e7e2d4;
-  --text-secondary: #aab4b0;
-  --text-muted: #849199;
-  --text-inverse: #10202b;
-
-  --accent-white: #e7e2d4;
-  --accent-gray: #6f7e86;
-  --accent-active: #c9a24e;
-
-  --surface-flyout: #152632;
-  --taskbar-bg: rgba(16, 32, 43, 0.94);
-  --desktop-bg: #0a141c;
-  --glass-taskbar: rgba(19, 36, 48, 0.72);
-  --glass-flyout: rgba(19, 36, 48, 0.8);
-}
-
-body.theme-konsol {
-  --bg-deep: #e8eae6;
-  --bg-base: #f5f6f3;
-  --bg-panel: #eef0ec;
-  --bg-surface: #fbfcfa;
-  --bg-surface-hover: #eef1ec;
-  --bg-surface-active: #e2e6e0;
-
-  --border-subtle: rgba(25, 27, 30, 0.14);
-  --border-medium: rgba(25, 27, 30, 0.28);
-  --border-focus: rgba(24, 106, 63, 0.5);
-  --border-active-window: #186a3f;
-  --border-highlight: #191b1e;
-
-  --text-primary: #191b1e;
-  --text-secondary: #3d4146;
-  --text-muted: #63686d;
-  --text-inverse: #f5f6f3;
-
-  --accent-white: #191b1e;
-  --accent-gray: #63686d;
-  --accent-active: #186a3f;
-
-  --surface-flyout: #fbfcfa;
-  --taskbar-bg: rgba(236, 238, 233, 0.96);
-  --desktop-bg: #eceee9;
-  --glass-taskbar: rgba(245, 246, 243, 0.85);
-  --glass-flyout: rgba(245, 246, 243, 0.92);
-}
-
-body.theme-kesit {
-  --bg-deep: #e5e4df;
-  --bg-base: #f1f0ec;
-  --bg-panel: #e9e8e3;
-  --bg-surface: #faf9f6;
-  --bg-surface-hover: #e9e8e2;
-  --bg-surface-active: #dfded9;
-
-  --border-subtle: rgba(22, 24, 26, 0.12);
-  --border-medium: rgba(22, 24, 26, 0.24);
-  --border-focus: rgba(176, 140, 0, 0.55);
-  --border-active-window: #b08c00;
-  --border-highlight: #16181a;
-
-  --text-primary: #16181a;
-  --text-secondary: #4c5054;
-  --text-muted: #63676c;
-  --text-inverse: #ffffff;
-
-  --accent-white: #16181a;
-  --accent-gray: #7a7d81;
-  --accent-active: #b08c00;
-
-  --surface-flyout: #faf9f5;
-  --taskbar-bg: rgba(241, 240, 236, 0.95);
-  --desktop-bg: #e9e8e2;
-  --glass-taskbar: rgba(241, 240, 236, 0.86);
-  --glass-flyout: rgba(250, 249, 245, 0.93);
-}
-
-body.theme-fener {
-  --bg-deep: #08090b;
-  --bg-base: #101113;
-  --bg-panel: #17181b;
-  --bg-surface: #1d1f23;
-  --bg-surface-hover: #23262b;
-  --bg-surface-active: #2a2d33;
-
-  --border-subtle: rgba(234, 231, 222, 0.08);
-  --border-medium: rgba(234, 231, 222, 0.17);
-  --border-focus: rgba(224, 85, 58, 0.5);
-  --border-active-window: #e0553a;
-  --border-highlight: #eae7de;
-
-  --text-primary: #eae7de;
-  --text-secondary: #9d9a92;
-  --text-muted: #8b887f;
-  --text-inverse: #101113;
-
-  --accent-white: #eae7de;
-  --accent-gray: #767268;
-  --accent-active: #e0553a;
-
-  --surface-flyout: #1b1d21;
-  --taskbar-bg: rgba(16, 17, 19, 0.94);
-  --desktop-bg: #0a0b0d;
-  --glass-taskbar: rgba(22, 24, 28, 0.72);
-  --glass-flyout: rgba(22, 24, 28, 0.8);
+  --taskbar-bg: #f0f3e5;
+  --desktop-bg: #e6ebd8;
+  --glass-taskbar: rgba(250, 248, 239, 0.96);
+  --glass-flyout: rgba(250, 248, 239, 0.98);
 }
 
 body.theme-civata {
@@ -757,8 +434,8 @@ body.theme-civata {
 
   --border-subtle: rgba(22, 19, 9, 0.12);
   --border-medium: rgba(22, 19, 9, 0.24);
-  --border-focus: rgba(150, 165, 15, 0.55);
-  --border-active-window: #6d7d0f;
+  --border-focus: rgba(29, 78, 216, 0.55);
+  --border-active-window: #1d4ed8;
   --border-highlight: #161309;
 
   --text-primary: #161309;
@@ -768,146 +445,41 @@ body.theme-civata {
 
   --accent-white: #161309;
   --accent-gray: #87826e;
-  --accent-active: #6d7d0f;
+  --accent-active: #1d4ed8;
 
   --surface-flyout: #fffef9;
-  --taskbar-bg: rgba(252, 252, 249, 0.95);
-  --desktop-bg: #f1f1e9;
-  --glass-taskbar: rgba(252, 252, 249, 0.86);
-  --glass-flyout: rgba(255, 254, 249, 0.93);
+  --taskbar-bg: #161309;
+  --desktop-bg: #f4f2e6;
+  --glass-taskbar: #161309;
+  --glass-flyout: #fffef9;
 }
 
-body.theme-mina {
-  --bg-deep: #081713;
-  --bg-base: #0d211c;
-  --bg-panel: #12291f;
-  --bg-surface: #173327;
-  --bg-surface-hover: #1d3b2e;
-  --bg-surface-active: #234436;
-
-  --border-subtle: rgba(217, 231, 210, 0.09);
-  --border-medium: rgba(217, 231, 210, 0.18);
-  --border-focus: rgba(232, 103, 74, 0.5);
-  --border-active-window: #e8674a;
-  --border-highlight: #d9e7d2;
-
-  --text-primary: #d9e7d2;
-  --text-secondary: #9db3a2;
-  --text-muted: #81a08f;
-  --text-inverse: #0d211c;
-
-  --accent-white: #d9e7d2;
-  --accent-gray: #6d8a7a;
-  --accent-active: #e8674a;
-
-  --surface-flyout: #132b22;
-  --taskbar-bg: rgba(13, 33, 28, 0.94);
-  --desktop-bg: #08130f;
-  --glass-taskbar: rgba(18, 41, 31, 0.72);
-  --glass-flyout: rgba(18, 41, 31, 0.8);
-}
-
-body.theme-meridyen {
-  --bg-deep: #e6e3d8;
-  --bg-base: #f4f2ea;
-  --bg-panel: #eceadf;
-  --bg-surface: #fcfbf6;
-  --bg-surface-hover: #eeecdf;
-  --bg-surface-active: #e2dfd1;
-
-  --border-subtle: rgba(20, 22, 26, 0.12);
-  --border-medium: rgba(20, 22, 26, 0.22);
-  --border-focus: rgba(34, 68, 216, 0.5);
-  --border-active-window: #2244d8;
-  --border-highlight: #14161a;
-
-  --text-primary: #14161a;
-  --text-secondary: #4b4941;
-  --text-muted: #6e6b60;
-  --text-inverse: #ffffff;
-
-  --accent-white: #14161a;
-  --accent-gray: #8b887c;
-  --accent-active: #2244d8;
-
-  --surface-flyout: #fcfbf6;
-  --taskbar-bg: rgba(244, 242, 234, 0.95);
-  --desktop-bg: #e8e6da;
-  --glass-taskbar: rgba(244, 242, 234, 0.86);
-  --glass-flyout: rgba(252, 251, 246, 0.93);
-}
-
-/* Studio temaları: pencere yüzeyi ve krom */
-body.theme-matbaa .window,
+/* Çekirdek temalar: pencere yüzeyi ve krom */
 body.theme-bostan .window,
-body.theme-konsol .window,
-body.theme-kesit .window,
 body.theme-civata .window,
-body.theme-meridyen .window,
-body.theme-bakir .window,
-body.theme-hat .window,
-body.theme-fener .window,
-body.theme-mina .window {
+body.theme-bakir .window {
   border-color: var(--border-medium);
 }
-body.theme-matbaa .window {
-  background: rgba(251, 248, 241, 0.97);
-  box-shadow: 0 16px 48px rgba(35, 32, 26, 0.16);
-}
 body.theme-bostan .window {
-  background: rgba(250, 248, 239, 0.97);
-  box-shadow: 0 16px 48px rgba(38, 50, 31, 0.14);
-}
-body.theme-konsol .window {
-  background: #fbfcfa;
-  box-shadow: 0 10px 34px rgba(25, 27, 30, 0.18);
-}
-body.theme-kesit .window {
-  background: #fbfaf7;
-  box-shadow: 1px 1px 0 rgba(22, 24, 26, 0.35), 0 18px 44px rgba(22, 24, 26, 0.14);
+  background: #faf8ef;
+  box-shadow: 0 12px 30px rgba(38, 50, 31, 0.14);
 }
 body.theme-civata .window {
-  background: rgba(255, 254, 249, 0.98);
-  box-shadow: 0 16px 44px rgba(22, 19, 9, 0.16);
-}
-body.theme-meridyen .window {
-  background: rgba(252, 251, 246, 0.97);
-  box-shadow: 0 16px 44px rgba(20, 22, 26, 0.16);
+  background: #fffef9;
+  box-shadow: 0 12px 32px rgba(22, 19, 9, 0.14);
 }
 body.theme-bakir .window {
-  background: rgba(27, 29, 34, 0.92);
+  background: #1b1d22;
 }
-body.theme-hat .window {
-  background: rgba(19, 36, 48, 0.92);
-  border-top-color: rgba(201, 162, 78, 0.4);
-}
-body.theme-fener .window {
-  background: rgba(23, 24, 27, 0.94);
-}
-body.theme-mina .window {
-  background: rgba(18, 41, 31, 0.92);
-}
-body.theme-matbaa .window-header,
 body.theme-bostan .window-header,
-body.theme-konsol .window-header,
-body.theme-kesit .window-header,
-body.theme-civata .window-header,
-body.theme-meridyen .window-header {
-  background: rgba(255, 255, 255, 0.35);
+body.theme-civata .window-header {
+  background: var(--bg-panel);
 }
-body.theme-bakir .window-header,
-body.theme-hat .window-header,
-body.theme-fener .window-header,
-body.theme-mina .window-header {
+body.theme-bakir .window-header {
   background: transparent;
 }
-/* Yeni açık temalarda Başlat menüsü yüzeyi */
-body.theme-matbaa .start-flyout,
 body.theme-bostan .start-flyout,
-body.theme-konsol .start-flyout,
-body.theme-kesit .start-flyout,
-body.theme-civata .start-flyout,
-body.theme-meridyen .start-flyout {
+body.theme-civata .start-flyout {
   background: var(--surface-flyout, #ffffff);
 }
 
@@ -1013,11 +585,11 @@ body.theme-bostan .theme-card-choice strong {
   font-family: 'Newsreader', Georgia, 'DejaVu Serif', serif;
 }
 
-/* --- Cıvata: mürekkep çubuk, limon vurgu, kalın çerçeve pencere --- */
+/* --- Cıvata: mürekkep çubuk, kobalt vurgu, kalın çerçeve pencere --- */
 body.theme-civata {
   --radius-window: 14px;
   --radius-ui: 10px;
-  --accent-strike: #c7e42b;
+  --accent-strike: #1d4ed8;
 }
 body.theme-civata .taskbar {
   background: #161309;
@@ -1032,7 +604,7 @@ body.theme-civata .taskbar-pin-btn {
 }
 body.theme-civata .taskbar-pin-btn:hover {
   background: #242019;
-  border-color: var(--accent-strike, #c7e42b);
+  border-color: #60a5fa;
   color: #ffffff;
 }
 body.theme-civata .task-tab {
@@ -1043,7 +615,7 @@ body.theme-civata .task-tab {
 body.theme-civata .task-tab.active {
   background: #2c2820;
   color: #f4f2e6;
-  box-shadow: inset 0 -3px 0 var(--accent-strike, #c7e42b);
+  box-shadow: inset 0 -3px 0 #1d4ed8;
 }
 body.theme-civata .tray-clock {
   color: #f4f2e6;
@@ -1056,7 +628,7 @@ body.theme-civata .tray-status-island {
 }
 body.theme-civata .window {
   border: 2px solid #161309;
-  box-shadow: 0 18px 44px rgba(22, 19, 9, 0.18);
+  box-shadow: 0 12px 30px rgba(22, 19, 9, 0.14);
 }
 body.theme-civata .window-header {
   background: #161309;
@@ -1069,7 +641,7 @@ body.theme-civata .ctrl-btn {
   color: #b6b3a4;
 }
 body.theme-civata .ctrl-btn.close {
-  color: var(--accent-strike, #c7e42b);
+  color: #93c5fd;
 }
 
 /* --- Geniş tema seti sonu --- */
@@ -1248,6 +820,13 @@ body.is-light-theme .toggle-slider-knob {
 /* Görev Çubuğu - Açık Tema */
 body.theme-light .taskbar,
 body.is-light-theme:not(.theme-bostan):not(.theme-civata) .taskbar {
+  background: var(--taskbar-bg, #f0ede6);
+  border-top: 1px solid rgba(24, 24, 27, 0.12);
+  box-shadow: none;
+}
+
+body[data-face="legacy"].theme-light .taskbar,
+body[data-face="legacy"].is-light-theme:not(.theme-bostan):not(.theme-civata) .taskbar {
   background: rgba(255, 255, 255, 0.88);
   border-top: 1px solid rgba(0, 0, 0, 0.08);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 -4px 20px rgba(0, 0, 0, 0.05);
@@ -1346,137 +925,114 @@ body.is-light-theme .start-btn.active {
 }
 
 /* Görev çubuğu ikonları tüm açık temalarda görünür olmalı:
-   taban kurallar beyaz ikon rengine sabitlendiği için Arctic /
-   Çınar / Meltem'de ikonlar açık zemin üstünde kayboluyordu. */
+   taban kurallar koyu zemine göre ayarlıysa Arctic ve Arduvaz Açık'ta da
+   kontrast korunur. */
 body.theme-light .taskbar-pin-btn,
 body.is-light-theme:not(.theme-bostan):not(.theme-civata) .taskbar-pin-btn,
-body.theme-arctic .taskbar-pin-btn,
-body.theme-cinar .taskbar-pin-btn,
-body.theme-meltem .taskbar-pin-btn {
-  color: var(--text-primary, #0f172a);
+body.theme-arctic .taskbar-pin-btn {
+  color: var(--text-primary, #18181b);
 }
 
 body.theme-light .taskbar-pin-btn:hover,
 body.is-light-theme:not(.theme-bostan):not(.theme-civata) .taskbar-pin-btn:hover,
-body.theme-arctic .taskbar-pin-btn:hover,
-body.theme-cinar .taskbar-pin-btn:hover,
-body.theme-meltem .taskbar-pin-btn:hover {
-  color: var(--text-primary, #0f172a);
+body.theme-arctic .taskbar-pin-btn:hover {
+  color: var(--text-primary, #18181b);
 }
 
 body.theme-light .taskbar-dynamic-pin,
 body.is-light-theme:not(.theme-civata) .taskbar-dynamic-pin,
-body.theme-arctic .taskbar-dynamic-pin,
-body.theme-cinar .taskbar-dynamic-pin,
-body.theme-meltem .taskbar-dynamic-pin {
-  color: var(--text-primary, #0f172a);
+body.theme-arctic .taskbar-dynamic-pin {
+  color: var(--text-primary, #18181b);
 }
 
 body.theme-light .tray-clock,
 body.is-light-theme:not(.theme-bostan):not(.theme-civata) .tray-clock,
-body.theme-arctic .tray-clock,
-body.theme-cinar .tray-clock,
-body.theme-meltem .tray-clock {
-  color: var(--text-primary, #0f172a);
+body.theme-arctic .tray-clock {
+  color: var(--text-primary, #18181b);
 }
 
 body.theme-light .tray-status-island,
 body.is-light-theme:not(.theme-bostan):not(.theme-civata) .tray-status-island,
-body.theme-arctic .tray-status-island,
-body.theme-cinar .tray-status-island,
-body.theme-meltem .tray-status-island {
-  color: var(--text-primary, #0f172a);
+body.theme-arctic .tray-status-island {
+  color: var(--text-primary, #18181b);
 }
 
 body.theme-light .tray-island-item,
 body.is-light-theme:not(.theme-civata) .tray-island-item,
-body.theme-arctic .tray-island-item,
-body.theme-cinar .tray-island-item,
-body.theme-meltem .tray-island-item {
-  color: var(--text-primary, #0f172a);
+body.theme-arctic .tray-island-item {
+  color: var(--text-primary, #18181b);
 }
 
 body.theme-light .tray-island-item:hover,
 body.is-light-theme:not(.theme-civata) .tray-island-item:hover,
-body.theme-arctic .tray-island-item:hover,
-body.theme-cinar .tray-island-item:hover,
-body.theme-meltem .tray-island-item:hover {
-  color: var(--text-primary, #0f172a);
+body.theme-arctic .tray-island-item:hover {
+  color: var(--text-primary, #18181b);
   background: rgba(15, 23, 42, 0.08);
 }
 
 body.theme-light .tray-icon-btn,
 body.is-light-theme:not(.theme-civata) .tray-icon-btn,
-body.theme-arctic .tray-icon-btn,
-body.theme-cinar .tray-icon-btn,
-body.theme-meltem .tray-icon-btn {
-  color: var(--text-primary, #0f172a);
+body.theme-arctic .tray-icon-btn {
+  color: var(--text-primary, #18181b);
 }
 
 body.theme-light .tray-status-glyph,
 body.is-light-theme:not(.theme-civata) .tray-status-glyph,
-body.theme-arctic .tray-status-glyph,
-body.theme-cinar .tray-status-glyph,
-body.theme-meltem .tray-status-glyph {
-  color: var(--text-primary, #0f172a);
+body.theme-arctic .tray-status-glyph {
+  color: var(--text-primary, #18181b);
 }
 
 body.theme-light .notif-badge-pill,
 body.is-light-theme:not(.theme-civata) .notif-badge-pill,
-body.theme-arctic .notif-badge-pill,
-body.theme-cinar .notif-badge-pill,
-body.theme-meltem .notif-badge-pill {
+body.theme-arctic .notif-badge-pill {
   color: #ffffff;
 }
 
 body.theme-light .taskbar-tab-menu,
 body.is-light-theme .taskbar-tab-menu,
-body.theme-arctic .taskbar-tab-menu,
-body.theme-cinar .taskbar-tab-menu,
-body.theme-meltem .taskbar-tab-menu {
+body.theme-arctic .taskbar-tab-menu {
   background: #ffffff;
-  color: var(--text-primary, #0f172a);
+  color: var(--text-primary, #18181b);
   border-color: rgba(15, 23, 42, 0.16);
 }
 
 body.theme-light .task-tab,
 body.is-light-theme:not(.theme-bostan):not(.theme-civata) .task-tab,
-body.theme-arctic .task-tab,
-body.theme-cinar .task-tab,
-body.theme-meltem .task-tab {
-  color: var(--text-secondary, #475569);
+body.theme-arctic .task-tab {
+  color: var(--text-secondary, #52525b);
   background: rgba(15, 23, 42, 0.04);
 }
 
 body.theme-light .task-tab:hover,
 body.is-light-theme:not(.theme-bostan):not(.theme-civata) .task-tab:hover,
-body.theme-arctic .task-tab:hover,
-body.theme-cinar .task-tab:hover,
-body.theme-meltem .task-tab:hover {
-  color: var(--text-primary, #0f172a);
+body.theme-arctic .task-tab:hover {
+  color: var(--text-primary, #18181b);
 }
 
 body.theme-light .task-tab.active,
 body.is-light-theme:not(.theme-bostan):not(.theme-civata) .task-tab.active,
-body.theme-arctic .task-tab.active,
-body.theme-cinar .task-tab.active,
-body.theme-meltem .task-tab.active {
-  color: var(--text-primary, #0f172a);
+body.theme-arctic .task-tab.active {
+  color: var(--text-primary, #18181b);
   background: rgba(15, 23, 42, 0.08);
 }
 
 /* Başlat menüsü uygulama ikon kutuları: açık temalarda koyu metin gerekir */
 body.theme-light .pinned-app-card,
 body.is-light-theme .pinned-app-card,
-body.theme-arctic .pinned-app-card,
-body.theme-cinar .pinned-app-card,
-body.theme-meltem .pinned-app-card {
-  color: var(--text-primary, #0f172a);
+body.theme-arctic .pinned-app-card {
+  color: var(--text-primary, #18181b);
 }
 
 /* Başlat Menüsü - Açık Tema */
 body.theme-light .start-flyout,
 body.is-light-theme .start-flyout {
+  background: var(--surface-flyout, #f5f3ee);
+  border-color: rgba(24, 24, 27, 0.14);
+  box-shadow: 0 18px 42px rgba(24, 24, 27, 0.14), 0 0 0 1px rgba(24, 24, 27, 0.05);
+}
+
+body[data-face="legacy"].theme-light .start-flyout,
+body[data-face="legacy"].is-light-theme .start-flyout {
   background: rgba(255, 255, 255, 0.95);
   border-color: rgba(0, 0, 0, 0.12);
   box-shadow: 0 24px 64px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(0, 0, 0, 0.06);
@@ -1484,8 +1040,8 @@ body.is-light-theme .start-flyout {
 
 body.theme-light .start-search-box,
 body.is-light-theme .start-search-box {
-  background: #f1f5f9;
-  border-color: rgba(0, 0, 0, 0.1);
+  background: var(--bg-surface, #e4e1d8);
+  border-color: rgba(24, 24, 27, 0.12);
 }
 
 body.theme-light .start-search-input,
@@ -1528,6 +1084,13 @@ body.is-light-theme .pinned-icon-box {
   background: #ffffff;
   border-color: rgba(0, 0, 0, 0.1);
   color: #0f172a;
+}
+
+body:not([data-face="legacy"]).theme-light .pinned-icon-box,
+body:not([data-face="legacy"]).is-light-theme .pinned-icon-box {
+  background: transparent;
+  border-color: transparent;
+  color: var(--text-primary);
 }
 
 body.theme-light .app-title,
@@ -4854,18 +4417,18 @@ body.is-light-theme .ai-composer-card:focus-within {
 .welcome-preview-window {
   width: 500px !important;
   max-width: 92vw;
-  background: #141724 !important;
-  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  background: var(--bg-panel, #1a1d21) !important;
+  border: 1px solid var(--border-medium) !important;
   border-radius: 12px !important;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.65) !important;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.52) !important;
   overflow: hidden;
 }
 
 .welcome-preview-window .window-header {
   height: 38px;
   padding: 0 14px;
-  background: rgba(14, 16, 22, 0.6);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--bg-panel, #1a1d21);
+  border-bottom: 1px solid var(--border-subtle);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -5104,7 +4667,7 @@ body.is-light-theme .toggle-slider-knob {
 }
 
 .welcome-key-input {
-  width: 125px;
+  width: 152px;
   height: 28px;
   padding: 0 8px;
   border-radius: 5px;
@@ -5672,16 +5235,47 @@ body.is-light-theme .desktop-context-menu {
   right: 0;
   width: 100%;
   height: var(--taskbar-height);
-  background: rgba(0, 0, 0, 0.9);
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
-  /* Üst kenarda tek hairline: yüzeye kalınlık verir, parlama yok. */
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 -2px 10px rgba(0, 0, 0, 0.5);
+  background: var(--taskbar-bg, #1a1d21);
+  border-top: 1px solid var(--border-medium);
+  box-shadow: none;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 10px;
   z-index: 99995;
   box-sizing: border-box;
+}
+
+body[data-face="legacy"] .taskbar {
+  background: rgba(0, 0, 0, 0.9);
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 -2px 10px rgba(0, 0, 0, 0.5);
+}
+
+body[data-face="default"].panel-top .taskbar {
+  top: 0;
+  bottom: auto;
+  border-top: none;
+  border-bottom: 1px solid var(--border-medium);
+}
+
+body[data-face="default"].panel-top .start-flyout {
+  top: calc(var(--workarea-top, var(--taskbar-height)) + 10px);
+  bottom: auto;
+  transform: translateY(-10px) scale(0.98);
+}
+
+body[data-face="default"].panel-top .start-flyout.open {
+  transform: translateY(0) scale(1);
+}
+
+body[data-face="default"].panel-top .desktop-grid {
+  top: calc(var(--workarea-top, var(--taskbar-height)) + 20px) !important;
+  bottom: 24px !important;
+}
+
+body[data-face="default"].panel-top .desktop-widgets {
+  top: calc(var(--workarea-top, var(--taskbar-height)) + 28px);
 }
 
 .taskbar-left-group {
@@ -6361,44 +5955,28 @@ body.is-light-theme .desktop-context-menu {
    Desteklemeyen motorlarda yarı saydam zemin tek başına yeterli.
    ============================================================================== */
 @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .taskbar,
-  .start-flyout {
+  body[data-face="legacy"] .taskbar,
+  body[data-face="legacy"] .start-flyout {
     -webkit-backdrop-filter: blur(14px) saturate(1.5);
     backdrop-filter: blur(14px) saturate(1.5);
   }
 
-  .taskbar {
+  body[data-face="legacy"] .taskbar {
     background: var(--glass-taskbar, rgba(14, 16, 23, 0.64));
   }
 
-  .start-flyout {
+  body[data-face="legacy"] .start-flyout {
     background: var(--glass-flyout, rgba(18, 20, 28, 0.7));
   }
 
-  body.theme-light .taskbar,
-  body.is-light-theme:not(.theme-bostan):not(.theme-civata) .taskbar {
+  body[data-face="legacy"].theme-light .taskbar,
+  body[data-face="legacy"].is-light-theme:not(.theme-bostan):not(.theme-civata) .taskbar {
     background: var(--glass-taskbar, rgba(255, 255, 255, 0.66));
   }
 
-  body.theme-light .start-flyout,
-  body.is-light-theme .start-flyout {
+  body[data-face="legacy"].theme-light .start-flyout,
+  body[data-face="legacy"].is-light-theme .start-flyout {
     background: var(--glass-flyout, rgba(255, 255, 255, 0.78));
-  }
-
-  body.theme-cinar .taskbar {
-    background: var(--glass-taskbar);
-  }
-
-  body.theme-cinar .start-flyout {
-    background: var(--glass-flyout);
-  }
-
-  body.theme-meltem .taskbar {
-    background: var(--glass-taskbar);
-  }
-
-  body.theme-meltem .start-flyout {
-    background: var(--glass-flyout);
   }
 }
 
@@ -7282,7 +6860,6 @@ body.is-light-theme .desktop-context-menu {
 
 .theme-card-choice:hover {
   border-color: var(--border-medium);
-  transform: translateY(-2px);
 }
 
 .theme-card-choice.active {
@@ -7301,26 +6878,40 @@ body.is-light-theme .desktop-context-menu {
 }
 
 .theme-preview-box.light {
-  background: #f0f3f8;
+  background: #eae7df;
 }
 .theme-preview-box.light .preview-mini-bar {
-  background: #ffffff;
-  border-bottom: 1px solid #dcdfe6;
+  background: #f5f3ee;
+  border-bottom: 1px solid #d6d2c7;
 }
 .theme-preview-box.light .preview-mini-card {
-  background: #ffffff;
-  border: 1px solid #e2e5ec;
+  background: #f5f3ee;
+  border: 1px solid #d6d2c7;
+  border-left: 2px solid #b84a24;
 }
 
 .theme-preview-box.dark {
-  background: #111218;
+  background: #15171a;
 }
 .theme-preview-box.dark .preview-mini-bar {
+  background: #1a1d21;
+  border-bottom: 1px solid #2a2e35;
+}
+.theme-preview-box.dark .preview-mini-card {
+  background: #22252b;
+  border-left: 2px solid #cc5d35;
+}
+
+.theme-preview-box.classic-dark {
+  background: #111218;
+}
+.theme-preview-box.classic-dark .preview-mini-bar {
   background: #1a1c26;
   border-bottom: 1px solid #2b2d3d;
 }
-.theme-preview-box.dark .preview-mini-card {
+.theme-preview-box.classic-dark .preview-mini-card {
   background: #242533;
+  border-left: 2px solid #2563eb;
 }
 
 .theme-preview-box.midnight {
@@ -7372,68 +6963,6 @@ body.is-light-theme .desktop-context-menu {
 .theme-preview-box.midnight .preview-mini-card {
   background: #182245;
 }
-.theme-preview-box.cinar {
-  background: #f4efe3;
-}
-.theme-preview-box.cinar .preview-mini-bar {
-  background: #fbf8f0;
-  border-bottom: 1px solid #ddd3bd;
-}
-.theme-preview-box.cinar .preview-mini-card {
-  background: #fffdf7;
-  border: 1px solid #e4dcc8;
-}
-.theme-preview-box.meltem {
-  background: #e8eef2;
-}
-.theme-preview-box.meltem .preview-mini-bar {
-  background: #f4f8fa;
-  border-bottom: 1px solid #c9d6de;
-}
-.theme-preview-box.meltem .preview-mini-card {
-  background: #ffffff;
-}
-.theme-preview-box.kor {
-  background: #1b1611;
-}
-.theme-preview-box.kor .preview-mini-bar {
-  background: #241e17;
-  border-bottom: 1px solid rgba(224, 138, 60, 0.35);
-}
-.theme-preview-box.kor .preview-mini-card {
-  background: #3d3226;
-}
-.theme-preview-box.dem {
-  background: #131417;
-}
-.theme-preview-box.dem .preview-mini-bar {
-  background: #191a1f;
-  border-bottom: 1px solid #2e3138;
-}
-.theme-preview-box.dem .preview-mini-card {
-  background: #30333c;
-}
-.theme-preview-box.bogaz {
-  background: #0d171b;
-}
-.theme-preview-box.bogaz .preview-mini-bar {
-  background: #112028;
-  border-bottom: 1px solid rgba(201, 162, 75, 0.35);
-}
-.theme-preview-box.bogaz .preview-mini-card {
-  background: #21363f;
-}
-.theme-preview-box.ayna {
-  background: #060709;
-}
-.theme-preview-box.ayna .preview-mini-bar {
-  background: #0d0f14;
-  border-bottom: 1px solid rgba(6, 182, 212, 0.4);
-}
-.theme-preview-box.ayna .preview-mini-card {
-  background: #171b22;
-  border-left: 2px solid #06b6d4;
-}
 
 .theme-preview-box.cumhuriyet {
   background: #1d0e10;
@@ -7447,19 +6976,7 @@ body.is-light-theme .desktop-context-menu {
   border-left: 2px solid #e23744;
 }
 
-/* Studio temaları önizlemeleri */
-.theme-preview-box.matbaa {
-  background: #f2ecdf;
-}
-.theme-preview-box.matbaa .preview-mini-bar {
-  background: #f7f3e8;
-  border-bottom: 1px solid rgba(35, 32, 26, 0.15);
-}
-.theme-preview-box.matbaa .preview-mini-card {
-  background: #fbf8f1;
-  border-left: 2px solid #b4462a;
-}
-
+/* Çekirdek Anti-Slop tema önizlemeleri */
 .theme-preview-box.bakir {
   background: #141519;
 }
@@ -7484,54 +7001,6 @@ body.is-light-theme .desktop-context-menu {
   border-left: 2px solid #3d6b45;
 }
 
-.theme-preview-box.hat {
-  background: #10202b;
-}
-.theme-preview-box.hat .preview-mini-bar {
-  background: #152632;
-  border-bottom: 1px solid rgba(201, 162, 78, 0.45);
-}
-.theme-preview-box.hat .preview-mini-card {
-  background: #182a37;
-  border-left: 2px solid #c9a24e;
-}
-
-.theme-preview-box.konsol {
-  background: #f5f6f3;
-}
-.theme-preview-box.konsol .preview-mini-bar {
-  background: #eef0ec;
-  border-bottom: 1px solid rgba(25, 27, 30, 0.2);
-}
-.theme-preview-box.konsol .preview-mini-card {
-  background: #fbfcfa;
-  border-left: 2px solid #186a3f;
-}
-
-.theme-preview-box.kesit {
-  background: #f1f0ec;
-}
-.theme-preview-box.kesit .preview-mini-bar {
-  background: #e9e8e3;
-  border-bottom: 1px solid rgba(22, 24, 26, 0.2);
-}
-.theme-preview-box.kesit .preview-mini-card {
-  background: #faf9f6;
-  border-left: 2px solid #b08c00;
-}
-
-.theme-preview-box.fener {
-  background: #101113;
-}
-.theme-preview-box.fener .preview-mini-bar {
-  background: #17181b;
-  border-bottom: 1px solid rgba(224, 85, 58, 0.45);
-}
-.theme-preview-box.fener .preview-mini-card {
-  background: #1d1f23;
-  border-left: 2px solid #e0553a;
-}
-
 .theme-preview-box.civata {
   background: #fcfcf9;
 }
@@ -7541,31 +7010,7 @@ body.is-light-theme .desktop-context-menu {
 }
 .theme-preview-box.civata .preview-mini-card {
   background: #fffef9;
-  border-left: 2px solid #c7e42b;
-}
-
-.theme-preview-box.mina {
-  background: #0d211c;
-}
-.theme-preview-box.mina .preview-mini-bar {
-  background: #12291f;
-  border-bottom: 1px solid rgba(232, 103, 74, 0.45);
-}
-.theme-preview-box.mina .preview-mini-card {
-  background: #173327;
-  border-left: 2px solid #e8674a;
-}
-
-.theme-preview-box.meridyen {
-  background: #f4f2ea;
-}
-.theme-preview-box.meridyen .preview-mini-bar {
-  background: #eceadf;
-  border-bottom: 1px solid rgba(20, 22, 26, 0.16);
-}
-.theme-preview-box.meridyen .preview-mini-card {
-  background: #fcfbf6;
-  border-left: 2px solid #2244d8;
+  border-left: 2px solid #1d4ed8;
 }
 
 /* Tema Stüdyosu */
@@ -7834,26 +7279,20 @@ select.input-mono option {
   color: var(--text-primary, #f1f5f9);
 }
 
-/* Açık Temalar ve Açık Yüzler (Face 3 / Face 8 / theme-light / theme-arctic / theme-cinar / theme-meltem / is-light-theme)
+/* Açık Temalar ve Açık Yüzler (Face 3 / Face 8 / theme-light / theme-arctic / is-light-theme)
    Açılır menülerde yazı ve zemin renginin beyaz kalarak çakışmasını engeller */
 body.theme-light select,
 body.theme-arctic select,
-body.theme-cinar select,
-body.theme-meltem select,
 body.is-light-theme select,
 [data-face="3"] select,
 [data-face="8"] select,
 body.theme-light select option,
 body.theme-arctic select option,
-body.theme-cinar select option,
-body.theme-meltem select option,
 body.is-light-theme select option,
 [data-face="3"] select option,
 [data-face="8"] select option,
 body.theme-light .select-mono,
 body.theme-arctic .select-mono,
-body.theme-cinar .select-mono,
-body.theme-meltem .select-mono,
 body.is-light-theme .select-mono,
 [data-face="3"] .select-mono,
 [data-face="8"] .select-mono {
@@ -8619,48 +8058,30 @@ body.glass-high .window.active {
 }
 
 body.theme-light.glass-solid .window,
-body.is-light-theme.glass-solid .window,
-body.theme-cinar.glass-solid .window,
-body.theme-meltem.glass-solid .window {
-  background: var(--bg-surface, #ffffff);
+body.is-light-theme.glass-solid .window {
+  background: var(--bg-panel, #f5f3ee);
   backdrop-filter: none !important;
 }
 
-body.theme-cinar.glass-solid .window {
-  background: var(--bg-surface);
-}
-
-body.theme-meltem.glass-solid .window {
-  background: var(--bg-surface);
-}
-
 body.theme-light.glass-balanced .window,
-body.is-light-theme.glass-balanced .window,
-body.theme-cinar.glass-balanced .window,
-body.theme-meltem.glass-balanced .window {
-  background: rgba(255, 255, 255, 0.94);
+body.is-light-theme.glass-balanced .window {
+  background: var(--bg-panel, #f5f3ee);
   backdrop-filter: none;
 }
 
 body.theme-light.glass-balanced .window.active,
-body.is-light-theme.glass-balanced .window.active,
-body.theme-cinar.glass-balanced .window.active,
-body.theme-meltem.glass-balanced .window.active {
+body.is-light-theme.glass-balanced .window.active {
   backdrop-filter: none !important;
 }
 
 body.theme-light.glass-high .window,
-body.is-light-theme.glass-high .window,
-body.theme-cinar.glass-high .window,
-body.theme-meltem.glass-high .window {
-  background: rgba(255, 255, 255, 0.82);
+body.is-light-theme.glass-high .window {
+  background: var(--bg-panel, #f5f3ee);
   backdrop-filter: none;
 }
 
 body.theme-light.glass-high .window.active,
-body.is-light-theme.glass-high .window.active,
-body.theme-cinar.glass-high .window.active,
-body.theme-meltem.glass-high .window.active {
+body.is-light-theme.glass-high .window.active {
   backdrop-filter: none !important;
 }
 
@@ -12064,42 +11485,95 @@ body.is-light-theme .ayaz-toast-notification {
   color: var(--text-muted);
 }
 
-/* Sabit uygulama simgelerinin aksan renkleri.
-   body.theme-* kurallarıyla eşit özdeşliğe gelmesi için seçiciler body ile
-   başlıyor; dosyanın sonunda oldukları için bağlayıcı oluyor. */
-body .pinned-icon-box.store-accent {
+/* Klasik 4.7 yüzünde sabit uygulama simgelerinin renkli kapsülleri.
+   Anti-Slop yüzlerde ikonlar yalın katı çizgi olarak kalır. */
+body:not([data-face="legacy"]) .pinned-icon-box {
+  background: transparent;
+  border-color: transparent;
+  color: var(--text-primary);
+  width: 28px;
+  height: 28px;
+}
+
+body:not([data-face="legacy"]) .pinned-app-card:hover .pinned-icon-box {
+  border-color: transparent;
+}
+
+body[data-face="legacy"] .pinned-icon-box.store-accent {
   background: rgba(59, 130, 246, 0.15);
   color: #3b82f6;
 }
 
-body .pinned-icon-box.terminal-accent {
+body[data-face="legacy"] .pinned-icon-box.terminal-accent {
   background: rgba(13, 148, 136, 0.15);
   color: #0d9488;
 }
 
-body .pinned-icon-box.ai-accent {
+body[data-face="legacy"] .pinned-icon-box.ai-accent {
   background: rgba(236, 72, 153, 0.15);
   color: #ec4899;
 }
 
-body .pinned-icon-box.settings-accent {
+body[data-face="legacy"] .pinned-icon-box.settings-accent {
   background: rgba(100, 116, 139, 0.15);
   color: #64748b;
 }
 
-body .pinned-icon-box.office-accent {
+body[data-face="legacy"] .pinned-icon-box.office-accent {
   background: rgba(234, 88, 12, 0.15);
   color: #ea580c;
 }
 
-body .pinned-icon-box.welcome-accent {
+body[data-face="legacy"] .pinned-icon-box.welcome-accent {
   background: rgba(180, 83, 9, 0.15);
   color: #b45309;
 }
 
-body .pinned-icon-box.installer-accent {
+body[data-face="legacy"] .pinned-icon-box.installer-accent {
   background: rgba(14, 165, 233, 0.15);
   color: #0ea5e9;
+}
+
+/* Klasik 4.7 Seçenekleri Daraltılabilir Grubu */
+.legacy-themes-details {
+  margin-top: 10px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 6px 10px;
+  background: rgba(128, 128, 128, 0.04);
+}
+
+.legacy-themes-details > summary {
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 2px;
+  user-select: none;
+}
+
+.legacy-themes-details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.legacy-themes-details > summary::after {
+  content: '+';
+  font-family: var(--font-mono);
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.legacy-themes-details[open] > summary::after {
+  content: '-';
+}
+
+.legacy-themes-details[open] > summary {
+  margin-bottom: 10px;
+  color: var(--text-primary);
 }
 
 /* ==============================================================================
@@ -13297,17 +12771,13 @@ html[data-iconset='nordic'] .ayaz-desktop-shortcut:hover .item-icon {
 }
 body.theme-light .ai-watch-wave .wave-line,
 body.is-light-theme .ai-watch-wave .wave-line,
-body.theme-arctic .ai-watch-wave .wave-line,
-body.theme-cinar .ai-watch-wave .wave-line,
-body.theme-meltem .ai-watch-wave .wave-line {
+body.theme-arctic .ai-watch-wave .wave-line {
   stroke: #2563eb;
   filter: drop-shadow(0 0 5px rgba(37, 99, 235, 0.5));
 }
 body.theme-light .ai-watch-wave .wave-glow,
 body.is-light-theme .ai-watch-wave .wave-glow,
-body.theme-arctic .ai-watch-wave .wave-glow,
-body.theme-cinar .ai-watch-wave .wave-glow,
-body.theme-meltem .ai-watch-wave .wave-glow {
+body.theme-arctic .ai-watch-wave .wave-glow {
   stroke: rgba(37, 99, 235, 0.35);
 }
 
@@ -13321,16 +12791,12 @@ body.theme-meltem .ai-watch-wave .wave-glow {
 }
 body.theme-light .taskbar-pin-btn.ai-look-pin,
 body.is-light-theme .taskbar-pin-btn.ai-look-pin,
-body.theme-arctic .taskbar-pin-btn.ai-look-pin,
-body.theme-cinar .taskbar-pin-btn.ai-look-pin,
-body.theme-meltem .taskbar-pin-btn.ai-look-pin {
+body.theme-arctic .taskbar-pin-btn.ai-look-pin {
   color: inherit;
 }
 body.theme-light .taskbar-pin-btn.ai-look-pin:hover,
 body.is-light-theme .taskbar-pin-btn.ai-look-pin:hover,
-body.theme-arctic .taskbar-pin-btn.ai-look-pin:hover,
-body.theme-cinar .taskbar-pin-btn.ai-look-pin:hover,
-body.theme-meltem .taskbar-pin-btn.ai-look-pin:hover {
+body.theme-arctic .taskbar-pin-btn.ai-look-pin:hover {
   color: var(--accent, currentColor);
 }
 

@@ -134,10 +134,26 @@ def run_tests():
 
         // 6. Yüzler (FaceManager) ve Dock Denetimleri
         if (window.FaceManager) {
-            // Yüz Default
+            // Yüz Default (Arduvaz Anti-Slop Mat)
             window.FaceManager.setFace('default', false);
             assert('Default Yüz: data-face="default"', document.documentElement.getAttribute('data-face') === 'default');
             assert('Default Yüz: Taskbar Görünür', getComputedStyle(document.getElementById('taskbar')).display !== 'none');
+            const tbCs = getComputedStyle(document.getElementById('taskbar'));
+            const tbFilter = tbCs.backdropFilter || tbCs.webkitBackdropFilter || 'none';
+            assert('Default Yüz: Taskbar mat (backdrop-filter yok)', tbFilter === 'none', `filter=${tbFilter}`);
+            const diEl = document.getElementById('dynamic-island-container');
+            assert('Default Yüz: Dinamik Ada varsayılan olarak gizli',
+                !diEl || getComputedStyle(diEl).display === 'none');
+            const qsTile = document.getElementById('qs-island-toggle');
+            const qsSub = document.getElementById('qs-island-sub');
+            assert('Default Yüz: Hızlı Ayarlar Dinamik Ada kapalı gösterir',
+                !qsTile || (!qsTile.classList.contains('active') && qsSub?.textContent?.trim() === 'Kapalı'));
+
+            // Yüz Legacy (4.7 Klasik Modern Cam)
+            window.FaceManager.setFace('legacy', false);
+            assert('Legacy Yüz: data-face="legacy"', document.documentElement.getAttribute('data-face') === 'legacy');
+            assert('Legacy Yüz: Taskbar Görünür', getComputedStyle(document.getElementById('taskbar')).display !== 'none');
+            window.FaceManager.setFace('default', false);
 
             // Yüz 2: Bakır
             window.FaceManager.setFace('2', false);
@@ -314,22 +330,21 @@ def run_tests():
             }
         }
 
-        // 7. Tüm Temaların (24 Tema) Uygulanabilirlik ve Stil Denetimi
+        // 7. Tüm Temaların (5 Çekirdek Anti-Slop + 7 Klasik 4.7 = 12 Tema) Uygulanabilirlik ve Stil Denetimi
         const allThemes = [
-            'theme-nordik', 'theme-modern', 'theme-deep', 'theme-fjord', 'theme-pine',
-            'theme-ember', 'theme-arctic', 'theme-cinar', 'theme-meltem', 'theme-kor',
-            'theme-dem', 'theme-bogaz', 'theme-ayna', 'theme-cumhuriyet',
-            'theme-matbaa', 'theme-bakir', 'theme-bostan', 'theme-hat', 'theme-konsol',
-            'theme-kesit', 'theme-fener', 'theme-civata', 'theme-mina', 'theme-meridyen'
+            'theme-dark', 'theme-light', 'theme-bakir', 'theme-bostan', 'theme-civata',
+            'theme-classic-dark', 'theme-midnight', 'theme-nord', 'theme-evergreen',
+            'theme-ember', 'theme-arctic', 'theme-cumhuriyet'
         ];
 
         let themeErrors = 0;
         allThemes.forEach(t => {
-            document.body.className = t;
+            document.body.className = t === 'theme-dark' ? '' : t;
             const cs = getComputedStyle(document.body);
             if (!cs.backgroundColor) themeErrors++;
         });
-        assert('24 Temanın Tümü Başarıyla Uygulandı', themeErrors === 0);
+        document.body.className = '';
+        assert('12 Temanın Tümü Başarıyla Uygulandı', themeErrors === 0);
 
         // 8. Başlat Menüsü Aç/Kapa ve 2 Sütunlu Dağıtım Menüsü Denetimi
         const startFlyout = document.getElementById('start-flyout');
@@ -382,6 +397,10 @@ def run_tests():
                     !!(closeBtn && hit && (hit === closeBtn || closeBtn.contains(hit))),
                     `hit=${hit ? hit.tagName + '.' + hit.className : 'null'} @ (${Math.round(cx)},${Math.round(cy)})`);
 
+                const bubble = document.getElementById('face-ai-bubble');
+                assert(`Yüz ${f}: Yüzen AI balonu gizli`,
+                    !bubble || getComputedStyle(bubble).display === 'none');
+
                 if (winSettings.classList.contains('maximized')) {
                     window.WindowManager.toggleMaximize('win-settings');
                 }
@@ -396,6 +415,28 @@ def run_tests():
                         `flyTop=${Math.round(flyRect.top)}, panelBottom=${Math.round(topRect.bottom)}, flyBottom=${Math.round(flyRect.bottom)}`);
                     window.toggleStartMenu(false);
                 }
+            }
+
+            // Arduvaz Üst Panel Konumu (panel-top) pencere yerleşimi & kırpma testi
+            window.FaceManager.setFace('default');
+            await waitFrame(90);
+            const btnPanelTop = document.querySelector('#group-panel-position .option-pill-btn[data-panel-pos="top"]');
+            const btnPanelBot = document.querySelector('#group-panel-position .option-pill-btn[data-panel-pos="bottom"]');
+            if (btnPanelTop) {
+                btnPanelTop.click();
+                await waitFrame(90);
+                const tbRect = document.getElementById('taskbar').getBoundingClientRect();
+                assert('Arduvaz Üst Panel: Görev çubuğu en üstte (top=0)',
+                    Math.abs(tbRect.top) <= 1, `tbTop=${tbRect.top}`);
+                window.WindowManager.open('win-settings');
+                await waitFrame(60);
+                const topWinRect = winSettings.getBoundingClientRect();
+                assert('Arduvaz Üst Panel: Açılan pencere panelin altına kaçmaz',
+                    topWinRect.top >= tbRect.bottom - 1,
+                    `winTop=${Math.round(topWinRect.top)}, panelBottom=${Math.round(tbRect.bottom)}`);
+                window.WindowManager.close('win-settings');
+                btnPanelBot?.click();
+                await waitFrame(60);
             }
 
             // 2 sütunlu dağıtım menüsü kategori geçişleri
