@@ -7,14 +7,14 @@
   // ============================================================================
 
   const FaceManager = {
-    currentFace: 'default',
+    currentFace: '3',
 
     init() {
       // 1. Kabuk DOM kapsayıcılarını oluştur
       this.ensureShellContainers();
 
-      // 2. Kayıtlı yüzü yükle (varsayılan: 'default')
-      const savedFace = (window.SafeStorage && window.SafeStorage.getItem('ankora_face')) || 'default';
+      // 2. Kayıtlı yüzü yükle (varsayılan: Bostan '3')
+      const savedFace = (window.SafeStorage && window.SafeStorage.getItem('ankora_face')) || '3';
       this.setFace(savedFace, false);
 
       // 3. Ayarlar paneli kart seçimlerini dinle
@@ -87,9 +87,9 @@
       }
     },
 
-    setFace(faceId, persist = true) {
-      let id = String(faceId || 'default');
-      if (!['default', 'legacy', '2', '3', '8'].includes(id)) id = 'default';
+    setFace(faceId, persist = true, syncTheme = true) {
+      let id = String(faceId || '3');
+      if (!['default', 'legacy', '2', '3', '8'].includes(id)) id = '3';
       this.currentFace = id;
       document.documentElement.setAttribute('data-face', this.currentFace);
       document.body.setAttribute('data-face', this.currentFace);
@@ -106,7 +106,7 @@
         }
       }
 
-      if (persist && window.ThemeManager && typeof window.ThemeManager.setTheme === 'function') {
+      if (persist && syncTheme && window.ThemeManager && typeof window.ThemeManager.setTheme === 'function') {
         const isFull = typeof window.ThemeManager.isFullSystemTheme === 'function'
           ? window.ThemeManager.isFullSystemTheme()
           : true;
@@ -280,8 +280,7 @@
     // YÜZ 2: BAKIR
     // ------------------------------------------------------------------------
     renderBakir(topPanel, dock, meta) {
-      this.ensureMediaBar(topPanel);
-      // 1. Üst Panel: Çalışma Alanları + Kapsül Saat/Tarih + Tepsi
+      // 1. Üst Panel: Çalışma Alanları + Kapsül Saat/Tarih + Medya Şeridi + Tepsi
       const wsGroup = document.createElement('div');
       wsGroup.className = 'face-ws-group';
       const activeWs = (window.WorkspaceManager && window.WorkspaceManager.active) || 1;
@@ -289,6 +288,7 @@
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = `face-ws-btn${i === activeWs ? ' active' : ''}`;
+        btn.setAttribute('data-ws', String(i));
         btn.textContent = String(i);
         btn.title = `Çalışma Alanı ${i}`;
         btn.addEventListener('click', () => {
@@ -312,10 +312,11 @@
       });
       topPanel.appendChild(cap);
 
-      // Spacer
+      // Spacer + Medya Şeridi (çalışma alanı düğmelerini sağa itmeden ortalar)
       const sp = document.createElement('div');
       sp.className = 'face-panel-spacer';
       topPanel.appendChild(sp);
+      this.ensureMediaBar(topPanel);
 
       // Tepsi
       const tray = document.createElement('div');
@@ -328,7 +329,7 @@
           <svg width="15" height="15" viewBox="0 0 24 24"><rect x="4" y="10" width="2.4" height="8"/><rect x="9" y="7" width="2.4" height="11"/><rect x="14" y="9" width="2.4" height="9"/></svg>
         </span>
         <span style="font-size:12px;cursor:pointer;" title="Klavye Yerleşimi">tr</span>
-        <span class="bakir-tray-time" style="font-size:12px;"></span>
+        <span class="bakir-tray-time" style="font-size:12px;cursor:pointer;" title="Saat ve Bildirimler"></span>
       `;
       tray.querySelector('.tray-click-wifi').addEventListener('click', () => {
         const el = document.getElementById('tray-wifi-btn') || document.getElementById('tray-status-island');
@@ -337,6 +338,10 @@
       tray.querySelector('.tray-click-audio').addEventListener('click', () => {
         const el = document.getElementById('tray-volume-btn') || document.getElementById('tray-status-island');
         if (el) el.click();
+      });
+      tray.querySelector('.bakir-tray-time').addEventListener('click', () => {
+        const clk = document.getElementById('tray-clock');
+        if (clk) clk.click();
       });
       topPanel.appendChild(tray);
 
@@ -369,8 +374,7 @@
     // YÜZ 3: BOSTAN
     // ------------------------------------------------------------------------
     renderBostan(topPanel, dock, hero) {
-      this.ensureMediaBar(topPanel);
-      // 1. Üst Bar: Ankora Markası + Menü + Tarih
+      // 1. Üst Bar: Ankora Markası + Menü + Çalışma Alanları + Medya + Sistem Tepsisi + Tarih
       const brand = document.createElement('b');
       brand.className = 'face-brand-label';
       brand.textContent = 'Ankora';
@@ -388,9 +392,64 @@
       menu.querySelector('.bostan-nav-settings').addEventListener('click', () => this.openApp('win-settings'));
       topPanel.appendChild(menu);
 
-      const clk = document.createElement('div');
+      const wsGroup = document.createElement('div');
+      wsGroup.className = 'bostan-ws-group';
+      const activeWs = (window.WorkspaceManager && window.WorkspaceManager.active) || 1;
+      for (let i = 1; i <= 4; i++) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = `face-ws-btn${i === activeWs ? ' active' : ''}`;
+        btn.setAttribute('data-ws', String(i));
+        btn.textContent = String(i);
+        btn.title = `Çalışma Alanı ${i}`;
+        btn.addEventListener('click', () => {
+          if (window.WorkspaceManager) window.WorkspaceManager.set(i);
+          wsGroup.querySelectorAll('.face-ws-btn').forEach((b, idx) => {
+            b.classList.toggle('active', idx + 1 === i);
+          });
+        });
+        wsGroup.appendChild(btn);
+      }
+      topPanel.appendChild(wsGroup);
+
+      const sp = document.createElement('div');
+      sp.style.flex = '1';
+      topPanel.appendChild(sp);
+
+      this.ensureMediaBar(topPanel);
+
+      const tray = document.createElement('div');
+      tray.className = 'bostan-tray-group';
+      tray.innerHTML = `
+        <button type="button" class="bostan-tray-btn bostan-tray-wifi" title="Ağ &amp; Hızlı Ayarlar" aria-label="Ağ ve Hızlı Ayarlar">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14a11 11 0 0 1 16 0"></path><path d="M7.5 17.5a6 6 0 0 1 9 0"></path><circle cx="12" cy="20.4" r="1" fill="currentColor"></circle></svg>
+        </button>
+        <button type="button" class="bostan-tray-btn bostan-tray-audio" title="Ses &amp; Parlaklık" aria-label="Ses ve Parlaklık">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+        </button>
+      `;
+      tray.querySelector('.bostan-tray-wifi').addEventListener('click', (e) => {
+        e.stopPropagation();
+        const el = document.getElementById('tray-wifi-btn') || document.getElementById('tray-status-island');
+        if (el) el.click();
+      });
+      tray.querySelector('.bostan-tray-audio').addEventListener('click', (e) => {
+        e.stopPropagation();
+        const el = document.getElementById('tray-volume-btn') || document.getElementById('tray-status-island');
+        if (el) el.click();
+      });
+
+      const clk = document.createElement('button');
+      clk.type = 'button';
       clk.className = 'face-top-clock-serif bostan-top-date';
-      topPanel.appendChild(clk);
+      clk.title = 'Takvim ve Bildirimler';
+      clk.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const targetClk = document.getElementById('tray-clock');
+        if (targetClk) targetClk.click();
+      });
+      tray.appendChild(clk);
+      topPanel.appendChild(tray);
 
       // 2. Sağ Üst Dev Serif Saat & Hava Durumu
       const bostanWx = this.getLiveWeatherSnippet();
@@ -400,7 +459,7 @@
           <span class="bostan-live-time"></span><small class="bostan-live-day"></small>
         </div>
         <p class="bostan-hero-weather">
-          ${bostanCity}'da <b>${bostanWx.temp}°</b>, açık akşam · serin esinti
+          ${bostanCity}'da <b>${bostanWx.temp}°</b>, güncel hava durumu · serin esinti
         </p>
       `;
 
@@ -437,10 +496,24 @@
         <span class="civata-nav-item civata-btn-wins">açık pencereler <em class="civata-highlight civata-open-count">0</em></span>
         <div class="civata-running-tabs" id="civata-running-tabs"></div>
         <div style="flex:1;"></div>
-        <span class="civata-nav-item civata-btn-ai" style="margin-right:12px;">yardımcı</span>
-        <span class="civata-top-datetime"></span>
+        <div class="civata-media-slot"></div>
+        <span class="civata-nav-item civata-btn-ai">yardımcı</span>
+        <button type="button" class="civata-tray-btn civata-btn-wifi" title="Ağ &amp; Hızlı Ayarlar" aria-label="Ağ ve Hızlı Ayarlar">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M4 14a11 11 0 0 1 16 0"></path><path d="M7.5 17.5a6 6 0 0 1 9 0"></path><circle cx="12" cy="20.4" r="1" fill="currentColor"></circle></svg>
+        </button>
+        <button type="button" class="civata-tray-btn civata-btn-audio" title="Ses &amp; Parlaklık" aria-label="Ses ve Parlaklık">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+        </button>
+        <button type="button" class="civata-top-datetime" title="Takvim ve Bildirimler"></button>
       `;
-      this.ensureMediaBar(topPanel);
+      const mediaSlot = topPanel.querySelector('.civata-media-slot');
+      const mediaBar = this.ensureMediaBar(topPanel);
+      if (mediaSlot && mediaBar && mediaBar.parentNode === topPanel) {
+        topPanel.insertBefore(mediaBar, mediaSlot);
+        mediaSlot.remove();
+      } else if (mediaSlot) {
+        mediaSlot.remove();
+      }
 
       topPanel.querySelector('.civata-brand').addEventListener('click', (e) => this.toggleStartMenu(e));
       topPanel.querySelector('.civata-btn-apps').addEventListener('click', (e) => this.toggleStartMenu(e));
@@ -450,6 +523,21 @@
         }
       });
       topPanel.querySelector('.civata-btn-ai').addEventListener('click', () => this.openApp('win-ai'));
+      topPanel.querySelector('.civata-btn-wifi').addEventListener('click', (e) => {
+        e.stopPropagation();
+        const el = document.getElementById('tray-wifi-btn') || document.getElementById('tray-status-island');
+        if (el) el.click();
+      });
+      topPanel.querySelector('.civata-btn-audio').addEventListener('click', (e) => {
+        e.stopPropagation();
+        const el = document.getElementById('tray-volume-btn') || document.getElementById('tray-status-island');
+        if (el) el.click();
+      });
+      topPanel.querySelector('.civata-top-datetime').addEventListener('click', (e) => {
+        e.stopPropagation();
+        const clk = document.getElementById('tray-clock');
+        if (clk) clk.click();
+      });
 
       // 2. Sol Dev Display Saat & Hava Durumu
       const civataWx = this.getLiveWeatherSnippet();
@@ -460,7 +548,7 @@
           <small class="civata-live-sub"></small>
         </div>
         <p class="civata-hero-weather">
-          ${civataCity} <b>${civataWx.temp}°</b>, açık akşam · bu gece 6°
+          ${civataCity} <b>${civataWx.temp}°</b>, güncel hava durumu
         </p>
       `;
 

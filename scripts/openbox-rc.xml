@@ -93,13 +93,12 @@
   </resize>
 
   <!-- ====================================================================== -->
-  <!-- KRİTİK GÖREV ÇUBUĞU KORUMASI:                                           -->
-  <!-- Ekranın altındaki 56px rezerve edilir. Hiçbir pencere maximize          -->
-  <!-- edildiğinde veya taşındığında Ayaz görev çubuğunun üzerine binemez!    -->
+  <!-- KRİTİK GÖREV ÇUBUĞU VE ÜST ÇUBUK KORUMASI (Varsayılan Bostan):         -->
+  <!-- Üst çubuk için 40px ve alt kapsül dock için 82px rezerve edilir.        -->
   <!-- ====================================================================== -->
   <margins>
-    <top>0</top>
-    <bottom>68</bottom>
+    <top>40</top>
+    <bottom>82</bottom>
     <left>0</left>
     <right>0</right>
   </margins>

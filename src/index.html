@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="tr" data-face="3">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="fonts/fonts.css">
   <link rel="stylesheet" href="faces.css">
 </head>
-<body class="desktop-body">
+<body class="desktop-body theme-bostan is-light-theme" data-face="3">
 
   <!-- Tek renk ikon ailesi: renkli emoji yerine bu sembollere <use> ile başvurulur. -->
   <svg class="icon-sprite" aria-hidden="true" focusable="false">
@@ -1468,7 +1468,7 @@
                 <span class="card-group-title">Arayüz Yüzü &amp; Masaüstü Mimarisi</span>
                 <p style="font-size:12px;color:var(--text-muted);margin:4px 0 12px;line-height:1.5;">4 Anti-Slop masaüstü mimarisinden birini seçin veya isteğe bağlı olarak yayımlanan 4.7 klasik cam arayüzüne dönün.</p>
                 <div class="face-picker-grid">
-                  <div class="face-card-choice active" data-face="default">
+                  <div class="face-card-choice" data-face="default">
                     <div class="face-preview-box face-preview-default">
                       <div class="fp-preview-desk-default"></div>
                       <div class="fp-preview-dock-default"></div>
@@ -1485,13 +1485,13 @@
                     <strong>Yüz 2 · Bakır</strong>
                     <span>Sıcak grafit, 34px üst panel, bakır vurgu ve alt merkezlenmiş mat dock</span>
                   </div>
-                  <div class="face-card-choice" data-face="3">
+                  <div class="face-card-choice active" data-face="3">
                     <div class="face-preview-box face-preview-3">
                       <div class="fp-preview-top-3"></div>
                       <div class="fp-preview-desk-3"></div>
                       <div class="fp-preview-dock-3"></div>
                     </div>
-                    <strong>Yüz 3 · Bostan</strong>
+                    <strong>Yüz 3 · Bostan (Varsayılan)</strong>
                     <span>Açık keten yüzeyler, zeytin mürekkep, okunaklı üst çubuk ve kapsül dock</span>
                   </div>
                   <div class="face-card-choice" data-face="8">
@@ -1536,7 +1536,7 @@
               <div class="settings-card-group">
                 <span class="card-group-title">Masaüstü Teması (Çekirdek Anti-Slop Temalar)</span>
                 <div class="theme-picker-grid">
-                  <div class="theme-card-choice active" data-theme="theme-dark">
+                  <div class="theme-card-choice" data-theme="theme-dark">
                     <div class="theme-preview-box dark">
                       <div class="preview-mini-bar"></div>
                       <div class="preview-mini-card"></div>
@@ -1560,7 +1560,7 @@
                     <strong>Bakır</strong>
                     <span>Sıcak grafit yüzeyler, kemik yazı ve bakır vurgu</span>
                   </div>
-                  <div class="theme-card-choice" data-theme="theme-bostan">
+                  <div class="theme-card-choice active" data-theme="theme-bostan">
                     <div class="theme-preview-box bostan">
                       <div class="preview-mini-bar"></div>
                       <div class="preview-mini-card"></div>
@@ -1640,7 +1640,7 @@
                   </div>
                 </details>
                 <label class="card-group-hint" style="display:flex;align-items:center;gap:8px;margin-top:10px;cursor:pointer;">
-                  <input type="checkbox" id="chk-fullsystem-theme" checked style="accent-color: var(--accent-active, #cc5d35);">
+                  <input type="checkbox" id="chk-fullsystem-theme" checked style="accent-color: var(--accent-active, #3d6b45);">
                   <span>Tema değişince duvar kağıdı ve ikon seti de birlikte değişsin</span>
                 </label>
                 <div class="settings-card" style="margin-top:12px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;">
@@ -1656,7 +1656,8 @@
               <div class="settings-card-group">
                 <span class="card-group-title">Sistem Vurgu Rengi (Accent)</span>
                 <div class="accent-color-row">
-                  <button class="accent-pill-btn active" data-accent="#cc5d35" style="--btn-color: #cc5d35;" title="Arduvaz Terakota"></button>
+                  <button class="accent-pill-btn active" data-accent="#3d6b45" style="--btn-color: #3d6b45;" title="Bostan Yeşili"></button>
+                  <button class="accent-pill-btn" data-accent="#cc5d35" style="--btn-color: #cc5d35;" title="Arduvaz Terakota"></button>
                   <button class="accent-pill-btn" data-accent="#2563eb" style="--btn-color: #2563eb;" title="Ankora Mavisi"></button>
                   <button class="accent-pill-btn" data-accent="#059669" style="--btn-color: #059669;" title="Zümrüt Yeşili"></button>
                   <button class="accent-pill-btn" data-accent="#0d9488" style="--btn-color: #0d9488;" title="Turkuaz"></button>
@@ -1669,8 +1670,8 @@
               <div class="settings-card-group">
                 <span class="card-group-title">İkon Seti</span>
                 <div class="option-pill-group" id="group-iconset">
-                  <button class="option-pill-btn active" data-iconset="monokrom">Monokrom</button>
-                  <button class="option-pill-btn" data-iconset="outline">Çizgisel</button>
+                  <button class="option-pill-btn" data-iconset="monokrom">Monokrom</button>
+                  <button class="option-pill-btn active" data-iconset="outline">Çizgisel</button>
                   <button class="option-pill-btn" data-iconset="nordic">Nordic</button>
                   <button class="option-pill-btn" data-iconset="faerie">FairyWren (Renkli)</button>
                   <button class="option-pill-btn" data-iconset="pastel">Pastel Şeker</button>
@@ -1685,7 +1686,7 @@
               <div class="settings-card-group">
                 <span class="card-group-title">Duvar Kağıdı (5 Mat Yüz + Klasik Fotoğraf ve Vektörel)</span>
                 <div class="wallpaper-thumb-grid">
-                  <div class="wp-thumb-card active" data-wp="wallpaper-arduvaz.svg">
+                  <div class="wp-thumb-card" data-wp="wallpaper-arduvaz.svg">
                     <div class="thumb-img" style="background-image: url('wallpaper-arduvaz.svg');"></div>
                     <span>Arduvaz Dağları</span>
                   </div>
@@ -1697,7 +1698,7 @@
                     <div class="thumb-img" style="background-image: url('wallpaper-bakir.svg');"></div>
                     <span>Bakır Silsile</span>
                   </div>
-                  <div class="wp-thumb-card" data-wp="wallpaper-bostan.svg">
+                  <div class="wp-thumb-card active" data-wp="wallpaper-bostan.svg">
                     <div class="thumb-img" style="background-image: url('wallpaper-bostan.svg');"></div>
                     <span>Bostan Tepeleri</span>
                   </div>
@@ -3747,7 +3748,7 @@
         </div>
         <div class="qs-tile-text">
           <span class="qs-tile-title">Tema</span>
-          <span class="qs-tile-sub" id="qs-theme-sub">Koyu Mod</span>
+          <span class="qs-tile-sub" id="qs-theme-sub">Açık Mod</span>
         </div>
       </button>
 

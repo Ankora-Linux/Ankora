@@ -744,8 +744,9 @@ body.is-light-theme .preview-feature-row:hover {
 
 body.theme-light .feature-icon-circle,
 body.is-light-theme .feature-icon-circle {
-  background: rgba(37, 99, 235, 0.08) !important;
-  color: #2563eb !important;
+  background: rgba(61, 107, 69, 0.1) !important;
+  background: color-mix(in srgb, var(--accent-active, #3d6b45) 10%, transparent) !important;
+  color: var(--accent-active, #3d6b45) !important;
 }
 
 body.theme-light .feature-name,
@@ -773,9 +774,9 @@ body.is-light-theme .preview-action-btn:hover {
 
 body.theme-light .preview-action-btn.highlight,
 body.is-light-theme .preview-action-btn.highlight {
-  background: #2563eb !important;
+  background: var(--accent-active, #3d6b45) !important;
   color: #ffffff !important;
-  border-color: #2563eb !important;
+  border-color: var(--accent-active, #3d6b45) !important;
 }
 
 body.theme-light .welcome-key-input,
@@ -797,7 +798,7 @@ body.is-light-theme .check-container-sm {
 
 body.theme-light .btn-text-link,
 body.is-light-theme .btn-text-link {
-  color: #2563eb !important;
+  color: var(--accent-active, #3d6b45) !important;
 }
 
 body.theme-light .theme-sun-moon-toggle,
@@ -813,8 +814,9 @@ body.is-light-theme .toggle-icon {
 
 body.theme-light .toggle-slider-knob,
 body.is-light-theme .toggle-slider-knob {
-  background: #2563eb !important;
-  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.35) !important;
+  background: var(--accent-active, #3d6b45) !important;
+  box-shadow: 0 2px 6px rgba(61, 107, 69, 0.35) !important;
+  box-shadow: 0 2px 6px color-mix(in srgb, var(--accent-active, #3d6b45) 35%, transparent) !important;
 }
 
 /* Görev Çubuğu - Açık Tema */
@@ -1295,13 +1297,14 @@ body.is-light-theme .calc-btn.fn {
 
 body.theme-light .calc-btn.op,
 body.is-light-theme .calc-btn.op {
-  background: rgba(37, 99, 235, 0.1);
-  color: #2563eb;
+  background: rgba(61, 107, 69, 0.1);
+  background: color-mix(in srgb, var(--accent-active, #3d6b45) 10%, transparent);
+  color: var(--accent-active, #3d6b45);
 }
 
 body.theme-light .calc-btn.equals,
 body.is-light-theme .calc-btn.equals {
-  background: #2563eb;
+  background: var(--accent-active, #3d6b45);
   color: #ffffff;
 }
 
@@ -1385,7 +1388,7 @@ html, body {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background-image: url("wallpaper-kobalt.jpg");
+  background-image: url("wallpaper-bostan.svg");
   background-size: cover;
   background-position: center center;
   background-repeat: no-repeat;
@@ -3778,16 +3781,16 @@ html[data-face="2"] #win-ai {
 }
 
 .ai-ag-primary-pill {
-  background: #2563eb !important;
-  border-color: #2563eb !important;
+  background: var(--accent-active, #3d6b45) !important;
+  border-color: var(--accent-active, #3d6b45) !important;
   color: #ffffff !important;
   border-radius: 8px !important;
   font-weight: 500 !important;
 }
 
 .ai-ag-primary-pill:hover {
-  background: #1d4ed8 !important;
-  border-color: #1d4ed8 !important;
+  background: color-mix(in srgb, var(--accent-active, #3d6b45) 85%, #000000) !important;
+  border-color: color-mix(in srgb, var(--accent-active, #3d6b45) 85%, #000000) !important;
 }
 
 .ai-feed {
@@ -9614,6 +9617,8 @@ textarea:disabled {
 
 .qs-range {
   flex: 1;
+  accent-color: var(--accent-active, #3d6b45);
+  cursor: pointer;
 }
 
 .qs-slider-val {
@@ -10986,7 +10991,7 @@ body.is-light-theme .ayaz-toast-notification {
   width: 38px;
   height: 38px;
   border-radius: 6px;
-  background: #2563eb;
+  background: var(--accent-active, #3d6b45);
   border: none;
   color: #ffffff;
   display: flex;
@@ -12772,13 +12777,14 @@ html[data-iconset='nordic'] .ayaz-desktop-shortcut:hover .item-icon {
 body.theme-light .ai-watch-wave .wave-line,
 body.is-light-theme .ai-watch-wave .wave-line,
 body.theme-arctic .ai-watch-wave .wave-line {
-  stroke: #2563eb;
-  filter: drop-shadow(0 0 5px rgba(37, 99, 235, 0.5));
+  stroke: var(--accent-active, #3d6b45);
+  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--accent-active, #3d6b45) 50%, transparent));
 }
 body.theme-light .ai-watch-wave .wave-glow,
 body.is-light-theme .ai-watch-wave .wave-glow,
 body.theme-arctic .ai-watch-wave .wave-glow {
-  stroke: rgba(37, 99, 235, 0.35);
+  stroke: rgba(61, 107, 69, 0.35);
+  stroke: color-mix(in srgb, var(--accent-active, #3d6b45) 35%, transparent);
 }
 
 /* Görev çubuğundaki "Bak ve anlat" göz düğmesi. Açık temalarda koyu

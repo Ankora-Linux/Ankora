@@ -48,6 +48,62 @@ def run_tests():
     async function runSuite() {
         console.log('--- STARTING ANKORA SUITE ---');
 
+        // 0. Varsayılan Açılış: Bostan (Yüz 3) Doğrulaması
+        assert('Varsayılan Açılış: data-face="3" (Bostan)', document.documentElement.getAttribute('data-face') === '3',
+            `face=${document.documentElement.getAttribute('data-face')}`);
+        assert('Varsayılan Açılış: theme-bostan ve is-light-theme etkin',
+            document.body.classList.contains('theme-bostan') && document.body.classList.contains('is-light-theme'),
+            `classes=${document.body.className}`);
+        const waitMs = (ms = 60) => new Promise(r => setTimeout(r, ms));
+        const bWsBtns = document.querySelectorAll('#face-top-panel .bostan-ws-group .face-ws-btn');
+        assert('Bostan Üst Panel: 4 çalışma alanı düğmesi var', bWsBtns.length === 4, `sayı=${bWsBtns.length}`);
+        const bTrayWifi = document.querySelector('#face-top-panel .bostan-tray-wifi');
+        const bTrayAudio = document.querySelector('#face-top-panel .bostan-tray-audio');
+        const bTopDate = document.querySelector('#face-top-panel .bostan-top-date');
+        assert('Bostan Üst Panel: Wi-Fi, Ses ve Tarih düğmeleri var', !!(bTrayWifi && bTrayAudio && bTopDate));
+        if (bTrayWifi) {
+            bTrayWifi.click();
+            await waitMs(80);
+            const qsPop = document.getElementById('quick-settings-popover');
+            const qsRect = qsPop ? qsPop.getBoundingClientRect() : null;
+            assert('Bostan: Hızlı Ayarlar üst panelin altında açılır',
+                !!(qsPop && qsPop.classList.contains('open') && qsRect && qsRect.top > 30 && qsRect.top < 120),
+                `open=${qsPop?.classList.contains('open')}, top=${qsRect ? Math.round(qsRect.top) : 'null'}`);
+            bTrayWifi.click();
+            await waitMs(40);
+        }
+        if (window.WindowManager) {
+            window.WindowManager.open('win-terminal');
+            await waitMs(40);
+            const termInp = document.querySelector('#win-terminal .term-input');
+            if (termInp) {
+                const tCs = getComputedStyle(termInp);
+                assert('Bostan Terminal: .term-input saydam arkaplan ve beyaz metin',
+                    tCs.backgroundColor === 'rgba(0, 0, 0, 0)' && tCs.color === 'rgb(255, 255, 255)',
+                    `bg=${tCs.backgroundColor}, color=${tCs.color}`);
+            }
+            window.WindowManager.close('win-terminal');
+        }
+        const welcomeToggle = document.getElementById('welcome-theme-toggle');
+        if (welcomeToggle && window.ThemeManager) {
+            welcomeToggle.click();
+            await waitMs(80);
+            assert('Karşılama Açık/Koyu düğmesi Bostan -> Bakır (2) geçer',
+                document.documentElement.getAttribute('data-face') === '2' && document.body.classList.contains('theme-bakir'),
+                `face=${document.documentElement.getAttribute('data-face')}, cls=${document.body.className}`);
+            welcomeToggle.click();
+            await waitMs(80);
+            assert('Karşılama Açık/Koyu düğmesi Bakır -> Bostan (3) döner',
+                document.documentElement.getAttribute('data-face') === '3' && document.body.classList.contains('theme-bostan'),
+                `face=${document.documentElement.getAttribute('data-face')}, cls=${document.body.className}`);
+            window.ThemeManager.setTheme('theme-custom', false);
+            assert('Stüdyo Özel Tema (theme-custom) korunur',
+                document.body.classList.contains('theme-custom') && window.ThemeManager.currentTheme === 'theme-custom',
+                `theme=${window.ThemeManager.currentTheme}`);
+            window.ThemeManager.setTheme('theme-bostan', false);
+            if (window.WindowManager) window.WindowManager.close('win-welcome');
+        }
+
         // 1. Temel Sayfa Yüklemesi
         assert('HTML Body Var', !!document.body);
         assert('Taskbar Var', !!document.getElementById('taskbar'));
@@ -400,6 +456,17 @@ def run_tests():
                 const bubble = document.getElementById('face-ai-bubble');
                 assert(`Yüz ${f}: Yüzen AI balonu gizli`,
                     !bubble || getComputedStyle(bubble).display === 'none');
+
+                window.WindowManager.open('win-terminal');
+                await waitFrame(40);
+                const termInpFace = document.querySelector('#win-terminal .term-input');
+                if (termInpFace) {
+                    const tCsF = getComputedStyle(termInpFace);
+                    assert(`Yüz ${f}: .term-input saydam ve okunur`,
+                        tCsF.backgroundColor === 'rgba(0, 0, 0, 0)' && tCsF.color === 'rgb(255, 255, 255)',
+                        `bg=${tCsF.backgroundColor}, color=${tCsF.color}`);
+                }
+                window.WindowManager.close('win-terminal');
 
                 if (winSettings.classList.contains('maximized')) {
                     window.WindowManager.toggleMaximize('win-settings');

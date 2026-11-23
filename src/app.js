@@ -1804,19 +1804,24 @@
 
     syncDots() {
       const host = document.getElementById('taskbar-ws-dots');
-      if (!host) return;
-      host.replaceChildren();
-      for (let i = 1; i <= this.count; i++) {
-        const dot = document.createElement('button');
-        dot.type = 'button';
-        dot.className = `ws-dot${i === this.active ? ' active' : ''}`;
-        dot.textContent = String(i);
-        dot.title = `Masaüstü ${i} (Tıkla ve Geç)`;
-        dot.setAttribute('aria-label', `Masaüstü ${i}`);
-        dot.setAttribute('aria-current', i === this.active ? 'true' : 'false');
-        dot.addEventListener('click', () => this.set(i));
-        host.appendChild(dot);
+      if (host) {
+        host.replaceChildren();
+        for (let i = 1; i <= this.count; i++) {
+          const dot = document.createElement('button');
+          dot.type = 'button';
+          dot.className = `ws-dot${i === this.active ? ' active' : ''}`;
+          dot.textContent = String(i);
+          dot.title = `Masaüstü ${i} (Tıkla ve Geç)`;
+          dot.setAttribute('aria-label', `Masaüstü ${i}`);
+          dot.setAttribute('aria-current', i === this.active ? 'true' : 'false');
+          dot.addEventListener('click', () => this.set(i));
+          host.appendChild(dot);
+        }
       }
+      document.querySelectorAll('.face-ws-btn').forEach(btn => {
+        const ws = Number(btn.getAttribute('data-ws') || btn.textContent);
+        btn.classList.toggle('active', ws === this.active);
+      });
     },
 
     toggleOverview() {
@@ -9398,8 +9403,7 @@
       const themeToggle = document.getElementById('welcome-theme-toggle');
       if (themeToggle) {
         themeToggle.addEventListener('click', () => {
-          const isLight = document.body.classList.contains('is-light-theme') || document.body.classList.contains('theme-light');
-          ThemeManager.setTheme(isLight ? 'theme-dark' : 'theme-light');
+          ThemeManager.toggleLightDark();
         });
       }
 
@@ -9813,7 +9817,7 @@
   // TEMA & KİŞİSELLEŞTİRME YÖNETİCİSİ (THEME MANAGER)
   // ============================================================================
   const ThemeManager = {
-    currentTheme: 'theme-dark',
+    currentTheme: 'theme-bostan',
     // Açık temaları ayrı liste olarak yürüt; GTK tarafına da bunlar 'isDark=false' gider.
     LIGHT_THEMES: ['theme-light', 'theme-arctic', 'theme-bostan', 'theme-civata'],
     // TÜM SİSTEM TEMA PAKETLERİ: Bir tema seçildiğinde yalnızca pencere
@@ -9840,8 +9844,8 @@
       // Varsayılan: açık (kullanıcı isteği: tema tüm sistemi kapsasın).
       return SafeStorage.getItem('ankora_theme_fullsystem') !== 'false';
     },
-    currentAccent: '#cc5d35',
-    currentWallpaper: 'wallpaper-arduvaz.svg',
+    currentAccent: '#3d6b45',
+    currentWallpaper: 'wallpaper-bostan.svg',
     currentRadius: '6px',
     currentGlass: 'solid',
     currentTaskbarAlign: 'left',
@@ -9850,18 +9854,18 @@
     currentAnimSpeed: 'smooth',
 
     init() {
-      // 1. Kaydedilmiş tercihleri yükle (kaldırılmış tema ID'leri Arduvaz Koyu'na düşer)
-      const rawSavedTheme = SafeStorage.getItem('ankora_theme_mode') || 'theme-dark';
-      const savedTheme = this.THEME_BUNDLES[rawSavedTheme] ? rawSavedTheme : 'theme-dark';
-      const savedAccent = SafeStorage.getItem('ankora_accent_color') || '#cc5d35';
-      const savedWp = SafeStorage.getItem('ankora_wallpaper') || 'wallpaper-arduvaz.svg';
+      // 1. Kaydedilmiş tercihleri yükle (kaldırılmış tema ID'leri Bostan'a düşer; 'theme-custom' korunur)
+      const rawSavedTheme = SafeStorage.getItem('ankora_theme_mode') || 'theme-bostan';
+      const savedTheme = (rawSavedTheme === 'theme-custom' || this.THEME_BUNDLES[rawSavedTheme]) ? rawSavedTheme : 'theme-bostan';
+      const savedAccent = SafeStorage.getItem('ankora_accent_color') || '#3d6b45';
+      const savedWp = SafeStorage.getItem('ankora_wallpaper') || 'wallpaper-bostan.svg';
       const savedRadius = SafeStorage.getItem('ankora_corner_radius') || '6px';
       const savedGlass = SafeStorage.getItem('ankora_window_glass') || 'solid';
       const savedAlign = SafeStorage.getItem('ankora_taskbar_align') || 'center';
       const savedHeight = SafeStorage.getItem('ankora_taskbar_height') || '40px';
       const savedPanelPos = SafeStorage.getItem('ankora_panel_pos') || 'bottom';
       const savedAnim = SafeStorage.getItem('ankora_anim_speed') || 'smooth';
-      const savedIconSet = SafeStorage.getItem('ankora_icon_set') || 'monokrom';
+      const savedIconSet = SafeStorage.getItem('ankora_icon_set') || 'outline';
 
       this.setTheme(savedTheme, false);
       this.setAccent(savedAccent, false);
@@ -9960,8 +9964,8 @@
     },
 
     setTheme(themeName, persist = true) {
-      if (!this.THEME_BUNDLES[themeName]) {
-        themeName = 'theme-dark';
+      if (themeName !== 'theme-custom' && !this.THEME_BUNDLES[themeName]) {
+        themeName = 'theme-bostan';
       }
       this.currentTheme = themeName;
       // Tüm theme-* sınıfları kaldırılır; yalnızca aktif tema eklenir.
@@ -9978,9 +9982,28 @@
         card.classList.toggle('active', card.getAttribute('data-theme') === themeName);
       });
 
+      const qsThemeBtn = document.getElementById('qs-theme-toggle');
+      const qsThemeSub = document.getElementById('qs-theme-sub');
+      if (qsThemeBtn) qsThemeBtn.classList.toggle('active', isLight);
+      if (qsThemeSub) qsThemeSub.textContent = isLight ? 'Açık Mod' : 'Koyu Mod';
+
       if (persist) {
         SafeStorage.setItem('ankora_theme_mode', themeName);
         Terminal.log(`[TEMA] Sistem teması uygulandı: ${themeName}`, 'cmd');
+      }
+
+      // Açık/koyu tema ile yüz mimarisinin çakışmasını önle (ör. Bostan üstünde koyu tema)
+      if (persist && themeName !== 'theme-custom' && window.FaceManager && typeof window.FaceManager.setFace === 'function') {
+        const curFace = window.FaceManager.currentFace;
+        let syncedFace = null;
+        if (!isLight && (curFace === '3' || curFace === '8')) {
+          syncedFace = themeName === 'theme-bakir' ? '2' : (themeName === 'theme-classic-dark' ? 'legacy' : 'default');
+        } else if (isLight && curFace === '2') {
+          syncedFace = themeName === 'theme-bostan' ? '3' : (themeName === 'theme-civata' ? '8' : 'default');
+        }
+        if (syncedFace && syncedFace !== curFace) {
+          window.FaceManager.setFace(syncedFace, true, false);
+        }
       }
 
       // TÜM SİSTEM TEMA PAKETİ: Kullanıcı isteği üzerine tema değişimi
@@ -10003,7 +10026,22 @@
 
       // XSettings & GTK Tema Senkronizasyonu (xsettingsd, GTK-2/3/4, gsettings)
       const isDark = !this.LIGHT_THEMES.includes(themeName);
-      TauriBridge.invoke('sync_desktop_theme', { isDark, accent: this.currentAccent || '#cc5d35' }).catch(() => {});
+      TauriBridge.invoke('sync_desktop_theme', { isDark, accent: this.currentAccent || '#3d6b45' }).catch(() => {});
+    },
+
+    toggleLightDark() {
+      const curFace = (window.FaceManager && window.FaceManager.currentFace) || '3';
+      const isLight = document.body.classList.contains('is-light-theme')
+        || this.LIGHT_THEMES.includes(this.currentTheme);
+      if ((curFace === '3' || curFace === '8') && window.FaceManager && typeof window.FaceManager.setFace === 'function') {
+        window.FaceManager.setFace('2', true);
+        return;
+      }
+      if (curFace === '2' && window.FaceManager && typeof window.FaceManager.setFace === 'function') {
+        window.FaceManager.setFace('3', true);
+        return;
+      }
+      this.setTheme(isLight ? 'theme-dark' : 'theme-light', true);
     },
 
     setAccent(colorHex, persist = true) {
@@ -10515,10 +10553,10 @@
       if (el) el.textContent = '';
       SafeStorage.removeItem('ankora_custom_theme_css');
       SafeStorage.removeItem('ankora_custom_theme_name');
-      // Geri dönüş: kayıtlı adiər istemeye gerek yok; varsayılan koyu açılır.
-      if (typeof ThemeManager !== 'undefined') ThemeManager.setTheme('theme-dark');
+      // Geri dönüş: varsayılan Bostan teması açılır.
+      if (typeof ThemeManager !== 'undefined') ThemeManager.setTheme('theme-bostan');
       this.renderThemeList();
-      this.status('Özel tema kaldırıldı; sistem gözle varsayılan koyu temaya döndü.');
+      this.status('Özel tema kaldırıldı; varsayılan Bostan temasına dönüldü.');
     },
 
     init() {
@@ -12492,12 +12530,7 @@
     const qsTheme = document.getElementById('qs-theme-toggle');
     if (qsTheme) {
       qsTheme.addEventListener('click', () => {
-        const lights = (typeof ThemeManager.LIGHT_THEMES !== 'undefined') ? ThemeManager.LIGHT_THEMES : ['theme-light'];
-        const isLight = lights.some(cls => document.body.classList.contains(cls));
-        ThemeManager.setTheme(isLight ? 'theme-dark' : 'theme-light');
-        const sub = document.getElementById('qs-theme-sub');
-        if (sub) sub.textContent = isLight ? 'Koyu Mod' : 'Açık Mod';
-        qsTheme.classList.toggle('active', !isLight);
+        ThemeManager.toggleLightDark();
       });
     }
 

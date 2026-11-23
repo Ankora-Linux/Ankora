@@ -530,10 +530,111 @@ body[data-face="8"] .face-card-choice.active {
 }
 
 [data-face="3"] .face-top-clock-serif {
-  margin-left: auto;
+  margin-left: 0;
   font: 560 14px var(--font-serif);
   font-variant-numeric: tabular-nums;
   color: #26321f;
+  background: transparent;
+  border: none;
+  padding: 2px 6px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+[data-face="3"] .face-top-clock-serif:hover {
+  background: rgba(61, 107, 69, 0.1);
+}
+
+[data-face="3"] .bostan-ws-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 6px;
+}
+
+[data-face="3"] .bostan-ws-group .face-ws-btn {
+  width: 22px;
+  height: 20px;
+  border-radius: 5px;
+  border: 1px solid #cfd6b8;
+  background: #e9edda;
+  color: #4c5a45;
+  font: 600 11px var(--font-sans);
+  display: inline-grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+[data-face="3"] .bostan-ws-group .face-ws-btn:hover {
+  border-color: #3d6b45;
+  color: #26321f;
+}
+
+[data-face="3"] .bostan-ws-group .face-ws-btn.active {
+  background: #3d6b45;
+  border-color: #3d6b45;
+  color: #f4f6ec;
+}
+
+[data-face="3"] .bostan-tray-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+[data-face="3"] .bostan-tray-btn {
+  width: 26px;
+  height: 24px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #26321f;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+[data-face="3"] .bostan-tray-btn:hover {
+  background: rgba(61, 107, 69, 0.12);
+}
+
+[data-face="2"] .face-media-bar,
+[data-face="3"] .face-media-bar,
+[data-face="8"] .face-media-bar {
+  margin-left: 0;
+}
+
+[data-face="8"] .civata-tray-btn {
+  width: 24px;
+  height: 22px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: #f4f2e6;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+[data-face="8"] .civata-tray-btn:hover {
+  background: rgba(244, 242, 230, 0.14);
+  color: #93c5fd;
+}
+
+[data-face="8"] .civata-top-datetime {
+  background: transparent;
+  border: none;
+  color: #f4f2e6;
+  font: 500 11.5px var(--font-sans);
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+[data-face="8"] .civata-top-datetime:hover {
+  background: rgba(244, 242, 230, 0.14);
 }
 
 /* Yüz 3 Sağ Üst Dev Serif Saat & Hava Kartı */
@@ -1975,7 +2076,7 @@ body.theme-arctic .face-ws-btn.active {
 [data-face="2"] .store-card-pkg {
   color: #a49e92 !important;
 }
-[data-face="2"] .window-view input,
+[data-face="2"] .window-view input:not(.term-input):not([type="checkbox"]):not([type="radio"]):not([type="range"]),
 [data-face="2"] .window-view select,
 [data-face="2"] .window-view textarea {
   background: #141519 !important;
@@ -2087,7 +2188,7 @@ body.theme-arctic .face-ws-btn.active {
   background: #eeecde !important;
   border-color: #d8d4be !important;
 }
-[data-face="3"] .window-view input,
+[data-face="3"] .window-view input:not(.term-input):not([type="checkbox"]):not([type="radio"]):not([type="range"]),
 [data-face="3"] .window-view select,
 [data-face="3"] .window-view textarea,
 [data-face="3"] .window-view .btn-secondary {
@@ -2095,13 +2196,20 @@ body.theme-arctic .face-ws-btn.active {
   border: 1px solid #c9d2b1 !important;
   color: #26321f !important;
 }
-[data-face="8"] .window-view input,
+[data-face="8"] .window-view input:not(.term-input):not([type="checkbox"]):not([type="radio"]):not([type="range"]),
 [data-face="8"] .window-view select,
 [data-face="8"] .window-view textarea,
 [data-face="8"] .window-view .btn-secondary {
   background: #ffffff !important;
   border: 1.5px solid #161309 !important;
   color: #161309 !important;
+}
+[data-face="2"] #win-terminal .term-input,
+[data-face="3"] #win-terminal .term-input,
+[data-face="8"] #win-terminal .term-input {
+  background: transparent !important;
+  border: none !important;
+  color: #ffffff !important;
 }
 [data-face="3"] #quick-settings-popover,
 [data-face="3"] #calendar-flyout,
@@ -2118,6 +2226,19 @@ body.theme-arctic .face-ws-btn.active {
   background: #fcfcf9 !important;
   border: 2px solid #161309 !important;
   color: #161309 !important;
+}
+body[data-face="2"] .ayaz-quick-settings-flyout,
+body[data-face="2"] .ayaz-calendar-flyout,
+body[data-face="3"] .ayaz-quick-settings-flyout,
+body[data-face="3"] .ayaz-calendar-flyout,
+body[data-face="8"] .ayaz-quick-settings-flyout,
+body[data-face="8"] .ayaz-calendar-flyout,
+body[data-face="default"].panel-top .ayaz-quick-settings-flyout,
+body[data-face="default"].panel-top .ayaz-calendar-flyout {
+  top: calc(var(--workarea-top, 40px) + 8px) !important;
+  bottom: auto !important;
+  right: 12px !important;
+  transform-origin: top right;
 }
 [data-face="3"] .power-modal-item,
 [data-face="3"] .power-modal-title,
