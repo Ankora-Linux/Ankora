@@ -44,11 +44,11 @@
   --bg-card: var(--bg-surface-hover);
   --bg-elevated: var(--bg-surface);
   --border-color: var(--border-medium);
-  --accent-hover: rgba(37, 99, 235, 0.1);
+  --accent-hover: color-mix(in srgb, var(--accent-active, #3b7230) 10%, transparent);
   --radius-card: var(--radius-window);
 
-  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --font-mono: ui-monospace, "Cascadia Code", "Fira Code", Menlo, Consolas, monospace;
+  --font-sans: "IBM Plex Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-mono: "IBM Plex Mono", "Cascadia Mono", ui-monospace, Consolas, monospace;
 }
 
 html[data-face="default"].panel-top,
@@ -365,93 +365,93 @@ body.theme-ember .window-header {
 
 /* --- Anti-Slop Çekirdek Tema Değişkenleri: Bakır, Bostan, Cıvata --- */
 body.theme-bakir {
-  --bg-deep: #101114;
-  --bg-base: #141519;
-  --bg-panel: #1b1d22;
-  --bg-surface: #1f2127;
-  --bg-surface-hover: #26292f;
-  --bg-surface-active: #2e323a;
+  --bg-deep: #141519;
+  --bg-base: #1b1d22;
+  --bg-panel: #141519;
+  --bg-surface: #23262d;
+  --bg-surface-hover: #2d313a;
+  --bg-surface-active: #363b45;
 
-  --border-subtle: rgba(233, 228, 218, 0.08);
-  --border-medium: rgba(233, 228, 218, 0.17);
+  --border-subtle: rgba(234, 229, 219, 0.09);
+  --border-medium: rgba(234, 229, 219, 0.18);
   --border-focus: rgba(209, 121, 79, 0.45);
   --border-active-window: #d1794f;
-  --border-highlight: #e9e4da;
+  --border-highlight: #eae5db;
 
-  --text-primary: #e9e4da;
-  --text-secondary: #a49e92;
-  --text-muted: #8e897d;
+  --text-primary: #eae5db;
+  --text-secondary: #a39d92;
+  --text-muted: #7e786e;
   --text-inverse: #141519;
 
-  --accent-white: #e9e4da;
-  --accent-gray: #79756a;
+  --accent-white: #eae5db;
+  --accent-gray: #6e6960;
   --accent-active: #d1794f;
 
-  --surface-flyout: #202227;
-  --taskbar-bg: #1c1e23;
-  --desktop-bg: #0d0e10;
-  --glass-taskbar: rgba(23, 25, 29, 0.96);
-  --glass-flyout: rgba(23, 25, 29, 0.98);
+  --surface-flyout: #1b1d22;
+  --taskbar-bg: #141519;
+  --desktop-bg: #26201e;
+  --glass-taskbar: rgba(20, 21, 25, 0.96);
+  --glass-flyout: rgba(27, 29, 34, 0.98);
 }
 
 body.theme-bostan {
-  --bg-deep: #dfe6d4;
-  --bg-base: #e9edda;
-  --bg-panel: #f2f2e7;
-  --bg-surface: #eff1e1;
-  --bg-surface-hover: #e3e8d0;
-  --bg-surface-active: #d6dec4;
+  --bg-deep: #eef1e2;
+  --bg-base: #ffffff;
+  --bg-panel: #f8f7ef;
+  --bg-surface: #eef1e2;
+  --bg-surface-hover: #e1e6cf;
+  --bg-surface-active: #d4dcc0;
 
-  --border-subtle: rgba(38, 50, 31, 0.09);
-  --border-medium: rgba(38, 50, 31, 0.17);
-  --border-focus: rgba(61, 107, 69, 0.45);
-  --border-active-window: #3d6b45;
-  --border-highlight: #26321f;
+  --border-subtle: rgba(35, 48, 28, 0.13);
+  --border-medium: rgba(35, 48, 28, 0.24);
+  --border-focus: rgba(59, 114, 48, 0.45);
+  --border-active-window: #3b7230;
+  --border-highlight: #23301c;
 
-  --text-primary: #26321f;
-  --text-secondary: #4c5a45;
-  --text-muted: #5d6b55;
+  --text-primary: #23301c;
+  --text-secondary: #526148;
+  --text-muted: #77856d;
   --text-inverse: #ffffff;
 
-  --accent-white: #26321f;
-  --accent-gray: #6f7a63;
-  --accent-active: #3d6b45;
+  --accent-white: #23301c;
+  --accent-gray: #77856d;
+  --accent-active: #3b7230;
 
-  --surface-flyout: #faf8ef;
-  --taskbar-bg: #f0f3e5;
-  --desktop-bg: #e6ebd8;
-  --glass-taskbar: rgba(250, 248, 239, 0.96);
-  --glass-flyout: rgba(250, 248, 239, 0.98);
+  --surface-flyout: #f8f7ef;
+  --taskbar-bg: #eff2e4;
+  --desktop-bg: #dde4cf;
+  --glass-taskbar: rgba(239, 242, 228, 0.97);
+  --glass-flyout: rgba(248, 247, 239, 0.98);
 }
 
 body.theme-civata {
-  --bg-deep: #eeeee6;
+  --bg-deep: #ecebe3;
   --bg-base: #fcfcf9;
-  --bg-panel: #f5f5ee;
-  --bg-surface: #fffef9;
-  --bg-surface-hover: #f3f3ea;
-  --bg-surface-active: #e9e9dd;
+  --bg-panel: #f6f5ef;
+  --bg-surface: #ecebe3;
+  --bg-surface-hover: #e2e0d4;
+  --bg-surface-active: #d5d2c4;
 
-  --border-subtle: rgba(22, 19, 9, 0.12);
-  --border-medium: rgba(22, 19, 9, 0.24);
+  --border-subtle: rgba(20, 18, 10, 0.16);
+  --border-medium: #14120a;
   --border-focus: rgba(29, 78, 216, 0.55);
-  --border-active-window: #1d4ed8;
-  --border-highlight: #161309;
+  --border-active-window: #14120a;
+  --border-highlight: #14120a;
 
-  --text-primary: #161309;
-  --text-secondary: #4f4a38;
-  --text-muted: #6b6653;
-  --text-inverse: #ffffff;
+  --text-primary: #14120a;
+  --text-secondary: #4b473b;
+  --text-muted: #6e695a;
+  --text-inverse: #fcfcf9;
 
-  --accent-white: #161309;
-  --accent-gray: #87826e;
+  --accent-white: #14120a;
+  --accent-gray: #6e695a;
   --accent-active: #1d4ed8;
 
-  --surface-flyout: #fffef9;
-  --taskbar-bg: #161309;
-  --desktop-bg: #f4f2e6;
-  --glass-taskbar: #161309;
-  --glass-flyout: #fffef9;
+  --surface-flyout: #fcfcf9;
+  --taskbar-bg: #fcfcf9;
+  --desktop-bg: #f6f5ef;
+  --glass-taskbar: #fcfcf9;
+  --glass-flyout: #fcfcf9;
 }
 
 /* Çekirdek temalar: pencere yüzeyi ve krom */
@@ -461,187 +461,176 @@ body.theme-bakir .window {
   border-color: var(--border-medium);
 }
 body.theme-bostan .window {
-  background: #faf8ef;
-  box-shadow: 0 12px 30px rgba(38, 50, 31, 0.14);
+  background: #f8f7ef;
+  box-shadow: 0 10px 24px rgba(35, 48, 28, 0.14);
 }
 body.theme-civata .window {
-  background: #fffef9;
-  box-shadow: 0 12px 32px rgba(22, 19, 9, 0.14);
+  background: #fcfcf9;
+  box-shadow: 3px 3px 0 #14120a;
 }
 body.theme-bakir .window {
   background: #1b1d22;
 }
 body.theme-bostan .window-header,
 body.theme-civata .window-header {
-  background: var(--bg-panel);
+  background: var(--bg-deep);
 }
 body.theme-bakir .window-header {
-  background: transparent;
+  background: #141519;
 }
 body.theme-bostan .start-flyout,
 body.theme-civata .start-flyout {
   background: var(--surface-flyout, #ffffff);
 }
 
-/* Yön gömülmesi: Bakır, Bostan, Cıvata · Masaüstü/ayaz-yuz-*.html önizlemlerinin
-   gerçek bileşenlere birebir çevirisi. Amaç: tema seçimi yalnız renk yüzeyi
-   değil, panel/sekme/pencere/bağlantı dilini de taşımak. */
+/* Yön gömülmesi: Bakır, Bostan, Cıvata prototipleri ile birebir token dili */
 
-/* --- Bakır: grafit panel, hairline, mono telemetri, bakır üst çizgi --- */
+/* --- Bakır: grafit panel, hairline, temiz başlık --- */
 body.theme-bakir {
-  --radius-window: 10px;
-  --radius-ui: 8px;
+  --radius-window: 6px;
+  --radius-ui: 4px;
 }
 body.theme-bakir .taskbar {
-  background: rgba(23, 25, 29, 0.97);
-  border-top: 1px solid #2e3138;
+  background: #141519;
+  border-top: 1px solid rgba(234, 229, 219, 0.18);
   backdrop-filter: none;
 }
 body.theme-bakir .taskbar-pin-btn {
-  background: #1f2127;
-  border-color: #2e3138;
-  border-radius: 7px;
-  color: rgba(233, 228, 218, 0.85);
+  background: #23262d;
+  border-color: rgba(234, 229, 219, 0.12);
+  border-radius: 4px;
+  color: rgba(234, 229, 219, 0.88);
 }
 body.theme-bakir .taskbar-pin-btn:hover {
-  background: #2a2d35;
+  background: #2d313a;
   border-color: rgba(209, 121, 79, 0.55);
-  color: #e9e4da;
+  color: #eae5db;
 }
 body.theme-bakir .task-tab {
-  background: #1f2127;
-  border-color: #2e3138;
-  color: #a49e92;
+  background: #1b1d22;
+  border-color: rgba(234, 229, 219, 0.12);
+  color: #a39d92;
 }
 body.theme-bakir .task-tab.active {
-  color: #e9e4da;
+  color: #eae5db;
   box-shadow: inset 3px 0 0 var(--accent-active, #d1794f);
-  background: #26292f;
+  background: #23262d;
 }
 body.theme-bakir .tray-clock {
-  font-family: 'IBM Plex Mono', 'JetBrains Mono', monospace;
+  font-family: 'IBM Plex Mono', ui-monospace, Consolas, monospace;
   font-weight: 500;
 }
 body.theme-bakir .tray-status-island {
-  background: #1f2127;
-  border: 1px solid #2e3138;
-}
-body.theme-bakir .window {
-  border-top: 2px solid var(--accent-active, #d1794f);
+  background: #23262d;
+  border: 1px solid rgba(234, 229, 219, 0.12);
 }
 body.theme-bakir .window-header {
-  border-bottom: 1px solid #2e3138;
+  border-bottom: 1px solid rgba(234, 229, 219, 0.09);
 }
 
-/* --- Bostan: kâğıt panel, adaçayı yeşili, serif başlık, yumuşak köşe --- */
+/* --- Bostan: keten kâğıt panel, orman yeşili, sade sans başlık --- */
 body.theme-bostan {
-  --radius-window: 12px;
-  --radius-ui: 10px;
+  --radius-window: 8px;
+  --radius-ui: 5px;
 }
 body.theme-bostan .taskbar {
-  background: rgba(246, 244, 235, 0.97);
-  border-top: 1px solid #d8d5c3;
+  background: #eff2e4;
+  border-top: 1px solid #c9d2b5;
   backdrop-filter: none;
 }
 body.theme-bostan .taskbar-pin-btn {
-  background: #d7dfc2;
-  border-color: #c9d2b1;
-  border-radius: 11px;
-  color: #26321f;
+  background: #f8f7ef;
+  border-color: #c2ccb0;
+  border-radius: 5px;
+  color: #23301c;
 }
 body.theme-bostan .taskbar-pin-btn:hover {
-  background: #cbd4ae;
-  color: #2c4f33;
+  background: #e1e6cf;
+  color: #3b7230;
 }
 body.theme-bostan .task-tab {
-  background: #ecead9;
-  border-color: #d8d5c3;
-  color: #4c5a45;
+  background: #f8f7ef;
+  border-color: #c9d2b5;
+  color: #526148;
 }
 body.theme-bostan .task-tab.active {
-  background: var(--accent-active, #3d6b45);
-  color: #f4f6ec;
-  border-color: var(--accent-active, #3d6b45);
+  background: var(--accent-active, #3b7230);
+  color: #ffffff;
+  border-color: var(--accent-active, #3b7230);
 }
 body.theme-bostan .tray-clock {
-  font-family: 'Newsreader', Georgia, 'DejaVu Serif', serif;
+  font-family: 'IBM Plex Mono', ui-monospace, Consolas, monospace;
   font-weight: 600;
-  color: #26321f;
+  color: #23301c;
 }
 body.theme-bostan .tray-status-island {
-  background: #e6ebd8;
-  border: 1px solid #cfd6ba;
-  color: #26321f;
+  background: #f8f7ef;
+  border: 1px solid #c9d2b5;
+  color: #23301c;
 }
 body.theme-bostan .window-header {
-  border-bottom: 1px solid #e4e0cf;
-}
-body.theme-bostan .window-title {
-  font-family: 'Newsreader', Georgia, 'DejaVu Serif', serif;
-  font-weight: 600;
-}
-body.theme-bostan .studio-theme-item b,
-body.theme-bostan .theme-card-choice strong {
-  font-family: 'Newsreader', Georgia, 'DejaVu Serif', serif;
+  border-bottom: 1px solid rgba(35, 48, 28, 0.13);
 }
 
-/* --- Cıvata: mürekkep çubuk, kobalt vurgu, kalın çerçeve pencere --- */
+/* --- Cıvata: teknik kâğıt zemin, 1.5px mürekkep çerçeve, sert gölge --- */
 body.theme-civata {
-  --radius-window: 14px;
-  --radius-ui: 10px;
+  --radius-window: 2px;
+  --radius-ui: 2px;
   --accent-strike: #1d4ed8;
 }
 body.theme-civata .taskbar {
-  background: #161309;
-  border-top: none;
+  background: #fcfcf9;
+  border-top: 1.5px solid #14120a;
   backdrop-filter: none;
 }
 body.theme-civata .taskbar-pin-btn {
-  background: transparent;
-  border-color: #3a352c;
-  border-radius: 8px;
-  color: #f4f2e6;
+  background: #f6f5ef;
+  border-color: #14120a;
+  border-radius: 2px;
+  color: #14120a;
 }
 body.theme-civata .taskbar-pin-btn:hover {
-  background: #242019;
-  border-color: #60a5fa;
-  color: #ffffff;
+  background: #ecebe3;
+  color: #14120a;
 }
 body.theme-civata .task-tab {
-  background: #242019;
-  border-color: #3a352c;
-  color: #b6b3a4;
+  background: #f6f5ef;
+  border-color: #14120a;
+  color: #4b473b;
 }
 body.theme-civata .task-tab.active {
-  background: #2c2820;
-  color: #f4f2e6;
-  box-shadow: inset 0 -3px 0 #1d4ed8;
+  background: #14120a;
+  color: #fcfcf9;
 }
 body.theme-civata .tray-clock {
-  color: #f4f2e6;
-  font-weight: 600;
+  color: #14120a;
+  font-family: 'IBM Plex Mono', ui-monospace, Consolas, monospace;
+  font-weight: 700;
 }
 body.theme-civata .tray-status-island {
-  background: #242019;
-  border: 1px solid #3a352c;
-  color: #f4f2e6;
+  background: #ecebe3;
+  border: 1.5px solid #14120a;
+  color: #14120a;
 }
 body.theme-civata .window {
-  border: 2px solid #161309;
-  box-shadow: 0 12px 30px rgba(22, 19, 9, 0.14);
+  border: 1.5px solid #14120a;
+  box-shadow: 3px 3px 0 #14120a;
 }
 body.theme-civata .window-header {
-  background: #161309;
+  background: #ecebe3;
+  border-bottom: 1.5px solid #14120a;
 }
 body.theme-civata .window-title {
-  color: #f4f2e6;
+  color: #14120a;
+  font-family: 'IBM Plex Mono', ui-monospace, Consolas, monospace;
   font-weight: 700;
 }
 body.theme-civata .ctrl-btn {
-  color: #b6b3a4;
+  color: #14120a;
 }
-body.theme-civata .ctrl-btn.close {
-  color: #93c5fd;
+body.theme-civata .ctrl-btn.close:hover {
+  background: #b91c1c;
+  color: #ffffff;
 }
 
 /* --- Geniş tema seti sonu --- */
@@ -659,14 +648,14 @@ body.is-light-theme .desktop-wallpaper.is-svg-wp {
 body.theme-light .window,
 body.theme-arctic .window {
   background: rgba(255, 255, 255, 0.96);
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.12);
-  border-color: rgba(0, 0, 0, 0.12);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+  border-color: rgba(0, 0, 0, 0.14);
 }
 
 body.theme-light .window.active,
 body.theme-arctic .window.active {
-  box-shadow: 0 20px 52px rgba(37, 99, 235, 0.18), 0 0 0 1px rgba(37, 99, 235, 0.45);
-  border-color: var(--accent-active, #2563eb);
+  box-shadow: 0 14px 36px rgba(18, 20, 23, 0.16), 0 0 0 1px var(--border-active-window, rgba(18, 20, 23, 0.25));
+  border-color: var(--border-active-window, rgba(18, 20, 23, 0.3));
 }
 
 body.theme-light .window-header,
@@ -2383,8 +2372,8 @@ html, body {
 }
 
 .window.active {
-  border-color: var(--border-active-window);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.65), 0 0 0 1px var(--accent-active, #2563eb);
+  border-color: var(--border-active-window, var(--border-medium));
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.52), 0 0 0 1px var(--border-medium);
 }
 
 .window.maximized {
@@ -2725,13 +2714,13 @@ body.is-dragging .window:not(.is-dragging) {
   box-sizing: border-box;
 }
 
-/* Spotlight Vitrin Kartı (Editoryal, Minimalist) */
+/* Spotlight Vitrin Kartı (Mat, Editoryal) */
 .store-spotlight-card {
   margin-bottom: 20px;
   padding: 18px 22px;
-  background: linear-gradient(135deg, rgba(56, 189, 248, 0.09) 0%, rgba(15, 23, 42, 0.6) 100%);
-  border: 1px solid rgba(56, 189, 248, 0.22);
-  border-radius: 12px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-window, 8px);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -2753,7 +2742,7 @@ body.is-dragging .window:not(.is-dragging) {
   gap: 5px;
   font-size: 11px;
   font-weight: 600;
-  color: #38bdf8;
+  color: var(--accent-active, #3b7230);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -2869,8 +2858,8 @@ body.is-dragging .window:not(.is-dragging) {
 }
 
 .store-card-featured {
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.035) 0%, rgba(255, 255, 255, 0.015) 100%);
-  border-color: rgba(255, 255, 255, 0.11);
+  background: var(--bg-surface);
+  border-color: var(--border-medium);
 }
 
 .store-card-body {
@@ -4468,40 +4457,40 @@ body.is-light-theme .ai-composer-card:focus-within {
 }
 
 .welcome-preview-content {
-  padding: 32px 34px 24px 34px;
+  padding: 22px 28px 18px 28px;
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 
 .preview-logo-wrap {
-  margin-bottom: 12px;
+  margin-bottom: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .preview-anchor-logo {
-  width: 62px;
-  height: 62px;
+  width: 54px;
+  height: 54px;
   object-fit: contain;
-  filter: drop-shadow(0 4px 14px rgba(255, 255, 255, 0.18));
+  filter: none;
 }
 
 .preview-title {
-  font-size: 26px;
+  font-size: 21px;
   font-weight: 700;
-  letter-spacing: 5px;
+  letter-spacing: 0.04em;
   color: #ffffff;
-  margin: 0 0 4px 0;
+  margin: 0 0 3px 0;
   text-align: center;
   font-family: var(--font-sans);
 }
 
 .preview-subtitle {
-  font-size: 13.5px;
+  font-size: 13px;
   color: rgba(255, 255, 255, 0.62);
-  margin: 0 0 24px 0;
+  margin: 0 0 16px 0;
   text-align: center;
   font-weight: 400;
 }
@@ -5462,9 +5451,9 @@ body[data-face="default"].panel-top .desktop-widgets {
 }
 
 .task-tab.active {
-  background: rgba(37, 99, 235, 0.16);
-  border-color: rgba(37, 99, 235, 0.35);
-  border-bottom: 2px solid var(--accent-active, #2563eb);
+  background: var(--bg-surface);
+  border-color: var(--border-subtle);
+  border-bottom: 2px solid var(--accent-active, #cc5d35);
   color: var(--text-primary);
   font-weight: 600;
 }
@@ -6866,8 +6855,8 @@ body[data-face="default"].panel-top .desktop-widgets {
 }
 
 .theme-card-choice.active {
-  border-color: var(--accent-active, #2563eb);
-  box-shadow: 0 0 12px rgba(37, 99, 235, 0.3);
+  border-color: var(--accent-active, #3b7230);
+  box-shadow: 0 0 0 1px var(--accent-active, #3b7230);
 }
 
 .theme-preview-box {
@@ -6993,27 +6982,27 @@ body[data-face="default"].panel-top .desktop-widgets {
 }
 
 .theme-preview-box.bostan {
-  background: #e9edda;
+  background: #eef1e2;
 }
 .theme-preview-box.bostan .preview-mini-bar {
-  background: #f2f2e7;
-  border-bottom: 1px solid rgba(38, 50, 31, 0.15);
+  background: #f8f7ef;
+  border-bottom: 1px solid rgba(35, 48, 28, 0.16);
 }
 .theme-preview-box.bostan .preview-mini-card {
-  background: #faf8ef;
-  border-left: 2px solid #3d6b45;
+  background: #ffffff;
+  border-left: 2px solid #3b7230;
 }
 
 .theme-preview-box.civata {
-  background: #fcfcf9;
+  background: #f6f5ef;
 }
 .theme-preview-box.civata .preview-mini-bar {
-  background: #f5f5ee;
-  border-bottom: 1px solid rgba(22, 19, 9, 0.18);
+  background: #ecebe3;
+  border-bottom: 1px solid rgba(20, 18, 10, 0.18);
 }
 .theme-preview-box.civata .preview-mini-card {
-  background: #fffef9;
-  border-left: 2px solid #1d4ed8;
+  background: #fcfcf9;
+  border-left: 2px solid #14120a;
 }
 
 /* Tema Stüdyosu */
@@ -8013,8 +8002,8 @@ body.is-light-theme .wifi-modal-error {
 .option-pill-btn.active {
   background: var(--bg-surface);
   color: var(--text-primary);
-  border-color: var(--accent-active, #2563eb);
-  box-shadow: 0 0 10px rgba(37, 99, 235, 0.2);
+  border-color: var(--accent-active, #3b7230);
+  box-shadow: none;
 }
 
 /* Sol Hizalı Görev Çubuğu Modu */
@@ -12821,10 +12810,11 @@ body.theme-arctic .taskbar-pin-btn.ai-look-pin:hover {
   text-align: center;
   font-size: 12px;
   font-weight: 600;
-  color: #e0f2fe;
-  background: rgba(8, 47, 73, 0.82);
-  backdrop-filter: blur(3px);
-  border-radius: 18px;
+  color: var(--text-primary);
+  background: var(--bg-panel);
+  border: 2px dashed var(--accent-active, #3b7230);
+  backdrop-filter: none;
+  border-radius: var(--radius-window, 8px);
   pointer-events: none;
   z-index: 5;
 }

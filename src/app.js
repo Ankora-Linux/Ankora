@@ -9827,8 +9827,8 @@
     THEME_BUNDLES: {
       'theme-dark':         { wallpaper: 'wallpaper-arduvaz.svg',      iconset: 'monokrom', accent: '#cc5d35' },
       'theme-light':        { wallpaper: 'wallpaper-arduvaz-acik.svg', iconset: 'outline',  accent: '#b84a24' },
-      'theme-bakir':        { wallpaper: 'wallpaper-bakir.svg',        iconset: 'monokrom', accent: '#c96f45' },
-      'theme-bostan':       { wallpaper: 'wallpaper-bostan.svg',       iconset: 'outline',  accent: '#3d6b45' },
+      'theme-bakir':        { wallpaper: 'wallpaper-bakir.svg',        iconset: 'monokrom', accent: '#d1794f' },
+      'theme-bostan':       { wallpaper: 'wallpaper-bostan.svg',       iconset: 'outline',  accent: '#3b7230' },
       'theme-civata':       { wallpaper: 'wallpaper-civata.svg',       iconset: 'monokrom', accent: '#1d4ed8' },
       // Yayımlanan 4.7 Klasik Temalar (isteğe bağlı korundu)
       'theme-classic-dark': { wallpaper: 'wallpaper-kobalt.jpg',       iconset: 'nordic',   accent: '#2563eb' },
@@ -9844,7 +9844,7 @@
       // Varsayılan: açık (kullanıcı isteği: tema tüm sistemi kapsasın).
       return SafeStorage.getItem('ankora_theme_fullsystem') !== 'false';
     },
-    currentAccent: '#3d6b45',
+    currentAccent: '#3b7230',
     currentWallpaper: 'wallpaper-bostan.svg',
     currentRadius: '6px',
     currentGlass: 'solid',
@@ -9857,11 +9857,11 @@
       // 1. Kaydedilmiş tercihleri yükle (kaldırılmış tema ID'leri Bostan'a düşer; 'theme-custom' korunur)
       const rawSavedTheme = SafeStorage.getItem('ankora_theme_mode') || 'theme-bostan';
       const savedTheme = (rawSavedTheme === 'theme-custom' || this.THEME_BUNDLES[rawSavedTheme]) ? rawSavedTheme : 'theme-bostan';
-      const savedAccent = SafeStorage.getItem('ankora_accent_color') || '#3d6b45';
+      const savedAccent = SafeStorage.getItem('ankora_accent_color') || '#3b7230';
       const savedWp = SafeStorage.getItem('ankora_wallpaper') || 'wallpaper-bostan.svg';
       const savedRadius = SafeStorage.getItem('ankora_corner_radius') || '6px';
       const savedGlass = SafeStorage.getItem('ankora_window_glass') || 'solid';
-      const savedAlign = SafeStorage.getItem('ankora_taskbar_align') || 'center';
+      const savedAlign = SafeStorage.getItem('ankora_taskbar_align') || 'left';
       const savedHeight = SafeStorage.getItem('ankora_taskbar_height') || '40px';
       const savedPanelPos = SafeStorage.getItem('ankora_panel_pos') || 'bottom';
       const savedAnim = SafeStorage.getItem('ankora_anim_speed') || 'smooth';
@@ -10026,7 +10026,7 @@
 
       // XSettings & GTK Tema Senkronizasyonu (xsettingsd, GTK-2/3/4, gsettings)
       const isDark = !this.LIGHT_THEMES.includes(themeName);
-      TauriBridge.invoke('sync_desktop_theme', { isDark, accent: this.currentAccent || '#3d6b45' }).catch(() => {});
+      TauriBridge.invoke('sync_desktop_theme', { isDark, accent: this.currentAccent || '#3b7230' }).catch(() => {});
     },
 
     toggleLightDark() {
@@ -11837,6 +11837,9 @@
       const isOpen = typeof forceState === 'boolean' ? forceState : !startFlyout.classList.contains('open');
       startFlyout.classList.toggle('open', isOpen);
       if (startBtn) startBtn.classList.toggle('active', isOpen);
+      document.querySelectorAll('.bostan-start-btn, .bakir-start-btn, .civata-btn-apps').forEach(btn => {
+        btn.classList.toggle('active', isOpen);
+      });
       try {
         if (typeof WindowManager !== 'undefined') {
           if (isOpen) WindowManager.ensureDesktopLayer(true);
@@ -11874,7 +11877,7 @@
         document.querySelectorAll('.desktop-item.selected').forEach(el => el.classList.remove('selected'));
       }
       if (startFlyout && startFlyout.classList.contains('open')) {
-        const isTrigger = e.target.closest('#start-btn, .face-dock-app[data-app-id="start"], .face-brand-label, .bostan-nav-apps, .civata-btn-apps, .civata-brand, .ayaz-start-trigger');
+        const isTrigger = e.target.closest('#start-btn, .face-dock-app[data-app-id="start"], .face-brand-label, .bostan-start-btn, .bostan-nav-apps, .bakir-start-btn, .civata-btn-apps, .civata-brand, .ayaz-start-trigger');
         if (!startFlyout.contains(e.target) && !isTrigger) {
           toggleStart(false);
         }

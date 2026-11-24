@@ -109,7 +109,7 @@ body[data-face="8"] .face-card-choice.active {
 }
 
 .face-preview-3 {
-  background: #e6ebd8;
+  background: #eef1e2;
 }
 .face-preview-3 .fp-preview-top-3 {
   position: absolute;
@@ -117,8 +117,8 @@ body[data-face="8"] .face-card-choice.active {
   left: 0;
   right: 0;
   height: 8px;
-  background: #faf8ef;
-  border-bottom: 1px solid #e4e0cf;
+  background: #eff2e4;
+  border-bottom: 1px solid #c9d2b5;
 }
 .face-preview-3 .fp-preview-dock-3 {
   position: absolute;
@@ -127,12 +127,13 @@ body[data-face="8"] .face-card-choice.active {
   transform: translateX(-50%);
   width: 44%;
   height: 9px;
-  border-radius: 6px;
-  background: #3d6b45;
+  border-radius: 999px;
+  background: #f8f7ef;
+  border: 1px solid #c2ccb0;
 }
 
 .face-preview-8 {
-  background: #fcfcf9;
+  background: #f6f5ef;
 }
 .face-preview-8 .fp-preview-top-8 {
   position: absolute;
@@ -140,7 +141,8 @@ body[data-face="8"] .face-card-choice.active {
   left: 0;
   right: 0;
   height: 8px;
-  background: #161309;
+  background: #fcfcf9;
+  border-bottom: 1.5px solid #14120a;
 }
 .face-preview-8 .fp-preview-desk-8 {
   position: absolute;
@@ -148,8 +150,9 @@ body[data-face="8"] .face-card-choice.active {
   top: 14px;
   width: 24px;
   height: 14px;
-  background: #1d4ed8;
-  border-radius: 3px;
+  background: #ecebe3;
+  border: 1.5px solid #14120a;
+  border-radius: 2px;
 }
 
 .face-preview-legacy {
@@ -177,13 +180,49 @@ body[data-face="8"] .face-card-choice.active {
 }
 
 /* --------------------------------------------------------------------------
-   Genel Yüz Kabuğu (Face Shell Elements)
+   Genel Yüz Kabuğu & Erişilebilirlik Temeli
    -------------------------------------------------------------------------- */
 #face-top-panel,
 #face-bottom-dock,
 #face-desk-hero,
 #face-meta-note {
   display: none;
+}
+
+.face-brand-logo {
+  width: 15px;
+  height: 15px;
+  object-fit: contain;
+  flex-shrink: 0;
+  display: block;
+}
+
+/* Süsleme amaçlı yeşil/mavi durum noktası legacy dışında gizlenir (Anti-Slop R-31) */
+body:not([data-face="legacy"]) .avatar-status-badge,
+body:not([data-face="legacy"]) .lock-avatar-status {
+  display: none !important;
+}
+
+body[data-face="legacy"] .start-btn-label {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
+button:focus-visible,
+[role="button"]:focus-visible,
+a[href]:focus-visible,
+select:focus-visible,
+input:focus-visible,
+summary:focus-visible {
+  outline: 2px solid var(--accent-active, #3b7230);
+  outline-offset: 2px;
 }
 
 [data-face="2"] #taskbar,
@@ -194,138 +233,232 @@ body[data-face="8"] .face-card-choice.active {
 
 [data-face="2"] #face-top-panel,
 [data-face="2"] #face-bottom-dock,
-[data-face="2"] #face-meta-note {
-  display: flex;
-}
-
 [data-face="3"] #face-top-panel,
 [data-face="3"] #face-bottom-dock,
-[data-face="3"] #face-desk-hero {
+[data-face="8"] #face-top-panel,
+[data-face="8"] #face-bottom-dock {
   display: flex;
 }
 
-[data-face="8"] #face-top-panel,
-[data-face="8"] #face-bottom-dock,
-[data-face="8"] #face-desk-hero {
-  display: flex;
+[data-face="2"] #face-desk-hero,
+[data-face="2"] #face-meta-note,
+[data-face="3"] #face-desk-hero,
+[data-face="3"] #face-meta-note,
+[data-face="8"] #face-desk-hero,
+[data-face="8"] #face-meta-note {
+  display: none !important;
 }
 
 /* ==========================================================================
-   YÜZ 2 · BAKIR (IBM Plex Sans & Mono · Üst Panel + Alt Bakır Yüzen Dock)
+   YÜZ 1 · ARDUVAZ (default) — Ayaz Prototip.html ile 1:1 Mat Native Linux Kabuğu
+   ========================================================================== */
+[data-face="default"] {
+  --font-sans: "IBM Plex Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-mono: "IBM Plex Mono", "Cascadia Mono", ui-monospace, Consolas, monospace;
+}
+
+body[data-face="default"] .taskbar {
+  height: var(--taskbar-height, 38px);
+  padding: 0 6px;
+  background: var(--bg-deep, #15171a);
+  border-top: 1px solid var(--border-medium, rgba(255, 255, 255, 0.16));
+  backdrop-filter: none;
+  font-family: var(--font-sans);
+}
+
+body[data-face="default"].theme-light .taskbar,
+body[data-face="default"].is-light-theme .taskbar {
+  background: #eae7df;
+  border-color: rgba(18, 20, 23, 0.2);
+}
+
+body[data-face="default"].panel-top .taskbar {
+  border-top: none;
+  border-bottom: 1px solid var(--border-medium, rgba(255, 255, 255, 0.16));
+}
+
+body[data-face="default"] #start-btn {
+  width: auto !important;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 4px;
+  gap: 7px;
+  font: 600 12.5px var(--font-sans);
+  color: var(--text-primary);
+}
+
+body[data-face="default"] .start-btn-label {
+  display: inline-block;
+  line-height: 1;
+}
+
+body[data-face="default"] .start-glyph-logo {
+  width: 16px;
+  height: 16px;
+}
+
+body[data-face="default"] .taskbar-pin-btn {
+  width: 30px;
+  height: 28px;
+  border-radius: 4px;
+}
+
+body[data-face="default"] .task-tab {
+  height: 28px;
+  border-radius: 4px;
+  font-size: 12px;
+  position: relative;
+}
+
+body[data-face="default"] .task-tab.active {
+  background: var(--bg-surface, #24282f);
+  border-color: var(--border-subtle);
+  border-bottom: 2px solid var(--accent-active, #cc5d35);
+}
+
+body[data-face="default"] .window {
+  border-radius: 6px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.42), 0 0 0 1px var(--border-medium);
+}
+
+body[data-face="default"] .window-header {
+  height: 34px;
+  padding: 0 8px 0 12px;
+  background: var(--bg-deep, #15171a);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+body[data-face="default"] .ctrl-btn {
+  width: 26px;
+  height: 24px;
+  border-radius: 3px;
+}
+
+body[data-face="default"] .start-flyout {
+  border-radius: 6px;
+  border: 1px solid var(--border-medium);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+}
+
+/* ==========================================================================
+   YÜZ 2 · BAKIR (IBM Plex Sans & Mono · 34px Üst Panel + 50px Mat Dock)
    ========================================================================== */
 [data-face="2"] {
-  --workarea-top: 38px;
-  --workarea-bottom: 84px;
-  --bg-desktop: #141519;
+  --workarea-top: 34px;
+  --workarea-bottom: 70px;
+  --bg-desktop: #26201e;
   --copper: #d1794f;
-  --copper-2: #8a4d33;
-  --copper-line: #2e3138;
-  --panel-bg: #1c1e23;
-  --panel-2-bg: #22242b;
-  --text-main: #e9e4da;
-  --dim-text: #9a958a;
-  --font-face-sans: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-face-mono: "IBM Plex Mono", monospace;
+  --copper-line: rgba(234, 229, 219, 0.18);
+  --panel-bg: #141519;
+  --panel-2-bg: #1b1d22;
+  --text-main: #eae5db;
+  --dim-text: #a39d92;
+  --font-face-sans: "IBM Plex Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-face-mono: "IBM Plex Mono", "Cascadia Mono", ui-monospace, Consolas, monospace;
 }
 
 [data-face="2"] body {
-  background: #141519 !important;
-  color: #e9e4da !important;
+  background: #1b1817 !important;
+  color: #eae5db !important;
   font-family: var(--font-face-sans) !important;
 }
 
 [data-face="2"] .desktop-wallpaper {
-  background-color: #141519;
+  background-color: #26201e;
 }
 
 [data-face="2"] .desktop-widgets {
   display: none !important;
 }
 
-/* Yüz 2 Masaüstü Metanotu */
-#face-meta-note {
-  position: absolute;
-  left: 120px;
-  top: 48px;
-  font: 400 11.5px var(--font-face-mono, "IBM Plex Mono", monospace);
-  color: #d6d0c4;
-  background: #1c1e23;
-  padding: 3px 9px;
-  border-radius: 6px;
-  border: 1px solid #2e3138;
-  text-shadow: none;
-  z-index: 5;
-  pointer-events: none;
-  letter-spacing: 0.2px;
-}
-
-/* Yüz 2 Üst Panel */
+/* Yüz 2 Üst Panel (34px) */
 [data-face="2"] #face-top-panel {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
-  height: 36px;
-  background: #1c1e23;
-  border-bottom: 1px solid #2e3138;
+  height: 34px;
+  background: #141519;
+  border-bottom: 1px solid rgba(234, 229, 219, 0.18);
   display: flex;
   align-items: center;
-  padding: 0 14px;
-  gap: 14px;
+  justify-content: space-between;
+  padding: 0 10px;
+  gap: 8px;
   z-index: 9200;
-  font: 500 12.5px var(--font-face-mono, "IBM Plex Mono", monospace);
-  color: #e9e4da;
+  font: 500 12px var(--font-face-sans);
+  color: #eae5db;
+}
+
+[data-face="2"] .bakir-panel-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+[data-face="2"] .bakir-start-btn {
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #eae5db;
+  font: 600 12px var(--font-face-sans);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+[data-face="2"] .bakir-start-btn:hover,
+[data-face="2"] .bakir-start-btn.active {
+  background: #23262d;
+  border-color: rgba(234, 229, 219, 0.14);
+}
+
+[data-face="2"] .bakir-win-pill {
+  font-size: 12px;
+  color: #a39d92;
+  padding: 2px 8px;
+  border-left: 1px solid rgba(234, 229, 219, 0.12);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 240px;
 }
 
 [data-face="2"] .face-ws-group {
   display: flex;
-  gap: 6px;
+  gap: 3px;
+  padding-left: 6px;
+  border-left: 1px solid rgba(234, 229, 219, 0.1);
 }
 
 [data-face="2"] .face-ws-btn {
-  width: 26px;
+  width: 22px;
   height: 20px;
   display: grid;
   place-items: center;
-  border: 1px solid #2e3138;
-  color: #9a958a;
-  font-style: normal;
-  border-radius: 4px;
+  border: 1px solid rgba(234, 229, 219, 0.12);
+  color: #a39d92;
+  border-radius: 3px;
   background: transparent;
   cursor: pointer;
-  font: inherit;
-  transition: color 0.12s ease, background-color 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease, opacity 0.12s ease, transform 0.12s ease;
+  font: 500 11px var(--font-face-mono);
+  transition: color 0.12s ease, background-color 0.12s ease, border-color 0.12s ease;
 }
 
 [data-face="2"] .face-ws-btn:hover {
-  color: #e9e4da;
+  color: #eae5db;
   border-color: #d1794f;
 }
 
 [data-face="2"] .face-ws-btn.active {
-  background: #8a4d33;
+  background: #23262d;
   border-color: #d1794f;
-  color: #f7ede4;
+  color: #eae5db;
   font-weight: 600;
-}
-
-[data-face="2"] .face-clock-capsule {
-  margin-left: 150px;
-  background: #22242b;
-  border: 1px solid #2e3138;
-  border-radius: 9px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 0 12px;
-  color: #9a958a;
-  cursor: pointer;
-}
-
-[data-face="2"] .face-clock-capsule b {
-  color: #d1794f;
-  font-weight: 500;
 }
 
 [data-face="2"] .face-panel-spacer {
@@ -334,78 +467,133 @@ body[data-face="8"] .face-card-choice.active {
 
 [data-face="2"] .face-tray-group {
   display: flex;
-  gap: 14px;
+  gap: 6px;
   align-items: center;
-  color: #9a958a;
+  color: #a39d92;
+}
+
+[data-face="2"] .bakir-tray-btn {
+  height: 24px;
+  padding: 0 6px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: #eae5db;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+[data-face="2"] .bakir-tray-btn:hover {
+  background: #23262d;
+  border-color: rgba(234, 229, 219, 0.12);
 }
 
 [data-face="2"] .face-tray-group svg {
-  stroke: #e9e4da;
+  stroke: #eae5db;
   fill: none;
   stroke-width: 1.6;
 }
 
-/* Yüz 2 Yüzen Alt Dock */
+[data-face="2"] .bakir-tray-tag {
+  font: 500 11px var(--font-face-mono);
+  color: #a39d92;
+  padding: 2px 6px;
+}
+
+[data-face="2"] .bakir-tray-time {
+  font: 500 12px var(--font-face-mono);
+  color: #eae5db;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  padding: 2px 6px;
+  cursor: pointer;
+}
+
+[data-face="2"] .bakir-tray-time:hover {
+  background: #23262d;
+}
+
+/* Yüz 2 Yüzen Alt Dock (50px Mat Bakır Dock) */
 [data-face="2"] #face-bottom-dock {
   position: fixed;
   left: 50%;
-  bottom: 14px;
+  bottom: 10px;
   transform: translateX(-50%);
+  height: 50px;
   display: flex;
-  gap: 10px;
+  align-items: center;
+  gap: 4px;
   max-width: calc(100vw - 24px);
   overflow-x: auto;
   scrollbar-width: none;
-  background: #1c1e23;
-  border: 1px solid #2e3138;
-  border-radius: 12px;
-  padding: 9px;
+  background: #141519;
+  border: 1px solid rgba(234, 229, 219, 0.18);
+  border-radius: 10px;
+  padding: 0 8px;
   z-index: 9200;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.36);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.45);
 }
 
 [data-face="2"] .face-dock-app {
-  width: 46px;
-  height: 46px;
+  width: 38px;
+  height: 38px;
   flex-shrink: 0;
-  border-radius: 8px;
-  background: #22242b;
-  border: 1px solid #2e3138;
-  display: grid;
-  place-items: center;
+  border-radius: 7px;
+  background: transparent;
+  border: 1px solid transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   position: relative;
   cursor: pointer;
-  transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease, transform 0.15s ease;
-  color: #e9e4da;
+  transition: color 0.14s ease, background-color 0.14s ease, border-color 0.14s ease;
+  color: #a39d92;
 }
 
 [data-face="2"] .face-dock-app:hover {
-  background: #2e3138;
-  border-color: #d1794f;
+  background: #23262d;
+  color: #eae5db;
 }
 
-[data-face="2"] .face-dock-app:active {
-  transform: scale(0.95);
+[data-face="2"] .face-dock-app.running {
+  color: #eae5db;
 }
 
-[data-face="2"] .face-dock-app.running::after {
+[data-face="2"] .face-dock-app.active {
+  background: #23262d;
+  border-color: rgba(234, 229, 219, 0.18);
+  color: #d1794f;
+}
+
+[data-face="2"] .face-dock-app.running::after,
+[data-face="2"] .face-dock-app.active::after {
   content: "";
   position: absolute;
-  bottom: 3px;
+  bottom: 2px;
   left: 50%;
   transform: translateX(-50%);
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
+  width: 14px;
+  height: 2px;
   background: #d1794f;
 }
 
+[data-face="2"] .face-dock-sep-static {
+  width: 1px;
+  height: 24px;
+  background: rgba(234, 229, 219, 0.12);
+  margin: 0 4px;
+  flex-shrink: 0;
+}
+
 [data-face="2"] .face-dock-app svg {
-  width: 22px;
-  height: 22px;
+  width: 19px;
+  height: 19px;
   stroke: currentColor;
   fill: none;
-  stroke-width: 1.8;
+  stroke-width: 1.7;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
@@ -413,182 +601,191 @@ body[data-face="8"] .face-card-choice.active {
 /* Gerçek uygulama ikonu da dock kutusunu aşmaz. */
 [data-face="2"] .face-dock-app img,
 [data-face="2"] .face-dock-app .real-app-icon {
-  width: 22px;
-  height: 22px;
-  max-width: 22px;
-  max-height: 22px;
+  width: 20px;
+  height: 20px;
+  max-width: 20px;
+  max-height: 20px;
   object-fit: contain;
 }
 
-/* Yüz 2 Pencereleri */
+/* Yüz 2 Pencereleri (Prototip ile 1:1) */
 [data-face="2"] .window {
-  background: #1c1e23 !important;
-  border: 1px solid #2e3138 !important;
-  border-top: 2px solid #d1794f !important;
-  border-radius: 10px !important;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5) !important;
-  color: #e9e4da !important;
+  background: #1b1d22 !important;
+  border: 1px solid rgba(234, 229, 219, 0.18) !important;
+  border-radius: 6px !important;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.5) !important;
+  color: #eae5db !important;
   font-family: var(--font-face-sans) !important;
 }
 
 [data-face="2"] .window-header {
-  height: 40px !important;
-  background: #1c1e23 !important;
-  border-bottom: 1px solid #2e3138 !important;
-  color: #e9e4da !important;
+  height: 34px !important;
+  padding: 0 8px 0 12px !important;
+  background: #141519 !important;
+  border-bottom: 1px solid rgba(234, 229, 219, 0.09) !important;
+  color: #eae5db !important;
 }
 
 [data-face="2"] .window-meta span {
-  font: 600 14px var(--font-face-sans) !important;
-  color: #e9e4da !important;
+  font: 600 12.5px var(--font-face-sans) !important;
+  color: #eae5db !important;
 }
 
 [data-face="2"] .window-view {
-  background: #1c1e23 !important;
-  color: #e9e4da !important;
+  background: #1b1d22 !important;
+  color: #eae5db !important;
 }
 
 [data-face="2"] .ctrl-btn {
-  border-radius: 3px !important;
+  width: 24px !important;
+  height: 24px !important;
+  border-radius: 4px !important;
+  border: none !important;
+  background: transparent !important;
+  color: #a39d92 !important;
+  font-family: var(--font-face-mono) !important;
+  font-size: 12px !important;
 }
-[data-face="2"] .ctrl-btn.close {
-  background: #8a4d33 !important;
-  color: #f7ede4 !important;
+[data-face="2"] .ctrl-btn:hover {
+  background: #23262d !important;
+  color: #eae5db !important;
+}
+[data-face="2"] .ctrl-btn.close:hover {
+  background: #d14d4d !important;
+  color: #ffffff !important;
 }
 
 /* ==========================================================================
-   YÜZ 3 · BOSTAN (Newsreader & Figtree · Üst Menü + Dev Serif Saat + Yeşil Dock)
+   YÜZ 3 · BOSTAN (IBM Plex Sans & Mono · 36px Aydınlık Çubuk + Kapsül Dock)
    ========================================================================== */
 [data-face="3"] {
-  --workarea-top: 40px;
-  --workarea-bottom: 82px;
-  --leaf: #e6ebd8;
-  --leaf-2: #d7dfc2;
-  --card: #faf8ef;
-  --ink: #26321f;
-  --ink-2: #6a7560;
-  --green: #3d6b45;
-  --green-2: #2c4f33;
-  --bark: #8a6f4e;
-  --font-serif: "Newsreader", Georgia, serif;
-  --font-sans: "Figtree", system-ui, sans-serif;
+  --workarea-top: 36px;
+  --workarea-bottom: 68px;
+  --leaf: #eef1e2;
+  --leaf-2: #e1e6cf;
+  --card: #f8f7ef;
+  --ink: #23301c;
+  --ink-2: #526148;
+  --green: #3b7230;
+  --danger: #b83b3b;
+  --font-sans: "IBM Plex Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-mono: "IBM Plex Mono", "Cascadia Mono", ui-monospace, Consolas, monospace;
 }
 
 [data-face="3"] body {
-  background: #e6ebd8 !important;
-  color: #26321f !important;
+  background: #d8dfca !important;
+  color: #23301c !important;
   font-family: var(--font-sans) !important;
 }
 
 [data-face="3"] .desktop-wallpaper {
-  background-color: #e6ebd8;
+  background-color: #dde4cf;
 }
 
 [data-face="3"] .desktop-widgets {
   display: none !important;
 }
 
-/* Yüz 3 Üst Çubuk */
+/* Yüz 3 Üst Çubuk (36px) */
 [data-face="3"] #face-top-panel {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
-  height: 38px;
+  height: 36px;
   display: flex;
   align-items: center;
-  padding: 0 18px;
-  gap: 16px;
+  justify-content: space-between;
+  padding: 0 12px;
+  gap: 10px;
   z-index: 9200;
-  background: #f0f3e5;
-  border-bottom: 1px solid #d7dfc2;
-  color: #26321f;
+  background: #eff2e4;
+  border-bottom: 1px solid #c9d2b5;
+  color: #23301c;
   font-family: var(--font-sans);
 }
 
-[data-face="3"] .face-brand-label {
-  font: 600 15px var(--font-sans);
-  letter-spacing: 0.2px;
-  color: #26321f;
-  cursor: pointer;
-}
-
-[data-face="3"] .face-top-menu {
+[data-face="3"] .bostan-panel-left {
   display: flex;
-  gap: 14px;
-  font-size: 13.5px;
-  color: #6a7560;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
 }
 
-[data-face="3"] .face-top-menu span {
+[data-face="3"] .bostan-start-btn {
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 5px;
+  border: 1px solid rgba(35, 48, 28, 0.13);
+  background: #ffffff;
+  color: #23301c;
+  font: 600 12px var(--font-sans);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   cursor: pointer;
-  transition: color 0.12s ease;
+  flex-shrink: 0;
 }
 
-[data-face="3"] .face-top-menu span:hover {
-  color: #26321f;
+[data-face="3"] .bostan-start-btn:hover,
+[data-face="3"] .bostan-start-btn.active {
+  border-color: #3b7230;
+  color: #3b7230;
 }
 
-[data-face="3"] .face-top-clock-serif {
-  margin-left: 0;
-  font: 560 14px var(--font-serif);
-  font-variant-numeric: tabular-nums;
-  color: #26321f;
-  background: transparent;
-  border: none;
-  padding: 2px 6px;
-  border-radius: 6px;
-  cursor: pointer;
-}
-[data-face="3"] .face-top-clock-serif:hover {
-  background: rgba(61, 107, 69, 0.1);
+[data-face="3"] .bostan-top-note {
+  font-size: 12px;
+  color: #526148;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 300px;
 }
 
 [data-face="3"] .bostan-ws-group {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  margin-left: 6px;
+  gap: 3px;
 }
 
 [data-face="3"] .bostan-ws-group .face-ws-btn {
   width: 22px;
-  height: 20px;
-  border-radius: 5px;
-  border: 1px solid #cfd6b8;
-  background: #e9edda;
-  color: #4c5a45;
-  font: 600 11px var(--font-sans);
+  height: 22px;
+  border-radius: 4px;
+  border: 1px solid rgba(35, 48, 28, 0.13);
+  background: #f8f7ef;
+  color: #526148;
+  font: 600 11px var(--font-mono);
   display: inline-grid;
   place-items: center;
   cursor: pointer;
 }
 
 [data-face="3"] .bostan-ws-group .face-ws-btn:hover {
-  border-color: #3d6b45;
-  color: #26321f;
+  border-color: #3b7230;
+  color: #23301c;
 }
 
 [data-face="3"] .bostan-ws-group .face-ws-btn.active {
-  background: #3d6b45;
-  border-color: #3d6b45;
-  color: #f4f6ec;
+  background: #3b7230;
+  border-color: #3b7230;
+  color: #ffffff;
 }
 
 [data-face="3"] .bostan-tray-group {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   margin-left: auto;
 }
 
 [data-face="3"] .bostan-tray-btn {
   width: 26px;
   height: 24px;
-  border: none;
-  border-radius: 6px;
+  border: 1px solid transparent;
+  border-radius: 5px;
   background: transparent;
-  color: #26321f;
+  color: #23301c;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -596,7 +793,39 @@ body[data-face="8"] .face-card-choice.active {
 }
 
 [data-face="3"] .bostan-tray-btn:hover {
-  background: rgba(61, 107, 69, 0.12);
+  background: #e1e6cf;
+}
+
+[data-face="3"] .bostan-tray-note {
+  height: 24px;
+  padding: 0 7px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: transparent;
+  color: #526148;
+  font: 500 12px var(--font-sans);
+  cursor: pointer;
+}
+
+[data-face="3"] .bostan-tray-note:hover {
+  background: #e1e6cf;
+  color: #23301c;
+}
+
+[data-face="3"] .bostan-top-clock {
+  margin-left: 0;
+  font: 600 12px var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: #23301c;
+  background: transparent;
+  border: 1px solid transparent;
+  padding: 2px 6px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+[data-face="3"] .bostan-top-clock:hover {
+  background: #e1e6cf;
 }
 
 [data-face="2"] .face-media-bar,
@@ -605,159 +834,86 @@ body[data-face="8"] .face-card-choice.active {
   margin-left: 0;
 }
 
-[data-face="8"] .civata-tray-btn {
-  width: 24px;
-  height: 22px;
-  border: none;
-  border-radius: 4px;
-  background: transparent;
-  color: #f4f2e6;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-}
-
-[data-face="8"] .civata-tray-btn:hover {
-  background: rgba(244, 242, 230, 0.14);
-  color: #93c5fd;
-}
-
-[data-face="8"] .civata-top-datetime {
-  background: transparent;
-  border: none;
-  color: #f4f2e6;
-  font: 500 11.5px var(--font-sans);
-  cursor: pointer;
-  padding: 2px 6px;
-  border-radius: 4px;
-}
-
-[data-face="8"] .civata-top-datetime:hover {
-  background: rgba(244, 242, 230, 0.14);
-}
-
-/* Yüz 3 Sağ Üst Dev Serif Saat & Hava Kartı */
-[data-face="3"] #face-desk-hero {
-  position: absolute;
-  right: 44px;
-  top: 76px;
-  text-align: left;
-  z-index: 5;
-  pointer-events: auto;
-  display: flex;
-  flex-direction: column;
-  background: #faf8ef;
-  padding: 14px 20px;
-  border-radius: 16px;
-  border: 1px solid #e4e0cf;
-  box-shadow: 0 6px 18px rgba(38, 50, 31, 0.1);
-}
-
-[data-face="3"] .bostan-hero-time {
-  font: 450 92px/0.92 var(--font-serif);
-  letter-spacing: -2px;
-  color: #26321f;
-}
-
-[data-face="3"] .bostan-hero-time small {
-  font: italic 450 20px var(--font-serif);
-  letter-spacing: 0;
-  margin-left: 10px;
-  color: #6a7560;
-}
-
-[data-face="3"] .bostan-hero-weather {
-  margin-top: 10px;
-  font-size: 14px;
-  color: #2c4f33;
-  font-family: var(--font-sans);
-}
-
-[data-face="3"] .bostan-hero-weather b {
-  font-weight: 600;
-}
-
 /* Yüz 3 Masaüstü Simgeleri (Sol Dikey Izgara) */
 [data-face="3"] .desktop-grid {
-  left: 26px !important;
-  top: 56px !important;
-  right: 380px !important;
-  bottom: 84px !important;
+  left: 16px !important;
+  top: 54px !important;
+  right: 24px !important;
+  bottom: 78px !important;
 }
 
-[data-face="3"] .desktop-item .item-icon {
-  width: 44px !important;
-  height: 44px !important;
-  border-radius: 12px !important;
-  background: #faf8ef !important;
-  border: 1px solid #e8e4d3 !important;
-  box-shadow: 0 1.5px 0 rgba(38, 50, 31, 0.14) !important;
-}
-
-[data-face="3"] .desktop-item .item-icon svg {
-  width: 22px !important;
-  height: 22px !important;
-  stroke: #26321f !important;
-  filter: none !important;
+[data-face="3"] .desktop-item:hover {
+  background: rgba(255, 255, 255, 0.55) !important;
+  border-color: rgba(35, 48, 28, 0.24) !important;
 }
 
 [data-face="3"] .desktop-item .item-name {
-  color: #26321f !important;
-  text-shadow: 0 1px 3px rgba(250, 248, 239, 0.95), 0 0 8px rgba(250, 248, 239, 0.85) !important;
-  font-size: 12px !important;
+  color: #23301c !important;
+  text-shadow: 0 1px 3px rgba(248, 247, 239, 0.95), 0 0 8px rgba(248, 247, 239, 0.85) !important;
+  font-size: 11.5px !important;
   font-weight: 500 !important;
 }
 
-/* Yüz 3 Alt Yeşil Kapsül Dock */
+/* Yüz 3 Kompakt Alt Kapsül Dock (48px) */
 [data-face="3"] #face-bottom-dock {
   position: fixed;
   left: 50%;
-  bottom: 14px;
+  bottom: 10px;
   transform: translateX(-50%);
+  height: 48px;
   display: flex;
-  gap: 8px;
+  align-items: center;
+  gap: 4px;
   max-width: calc(100vw - 24px);
   overflow-x: auto;
   scrollbar-width: none;
-  background: #faf8ef;
-  border: 1px solid #e4e0cf;
-  border-radius: 16px;
-  padding: 8px;
-  box-shadow: 0 10px 26px -14px rgba(38, 50, 31, 0.3);
+  background: #f8f7ef;
+  border: 1px solid #c2ccb0;
+  border-radius: 999px;
+  padding: 0 10px;
+  box-shadow: 0 6px 18px rgba(35, 48, 28, 0.14);
   z-index: 9200;
 }
 
 [data-face="3"] .face-dock-app {
-  width: 44px;
-  height: 44px;
+  width: 36px;
+  height: 36px;
   flex-shrink: 0;
-  border-radius: 11px;
-  background: #d7dfc2;
-  display: grid;
-  place-items: center;
+  border-radius: 50%;
+  background: transparent;
+  border: 1px solid transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   position: relative;
   cursor: pointer;
-  transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease, transform 0.15s ease;
-  color: #26321f;
+  transition: color 0.14s ease, background-color 0.14s ease, border-color 0.14s ease;
+  color: #526148;
 }
 
 [data-face="3"] .face-dock-app:hover {
-  background: #c9d4b0;
+  background: #e1e6cf;
+  color: #23301c;
 }
 
-[data-face="3"] .face-dock-app.active,
 [data-face="3"] .face-dock-app.running {
-  background: #3d6b45;
-  color: #f4f6ec;
+  background: #e1e6cf;
+  border-color: #c2ccb0;
+  color: #23301c;
+}
+
+[data-face="3"] .face-dock-app.active {
+  background: #3b7230;
+  border-color: #3b7230;
+  color: #ffffff;
 }
 
 [data-face="3"] .face-dock-app svg {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   stroke: currentColor;
   fill: none;
-  stroke-width: 1.8;
+  stroke-width: 1.7;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
@@ -765,231 +921,278 @@ body[data-face="8"] .face-card-choice.active {
 /* Gerçek uygulama ikonu da dock kutusunu aşmaz. */
 [data-face="3"] .face-dock-app img,
 [data-face="3"] .face-dock-app .real-app-icon {
-  width: 20px;
-  height: 20px;
-  max-width: 20px;
-  max-height: 20px;
+  width: 18px;
+  height: 18px;
+  max-width: 18px;
+  max-height: 18px;
   object-fit: contain;
 }
 
-/* Yüz 3 Pencereleri (Sıcak Kağıt Kart) */
+/* Yüz 3 Pencereleri (Prototip ile 1:1) */
 [data-face="3"] .window {
-  background: #faf8ef !important;
-  border-radius: 18px !important;
-  border: 1px solid #e4e0cf !important;
-  box-shadow: 0 14px 32px -12px rgba(38, 50, 31, 0.25) !important;
-  color: #26321f !important;
+  background: #f8f7ef !important;
+  border-radius: 8px !important;
+  border: 1px solid rgba(35, 48, 28, 0.24) !important;
+  box-shadow: 0 10px 24px rgba(35, 48, 28, 0.14) !important;
+  color: #23301c !important;
   font-family: var(--font-sans) !important;
 }
 
 [data-face="3"] .window-header {
-  height: 44px !important;
-  background: #faf8ef !important;
-  border-bottom: 1px solid #e4e0cf !important;
-  color: #26321f !important;
+  height: 36px !important;
+  padding: 0 10px 0 14px !important;
+  background: #eef1e2 !important;
+  border-bottom: 1px solid rgba(35, 48, 28, 0.13) !important;
+  color: #23301c !important;
 }
 
 [data-face="3"] .window-meta span {
-  font: 560 16px var(--font-serif) !important;
-  color: #26321f !important;
+  font: 600 13px var(--font-sans) !important;
+  color: #23301c !important;
 }
 
 [data-face="3"] .window-view {
-  background: #faf8ef !important;
-  color: #26321f !important;
+  background: #ffffff !important;
+  color: #23301c !important;
 }
 
 [data-face="3"] .ctrl-btn {
-  border-radius: 50% !important;
+  border-radius: 5px !important;
   width: 22px !important;
   height: 22px !important;
-  font-size: 12px !important;
+  font: 600 12px var(--font-mono) !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  color: #26321f !important;
-  background: #d7dfc2 !important;
+  border: 1px solid #c5ceb0 !important;
+  color: #23301c !important;
+  background: #ffffff !important;
 }
+
+[data-face="3"] .ctrl-btn:hover {
+  background: #e1e6cf !important;
+}
+
 [data-face="3"] .ctrl-btn.close {
-  background: #3d6b45 !important;
-  color: #faf8ef !important;
+  background: #ffffff !important;
+  border-color: #c5ceb0 !important;
+  color: #23301c !important;
+}
+
+[data-face="3"] .ctrl-btn.close:hover {
+  background: #b83b3b !important;
+  border-color: #b83b3b !important;
+  color: #ffffff !important;
 }
 
 /* ==========================================================================
-   YÜZ 8 · CIVATA (Bricolage Grotesque & Instrument Sans · Mürekkep/Kobalt Üst Çubuk)
+   YÜZ 8 · CIVATA (32px Teknik Kâğıt Üst Çubuk + 42px Alt Araç Şeridi)
    ========================================================================== */
 [data-face="8"] {
   --workarea-top: 32px;
-  --workarea-bottom: 74px;
-  --civata: #fcfcf9;
-  --is: #161309;
-  --limon: #1d4ed8;
-  --limon-2: #dbeafe;
-  --mute: #77745f;
-  --rule: #e3e1d3;
-  --font-disp: "Bricolage Grotesque", sans-serif;
-  --font-sans: "Instrument Sans", system-ui, sans-serif;
+  --workarea-bottom: 42px;
+  --paper: #f6f5ef;
+  --surface: #fcfcf9;
+  --muted-bg: #ecebe3;
+  --ink: #14120a;
+  --ink-sub: #4b473b;
+  --accent: #1d4ed8;
+  --danger: #b91c1c;
+  --font-sans: "IBM Plex Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-mono: "IBM Plex Mono", "Cascadia Mono", ui-monospace, Consolas, monospace;
 }
 
 [data-face="8"] body {
-  background: #fcfcf9 !important;
-  color: #161309 !important;
+  background: #f6f5ef !important;
+  color: #14120a !important;
   font-family: var(--font-sans) !important;
 }
 
 [data-face="8"] .desktop-wallpaper {
-  background-color: #fcfcf9;
+  background-color: #f6f5ef;
 }
 
 [data-face="8"] .desktop-widgets {
   display: none !important;
 }
 
-/* Yüz 8 Üst Teknik Siyah Çubuk */
+/* Yüz 8 Üst Teknik Çubuk (32px Açık Kâğıt) */
 [data-face="8"] #face-top-panel {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
-  height: 30px;
-  background: #161309;
-  color: #f4f2e6;
+  height: 32px;
+  background: #fcfcf9;
+  color: #14120a;
+  border-bottom: 1.5px solid #14120a;
   display: flex;
   align-items: center;
-  font: 500 11.5px var(--font-sans);
-  padding: 0 14px;
+  font: 500 12px var(--font-sans);
+  padding: 0 10px;
   z-index: 9200;
-  gap: 14px;
+  gap: 8px;
 }
 
-[data-face="8"] .civata-brand {
-  font-weight: 700;
+[data-face="8"] .civata-sys-tag {
+  height: 22px;
+  padding: 0 7px;
+  border: none;
+  border-radius: 2px;
+  background: #14120a;
+  color: #fcfcf9;
+  font: 700 11.5px var(--font-mono);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   cursor: pointer;
+  flex-shrink: 0;
 }
 
-[data-face="8"] .civata-nav-item {
-  color: #f4f2e6;
+[data-face="8"] .civata-sys-tag .face-brand-logo {
+  width: 14px;
+  height: 14px;
+}
+
+[data-face="8"] .civata-bar-btn {
+  height: 22px;
+  padding: 0 9px;
+  border: 1.5px solid #14120a;
+  border-radius: 2px;
+  background: #fcfcf9;
+  color: #14120a;
+  font: 600 11.5px var(--font-sans);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   cursor: pointer;
-  transition: color 0.12s ease;
+  flex-shrink: 0;
 }
 
-[data-face="8"] .civata-nav-item:hover {
-  color: #93c5fd;
+[data-face="8"] .civata-bar-btn:hover,
+[data-face="8"] .civata-bar-btn.active {
+  background: #14120a;
+  color: #fcfcf9;
 }
 
 [data-face="8"] .civata-highlight {
-  color: #93c5fd;
+  color: inherit;
   font-style: normal;
-  font-weight: 600;
+  font-weight: 700;
 }
 
-/* Yüz 8 Sol Dev Display Saat & Hava Durumu */
-[data-face="8"] #face-desk-hero {
-  position: absolute;
-  left: 32px;
-  top: 48px;
-  width: 420px;
-  z-index: 5;
-  display: flex;
-  flex-direction: column;
-  pointer-events: none;
-  background: #fcfcf9;
-  padding: 14px 18px;
-  border-radius: 14px;
-  border: 2px solid #161309;
-  box-shadow: 4px 4px 0 #161309;
+[data-face="8"] .civata-tray-btn {
+  height: 22px;
+  padding: 0 6px;
+  border: 1.5px solid transparent;
+  border-radius: 2px;
+  background: transparent;
+  color: #14120a;
+  font: 600 11px var(--font-mono);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
 }
 
-[data-face="8"] .civata-hero-time {
-  font: 700 100px/0.9 var(--font-disp);
-  letter-spacing: -4px;
-  color: #161309;
+[data-face="8"] .civata-tray-btn:hover {
+  background: #ecebe3;
+  border-color: #14120a;
 }
 
-[data-face="8"] .civata-hero-time small {
-  display: block;
-  font: 500 20px var(--font-sans);
-  letter-spacing: 0;
-  margin-top: 8px;
-  color: #77745f;
+[data-face="8"] .civata-top-datetime {
+  height: 22px;
+  background: transparent;
+  border: 1.5px solid transparent;
+  border-radius: 2px;
+  color: #14120a;
+  font: 700 11.5px var(--font-mono);
+  cursor: pointer;
+  padding: 0 6px;
+  flex-shrink: 0;
 }
 
-[data-face="8"] .civata-hero-weather {
-  margin-top: 12px;
-  font: 500 14.5px var(--font-sans);
-  color: #161309;
-}
-
-[data-face="8"] .civata-hero-weather b {
-  background: #1d4ed8;
-  color: #fcfcf9;
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-weight: 600;
+[data-face="8"] .civata-top-datetime:hover {
+  background: #ecebe3;
+  border-color: #14120a;
 }
 
 /* Yüz 8 Masaüstü Simgeleri */
 [data-face="8"] .desktop-grid {
-  left: 32px !important;
-  top: 252px !important;
-  right: 32px !important;
-  bottom: 78px !important;
+  left: 16px !important;
+  top: 48px !important;
+  right: 24px !important;
+  bottom: 54px !important;
 }
 
-/* Yüz 8 Alt Teknik Dock & Üst Sekme Şeridi */
+/* Yüz 8 Alt Tam Genişlik Teknik Araç Şeridi (42px) */
 [data-face="8"] #face-bottom-dock {
   position: fixed;
-  left: 50%;
-  bottom: 12px;
-  transform: translateX(-50%);
+  left: 0;
+  right: 0;
+  bottom: 0;
+  transform: none;
+  max-width: none;
+  height: 42px;
   display: flex;
   align-items: center;
-  gap: 8px;
-  max-width: calc(100vw - 24px);
+  justify-content: center;
+  gap: 6px;
+  padding: 0 12px;
   overflow-x: auto;
   scrollbar-width: none;
   background: #fcfcf9;
-  border: 2px solid #161309;
-  border-radius: 12px;
-  padding: 6px 8px;
-  box-shadow: 0 6px 0 #161309;
+  border: none;
+  border-top: 1.5px solid #14120a;
+  border-radius: 0;
+  box-shadow: none;
   z-index: 9200;
 }
 
 [data-face="8"] .face-dock-app {
-  width: 42px;
-  height: 42px;
+  width: auto !important;
+  min-width: 0;
+  height: 28px !important;
+  padding: 0 11px !important;
   flex-shrink: 0;
-  border-radius: 8px;
-  background: #f4f2e6;
-  border: 1.5px solid #161309;
-  display: grid;
-  place-items: center;
+  border-radius: 2px !important;
+  background: #f6f5ef;
+  border: 1.5px solid #14120a;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   position: relative;
   cursor: pointer;
-  color: #161309;
-  transition: color 0.14s ease, background-color 0.14s ease, border-color 0.14s ease, transform 0.14s ease;
+  color: #14120a;
+  font: 500 11.5px var(--font-mono);
+  transition: color 0.12s ease, background-color 0.12s ease;
+}
+
+[data-face="8"] .civata-strip-label {
+  white-space: nowrap;
+  line-height: 1;
 }
 
 [data-face="8"] .face-dock-app:hover {
-  background: #e8e5d5;
-  border-color: #1d4ed8;
+  background: #ecebe3;
 }
 
 [data-face="8"] .face-dock-app.running {
-  background: #e8e5d5;
-  color: #161309;
-  border-color: #1d4ed8;
+  background: #ecebe3;
+  font-weight: 600;
 }
 
 [data-face="8"] .face-dock-app.active {
-  background: #161309;
+  background: #14120a;
   color: #fcfcf9;
+  font-weight: 600;
 }
 
 [data-face="8"] .face-dock-app svg {
-  width: 20px;
-  height: 20px;
+  width: 14px;
+  height: 14px;
   stroke: currentColor;
   fill: none;
   stroke-width: 1.8;
@@ -999,37 +1202,37 @@ body[data-face="8"] .face-card-choice.active {
 
 [data-face="8"] .face-dock-app img,
 [data-face="8"] .face-dock-app .real-app-icon {
-  width: 20px;
-  height: 20px;
-  max-width: 20px;
-  max-height: 20px;
+  width: 14px;
+  height: 14px;
+  max-width: 14px;
+  max-height: 14px;
   object-fit: contain;
 }
 
 [data-face="8"] .civata-running-tabs {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   overflow-x: auto;
-  max-width: 48vw;
+  max-width: 44vw;
   scrollbar-width: none;
 }
 
 [data-face="8"] .civata-tab-pill {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   height: 22px;
-  padding: 0 9px;
-  border-radius: 5px;
-  border: 1px solid rgba(244, 242, 230, 0.24);
-  background: rgba(244, 242, 230, 0.08);
-  color: #f4f2e6;
-  font: 600 11px var(--font-sans);
+  padding: 0 8px;
+  border-radius: 2px;
+  border: 1.5px solid #14120a;
+  background: #f6f5ef;
+  color: #14120a;
+  font: 600 11px var(--font-mono);
   cursor: pointer;
   white-space: nowrap;
   overflow: hidden;
-  transition: color 0.12s ease, background-color 0.12s ease, border-color 0.12s ease;
+  transition: color 0.12s ease, background-color 0.12s ease;
 }
 
 [data-face="8"] .civata-tab-pill svg,
@@ -1044,112 +1247,98 @@ body[data-face="8"] .face-card-choice.active {
 }
 
 [data-face="8"] .civata-tab-pill:hover {
-  border-color: #93c5fd;
-  color: #dbeafe;
+  background: #ecebe3;
 }
 
 [data-face="8"] .civata-tab-pill.active {
-  background: #1d4ed8;
-  border-color: #1d4ed8;
+  background: #14120a;
+  border-color: #14120a;
   color: #fcfcf9;
 }
 
 /* Yüz 2, 3 ve 8 ortak dinamik dock ayracı ve harici uygulama rozeti */
 .face-dock-sep {
   width: 1px;
-  height: 28px;
+  height: 22px;
   align-self: center;
   margin: 0 2px;
   background: rgba(128, 128, 128, 0.28);
 }
 
 [data-face="2"] .face-dock-sep {
-  background: #2e3138;
+  background: rgba(234, 229, 219, 0.14);
 }
 
 [data-face="3"] .face-dock-sep {
-  background: #d7dfc2;
+  background: #c2ccb0;
 }
 
 [data-face="8"] .face-dock-sep {
-  width: 2px;
-  background: #161309;
+  width: 1.5px;
+  height: 22px;
+  background: #14120a;
 }
 
 .face-dock-app .face-dock-letter {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
   line-height: 1;
-  letter-spacing: -0.02em;
-}
-
-[data-face="2"] .face-dock-app.active {
-  background: #2e3138;
-  border-color: #d1794f;
-  color: #f7ede4;
-}
-
-[data-face="8"] .desktop-item .item-icon {
-  width: 44px !important;
-  height: 44px !important;
-  border-radius: 8px !important;
-  background: transparent !important;
-  border: 1.5px solid #161309 !important;
-}
-
-[data-face="8"] .desktop-item .item-icon svg {
-  width: 24px !important;
-  height: 24px !important;
-  stroke: #161309 !important;
-  filter: none !important;
 }
 
 [data-face="8"] .desktop-item .item-name {
-  color: #161309 !important;
+  color: #14120a !important;
   text-shadow: 0 1px 3px rgba(252, 252, 249, 0.95), 0 0 8px rgba(252, 252, 249, 0.85) !important;
   font-family: var(--font-sans) !important;
   font-weight: 600 !important;
 }
 
-/* Yüz 8 Pencereleri (Sert Çerçeveli Teknik Panel) */
+/* Yüz 8 Pencereleri (1.5px Mürekkep Çerçeve + 3px Sert Gölge) */
 [data-face="8"] .window {
-  background: #fffef9 !important;
-  border: 2px solid #161309 !important;
-  border-radius: 16px !important;
-  box-shadow: 0 16px 36px rgba(22, 19, 9, 0.16) !important;
-  color: #161309 !important;
+  background: #fcfcf9 !important;
+  border: 1.5px solid #14120a !important;
+  border-radius: 2px !important;
+  box-shadow: 3px 3px 0 #14120a !important;
+  color: #14120a !important;
   font-family: var(--font-sans) !important;
 }
 
 [data-face="8"] .window-header {
-  height: 44px !important;
-  background: #161309 !important;
-  color: #f4f2e6 !important;
-  border-bottom: 2px solid #161309 !important;
+  height: 32px !important;
+  padding: 0 8px 0 10px !important;
+  background: #ecebe3 !important;
+  color: #14120a !important;
+  border-bottom: 1.5px solid #14120a !important;
 }
 
 [data-face="8"] .window-meta span {
-  font: 700 15px var(--font-disp) !important;
-  letter-spacing: 0.2px !important;
-  color: #f4f2e6 !important;
+  font: 700 12px var(--font-mono) !important;
+  color: #14120a !important;
 }
 
 [data-face="8"] .window-view {
-  background: #fffef9 !important;
-  color: #161309 !important;
+  background: #fcfcf9 !important;
+  color: #14120a !important;
 }
 
 [data-face="8"] .ctrl-btn {
-  border: 1px solid #f4f2e6 !important;
-  border-radius: 4px !important;
-  background: transparent !important;
-  color: #f4f2e6 !important;
+  width: 22px !important;
+  height: 22px !important;
+  border: 1.5px solid #14120a !important;
+  border-radius: 2px !important;
+  background: #fcfcf9 !important;
+  color: #14120a !important;
+  font: 700 12px var(--font-mono) !important;
+}
+
+[data-face="8"] .ctrl-btn:hover {
+  background: #14120a !important;
+  color: #fcfcf9 !important;
 }
 
 [data-face="8"] .ctrl-btn.close:hover {
-  background: #1d4ed8 !important;
-  color: #fcfcf9 !important;
-  border-color: #1d4ed8 !important;
+  background: #b91c1c !important;
+  color: #ffffff !important;
+  border-color: #b91c1c !important;
 }
 
 /* ==========================================================================
@@ -1172,8 +1361,8 @@ html[data-iconset] .ayaz-desktop-shortcut:hover .item-icon {
 .desktop-grid .desktop-item .item-icon svg,
 #dynamic-desktop-icons .desktop-item .item-icon svg,
 html[data-iconset] .desktop-item .item-icon svg {
-  width: 38px !important;
-  height: 38px !important;
+  width: 34px !important;
+  height: 34px !important;
   stroke: var(--text-primary, #ffffff) !important;
   filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.85)) !important;
   transition: transform 0.16s ease !important;
@@ -1181,42 +1370,41 @@ html[data-iconset] .desktop-item .item-icon svg {
 
 .desktop-grid .desktop-item .item-icon img,
 #dynamic-desktop-icons .desktop-item .item-icon img {
-  width: 38px !important;
-  height: 38px !important;
+  width: 34px !important;
+  height: 34px !important;
   filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.85)) !important;
 }
 
 .desktop-grid .desktop-item:hover .item-icon svg,
 #dynamic-desktop-icons .desktop-item:hover .item-icon svg {
-  transform: scale(1.12) !important;
+  transform: scale(1.1) !important;
 }
 
-/* Açık zeminli yüzlerde (Yüz 3 Bostan, Yüz 8 Cıvata) masaüstü ikon kontrastı:
-   Temel tema koyu olsa bile beyaz çizgi + siyah gölge ezilir, koyu mürekkep kullanılır. */
+/* Açık zeminli yüzlerde (Yüz 3 Bostan, Yüz 8 Cıvata) masaüstü ikon kontrastı */
 [data-face="3"] .desktop-grid .desktop-item .item-icon svg,
 [data-face="3"] #dynamic-desktop-icons .desktop-item .item-icon svg,
 html[data-face="3"][data-iconset] .desktop-item .item-icon svg {
-  stroke: #26321f !important;
-  color: #26321f !important;
-  filter: drop-shadow(0 1px 2px rgba(250, 248, 239, 0.92)) !important;
+  stroke: #23301c !important;
+  color: #23301c !important;
+  filter: drop-shadow(0 1px 2px rgba(248, 247, 239, 0.92)) !important;
 }
 
 [data-face="3"] .desktop-grid .desktop-item .item-icon img,
 [data-face="3"] #dynamic-desktop-icons .desktop-item .item-icon img {
-  filter: drop-shadow(0 2px 4px rgba(38, 50, 31, 0.22)) !important;
+  filter: drop-shadow(0 2px 4px rgba(35, 48, 28, 0.2)) !important;
 }
 
 [data-face="8"] .desktop-grid .desktop-item .item-icon svg,
 [data-face="8"] #dynamic-desktop-icons .desktop-item .item-icon svg,
 html[data-face="8"][data-iconset] .desktop-item .item-icon svg {
-  stroke: #161309 !important;
-  color: #161309 !important;
-  filter: drop-shadow(0 1px 3px rgba(252, 252, 249, 0.92)) !important;
+  stroke: #14120a !important;
+  color: #14120a !important;
+  filter: drop-shadow(0 1px 2px rgba(252, 252, 249, 0.92)) !important;
 }
 
 [data-face="8"] .desktop-grid .desktop-item .item-icon img,
 [data-face="8"] #dynamic-desktop-icons .desktop-item .item-icon img {
-  filter: drop-shadow(0 2px 0 rgba(22, 19, 9, 0.18)) !important;
+  filter: drop-shadow(0 2px 0 rgba(20, 18, 10, 0.18)) !important;
 }
 
 .desktop-item .item-cat-dot,
@@ -1239,65 +1427,68 @@ html[data-face="8"][data-iconset] .desktop-item .item-icon svg {
 [data-face="3"] .settings-window,
 [data-face="3"] .window-view,
 [data-face="3"] .settings-panes-view {
-  background: #faf8ef !important;
-  color: #26321f !important;
+  background: #ffffff !important;
+  color: #23301c !important;
 }
 
 [data-face="3"] .settings-sidebar,
 [data-face="3"] .files-sidebar,
 [data-face="3"] .store-sidebar {
-  background: #f1efe2 !important;
-  border-right: 1px solid #e8e4d3 !important;
-  color: #6a7560 !important;
+  background: #eef1e2 !important;
+  border-right: 1px solid rgba(35, 48, 28, 0.13) !important;
+  color: #526148 !important;
 }
 
 [data-face="3"] .settings-nav-item,
 [data-face="3"] .files-nav-item,
 [data-face="3"] .store-category-btn,
 [data-face="3"] .store-filter-btn {
-  color: #6a7560 !important;
+  color: #526148 !important;
+  border: 1px solid transparent !important;
+  border-radius: 5px !important;
 }
 
 [data-face="3"] .settings-nav-item:hover,
 [data-face="3"] .files-nav-item:hover,
 [data-face="3"] .store-category-btn:hover,
 [data-face="3"] .store-filter-btn:hover {
-  background: #e8e4d3 !important;
-  color: #26321f !important;
+  background: #e1e6cf !important;
+  color: #23301c !important;
 }
 
 [data-face="3"] .settings-nav-item.active,
 [data-face="3"] .files-nav-item.active,
 [data-face="3"] .store-category-btn.active,
 [data-face="3"] .store-filter-btn.active {
-  background: #3d6b45 !important;
-  color: #f4f6ec !important;
-  font-weight: 500 !important;
+  background: #ffffff !important;
+  border-color: #3b7230 !important;
+  color: #23301c !important;
+  font-weight: 600 !important;
 }
 
 [data-face="3"] .settings-card-group {
-  background: #fdfcf6 !important;
-  border: 1px solid #e8e4d3 !important;
-  border-radius: 12px !important;
+  background: #f8f7ef !important;
+  border: 1px solid rgba(35, 48, 28, 0.13) !important;
+  border-radius: 6px !important;
   padding: 16px 18px !important;
-  color: #26321f !important;
+  color: #23301c !important;
 }
 
 [data-face="3"] .preview-feature-row {
-  background: #fdfcf6 !important;
-  border: 1px solid #e8e4d3 !important;
-  color: #26321f !important;
+  background: #f8f7ef !important;
+  border: 1px solid rgba(35, 48, 28, 0.13) !important;
+  color: #23301c !important;
 }
 
 [data-face="3"] .card-group-title,
 [data-face="3"] .pane-header h3,
 [data-face="3"] .feature-name {
-  color: #26321f !important;
+  color: #23301c !important;
 }
 
 [data-face="3"] .pane-header p,
 [data-face="3"] .feature-desc {
-  color: #6a7560 !important;
+  color: #526148 !important;
 }
 
 /* --------------------------------------------------------------------------
@@ -1306,69 +1497,69 @@ html[data-face="8"][data-iconset] .desktop-item .item-icon svg {
 [data-face="8"] .settings-window,
 [data-face="8"] .window-view,
 [data-face="8"] .settings-panes-view {
-  background: #fffef9 !important;
-  color: #161309 !important;
+  background: #fcfcf9 !important;
+  color: #14120a !important;
 }
 
 [data-face="8"] .settings-sidebar,
 [data-face="8"] .files-sidebar,
 [data-face="8"] .store-sidebar {
-  background: #f4f2e6 !important;
-  border-right: 2px solid #161309 !important;
-  color: #161309 !important;
+  background: #f6f5ef !important;
+  border-right: 1.5px solid #14120a !important;
+  color: #14120a !important;
 }
 
 [data-face="8"] .settings-nav-item,
 [data-face="8"] .files-nav-item,
 [data-face="8"] .store-category-btn,
 [data-face="8"] .store-filter-btn {
-  color: #161309 !important;
+  color: #14120a !important;
   font-weight: 500 !important;
+  border-radius: 2px !important;
 }
 
 [data-face="8"] .settings-nav-item:hover,
 [data-face="8"] .files-nav-item:hover,
 [data-face="8"] .store-category-btn:hover,
 [data-face="8"] .store-filter-btn:hover {
-  background: #e8e5d5 !important;
-  color: #161309 !important;
+  background: #ecebe3 !important;
+  color: #14120a !important;
 }
 
 [data-face="8"] .settings-nav-item.active,
 [data-face="8"] .files-nav-item.active,
 [data-face="8"] .store-category-btn.active,
 [data-face="8"] .store-filter-btn.active {
-  background: #161309 !important;
+  background: #14120a !important;
   color: #fcfcf9 !important;
   font-weight: 600 !important;
 }
 
 [data-face="8"] .settings-card-group {
-  background: #fcfcf6 !important;
-  border: 2px solid #161309 !important;
-  border-radius: 12px !important;
+  background: #f6f5ef !important;
+  border: 1.5px solid #14120a !important;
+  border-radius: 2px !important;
   padding: 16px 18px !important;
-  color: #161309 !important;
+  color: #14120a !important;
 }
 
 [data-face="8"] .preview-feature-row {
-  background: #fcfcf6 !important;
-  border: 2px solid #161309 !important;
-  border-radius: 12px !important;
-  color: #161309 !important;
+  background: #f6f5ef !important;
+  border: 1.5px solid #14120a !important;
+  border-radius: 2px !important;
+  color: #14120a !important;
 }
 
 [data-face="8"] .card-group-title,
 [data-face="8"] .pane-header h3,
 [data-face="8"] .feature-name {
-  color: #161309 !important;
-  font-family: var(--font-disp) !important;
+  color: #14120a !important;
   font-weight: 700 !important;
 }
 
 [data-face="8"] .pane-header p,
 [data-face="8"] .feature-desc {
-  color: #77745f !important;
+  color: #4b473b !important;
 }
 
 /* ==========================================================================
@@ -1567,24 +1758,27 @@ body.theme-light .ctx-submenu-list,
 
 /* 6. Başlat Menüsü Yüz Konumlandırması */
 [data-face="2"] .start-flyout {
-  bottom: calc(var(--workarea-bottom, 84px) + 10px) !important;
-  left: max(12px, calc(50% - 320px)) !important;
-  top: auto !important;
-  max-height: calc(100vh - var(--workarea-top, 38px) - var(--workarea-bottom, 84px) - 22px) !important;
+  top: calc(var(--workarea-top, 34px) + 6px) !important;
+  left: 10px !important;
+  bottom: auto !important;
+  border-radius: 6px !important;
+  max-height: calc(100vh - var(--workarea-top, 34px) - var(--workarea-bottom, 70px) - 12px) !important;
 }
 
 [data-face="3"] .start-flyout {
-  top: calc(var(--workarea-top, 40px) + 8px) !important;
+  top: calc(var(--workarea-top, 36px) + 8px) !important;
   bottom: auto !important;
-  left: 16px !important;
-  max-height: calc(100vh - var(--workarea-top, 40px) - var(--workarea-bottom, 82px) - 20px) !important;
+  left: 12px !important;
+  border-radius: 8px !important;
+  max-height: calc(100vh - var(--workarea-top, 36px) - var(--workarea-bottom, 68px) - 16px) !important;
 }
 
 [data-face="8"] .start-flyout {
-  top: calc(var(--workarea-top, 32px) + 8px) !important;
+  top: calc(var(--workarea-top, 32px) + 6px) !important;
   bottom: auto !important;
-  left: 12px !important;
-  max-height: calc(100vh - var(--workarea-top, 32px) - var(--workarea-bottom, 74px) - 20px) !important;
+  left: 10px !important;
+  border-radius: 2px !important;
+  max-height: calc(100vh - var(--workarea-top, 32px) - var(--workarea-bottom, 42px) - 12px) !important;
 }
 
 /* 7. Açık Temalarda Dock ve Panel Uyumu */
@@ -1811,168 +2005,175 @@ body.theme-arctic .face-ws-btn.active {
    yalnız pencere kapsamında eşitliyoruz, küresel temaya dokunmuyoruz.
    -------------------------------------------------------------------------- */
 [data-face="3"] #win-store {
-  --bg-deep: #f2efe2;
-  --bg-base: #fbf9f1;
-  --bg-panel: #f7f4e9;
-  --bg-surface: #efece0;
-  --bg-surface-hover: #e6e2d3;
-  --bg-surface-active: #dcd8c7;
-  --bg-input: #e7e3d4;
-  --border-subtle: rgba(38, 50, 31, 0.12);
-  --border-medium: rgba(38, 50, 31, 0.2);
-  --text-primary: #26321f;
-  --text-secondary: #4a5842;
-  --text-muted: #6a7560;
+  --bg-deep: #eef1e2;
+  --bg-base: #ffffff;
+  --bg-panel: #f8f7ef;
+  --bg-surface: #eef1e2;
+  --bg-surface-hover: #e1e6cf;
+  --bg-surface-active: #d4dcc0;
+  --bg-input: #ffffff;
+  --border-subtle: rgba(35, 48, 28, 0.13);
+  --border-medium: rgba(35, 48, 28, 0.24);
+  --text-primary: #23301c;
+  --text-secondary: #526148;
+  --text-muted: #77856d;
   --text-inverse: #ffffff;
-  --accent-active: #3d6b45;
+  --accent-active: #3b7230;
 }
 
 [data-face="8"] #win-store {
-  --bg-deep: #f4f2e8;
+  --bg-deep: #ecebe3;
   --bg-base: #fcfcf9;
-  --bg-panel: #f7f5ec;
-  --bg-surface: #efede1;
-  --bg-surface-hover: #e6e3d4;
-  --bg-surface-active: #dcd9c7;
-  --bg-input: #e8e5d5;
-  --border-subtle: #e3e1d3;
-  --border-medium: #d5d2c0;
-  --text-primary: #161309;
-  --text-secondary: #4a473a;
-  --text-muted: #77745f;
-  --text-inverse: #ffffff;
-  --accent-active: #161309;
+  --bg-panel: #f6f5ef;
+  --bg-surface: #ecebe3;
+  --bg-surface-hover: #e2e0d4;
+  --bg-surface-active: #d5d2c4;
+  --bg-input: #fcfcf9;
+  --border-subtle: rgba(20, 18, 10, 0.18);
+  --border-medium: #14120a;
+  --text-primary: #14120a;
+  --text-secondary: #4b473b;
+  --text-muted: #6e695a;
+  --text-inverse: #fcfcf9;
+  --accent-active: #14120a;
 }
 
 /* Yüz 3 & Yüz 8 · Mağaza kaynak seçici (Tümü / Sistem APT / Flathub) ve arama kutusu uyumu */
 [data-face="3"] #win-store .store-source-selector {
-  background: #e5e1d0 !important;
-  border: 1px solid rgba(38, 50, 31, 0.16) !important;
+  background: #e1e6cf !important;
+  border: 1px solid rgba(35, 48, 28, 0.18) !important;
 }
 
 [data-face="3"] #win-store .store-source-btn {
   background: transparent !important;
-  color: #4a5842 !important;
+  color: #526148 !important;
   transition: none !important;
 }
 
 [data-face="3"] #win-store .store-source-btn:hover {
-  color: #26321f !important;
+  color: #23301c !important;
 }
 
 [data-face="3"] #win-store .store-source-btn.active {
-  background: #3d6b45 !important;
-  background-color: #3d6b45 !important;
-  color: #fbf9f1 !important;
-  box-shadow: 0 1px 3px rgba(38, 50, 31, 0.2) !important;
+  background: #3b7230 !important;
+  background-color: #3b7230 !important;
+  color: #ffffff !important;
+  box-shadow: none !important;
 }
 
 [data-face="3"] #win-store .store-search-box {
-  background: #efece0 !important;
-  border: 1px solid rgba(38, 50, 31, 0.18) !important;
+  background: #ffffff !important;
+  border: 1px solid rgba(35, 48, 28, 0.24) !important;
 }
 
 [data-face="3"] #win-store .store-search {
-  color: #26321f !important;
+  color: #23301c !important;
 }
 
 [data-face="8"] #win-store .store-source-selector {
-  background: #e8e5d5 !important;
-  border: 1.5px solid #161309 !important;
+  background: #ecebe3 !important;
+  border: 1.5px solid #14120a !important;
+  border-radius: 2px !important;
 }
 
 [data-face="8"] #win-store .store-source-btn {
   background: transparent !important;
-  color: #4a473a !important;
+  color: #4b473b !important;
   transition: none !important;
+  border-radius: 2px !important;
 }
 
 [data-face="8"] #win-store .store-source-btn:hover {
-  color: #161309 !important;
+  color: #14120a !important;
 }
 
 [data-face="8"] #win-store .store-source-btn.active {
-  background: #161309 !important;
-  background-color: #161309 !important;
+  background: #14120a !important;
+  background-color: #14120a !important;
   color: #fcfcf9 !important;
   box-shadow: none !important;
 }
 
 [data-face="8"] #win-store .store-search-box {
   background: #fcfcf9 !important;
-  border: 1.5px solid #161309 !important;
+  border: 1.5px solid #14120a !important;
+  border-radius: 2px !important;
 }
 
 [data-face="8"] #win-store .store-search {
-  color: #161309 !important;
+  color: #14120a !important;
 }
 
-/* Yüz 3 · mağaza vitrini ve birincil düğme koyu sabitlerden arındırıldı */
+/* Yüz 3 · mağaza vitrini ve birincil düğme mat keten yüzeye uyarlandı */
 [data-face="3"] .store-spotlight-card {
-  background: linear-gradient(135deg, rgba(61, 107, 69, 0.12) 0%, rgba(250, 248, 239, 0.92) 100%);
-  border-color: rgba(38, 50, 31, 0.18);
+  background: #f8f7ef !important;
+  border: 1px solid #c9d2b5 !important;
+  border-radius: 8px !important;
 }
 
 [data-face="3"] .store-spotlight-title {
-  color: #26321f;
+  color: #23301c;
 }
 
 [data-face="3"] .store-spotlight-desc {
-  color: #4a5842;
+  color: #526148;
 }
 
 [data-face="3"] .store-spotlight-badge {
-  color: #3d6b45;
+  color: #3b7230;
 }
 
 [data-face="3"] .store-spotlight-big-icon {
-  background: rgba(38, 50, 31, 0.06);
-  border-color: rgba(38, 50, 31, 0.16);
-  color: #26321f;
+  background: #eef1e2;
+  border-color: rgba(35, 48, 28, 0.16);
+  color: #23301c;
 }
 
 [data-face="3"] .store-spotlight-meta {
-  color: #6a7560;
+  color: #77856d;
 }
 
 [data-face="3"] #win-store .btn-pkg {
-  background: #3d6b45;
-  border-color: #3d6b45;
-  color: #fbf9f1;
+  background: #3b7230;
+  border-color: #3b7230;
+  color: #ffffff;
 }
 
-/* Yüz 8 · aynı düzen, mürekkep + limon paleti */
+/* Yüz 8 · mağaza vitrini düz teknik kâğıt paletine uyarlandı */
 [data-face="8"] .store-spotlight-card {
-  background: linear-gradient(135deg, rgba(199, 228, 43, 0.22) 0%, rgba(252, 252, 249, 0.94) 100%);
-  border-color: #e3e1d3;
+  background: #ecebe3 !important;
+  border: 1.5px solid #14120a !important;
+  border-radius: 2px !important;
 }
 
 [data-face="8"] .store-spotlight-title {
-  color: #161309;
+  color: #14120a;
 }
 
 [data-face="8"] .store-spotlight-desc {
-  color: #4a473a;
+  color: #4b473b;
 }
 
 [data-face="8"] .store-spotlight-badge {
-  color: #161309;
+  color: #14120a;
 }
 
 [data-face="8"] .store-spotlight-big-icon {
-  background: rgba(22, 19, 9, 0.05);
-  border-color: #d5d2c0;
-  color: #161309;
+  background: #fcfcf9;
+  border: 1.5px solid #14120a;
+  border-radius: 2px;
+  color: #14120a;
 }
 
 [data-face="8"] .store-spotlight-meta {
-  color: #77745f;
+  color: #4b473b;
 }
 
 [data-face="8"] #win-store .btn-pkg {
-  background: #161309;
-  border-color: #161309;
+  background: #14120a;
+  border-color: #14120a;
   color: #fcfcf9;
+  border-radius: 2px;
 }
 
 /* ==========================================================================
@@ -1994,71 +2195,72 @@ body.theme-arctic .face-ws-btn.active {
 
 /* Yüz 2 · Bakır: açık/koyu tema sınıfı fark etmeksizin sıcak kemik/grafit kontrastı */
 [data-face="2"] .start-flyout {
-  background: rgba(24, 26, 32, 0.98) !important;
-  border-color: #353841 !important;
-  color: #e9e4da !important;
+  background: #1b1d22 !important;
+  border-color: rgba(234, 229, 219, 0.18) !important;
+  color: #eae5db !important;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.5) !important;
 }
 [data-face="2"] .start-flyout .start-search-box {
   background: #141519 !important;
-  border-color: #353841 !important;
+  border-color: rgba(234, 229, 219, 0.18) !important;
 }
 [data-face="2"] .start-flyout .start-search-input {
-  color: #e9e4da !important;
+  color: #eae5db !important;
 }
 [data-face="2"] .start-flyout .start-section-heading,
 [data-face="2"] .start-flyout .app-title,
 [data-face="2"] .start-flyout .pinned-app-name,
 [data-face="2"] .start-flyout .recent-filename,
 [data-face="2"] .start-flyout .profile-name {
-  color: #e9e4da !important;
+  color: #eae5db !important;
 }
 [data-face="2"] .start-flyout .app-desc,
 [data-face="2"] .start-flyout .heading-sub,
 [data-face="2"] .start-flyout .recent-filetime,
 [data-face="2"] .start-flyout .profile-role {
-  color: #a49e92 !important;
+  color: #a39d92 !important;
 }
 [data-face="2"] .start-flyout .pinned-app-card,
 [data-face="2"] .start-flyout .shortcut-action-row,
 [data-face="2"] .start-flyout .btn-power-item {
-  background: #1f2127 !important;
-  border-color: #2e3138 !important;
-  color: #e9e4da !important;
+  background: #23262d !important;
+  border-color: rgba(234, 229, 219, 0.12) !important;
+  color: #eae5db !important;
 }
 [data-face="2"] .start-flyout .pinned-app-card:hover,
 [data-face="2"] .start-flyout .shortcut-action-row:hover {
-  background: #282b33 !important;
+  background: #2d313a !important;
   border-color: #d1794f !important;
 }
 [data-face="2"] .start-flyout .pinned-icon-box {
-  background: #282b33 !important;
-  border-color: #383c46 !important;
-  color: #e9e4da !important;
+  background: #23262d !important;
+  border-color: rgba(234, 229, 219, 0.16) !important;
+  color: #eae5db !important;
 }
 [data-face="2"] .start-flyout .ayaz-user-footer,
 [data-face="2"] .start-flyout .start-dual-section {
-  background: #17191f !important;
-  border-color: #2e3138 !important;
+  background: #141519 !important;
+  border-color: rgba(234, 229, 219, 0.12) !important;
 }
 [data-face="2"] .settings-sidebar,
 [data-face="2"] .files-sidebar,
 [data-face="2"] .store-sidebar {
-  background: #16181d !important;
-  border-right: 1px solid #2e3138 !important;
-  color: #a49e92 !important;
+  background: #141519 !important;
+  border-right: 1px solid rgba(234, 229, 219, 0.09) !important;
+  color: #a39d92 !important;
 }
 [data-face="2"] .settings-card-group {
-  background: #22252b !important;
-  border: 1px solid #343842 !important;
-  border-radius: 10px !important;
+  background: #23262d !important;
+  border: 1px solid rgba(234, 229, 219, 0.12) !important;
+  border-radius: 6px !important;
   padding: 16px 18px !important;
-  color: #e9e4da !important;
+  color: #eae5db !important;
 }
 [data-face="2"] .preview-feature-row,
 [data-face="2"] .store-card {
-  background: #22252b !important;
-  border-color: #343842 !important;
-  color: #e9e4da !important;
+  background: #23262d !important;
+  border-color: rgba(234, 229, 219, 0.12) !important;
+  color: #eae5db !important;
 }
 [data-face="2"] .card-group-title,
 [data-face="2"] .pane-header h3,
@@ -2068,34 +2270,35 @@ body.theme-arctic .face-ws-btn.active {
 [data-face="2"] .window-view h2,
 [data-face="2"] .window-view h3,
 [data-face="2"] .window-view h4 {
-  color: #e9e4da !important;
+  color: #eae5db !important;
 }
 [data-face="2"] .pane-header p,
 [data-face="2"] .feature-desc,
 [data-face="2"] .store-card-desc,
 [data-face="2"] .store-card-pkg {
-  color: #a49e92 !important;
+  color: #a39d92 !important;
 }
 [data-face="2"] .window-view input:not(.term-input):not([type="checkbox"]):not([type="radio"]):not([type="range"]),
 [data-face="2"] .window-view select,
 [data-face="2"] .window-view textarea {
   background: #141519 !important;
-  border-color: #353841 !important;
-  color: #e9e4da !important;
+  border-color: rgba(234, 229, 219, 0.18) !important;
+  color: #eae5db !important;
 }
 [data-face="2"] .desktop-context-menu,
 [data-face="2"] .taskbar-tab-menu,
 [data-face="2"] #quick-settings-popover,
 [data-face="2"] #calendar-flyout,
 [data-face="2"] .power-modal-card {
-  background: #1b1d23 !important;
-  border-color: #353841 !important;
-  color: #e9e4da !important;
+  background: #1b1d22 !important;
+  border-color: rgba(234, 229, 219, 0.18) !important;
+  color: #eae5db !important;
+  border-radius: 6px !important;
 }
 [data-face="2"] .desktop-context-menu .ctx-item,
 [data-face="2"] .power-modal-title,
 [data-face="2"] .power-modal-item {
-  color: #e9e4da !important;
+  color: #eae5db !important;
 }
 
 /* Yüz 3 · Bostan ve Yüz 8 · Cıvata: iç metinler, kartlar, menüler ve formlarda tam kontrast */
@@ -2104,19 +2307,25 @@ body.theme-arctic .face-ws-btn.active {
   color: inherit !important;
 }
 [data-face="3"] .start-flyout {
-  background: rgba(250, 248, 239, 0.98) !important;
-  border-color: #d8d5c3 !important;
-  color: #26321f !important;
+  background: #f8f7ef !important;
+  border: 1px solid rgba(35, 48, 28, 0.24) !important;
+  box-shadow: 0 10px 24px rgba(35, 48, 28, 0.14) !important;
+  color: #23301c !important;
 }
 [data-face="8"] .start-flyout {
   background: #fcfcf9 !important;
-  border: 2px solid #161309 !important;
-  color: #161309 !important;
+  border: 1.5px solid #14120a !important;
+  box-shadow: 4px 4px 0 #14120a !important;
+  color: #14120a !important;
 }
-[data-face="3"] .start-flyout .start-search-box,
+[data-face="3"] .start-flyout .start-search-box {
+  background: #ffffff !important;
+  border: 1px solid rgba(35, 48, 28, 0.24) !important;
+}
 [data-face="8"] .start-flyout .start-search-box {
-  background: rgba(0, 0, 0, 0.04) !important;
-  border-color: rgba(0, 0, 0, 0.14) !important;
+  background: #fcfcf9 !important;
+  border: 1.5px solid #14120a !important;
+  border-radius: 2px !important;
 }
 [data-face="3"] .start-flyout .start-search-input,
 [data-face="3"] .start-flyout .start-section-heading,
@@ -2130,7 +2339,7 @@ body.theme-arctic .face-ws-btn.active {
 [data-face="3"] .window-view h4,
 [data-face="3"] .window-view label,
 [data-face="3"] .store-card-name {
-  color: #26321f !important;
+  color: #23301c !important;
 }
 [data-face="8"] .start-flyout .start-search-input,
 [data-face="8"] .start-flyout .start-section-heading,
@@ -2144,7 +2353,7 @@ body.theme-arctic .face-ws-btn.active {
 [data-face="8"] .window-view h4,
 [data-face="8"] .window-view label,
 [data-face="8"] .store-card-name {
-  color: #161309 !important;
+  color: #14120a !important;
 }
 [data-face="3"] .start-flyout .app-desc,
 [data-face="3"] .start-flyout .heading-sub,
@@ -2152,7 +2361,7 @@ body.theme-arctic .face-ws-btn.active {
 [data-face="3"] .start-flyout .profile-role,
 [data-face="3"] .store-card-desc,
 [data-face="3"] .store-card-pkg {
-  color: #5c6852 !important;
+  color: #526148 !important;
 }
 [data-face="8"] .start-flyout .app-desc,
 [data-face="8"] .start-flyout .heading-sub,
@@ -2160,49 +2369,64 @@ body.theme-arctic .face-ws-btn.active {
 [data-face="8"] .start-flyout .profile-role,
 [data-face="8"] .store-card-desc,
 [data-face="8"] .store-card-pkg {
-  color: #5d5946 !important;
+  color: #4b473b !important;
 }
 [data-face="3"] .start-flyout .pinned-app-card,
 [data-face="3"] .start-flyout .shortcut-action-row,
 [data-face="3"] .start-flyout .btn-power-item,
 [data-face="3"] .store-card {
-  background: #f3f1e5 !important;
-  border-color: #d8d5c3 !important;
-  color: #26321f !important;
+  background: #ffffff !important;
+  border-color: rgba(35, 48, 28, 0.13) !important;
+  color: #23301c !important;
+  border-radius: 5px !important;
+}
+[data-face="3"] .start-flyout .pinned-app-card:hover,
+[data-face="3"] .start-flyout .shortcut-action-row:hover {
+  background: #eef1e2 !important;
+  border-color: #3b7230 !important;
 }
 [data-face="8"] .start-flyout .pinned-app-card,
 [data-face="8"] .start-flyout .shortcut-action-row,
 [data-face="8"] .start-flyout .btn-power-item,
 [data-face="8"] .store-card {
-  background: #f5f3e8 !important;
-  border: 1.5px solid #161309 !important;
-  color: #161309 !important;
+  background: #fcfcf9 !important;
+  border: 1.5px solid #14120a !important;
+  color: #14120a !important;
+  border-radius: 2px !important;
+}
+[data-face="8"] .start-flyout .pinned-app-card:hover,
+[data-face="8"] .start-flyout .shortcut-action-row:hover {
+  background: #f6f5ef !important;
 }
 [data-face="3"] .start-flyout .ayaz-user-footer,
 [data-face="3"] .start-flyout .start-dual-section {
-  background: #ecead9 !important;
-  border-color: #d8d5c3 !important;
+  background: #eef1e2 !important;
+  border-color: rgba(35, 48, 28, 0.13) !important;
+}
+[data-face="3"] .start-flyout .start-apps-pane {
+  background: #ffffff !important;
 }
 [data-face="8"] .start-flyout .ayaz-user-footer,
 [data-face="8"] .start-flyout .start-dual-section {
-  background: #eeecde !important;
-  border-color: #d8d4be !important;
+  background: #ecebe3 !important;
+  border-color: #14120a !important;
 }
 [data-face="3"] .window-view input:not(.term-input):not([type="checkbox"]):not([type="radio"]):not([type="range"]),
 [data-face="3"] .window-view select,
 [data-face="3"] .window-view textarea,
 [data-face="3"] .window-view .btn-secondary {
   background: #ffffff !important;
-  border: 1px solid #c9d2b1 !important;
-  color: #26321f !important;
+  border: 1px solid #c5ceb0 !important;
+  color: #23301c !important;
 }
 [data-face="8"] .window-view input:not(.term-input):not([type="checkbox"]):not([type="radio"]):not([type="range"]),
 [data-face="8"] .window-view select,
 [data-face="8"] .window-view textarea,
 [data-face="8"] .window-view .btn-secondary {
   background: #ffffff !important;
-  border: 1.5px solid #161309 !important;
-  color: #161309 !important;
+  border: 1.5px solid #14120a !important;
+  color: #14120a !important;
+  border-radius: 2px !important;
 }
 [data-face="2"] #win-terminal .term-input,
 [data-face="3"] #win-terminal .term-input,
@@ -2215,17 +2439,20 @@ body.theme-arctic .face-ws-btn.active {
 [data-face="3"] #calendar-flyout,
 [data-face="3"] .power-modal-card,
 [data-face="3"] .taskbar-tab-menu {
-  background: #faf8ef !important;
-  border: 1px solid #c9d2b1 !important;
-  color: #26321f !important;
+  background: #f8f7ef !important;
+  border: 1px solid rgba(35, 48, 28, 0.24) !important;
+  color: #23301c !important;
+  border-radius: 8px !important;
 }
 [data-face="8"] #quick-settings-popover,
 [data-face="8"] #calendar-flyout,
 [data-face="8"] .power-modal-card,
 [data-face="8"] .taskbar-tab-menu {
   background: #fcfcf9 !important;
-  border: 2px solid #161309 !important;
-  color: #161309 !important;
+  border: 1.5px solid #14120a !important;
+  color: #14120a !important;
+  border-radius: 2px !important;
+  box-shadow: 3px 3px 0 #14120a !important;
 }
 body[data-face="2"] .ayaz-quick-settings-flyout,
 body[data-face="2"] .ayaz-calendar-flyout,
@@ -2285,9 +2512,10 @@ body.theme-light .start-cat-btn.active,
 body.theme-arctic .start-cat-btn.active,
 body.theme-bostan .start-cat-btn.active,
 body.theme-civata .start-cat-btn.active {
-  background: rgba(37, 99, 235, 0.12) !important;
-  border-color: rgba(37, 99, 235, 0.32) !important;
-  color: #0f172a !important;
+  background: rgba(59, 114, 48, 0.12) !important;
+  background: color-mix(in srgb, var(--accent-active, #3b7230) 14%, transparent) !important;
+  border-color: var(--accent-active, #3b7230) !important;
+  color: #16181b !important;
 }
 body.is-light-theme .start-pane-header,
 body.theme-light .start-pane-header,
@@ -2322,145 +2550,164 @@ body.theme-civata .start-quick-actions {
 /* Yüz 2 · Bakır */
 [data-face="2"] .start-flyout .start-cat-sidebar {
   background: #141519 !important;
-  border-right-color: #2e3138 !important;
+  border-right-color: rgba(234, 229, 219, 0.12) !important;
 }
 [data-face="2"] .start-flyout .start-cat-btn {
-  color: #c2bbb0 !important;
+  color: #a39d92 !important;
 }
 [data-face="2"] .start-flyout .start-cat-btn:hover {
-  background: #23262e !important;
-  color: #f3eee5 !important;
+  background: #23262d !important;
+  color: #eae5db !important;
 }
 [data-face="2"] .start-flyout .start-cat-btn.active {
-  background: rgba(209, 121, 79, 0.2) !important;
+  background: #23262d !important;
   border-color: #d1794f !important;
-  color: #f3eee5 !important;
+  color: #eae5db !important;
 }
 [data-face="2"] .start-flyout .start-pane-header {
-  border-bottom-color: #2e3138 !important;
+  border-bottom-color: rgba(234, 229, 219, 0.12) !important;
 }
 [data-face="2"] .start-flyout .start-pane-title {
-  color: #e9e4da !important;
+  color: #eae5db !important;
 }
 [data-face="2"] .start-flyout .start-pane-count,
 [data-face="2"] .start-flyout .start-empty-cat {
-  color: #a49e92 !important;
+  color: #a39d92 !important;
 }
 [data-face="2"] .start-flyout .start-quick-actions {
-  background: #17191f !important;
-  border-top-color: #2e3138 !important;
+  background: #141519 !important;
+  border-top-color: rgba(234, 229, 219, 0.12) !important;
 }
 
-/* Yüz 3 · Bostan */
+/* Yüz 3 · Bostan (AyazDE-Prototip-Bostan.html ile 1:1) */
 [data-face="3"] .start-flyout .start-cat-sidebar {
   background: #eef1e2 !important;
-  border-right-color: #d4dac0 !important;
+  border-right: 1px solid rgba(35, 48, 28, 0.13) !important;
 }
 [data-face="3"] .start-flyout .start-cat-btn {
-  color: #2e3d26 !important;
+  color: #526148 !important;
+  border-radius: 5px !important;
 }
 [data-face="3"] .start-flyout .start-cat-btn:hover {
-  background: rgba(65, 114, 48, 0.1) !important;
-  color: #1f2b18 !important;
+  background: #e1e6cf !important;
+  color: #23301c !important;
 }
 [data-face="3"] .start-flyout .start-cat-btn.active {
-  background: rgba(65, 114, 48, 0.16) !important;
-  border-color: #4b8238 !important;
-  color: #1c2815 !important;
+  background: #ffffff !important;
+  border-color: #3b7230 !important;
+  color: #3b7230 !important;
+  font-weight: 600 !important;
 }
 [data-face="3"] .start-flyout .start-pane-header {
-  border-bottom-color: #d4dac0 !important;
+  border-bottom-color: rgba(35, 48, 28, 0.13) !important;
 }
 [data-face="3"] .start-flyout .start-pane-title {
-  color: #26321f !important;
+  color: #23301c !important;
 }
 [data-face="3"] .start-flyout .start-pane-count,
 [data-face="3"] .start-flyout .start-empty-cat {
-  color: #55634b !important;
+  color: #526148 !important;
 }
 [data-face="3"] .start-flyout .start-quick-actions {
   background: #eef1e2 !important;
-  border-top-color: #d4dac0 !important;
+  border-top-color: rgba(35, 48, 28, 0.13) !important;
 }
 
-/* Yüz 8 · Cıvata */
+/* Yüz 8 · Cıvata (AyazDE-Prototip-Civata.html ile 1:1) */
 [data-face="8"] .start-flyout .start-cat-sidebar {
-  background: #f0f0ea !important;
-  border-right: 1.5px solid #161309 !important;
+  background: #f6f5ef !important;
+  border-right: 1.5px solid #14120a !important;
 }
 [data-face="8"] .start-flyout .start-cat-btn {
-  color: #161309 !important;
-  border-radius: 3px !important;
+  color: #14120a !important;
+  border-radius: 2px !important;
 }
 [data-face="8"] .start-flyout .start-cat-btn:hover {
-  background: rgba(22, 19, 9, 0.08) !important;
+  background: #ecebe3 !important;
 }
 [data-face="8"] .start-flyout .start-cat-btn.active {
-  background: #161309 !important;
-  border-color: #161309 !important;
+  background: #14120a !important;
+  border-color: #14120a !important;
   color: #fcfcf9 !important;
 }
 [data-face="8"] .start-flyout .start-pane-header {
-  border-bottom: 1.5px solid #161309 !important;
+  border-bottom: 1.5px solid #14120a !important;
 }
 [data-face="8"] .start-flyout .start-pane-title {
-  color: #161309 !important;
+  color: #14120a !important;
 }
 [data-face="8"] .start-flyout .start-pane-count,
 [data-face="8"] .start-flyout .start-empty-cat {
   color: #4b473b !important;
 }
 [data-face="8"] .start-flyout .start-quick-actions {
-  background: #f0f0ea !important;
-  border-top: 1.5px solid #161309 !important;
+  background: #ecebe3 !important;
+  border-top: 1.5px solid #14120a !important;
 }
 
 /* Karşılayıcı penceresi: Bakır, Bostan ve Cıvata yüz kromu uyumu */
 body[data-face="2"] .welcome-preview-window {
-  background: #1c1e23 !important;
-  border: 1px solid #2e3138 !important;
-  border-top: 2px solid #d1794f !important;
+  background: #1b1d22 !important;
+  border: 1px solid rgba(234, 229, 219, 0.18) !important;
+  border-radius: 6px !important;
 }
 body[data-face="2"] .welcome-preview-window .window-header {
-  background: #1c1e23 !important;
-  border-bottom: 1px solid #2e3138 !important;
+  height: 34px !important;
+  background: #141519 !important;
+  border-bottom: 1px solid rgba(234, 229, 219, 0.09) !important;
 }
 body[data-face="3"] .welcome-preview-window {
-  background: #faf8ef !important;
-  border: 1px solid #e4e0cf !important;
+  background: #ffffff !important;
+  border: 1px solid rgba(35, 48, 28, 0.24) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 10px 24px rgba(35, 48, 28, 0.14) !important;
 }
 body[data-face="3"] .welcome-preview-window .window-header {
-  background: #faf8ef !important;
-  border-bottom: 1px solid #e4e0cf !important;
+  height: 36px !important;
+  background: #eef1e2 !important;
+  border-bottom: 1px solid rgba(35, 48, 28, 0.13) !important;
 }
 body[data-face="3"] .welcome-preview-window #welcome-header-title {
-  color: #26321f !important;
+  color: #23301c !important;
+  font-weight: 600 !important;
 }
 body[data-face="3"] .welcome-preview-window .ctrl-btn.close {
-  background: #3d6b45 !important;
-  color: #faf8ef !important;
+  background: #ffffff !important;
+  border: 1px solid #c5ceb0 !important;
+  color: #23301c !important;
+}
+body[data-face="3"] .welcome-preview-window .ctrl-btn.close:hover {
+  background: #b83b3b !important;
+  border-color: #b83b3b !important;
+  color: #ffffff !important;
 }
 body[data-face="8"] .welcome-preview-window {
-  background: #fffef9 !important;
-  border: 2px solid #161309 !important;
+  background: #fcfcf9 !important;
+  border: 1.5px solid #14120a !important;
+  border-radius: 2px !important;
+  box-shadow: 3px 3px 0 #14120a !important;
 }
 body[data-face="8"] .welcome-preview-window .window-header {
-  background: #161309 !important;
-  border-bottom: 2px solid #161309 !important;
-  color: #f4f2e6 !important;
+  height: 32px !important;
+  background: #ecebe3 !important;
+  border-bottom: 1.5px solid #14120a !important;
+  color: #14120a !important;
 }
 body[data-face="8"] .welcome-preview-window #welcome-header-title {
-  color: #f4f2e6 !important;
+  color: #14120a !important;
+  font-family: var(--font-mono) !important;
+  font-weight: 700 !important;
 }
 body[data-face="8"] .welcome-preview-window .ctrl-btn.close {
-  background: transparent !important;
-  border: 1px solid #f4f2e6 !important;
-  color: #f4f2e6 !important;
+  background: #fcfcf9 !important;
+  border: 1.5px solid #14120a !important;
+  border-radius: 2px !important;
+  color: #14120a !important;
 }
 body[data-face="8"] .welcome-preview-window .ctrl-btn.close:hover {
-  background: #1d4ed8 !important;
-  border-color: #1d4ed8 !important;
-  color: #fcfcf9 !important;
+  background: #b91c1c !important;
+  border-color: #b91c1c !important;
+  color: #ffffff !important;
 }
 
 /* ==============================================================================
@@ -2478,7 +2725,7 @@ body.is-dragging *::after {
 
 body.is-dragging .window.is-dragging,
 body[data-face].is-dragging .window.is-dragging {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.38), 0 0 0 1px var(--accent-active, #2563eb) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.38), 0 0 0 1px var(--accent-active, #3b7230) !important;
   transition: none !important;
 }
 
@@ -2497,5 +2744,5 @@ body[data-face].render-software .window {
 }
 
 body[data-face].render-software .window.active {
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.44), 0 0 0 1px var(--accent-active, #2563eb) !important;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.44), 0 0 0 1px var(--accent-active, #3b7230) !important;
 }

@@ -61,6 +61,15 @@ def run_tests():
         const bTrayAudio = document.querySelector('#face-top-panel .bostan-tray-audio');
         const bTopDate = document.querySelector('#face-top-panel .bostan-top-date');
         assert('Bostan Üst Panel: Wi-Fi, Ses ve Tarih düğmeleri var', !!(bTrayWifi && bTrayAudio && bTopDate));
+        const bLogo = document.querySelector('#face-top-panel .bostan-start-btn img[src*="logo.svg"]');
+        assert('Bostan Üst Panel: Ankora logo.svg mevcut', !!bLogo);
+        const bHero = document.getElementById('face-desk-hero');
+        assert('Bostan: Dekoratif Hero kartı gizli', !bHero || getComputedStyle(bHero).display === 'none');
+        const bDockEl = document.getElementById('face-bottom-dock');
+        const bDockBtns = Array.from(bDockEl ? bDockEl.querySelectorAll('.face-dock-app') : []);
+        assert('Bostan Dock: Tüm öğeler yerel <button>', bDockBtns.length > 0 && bDockBtns.every(el => el.tagName === 'BUTTON'));
+        const bDockRadius = bDockEl ? parseFloat(getComputedStyle(bDockEl).borderRadius) : 0;
+        assert('Bostan Dock: Kapsül kenar yuvarlaklığı (>=99px)', bDockRadius >= 99, `radius=${bDockRadius}`);
         if (bTrayWifi) {
             bTrayWifi.click();
             await waitMs(80);
@@ -194,6 +203,9 @@ def run_tests():
             window.FaceManager.setFace('default', false);
             assert('Default Yüz: data-face="default"', document.documentElement.getAttribute('data-face') === 'default');
             assert('Default Yüz: Taskbar Görünür', getComputedStyle(document.getElementById('taskbar')).display !== 'none');
+            const sbDefault = document.getElementById('start-btn');
+            const sbLabel = sbDefault ? sbDefault.querySelector('.start-btn-label') : null;
+            assert('Default Yüz: Başlat düğmesinde logo.svg ve etiket görünür', !!(sbDefault && sbDefault.querySelector('img[src*="logo.svg"]') && sbLabel && getComputedStyle(sbLabel).display !== 'none'));
             const tbCs = getComputedStyle(document.getElementById('taskbar'));
             const tbFilter = tbCs.backdropFilter || tbCs.webkitBackdropFilter || 'none';
             assert('Default Yüz: Taskbar mat (backdrop-filter yok)', tbFilter === 'none', `filter=${tbFilter}`);
@@ -218,6 +230,11 @@ def run_tests():
             assert('Yüz 2: Alt Dock Var', !!dock2 && dock2.children.length > 0);
             const top2 = document.getElementById('face-top-panel');
             assert('Yüz 2: Üst Panel Var', !!top2 && top2.children.length > 0);
+            assert('Yüz 2: Üst Panelde logo.svg Var', !!(top2 && top2.querySelector('.bakir-start-btn img[src*="logo.svg"]')));
+            const meta2 = document.getElementById('face-meta-note');
+            assert('Yüz 2: Dekoratif Meta Notu Gizli', !meta2 || getComputedStyle(meta2).display === 'none');
+            const dock2Apps = Array.from(dock2 ? dock2.querySelectorAll('.face-dock-app') : []);
+            assert('Yüz 2: Dock Öğeleri Yerel <button>', dock2Apps.length > 0 && dock2Apps.every(el => el.tagName === 'BUTTON'));
             assert('Yüz 2: Medya Şeridi Var', !!(top2 && top2.querySelector('.face-media-bar')));
             if (window.FaceManager.updateMediaBar) {
                 window.FaceManager.updateMediaBar({
@@ -238,12 +255,17 @@ def run_tests():
             const dock3 = document.getElementById('face-bottom-dock');
             assert('Yüz 3: Kapsül Dock Var', !!dock3 && dock3.children.length > 0);
             const hero3 = document.getElementById('face-desk-hero');
-            assert('Yüz 3: Hero Saat/Hava Kartı Var', !!hero3 && hero3.innerHTML.includes('bostan-hero-weather'));
+            assert('Yüz 3: Dekoratif Hero Kartı Gizli', !hero3 || getComputedStyle(hero3).display === 'none');
+            assert('Yüz 3: Üst Panelde logo.svg Var', !!document.querySelector('#face-top-panel .bostan-start-btn img[src*="logo.svg"]'));
+            const dock3Radius = dock3 ? parseFloat(getComputedStyle(dock3).borderRadius) : 0;
+            assert('Yüz 3: Kapsül Dock borderRadius >= 99', dock3Radius >= 99, `radius=${dock3Radius}`);
+            const dock3Apps = Array.from(dock3 ? dock3.querySelectorAll('.face-dock-app') : []);
+            assert('Yüz 3: Dock Öğeleri Yerel <button>', dock3Apps.length > 0 && dock3Apps.every(el => el.tagName === 'BUTTON'));
             assert('Yüz 3: Taskbar Gizli', getComputedStyle(document.getElementById('taskbar')).display === 'none');
             const f3IconSvg = document.querySelector('#dynamic-desktop-icons .desktop-item .item-icon svg');
             if (f3IconSvg) {
                 const f3Stroke = getComputedStyle(f3IconSvg).stroke;
-                assert('Yüz 3: Masaüstü İkon Çizgisi Koyu (rgb(38, 50, 31))', f3Stroke === 'rgb(38, 50, 31)', `stroke=${f3Stroke}`);
+                assert('Yüz 3: Masaüstü İkon Çizgisi Koyu (rgb(35, 48, 28))', f3Stroke === 'rgb(35, 48, 28)', `stroke=${f3Stroke}`);
             }
             if (window.WindowManager) window.WindowManager.open('win-store');
             const f3SrcSel = document.querySelector('#win-store .store-source-selector');
@@ -251,8 +273,8 @@ def run_tests():
             if (f3SrcSel && f3SrcAct) {
                 const bgSel = getComputedStyle(f3SrcSel).backgroundColor;
                 const bgAct = getComputedStyle(f3SrcAct).backgroundColor;
-                assert('Yüz 3: Mağaza Kaynak Seçici Açık Zeminli', bgSel === 'rgb(229, 225, 208)', `bg=${bgSel}`);
-                assert('Yüz 3: Mağaza Aktif Kaynak Yeşil Vurgulu', bgAct === 'rgb(61, 107, 69)', `bg=${bgAct}`);
+                assert('Yüz 3: Mağaza Kaynak Seçici Açık Zeminli', bgSel === 'rgb(225, 230, 207)', `bg=${bgSel}`);
+                assert('Yüz 3: Mağaza Aktif Kaynak Yeşil Vurgulu', bgAct === 'rgb(59, 114, 48)', `bg=${bgAct}`);
             }
 
             // Yüz 8: Cıvata
@@ -263,7 +285,14 @@ def run_tests():
             const dock8 = document.getElementById('face-bottom-dock');
             assert('Yüz 8: Alt Teknik Dock Var', !!dock8 && dock8.children.length > 0);
             const hero8 = document.getElementById('face-desk-hero');
-            assert('Yüz 8: Display Saat/Hava Kartı Var', !!hero8 && hero8.innerHTML.includes('civata-hero-weather'));
+            assert('Yüz 8: Dekoratif Hero Kartı Gizli', !hero8 || getComputedStyle(hero8).display === 'none');
+            assert('Yüz 8: Üst Barda logo.svg Var', !!document.querySelector('#face-top-panel .civata-brand img[src*="logo.svg"]'));
+            const top8Bg = top8 ? getComputedStyle(top8).backgroundColor : '';
+            assert('Yüz 8: Üst Bar Açık Kontür Zeminli (rgb(252, 252, 249))', top8Bg === 'rgb(252, 252, 249)', `bg=${top8Bg}`);
+            const dock8Rect = dock8 ? dock8.getBoundingClientRect() : null;
+            assert('Yüz 8: Alt Teknik Şerit Tam Genişlikte', !!(dock8Rect && dock8Rect.width >= window.innerWidth - 2), `w=${dock8Rect?.width}`);
+            const dock8Apps = Array.from(dock8 ? dock8.querySelectorAll('.face-dock-app') : []);
+            assert('Yüz 8: Dock Öğeleri Yerel <button>', dock8Apps.length > 0 && dock8Apps.every(el => el.tagName === 'BUTTON'));
             assert('Yüz 8: Taskbar Gizli', getComputedStyle(document.getElementById('taskbar')).display === 'none');
             if (window.XdgDesktopEngine && window.XdgDesktopEngine.layoutDesktopIcons) {
                 window.XdgDesktopEngine.layoutDesktopIcons();
@@ -271,7 +300,7 @@ def run_tests():
             const f8IconSvg = document.querySelector('#dynamic-desktop-icons .desktop-item .item-icon svg');
             if (f8IconSvg) {
                 const f8Stroke = getComputedStyle(f8IconSvg).stroke;
-                assert('Yüz 8: Masaüstü İkon Çizgisi Koyu (rgb(22, 19, 9))', f8Stroke === 'rgb(22, 19, 9)', `stroke=${f8Stroke}`);
+                assert('Yüz 8: Masaüstü İkon Çizgisi Koyu (rgb(20, 18, 10))', f8Stroke === 'rgb(20, 18, 10)', `stroke=${f8Stroke}`);
             }
             const f8Items = Array.from(document.querySelectorAll('#dynamic-desktop-icons .desktop-item'));
             const f8Overflow = f8Items.filter(el => el.getBoundingClientRect().bottom > window.innerHeight);
@@ -281,8 +310,8 @@ def run_tests():
             if (f8SrcSel && f8SrcAct) {
                 const bgSel8 = getComputedStyle(f8SrcSel).backgroundColor;
                 const bgAct8 = getComputedStyle(f8SrcAct).backgroundColor;
-                assert('Yüz 8: Mağaza Kaynak Seçici Açık Zeminli', bgSel8 === 'rgb(232, 229, 213)', `bg=${bgSel8}`);
-                assert('Yüz 8: Mağaza Aktif Kaynak Mürekkep Vurgulu', bgAct8 === 'rgb(22, 19, 9)', `bg=${bgAct8}`);
+                assert('Yüz 8: Mağaza Kaynak Seçici Açık Zeminli', bgSel8 === 'rgb(236, 235, 227)', `bg=${bgSel8}`);
+                assert('Yüz 8: Mağaza Aktif Kaynak Mürekkep Vurgulu', bgAct8 === 'rgb(20, 18, 10)', `bg=${bgAct8}`);
             }
             if (window.WindowManager) window.WindowManager.close('win-store');
 

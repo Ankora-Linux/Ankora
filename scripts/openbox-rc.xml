@@ -97,8 +97,8 @@
   <!-- Üst çubuk için 40px ve alt kapsül dock için 82px rezerve edilir.        -->
   <!-- ====================================================================== -->
   <margins>
-    <top>40</top>
-    <bottom>82</bottom>
+    <top>36</top>
+    <bottom>68</bottom>
     <left>0</left>
     <right>0</right>
   </margins>

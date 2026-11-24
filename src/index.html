@@ -65,7 +65,7 @@
       <!-- Üst Durum ve Saat -->
       <div class="lock-top-bar">
         <div class="lock-brand">
-          <img src="logo.svg" alt="Ankora" class="lock-brand-icon">
+          <img src="logo.svg" alt="Ankora" class="lock-brand-icon" width="20" height="20">
           <span>Ankora Linux</span>
         </div>
         <div class="lock-indicators">
@@ -82,7 +82,7 @@
 
         <div class="lock-auth-card">
           <div class="lock-avatar-wrap">
-            <img src="logo.svg" alt="ankora" class="lock-avatar">
+            <img src="logo.svg" alt="ankora" class="lock-avatar" width="64" height="64">
             <span class="lock-avatar-status"></span>
           </div>
           <div class="lock-username" id="lock-username-display">ankora</div>
@@ -282,7 +282,7 @@
         <div class="welcome-preview-content">
           <!-- Centered Ankora Logo -->
           <div class="preview-logo-wrap">
-            <img src="logo.svg" alt="Ankora Logo" class="preview-anchor-logo">
+            <img src="logo.svg" alt="Ankora Logo" class="preview-anchor-logo" width="56" height="56">
           </div>
 
           <!-- ANKORA Heading -->
@@ -1640,7 +1640,7 @@
                   </div>
                 </details>
                 <label class="card-group-hint" style="display:flex;align-items:center;gap:8px;margin-top:10px;cursor:pointer;">
-                  <input type="checkbox" id="chk-fullsystem-theme" checked style="accent-color: var(--accent-active, #3d6b45);">
+                  <input type="checkbox" id="chk-fullsystem-theme" checked style="accent-color: var(--accent-active, #3b7230);">
                   <span>Tema değişince duvar kağıdı ve ikon seti de birlikte değişsin</span>
                 </label>
                 <div class="settings-card" style="margin-top:12px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;">
@@ -1656,7 +1656,7 @@
               <div class="settings-card-group">
                 <span class="card-group-title">Sistem Vurgu Rengi (Accent)</span>
                 <div class="accent-color-row">
-                  <button class="accent-pill-btn active" data-accent="#3d6b45" style="--btn-color: #3d6b45;" title="Bostan Yeşili"></button>
+                  <button class="accent-pill-btn active" data-accent="#3b7230" style="--btn-color: #3b7230;" title="Bostan Yeşili"></button>
                   <button class="accent-pill-btn" data-accent="#cc5d35" style="--btn-color: #cc5d35;" title="Arduvaz Terakota"></button>
                   <button class="accent-pill-btn" data-accent="#2563eb" style="--btn-color: #2563eb;" title="Ankora Mavisi"></button>
                   <button class="accent-pill-btn" data-accent="#059669" style="--btn-color: #059669;" title="Zümrüt Yeşili"></button>
@@ -1763,8 +1763,8 @@
               <div class="settings-card-group">
                 <span class="card-group-title">Görev Çubuğu Yerleşimi & Boyutu</span>
                 <div class="option-pill-group" id="group-taskbar-align">
-                  <button class="option-pill-btn active" data-align="center">Ortalanmış (Win 11)</button>
-                  <button class="option-pill-btn" data-align="left">Sol Hizalı (Klasik Linux)</button>
+                  <button class="option-pill-btn" data-align="center">Ortalanmış (Win 11)</button>
+                  <button class="option-pill-btn active" data-align="left">Sol Hizalı (Klasik Linux)</button>
                 </div>
                 <div class="option-pill-group" id="group-taskbar-size" style="margin-top: 8px;">
                   <button class="option-pill-btn" data-height="36px">Kompakt (36px)</button>
@@ -3535,7 +3535,7 @@
     <div class="start-footer-bar ayaz-user-footer">
       <div class="start-user-profile" tabindex="0">
         <div class="profile-avatar">
-          <img src="logo.svg" alt="ankora" class="profile-avatar-img">
+          <img src="logo.svg" alt="ankora" class="profile-avatar-img" width="22" height="22">
           <span class="avatar-status-badge"></span>
         </div>
         <div class="profile-info">
@@ -3573,7 +3573,8 @@
     <div class="taskbar-center-cluster">
       <!-- Ankora Başlat Düğmesi (Ayaz DE Zirve Logosu) -->
       <button class="start-btn" id="start-btn" title="Başlat Menüsü (Ctrl + Boşluk)">
-        <img src="logo.svg" alt="Ankora" class="start-glyph-logo">
+        <img src="logo.svg" alt="Ankora" class="start-glyph-logo" width="16" height="16">
+        <span class="start-btn-label">Uygulamalar</span>
       </button>
 
       <!-- Hızlı Başlatıcılar: el-işi glif seti (yön dosyalarındaki dock ikonları) -->
@@ -3645,7 +3646,7 @@
 
       <!-- Masaüstüne Dön (bildirim alanı çizgisi gibi, saatin hemen solunda) -->
       <button class="tray-icon-btn tray-anchor-btn" id="tray-anchor-btn" title="Ankora Karşılayıcı &amp; Masaüstü">
-        <img src="logo.svg" alt="Ankora" class="tray-anchor-logo">
+        <img src="logo.svg" alt="Ankora" class="tray-anchor-logo" width="16" height="16">
       </button>
 
       <!-- Saat: çubukta yalnız saat; tam tarih takvim popover'unda -->
@@ -3656,7 +3657,7 @@
   <!-- Ankora AI Mini Sohbet (Görev Çubuğu Üstü Hızlı Panosu) -->
   <div class="ai-mini-popover" id="ai-mini-popover" role="dialog" aria-label="Ankora AI Mini Sohbet">
     <div class="ai-mini-header">
-      <span class="ai-avatar" aria-hidden="true"><img src="logo.svg" alt=""></span>
+      <span class="ai-avatar" aria-hidden="true"><img src="logo.svg" alt="" width="20" height="20"></span>
       <span class="ai-mini-title">Ankora AI</span>
       <span class="status-pill online ai-mini-status" id="ai-mini-status">Hazır</span>
       <button class="ai-mini-tool-btn" id="ai-mini-screen-toggle" title="Ekranı İzle: her soruda güncel ekran karesi ajana gider" aria-pressed="false">
