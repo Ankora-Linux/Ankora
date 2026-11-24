@@ -24,7 +24,7 @@ terminal-font: "unicode"
     left = 0
     width = 100%
     align = "center"
-    text = "Ayaz Masaustu Ortami  •  4.7  •  Devuan 6 Excalibur"
+    text = "Ayaz Masaustu Ortami  •  5.0  •  Devuan 6 Excalibur"
     color = "#64748b"
     font = "unicode"
 }

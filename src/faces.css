@@ -1971,18 +1971,314 @@ body.theme-arctic .face-ws-btn.active {
 }
 
 /* --------------------------------------------------------------------------
-   Yüz 2/3/8 · Sağ üst Ankora AI balonu
-   Görev çubuğu bu yüzlerde gizleniyor; AI'a tek dokunuşluk giriş noktası.
-   Yüz paletini kendi değişkenlerinden alır, ana temaya dokunmaz.
+   Tüm Yüzler · Sağ alt küçük Ankora AI konuşma balonu
+   Her yüzün kendi mat/kağıt/teknik diline birebir uyar, mini sohbeti açar.
    -------------------------------------------------------------------------- */
 #face-ai-bubble {
-  display: none !important;
+  position: fixed;
+  right: 18px;
+  bottom: 56px;
+  z-index: 99994;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 34px;
+  padding: 0 13px 0 10px;
+  border-radius: 17px 17px 4px 17px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-panel);
+  color: var(--text-primary);
+  font: 600 12px/1 var(--font-sans);
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.16);
+  transition: transform 0.14s ease, border-color 0.14s ease, background-color 0.14s ease, color 0.14s ease;
 }
 
-[data-face="2"] #face-ai-bubble,
-[data-face="3"] #face-ai-bubble,
+#face-ai-bubble .face-ai-logo {
+  width: 16px;
+  height: 16px;
+  display: block;
+  flex: none;
+}
+
+#face-ai-bubble:hover,
+#face-ai-bubble.active {
+  border-color: var(--accent-active);
+  transform: translateY(-1px);
+}
+
+#face-ai-bubble:focus-visible {
+  outline: 2px solid var(--accent-active);
+  outline-offset: 2px;
+}
+
+/* Yüz 3 · Bostan — Açık krem konuşma balonu, zeytin mürekkep & orman yeşili */
+[data-face="3"] #face-ai-bubble {
+  bottom: 76px;
+  right: 18px;
+  background: #f8f7ef;
+  color: #23301c;
+  border: 1px solid #bdc6ae;
+  border-radius: 18px 18px 4px 18px;
+  box-shadow: 0 4px 14px rgba(35, 48, 28, 0.12);
+}
+
+[data-face="3"] #face-ai-bubble:hover,
+[data-face="3"] #face-ai-bubble.active {
+  background: #ffffff;
+  border-color: #3b7230;
+  color: #23301c;
+}
+
+/* Yüz 2 · Bakır — Sıcak grafit konuşma balonu, bakır vurgu */
+[data-face="2"] #face-ai-bubble {
+  bottom: 76px;
+  right: 18px;
+  background: #1b1d22;
+  color: #eae5db;
+  border: 1px solid #353a45;
+  border-radius: 14px 14px 4px 14px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+
+[data-face="2"] #face-ai-bubble:hover,
+[data-face="2"] #face-ai-bubble.active {
+  background: #23262d;
+  border-color: #d1794f;
+  color: #f4efe6;
+}
+
+/* Yüz 8 · Cıvata — Teknik çizim kağıdı konuşma etiketi, sert mürekkep gölge */
 [data-face="8"] #face-ai-bubble {
-  display: none !important;
+  bottom: 54px;
+  right: 18px;
+  background: #fcfcf9;
+  color: #14120a;
+  border: 1.5px solid #14120a;
+  border-radius: 2px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  box-shadow: 2px 2px 0 #14120a;
+}
+
+[data-face="8"] #face-ai-bubble:hover,
+[data-face="8"] #face-ai-bubble.active {
+  background: #14120a;
+  color: #fcfcf9;
+  border-color: #14120a;
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0 #1d4ed8;
+}
+
+/* Yüz 1 · Arduvaz — Mat konuşma balonu, görev çubuğu üstünde */
+[data-face="default"] #face-ai-bubble {
+  bottom: calc(var(--taskbar-height, 38px) + 14px);
+  right: 16px;
+  border-radius: 12px 12px 3px 12px;
+}
+
+html.panel-top[data-face="default"] #face-ai-bubble {
+  bottom: 18px;
+}
+
+/* Klasik 4.7 · Legacy */
+[data-face="legacy"] #face-ai-bubble {
+  bottom: calc(var(--taskbar-height, 40px) + 14px);
+  right: 16px;
+}
+
+/* Mini Sohbet Popover konumu ve yüz uyumu (konuşma balonunun tam üstünde) */
+[data-face="2"] #ai-mini-popover,
+[data-face="3"] #ai-mini-popover {
+  left: auto !important;
+  right: 18px !important;
+  bottom: 118px !important;
+  top: auto !important;
+  transform: none !important;
+  z-index: 99998 !important;
+}
+
+[data-face="8"] #ai-mini-popover {
+  left: auto !important;
+  right: 18px !important;
+  bottom: 96px !important;
+  top: auto !important;
+  transform: none !important;
+  z-index: 99998 !important;
+  border-radius: 2px !important;
+  border: 1.5px solid #14120a !important;
+  box-shadow: 3px 3px 0 #14120a !important;
+  background: #fcfcf9 !important;
+}
+
+[data-face="default"] #ai-mini-popover {
+  left: auto !important;
+  right: 16px !important;
+  bottom: calc(var(--taskbar-height, 38px) + 56px) !important;
+  top: auto !important;
+  transform: none !important;
+  z-index: 99998 !important;
+}
+
+html.panel-top[data-face="default"] #ai-mini-popover {
+  bottom: 60px !important;
+}
+
+[data-face="legacy"] #ai-mini-popover {
+  left: auto !important;
+  right: 16px !important;
+  bottom: calc(var(--taskbar-height, 40px) + 56px) !important;
+  transform: none !important;
+  z-index: 99998 !important;
+}
+
+[data-face="3"] #ai-mini-popover {
+  background: #f8f7ef !important;
+  border: 1px solid #bdc6ae !important;
+  box-shadow: 0 10px 28px rgba(35, 48, 28, 0.16) !important;
+}
+
+[data-face="2"] #ai-mini-popover {
+  background: #1b1d22 !important;
+  border: 1px solid #353a45 !important;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45) !important;
+}
+
+/* Mini sohbet etkileşimli ajan eylem kartı */
+.ai-mini-action-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  font-size: 11.5px;
+}
+
+.ai-mini-action-desc {
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.35;
+}
+
+.ai-mini-action-cmd {
+  display: block;
+  padding: 5px 7px;
+  border-radius: 5px;
+  background: var(--bg-deep);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  word-break: break-all;
+}
+
+.ai-mini-action-btn {
+  align-self: flex-start;
+  padding: 5px 11px;
+  border-radius: 6px;
+  border: 1px solid var(--accent-active);
+  background: var(--accent-active);
+  color: var(--on-accent, #ffffff);
+  font: 600 11px/1.2 var(--font-sans);
+  cursor: pointer;
+}
+
+.ai-mini-action-btn:hover {
+  filter: brightness(0.92);
+}
+
+/* 5.0 Ek Uygulama Kontrast Düzeltmeleri (win-report, win-updater, win-screenshot, win-browser, win-store, win-notepad, confirm-modal) */
+[data-face="3"],
+body.theme-bostan {
+  --bg-elevated: #e1e6cf;
+}
+
+[data-face="8"],
+body.theme-civata {
+  --bg-elevated: #ecebe3;
+}
+
+#confirm-modal {
+  z-index: 100025 !important;
+}
+
+body.is-light-theme #confirm-modal .modal-sheet {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+}
+
+body.is-light-theme #confirm-modal .modal-code {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+}
+
+:root:not([data-face="legacy"]) .btn-report-action {
+  background: var(--bg-surface) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-subtle) !important;
+}
+
+:root:not([data-face="legacy"]) .btn-report-action:hover {
+  background: var(--accent-active) !important;
+  border-color: var(--accent-active) !important;
+  color: var(--on-accent, #ffffff) !important;
+}
+
+:root:not([data-face="legacy"]) .btn-text-link-sm {
+  color: var(--accent-active) !important;
+}
+
+body.is-light-theme .store-card-source {
+  color: var(--text-secondary) !important;
+  background: var(--bg-surface) !important;
+  border: 1px solid var(--border-subtle) !important;
+}
+
+body.is-light-theme #updater-status-badge,
+body.is-light-theme .updater-badge {
+  color: var(--text-primary) !important;
+  background: var(--bg-surface) !important;
+  border: 1px solid var(--border-subtle) !important;
+}
+
+:root:not([data-face="legacy"]) #btn-updater-upgrade.btn-pkg {
+  background: var(--accent-active) !important;
+  border-color: var(--accent-active) !important;
+  color: var(--on-accent, #ffffff) !important;
+}
+
+:root:not([data-face="legacy"]) #win-screenshot .option-pill-btn.active {
+  background: var(--accent-active) !important;
+  border-color: var(--accent-active) !important;
+  color: var(--on-accent, #ffffff) !important;
+}
+
+body.is-light-theme #win-browser .browser-action-pill:not(#btn-launch-brave-direct) {
+  color: var(--text-primary) !important;
+  background: var(--bg-surface) !important;
+  border: 1px solid var(--border-subtle) !important;
+}
+
+body.is-light-theme #notepad-save-indicator,
+body.is-light-theme #report-badge-status {
+  color: #166534 !important;
+  background: rgba(22, 101, 52, 0.1) !important;
+}
+
+body.is-light-theme #win-taskmgr td {
+  color: var(--text-secondary);
+}
+
+body.is-light-theme #ai-ollama-status-text span {
+  color: #92400e !important;
 }
 
 /* --------------------------------------------------------------------------

@@ -1,6 +1,21 @@
 # Ankora Linux: Sürüm Notları
 
 
+## 5.0.0 (2026-11-24)
+
+### 4 Çekirdek Anti-Slop Masaüstü Mimarisi ve Varsayılan Yüz 3 · Bostan
+- **Yeni Varsayılan Masaüstü (Yüz 3 · Bostan):** Açık keten/adaçayı paleti (`#eef1e2` / `#f8f7ef` / `#3b7230`), 36 px üst çubuk (gerçek `logo.svg`, çalışma alanları, aktif pencere başlığı, Wi-Fi/Ses/Ayarlar/Saat) ve alt kapsül dock ile ilk açılış varsayılanı olarak ayarlandı.
+- **4 Prototip Yüz Hizalaması + Korunan 4.7 Klasik Seçeneği:** **Yüz 1 · Arduvaz** (sol hizalı 38 px mat görev çubuğu), **Yüz 2 · Bakır** (sıcak grafit ve `#d1794f` bakır vurgu), **Yüz 3 · Bostan** (varsayılan) ve **Yüz 8 · Cıvata** (teknik kâğıt kontür ve tam genişlikli alt monospaced şerit) prototiplerle birebir hizalandı; önceki 4.7 Klasik görünüm isteğe bağlı seçenek olarak korundu.
+- **Tüm Yüzlere Uyumlu Ankora AI Konuşma Balonu:** Sağ alt köşeye her yüzün kendi tasarım diline uyan kompakt **Ankora AI** konuşma balonu eklendi; tek tıkla mini sohbet penceresini açar ve doğrudan etkileşimli eylem onay kartlarını gösterir.
+
+### Ankora AI ve Ajan Motoru Yükseltmesi
+- **Masaüstü Ajan Eylemleri:** Ankora AI artık yerel komutlarla yerleşik uygulamaları açabilir (`"Terminali aç"`, `"Hesap makinesini aç"`, `"Mağazayı aç"` vb.), masaüstü yüz/tema geçişi yapabilir (`"Bakır yüzüne geç"`, `"Açık moda geç"`), gece ışığını yönetebilir, görev/hatırlatıcı ekleyebilir ve tek adımlı veya çok adımlı mağaza kurulum planı üretebilir (`"VLC kur"`).
+- **Çok Turlu Bağlam ve Uyumlu Komut İzin Listesi:** Rust arka ucu (`query_local_ai`) Ollama, Google Gemini (`gemini-2.5-flash`), OpenAI, Groq ve OpenRouter çağrılarına son 6 konuşma turunu aktarır; `df -h /`, `swapon --show` ve `ip -br addr` komutları `EXACT_ALLOWED_COMMANDS` ile `ALLOWED_AGENT_ACTIONS` listelerinde eşitlendi ve tek kullanımlık kriptografik onay jetonu akışı korundu.
+
+### 20 Yerleşik Uygulama Kontrast ve Kalite Denetimi
+- Dosyalar, Yazılım Merkezi (detay katmanı dahil), USB & ISO Yazıcı (`win-flasher`), Paket Yükleyici (`win-pkg-installer`), Sistem Raporu (`win-report`), Güncelleyici (`win-updater`), Ekran Görüntüsü (`win-screenshot`), Spotlight, Bildirim Merkezi ve Ayarlar alt panellerindeki tüm açık tema kontrast, `z-index` ve büyütülmüş pencere kenarlık sorunları giderildi.
+
+
 ## 4.7.0 "Bora" (2026-11-16)
 
 ### Taban Sistem ve Masaüstü Çalışma Zamanı Geçişi (Önemli Değişiklik)

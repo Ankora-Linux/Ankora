@@ -380,10 +380,10 @@
         case 'check_de_update':
           return {
             has_update: false,
-            current_version: '4.7.0',
-            latest_version: '4.7.0',
-            release_name: 'Ayaz DE v4.7.0 "Bora" (Excalibur)',
-            release_notes: '## Ayaz DE v4.7.0 "Bora"\n- Ankora Linux için geliştirilen minimalist masaüstü ortamı.\n- SysVinit uyumlu Kiosk tasarımı.\n- Güvenlik duvarı ve yerel AI ajan entegrasyonu.',
+            current_version: '5.0.0',
+            latest_version: '5.0.0',
+            release_name: 'Ayaz DE v5.0.0 (Excalibur)',
+            release_notes: '## Ayaz DE v5.0.0\n- Ankora Linux için geliştirilen minimalist masaüstü ortamı.\n- SysVinit uyumlu Kiosk tasarımı.\n- 4 çekirdek Anti-Slop yüz ve yerel AI ajan entegrasyonu.',
             download_url: null,
             published_at: new Date().toISOString(),
             package_size_bytes: 0
@@ -419,7 +419,7 @@
             };
           }
           return {
-            reply: 'Ankora AI Yerel Teşhis Motoru (v4.7) aktif.\n• Çekirdek: Linux 6.12 LTS (Devuan 6 Excalibur)\n• İnit: SysVinit (PID 1)\nSistem doktoru, bellek/disk analizi, süreç denetimi veya ZRAM sorguları için hızlı etiketleri kullanabilir ya da API Ayarları üzerinden bulut anahtarı bağlayabilirsiniz.',
+            reply: 'Ankora AI Yerel Teşhis Motoru (v5.0) aktif.\n• Çekirdek: Linux 6.12 LTS (Devuan 6 Excalibur)\n• İnit: SysVinit (PID 1)\nSistem doktoru, bellek/disk analizi, uygulama açma veya ZRAM sorguları için hızlı etiketleri kullanabilir ya da API Ayarları üzerinden bulut anahtarı bağlayabilirsiniz.',
             has_action: false,
             action_command: null,
             action_desc: null,
@@ -2080,7 +2080,7 @@
           exec: 'internal:win-installer',
           targetWindow: 'win-installer',
           cat: 'sys',
-          comment: 'Ankora Linux 4.7 Sabit Diske Kurulum Sihirbazı',
+          comment: 'Ankora Linux 5.0 Sabit Diske Kurulum Sihirbazı',
           isBuiltin: true,
           is_installed_by_user: true,
           on_desktop: true
@@ -7252,7 +7252,7 @@
         file_name: 'kiosk-ayarlari.md',
         file_type: 'text',
         file_size: 1420,
-        content: `# Ankora Linux 4.7 "Bora" Kiosk Yapılandırma Raporu\n\n- Taban: Devuan 6 Excalibur (SysVinit)\n- Çekirdek: Linux 6.12 LTS\n- Pencere Motoru: Tauri 2 + WebKitGTK 4.1\n- Display Manager: nodm (Auto-login)\n- Donanım Parlaklığı: xrandr donanım kontrolü\n- Bellek: ZRAM + Disk Swap Hiyerarşisi\n\nBu belge, Ankora Office yerel belge işleyicisi tarafından doğrudan sistemden açılır.`
+        content: `# Ankora Linux 5.0 Kiosk Yapılandırma Raporu\n\n- Taban: Devuan 6 Excalibur (SysVinit)\n- Çekirdek: Linux 6.12 LTS\n- Pencere Motoru: Tauri 2 + WebKitGTK 4.1\n- Display Manager: nodm (Auto-login)\n- Donanım Parlaklığı: xrandr donanım kontrolü\n- Bellek: ZRAM + Disk Swap Hiyerarşisi\n\nBu belge, Ankora Office yerel belge işleyicisi tarafından doğrudan sistemden açılır.`
       };
       this.renderDocument(doc);
     },
@@ -7325,7 +7325,7 @@
           file_name: name,
           file_type: 'text',
           file_size: 4096,
-          content: `# Ankora Linux 4.7 "Bora" - Sürüm Notları (Excalibur)\n\n- Taban: Devuan GNU/Linux 6 (Excalibur)\n- İnit Sistemi: SysVinit (systemd-free)\n- Arayüz: Tauri 2 (WebKitGTK 4.1) ve Ayaz Masaüstü Ortamı\n- Çekirdek: Linux 6.12 LTS\n\nSistem durumu ve kaynak kullanımı Ayarlar > Hakkında ekranından izlenir.`
+          content: `# Ankora Linux 5.0 - Sürüm Notları (Excalibur)\n\n- Taban: Devuan GNU/Linux 6 (Excalibur)\n- İnit Sistemi: SysVinit (systemd-free)\n- Arayüz: Tauri 2 (WebKitGTK 4.1) ve Ayaz Masaüstü Ortamı\n- Çekirdek: Linux 6.12 LTS\n\nSistem durumu ve kaynak kullanımı Ayarlar > Hakkında ekranından izlenir.`
         });
       }
     }
@@ -7603,6 +7603,7 @@
     apiKey: '',
     includeTelemetry: true,
     watchScreen: false,
+    hasSavedKey: false,
     miniFeed: null,
     history: [],
     detectProviderAndModel(key, forcedProvider = 'auto') {
@@ -7619,9 +7620,9 @@
       if (forced === 'gemini' || (forced === 'auto' && k.startsWith('AIza'))) {
         return {
           provider: 'gemini',
-          model: 'gemini-2.0-flash',
+          model: 'gemini-2.5-flash',
           endpoint: 'https://generativelanguage.googleapis.com/v1beta',
-          label: 'Google Gemini (Gemini 2.0 Flash)'
+          label: 'Google Gemini (Gemini 2.5 Flash)'
         };
       }
       if (forced === 'groq' || (forced === 'auto' && k.startsWith('gsk_'))) {
@@ -7650,7 +7651,7 @@
       }
       return {
         provider: 'gemini',
-        model: 'gemini-2.0-flash',
+        model: 'gemini-2.5-flash',
         endpoint: 'https://generativelanguage.googleapis.com/v1beta',
         label: 'Özel / Evrensel API'
       };
@@ -7669,6 +7670,7 @@
       }
 
       this.activeKey = key;
+      this.hasSavedKey = true;
       const detection = this.detectProviderAndModel(key, selectedProv);
       this.provider = detection.provider;
       this.model = detection.model;
@@ -7717,6 +7719,7 @@
 
     async disconnectKey() {
       this.activeKey = null;
+      this.hasSavedKey = false;
       const providers = Array.from(new Set([this.provider, 'gemini', 'groq', 'openai', 'openrouter'].filter(Boolean)));
       for (const prov of providers) {
         if (prov === 'ollama' || prov === 'auto') continue;
@@ -7768,7 +7771,11 @@
       // 1. Kaydedilmiş API & Ajan Tercihlerini Yükle
       this.provider = SafeStorage.getItem('ankora_ai_provider') || 'ollama';
       this.mode = SafeStorage.getItem('ankora_ai_mode') || 'sysadmin';
-      this.model = SafeStorage.getItem('ankora_ai_model') || (this.provider === 'ollama' ? 'qwen2.5:0.5b' : 'gemini-2.0-flash');
+      this.model = SafeStorage.getItem('ankora_ai_model') || (this.provider === 'ollama' ? 'qwen2.5:0.5b' : 'gemini-2.5-flash');
+      if (this.provider === 'gemini' && this.model === 'gemini-2.0-flash') {
+        this.model = 'gemini-2.5-flash';
+        SafeStorage.setItem('ankora_ai_model', this.model);
+      }
       this.endpoint = SafeStorage.getItem('ankora_ai_endpoint') || 'http://127.0.0.1:11434/api/generate';
       this.includeTelemetry = SafeStorage.getItem('ankora_ai_ctx') !== '0';
       this.activeKey = null;
@@ -7836,6 +7843,7 @@
 
       // Backend güvenli depoda anahtar kontrolü
       TauriBridge.invoke('has_ai_credential', { provider: this.provider }).then(hasKey => {
+        this.hasSavedKey = Boolean(hasKey);
         if (hasKey) {
           if (inputKey) inputKey.placeholder = `•••••••• (${this.provider.toUpperCase()} Aktif)`;
           if (btnDisconnect) btnDisconnect.style.display = 'inline-block';
@@ -8396,7 +8404,7 @@
           `*Not: Görev listene yeni bir iş eklemek için "görev ekle: [iş adı]" yazabilirsin.*`;
       } else if (q.includes('durum') || q.includes('sistem') || q.includes('bellek') || q.includes('ram') || q.includes('cpu')) {
         reply = `**Canlı Sistem Durumu & Telemetri:**\n\n` +
-          `• **İşletim Sistemi:** Ankora Linux 4.7.0 "Bora" (Devuan 6 Excalibur amd64)\n` +
+          `• **İşletim Sistemi:** Ankora Linux 5.0.0 (Devuan 6 Excalibur amd64)\n` +
           `• **Masaüstü Ortamı:** Ayaz DE (Rust + WebKitGTK)\n` +
           `• **İnit & Hizmet Sistemi:** SysVinit (Düşük kaynak tüketimli)\n` +
           `• **Çekirdek:** Linux LTS x86_64\n` +
@@ -8467,9 +8475,19 @@
           this.appendMsg('bot', todoReply);
           return;
         }
+        const desktopReply = this.tryDesktopAgentAction(clean);
+        if (desktopReply) {
+          this.appendMsg('user', display);
+          this.appendMsg('bot', desktopReply);
+          return;
+        }
       }
 
       this.appendMsg('user', display);
+      const recentHistory = this.history
+        .slice(-7, -1)
+        .filter(h => h && h.text && !String(h.text).startsWith('Ajan düşünülüyor'))
+        .map(h => ({ role: h.role === 'user' ? 'user' : 'bot', text: String(h.text).slice(0, 800) }));
       const loadingEntry = this.showTyping();
 
       let res = null;
@@ -8532,10 +8550,16 @@
             model: this.model,
             agentMode: this.mode,
             imageB64: shotB64 || '',
-            image_b64: shotB64 || ''
+            image_b64: shotB64 || '',
+            history: recentHistory
           });
         } catch (invokeErr) {
-          // Tauri arka uçta hata alındıysa veya anahtar yoksa fallback teşhis motoruna devret
+          // Bulut sağlayıcıda gerçek anahtar kayıtlıysa API hatasını gizleme, kullanıcıya net göster
+          if (this.provider !== 'ollama' && (this.activeKey || this.hasSavedKey)) {
+            if (loadingEntry && loadingEntry.parentNode) loadingEntry.parentNode.removeChild(loadingEntry);
+            this.appendMsg('bot', `⚠ ${this.provider.toUpperCase()} API Hatası:\n${invokeErr}\n\nAPI anahtarınızı, internet bağlantınızı veya model adını Ayarlar çekmecesinden doğrulayın.`);
+            return;
+          }
           if (!this.activeKey) {
             res = this.generateFallbackDiagnostic(text);
           }
@@ -8547,19 +8571,32 @@
         const key = this.activeKey.trim();
         const prov = this.provider.toLowerCase();
         const sysPromptBase = this.mode === 'developer'
-          ? 'Sen Ankora Linux 4.7 ortamında çalışan kıdemli bir Rust, Linux ve Tauri geliştiricisisin.'
+          ? 'Sen Ankora Linux 5.0 ortamında çalışan kıdemli bir Rust, Linux ve Tauri geliştiricisisin.'
           : (this.mode === 'doctor'
             ? 'Sen Ankora Sistem Doktorusun. Devuan 6 Excalibur (SysVinit) üzerinde bellek, disk, ZRAM, süreç ve güvenlik sorunlarını teşhis edip çözüm sunarsın.'
-            : 'Sen Ankora Linux 4.7 (Devuan 6 Excalibur / SysVinit) sistem yöneticisi ve yapay zeka asistanısın. Kullanıcıya Türkçe, net ve teknik olarak doğru yanıtlar ver.');
-        const fullSysPrompt = `${sysPromptBase}\n${teleContext}\n${shotB64 ? '[Kullanıcı güncel bir ekran karesi paylaştı; soruyu görüntüyle birlikte değerlendir.]' : ''}\n${linkContext}\nEğer güvenli bir tanı komutu önermek istersen yanıtın sonuna <<<ACTION:komut|açıklama>>> ekle (Yalnızca: df -h /, free -h, uname -a, uptime, swapon --show, ip -br addr, lscpu, lsblk, ps aux, /usr/local/bin/ankora-doctor).`;
+            : 'Sen Ankora Linux 5.0 (Devuan 6 Excalibur / SysVinit) sistem yöneticisi ve yapay zeka asistanısın. Kullanıcıya Türkçe, net ve teknik olarak doğru yanıtlar ver.');
+        const fullSysPrompt = `${sysPromptBase}\n${teleContext}\n${shotB64 ? '[Kullanıcı güncel bir ekran karesi paylaştı; soruyu görüntüyle birlikte değerlendir.]' : ''}\n${linkContext}\nEğer güvenli bir tanı komutu önermek istersen yanıtın sonuna <<<ACTION:komut|açıklama>>> ekle (Yalnızca: df -h /, df -h / && free -m, free -h, uname -a, uptime, swapon --show, ip -br addr, lscpu, lsblk, ps aux, top -b -n 1, apt-get clean && rm -rf /tmp/*, /usr/local/bin/ankora-doctor, sync).`;
 
         try {
           if (prov === 'groq' && shotB64) {
             this.mirrorInfo('Not: Groq metin modeli görüntü işleyemez; soru metin olarak gönderildi.');
           }
           if (prov === 'gemini') {
-            const aiModel = this.model || 'gemini-2.0-flash';
+            const aiModel = this.model || 'gemini-2.5-flash';
             const url = `https://generativelanguage.googleapis.com/v1beta/models/${aiModel}:generateContent`;
+            const geminiContents = recentHistory.map(h => ({
+              role: h.role === 'user' ? 'user' : 'model',
+              parts: [{ text: h.text }]
+            }));
+            geminiContents.push({
+              role: 'user',
+              parts: shotB64
+                ? [
+                    { text },
+                    { inline_data: { mime_type: 'image/png', data: shotB64 } }
+                  ]
+                : [{ text }]
+            });
 
             const resp = await fetch(url, {
               method: 'POST',
@@ -8568,14 +8605,8 @@
                 'x-goog-api-key': key
               },
               body: JSON.stringify({
-                contents: [{
-                  parts: shotB64
-                    ? [
-                        { text: `${fullSysPrompt}\n\nKullanıcı: ${text}` },
-                        { inline_data: { mime_type: 'image/png', data: shotB64 } }
-                      ]
-                    : [{ text: `${fullSysPrompt}\n\nKullanıcı: ${text}` }]
-                }]
+                system_instruction: { parts: [{ text: fullSysPrompt }] },
+                contents: geminiContents
               })
             });
 
@@ -8599,6 +8630,7 @@
                 model: this.model || 'llama-3.3-70b-versatile',
                 messages: [
                   { role: 'system', content: fullSysPrompt },
+                  ...recentHistory.map(h => ({ role: h.role === 'user' ? 'user' : 'assistant', content: h.text })),
                   { role: 'user', content: text }
                 ],
                 temperature: 0.3
@@ -8625,6 +8657,7 @@
                 model: this.model || 'gpt-4o-mini',
                 messages: [
                   { role: 'system', content: fullSysPrompt },
+                  ...recentHistory.map(h => ({ role: h.role === 'user' ? 'user' : 'assistant', content: h.text })),
                   { role: 'user', content: userMsg }
                 ],
                 temperature: 0.3
@@ -8651,6 +8684,7 @@
                 model: this.model || 'meta-llama/llama-3.3-70b-instruct',
                 messages: [
                   { role: 'system', content: fullSysPrompt },
+                  ...recentHistory.map(h => ({ role: h.role === 'user' ? 'user' : 'assistant', content: h.text })),
                   { role: 'user', content: userMsg }
                 ]
               })
@@ -8715,34 +8749,65 @@
     },
 
     renderActionCard(command, desc, token) {
-      if (!this.feed) return;
-      const card = document.createElement('div');
-      card.className = 'action-proposal-card';
+      if (this.feed) {
+        const card = document.createElement('div');
+        card.className = 'action-proposal-card';
 
-      const strong = document.createElement('strong');
-      strong.textContent = '⚠ Sistem Eylemi Yetkisi Gerekiyor:';
+        const strong = document.createElement('strong');
+        strong.textContent = '⚠ Sistem Eylemi Yetkisi Gerekiyor:';
 
-      const span = document.createElement('span');
-      span.textContent = desc || 'Aşağıdaki sistem komutu yürütülecek:';
+        const span = document.createElement('span');
+        span.textContent = desc || 'Aşağıdaki sistem komutu yürütülecek:';
 
-      const code = document.createElement('code');
-      code.textContent = command;
+        const code = document.createElement('code');
+        code.textContent = command;
 
-      const btn = document.createElement('button');
-      btn.className = 'btn-pkg';
-      btn.style.cssText = 'align-self: flex-start; margin-top: 4px; background: var(--text-primary); color: var(--bg-deep);';
-      btn.textContent = 'Onayla ve Çalıştır';
-      btn.addEventListener('click', () => {
-        this.promptSecurityConfirm(command, desc, token);
-      });
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'btn-pkg';
+        btn.style.cssText = 'align-self: flex-start; margin-top: 4px; background: var(--accent-active); border-color: var(--accent-active); color: var(--on-accent, #ffffff);';
+        btn.textContent = 'Onayla ve Çalıştır';
+        btn.addEventListener('click', () => {
+          this.promptSecurityConfirm(command, desc, token);
+        });
 
-      card.appendChild(strong);
-      card.appendChild(span);
-      card.appendChild(code);
-      card.appendChild(btn);
+        card.appendChild(strong);
+        card.appendChild(span);
+        card.appendChild(code);
+        card.appendChild(btn);
 
-      this.feed.appendChild(card);
-      this.feed.scrollTop = this.feed.scrollHeight;
+        this.feed.appendChild(card);
+        this.feed.scrollTop = this.feed.scrollHeight;
+      }
+
+      // Mini sohbet balonundan çalışan kullanıcılar için etkileşimli onay kartı
+      if (this.miniFeed) {
+        const mCard = document.createElement('div');
+        mCard.className = 'ai-mini-action-card';
+
+        const mDesc = document.createElement('div');
+        mDesc.className = 'ai-mini-action-desc';
+        mDesc.textContent = desc || 'Sistem eylemi hazır';
+
+        const mCode = document.createElement('code');
+        mCode.className = 'ai-mini-action-cmd';
+        mCode.textContent = command;
+
+        const mBtn = document.createElement('button');
+        mBtn.type = 'button';
+        mBtn.className = 'ai-mini-action-btn';
+        mBtn.textContent = 'Onayla ve Çalıştır';
+        mBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.promptSecurityConfirm(command, desc, token);
+        });
+
+        mCard.appendChild(mDesc);
+        mCard.appendChild(mCode);
+        mCard.appendChild(mBtn);
+        this.miniFeed.appendChild(mCard);
+        this.miniFeed.scrollTop = this.miniFeed.scrollHeight;
+      }
     },
 
     // Tek tuş "Bak ve anlat": ekran karesini alıp ekrandaki hatayı/dialogu
@@ -8750,9 +8815,87 @@
     // görüntü gönderir ve dalgalı çerçeveyi kısa süre gösterir.
     lookAndTell() {
       return this.handleQuery(
-        'Şu anki ekranımda ne kaymıyor? Ekrandaki hata mesajını, uyarı penceresini veya terminal çıktısını açıkla; nedenini ve adım adım çözümünü Türkçe anlat.',
+        'Şu anki ekranımda ne görünüyor? Ekrandaki hata mesajını, uyarı penceresini veya terminal çıktısını açıkla; nedenini ve adım adım çözümünü Türkçe anlat.',
         { forceShot: true, flash: true, skipPlan: true }
       );
+    },
+
+    // Masaüstü Ajanı: güvenli arayüz ve uygulama eylemlerini (pencere açma, yüz/tema geçişi, gece ışığı) doğrudan uygular.
+    tryDesktopAgentAction(text) {
+      const t = String(text || '').toLowerCase().trim();
+      if (!t || t.length > 160) return null;
+
+      // 1. Arayüz yüzü veya açık/koyu mod geçişi
+      if (/(yüzüne|yuzune|temasına|temasina|görünümüne|gorunumune|moda|moduna)\s*(geç|gec|dön|don|çevir|cevir|uygula|aç|ac)(?=$|[\s.,!?])/.test(t)) {
+        if (/(bostan)/.test(t) && window.FaceManager) {
+          window.FaceManager.setFace('3', true, true);
+          return 'Masaüstü yüzü **Yüz 3 · Bostan** olarak değiştirildi.';
+        }
+        if (/(bakır|bakir)/.test(t) && window.FaceManager) {
+          window.FaceManager.setFace('2', true, true);
+          return 'Masaüstü yüzü **Yüz 2 · Bakır** olarak değiştirildi.';
+        }
+        if (/(cıvata|civata)/.test(t) && window.FaceManager) {
+          window.FaceManager.setFace('8', true, true);
+          return 'Masaüstü yüzü **Yüz 8 · Cıvata** olarak değiştirildi.';
+        }
+        if (/(arduvaz)/.test(t) && window.FaceManager) {
+          window.FaceManager.setFace('default', true, true);
+          return 'Masaüstü yüzü **Yüz 1 · Arduvaz** olarak değiştirildi.';
+        }
+        if (/(klasik|4\.7|legacy)/.test(t) && window.FaceManager) {
+          window.FaceManager.setFace('legacy', true, true);
+          return 'Masaüstü yüzü **4.7 Klasik** olarak değiştirildi.';
+        }
+        if (/(koyu|karanlık|dark)/.test(t) && window.FaceManager) {
+          window.FaceManager.setFace('2', true, true);
+          return 'Koyu masaüstü moduna (**Bakır**) geçildi.';
+        }
+        if (/(açık|acik|aydınlık|light)/.test(t) && window.FaceManager) {
+          window.FaceManager.setFace('3', true, true);
+          return 'Aydınlık masaüstü moduna (**Bostan**) geçildi.';
+        }
+      }
+
+      // 2. Gece ışığı aç/kapat
+      if (/(gece\s*ışığ|gece\s*isig|mavi\s*ışık)/.test(t) && /(?:^|\s)(aç|ac|kapat|kapa|etkinleştir)(?=$|[\s.,!?])/.test(t)) {
+        const wantOn = /(?:^|\s)(aç|ac|etkinleştir)(?=$|[\s.,!?])/.test(t) && !/(?:^|\s)(kapat|kapa)(?=$|[\s.,!?])/.test(t);
+        const nlBtn = document.getElementById('qs-nightlight-toggle');
+        if (nlBtn) {
+          const isCurrentlyOn = nlBtn.classList.contains('active');
+          if (isCurrentlyOn !== wantOn) nlBtn.click();
+          return wantOn ? 'Gece Işığı filtresi etkinleştirildi.' : 'Gece Işığı filtresi kapatıldı.';
+        }
+      }
+
+      // 3. Yerleşik uygulama açma komutları
+      if (/(?:^|\s)(aç|ac|başlat|baslat|göster|goster)(?=$|[\s.,!?])/.test(t)) {
+        const appRoutes = [
+          { re: /(dosya\s*yönetic|dosyalar)/, id: 'win-files', label: 'Dosyalar' },
+          { re: /(terminal|uçbirim|ucbirim|konsol)/, id: 'win-terminal', label: 'Terminal' },
+          { re: /(mağaza|magaza|yazılım\s*merkezi|uygulama\s*mağaz)/, id: 'win-store', label: 'Ankora Yazılım Merkezi' },
+          { re: /(sistem\s*ayar|ayarlar)/, id: 'win-settings', label: 'Sistem Ayarları' },
+          { re: /(kurulum|sistemi\s*kur|installer)/, id: 'win-installer', label: 'Ankora Kurulum Aracı' },
+          { re: /(hesap\s*makinesi|calc)/, id: 'win-calc', label: 'Hesap Makinesi' },
+          { re: /(not\s*defteri|notepad)/, id: 'win-notepad', label: 'Not Defteri' },
+          { re: /(tarayıcı|tarayici|browser)/, id: 'win-browser', label: 'Ayaz Tarayıcı' },
+          { re: /(görev\s*yönetic|süreç\s*izle|taskmgr)/, id: 'win-taskmgr', label: 'Görev Yöneticisi' },
+          { re: /(güncelleyici|guncelleyici|updater)/, id: 'win-updater', label: 'Ayaz Güncelleyici' },
+          { re: /(ekran\s*görüntü|ekran\s*goruntu|screenshot)/, id: 'win-screenshot', label: 'Ekran Görüntüsü Aracı' },
+          { re: /(ofis|belge\s*görüntü|office)/, id: 'win-office', label: 'Ankora Ofis' },
+          { re: /(usb\s*yaz|iso\s*yaz|flasher)/, id: 'win-flasher', label: 'USB & ISO Yazıcı' },
+          { re: /(menü\s*düzenle|menu\s*duzenle)/, id: 'win-menu-editor', label: 'Menü Düzenleyici' },
+          { re: /(tema\s*stüdyo|stüdyo|studio)/, id: 'win-studio', label: 'Tema Stüdyosu' }
+        ];
+        for (const r of appRoutes) {
+          if (r.re.test(t) && typeof WindowManager !== 'undefined' && WindowManager.open) {
+            WindowManager.open(r.id);
+            Terminal.log(`[AI AJAN] Uygulama açıldı: ${r.label} (${r.id})`, 'success');
+            return `**${r.label}** penceresi açıldı.`;
+          }
+        }
+      }
+      return null;
     },
 
     // "TODO'ya X ekle" / "görev ekle: X" kalıbını yerelde yakalar.
@@ -8876,7 +9019,8 @@
         });
       }
 
-      if (steps.length < 2) return null;
+      const readyInstalls = steps.filter(s => s.kind === 'install' && s.ready);
+      if (steps.length < 2 && readyInstalls.length < 1) return null;
       return { text: raw, steps };
     },
 
@@ -10815,7 +10959,7 @@
         document.querySelectorAll('#tele-mem').forEach(el => {
           el.textContent = `${(tele.memory_used_mb / 1024).toFixed(1)} / ${(tele.memory_total_mb / 1024).toFixed(1)} GB`;
         });
-        const currentVer = (typeof UpdaterManager !== 'undefined' && UpdaterManager.currentVersion) ? UpdaterManager.currentVersion : '4.7.0';
+        const currentVer = (typeof UpdaterManager !== 'undefined' && UpdaterManager.currentVersion) ? UpdaterManager.currentVersion : '5.0.0';
         document.querySelectorAll('#tele-de').forEach(el => el.textContent = `Ayaz DE ${currentVer}`);
         document.querySelectorAll('#tele-iso').forEach(el => el.textContent = `ankora-linux-${currentVer}-ayaz-amd64.iso`);
       } catch (e) {}
@@ -12358,12 +12502,21 @@
       if (!aiMiniFlyout) return;
       const isOpen = typeof forceState === 'boolean' ? forceState : !aiMiniFlyout.classList.contains('open');
       aiMiniFlyout.classList.toggle('open', isOpen);
+      const faceBubble = document.getElementById('face-ai-bubble');
+      if (faceBubble) {
+        faceBubble.classList.toggle('active', isOpen);
+        faceBubble.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      }
+      if (aiMiniBtn) {
+        aiMiniBtn.classList.toggle('active', isOpen);
+        aiMiniBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      }
       if (isOpen) {
         if (qsFlyout) qsFlyout.classList.remove('open');
         if (calFlyout) calFlyout.classList.remove('open');
         if (AIAgent.miniFeed && AIAgent.miniFeed.children.length === 0) {
           AIAgent.miniFeed.innerHTML = `
-            <div class="ai-mini-entry m-bot">Merhaba. Buradan ajanla hızlıca yazışabilirsin; tam ayarlar ve eylem kartları için "Pencere" düğmesiyle tam ekrana geç.</div>
+            <div class="ai-mini-entry m-bot">Ankora AI hazır. Uygulama açtırabilir ("Terminali aç"), yüz değiştirebilir ("Bakır yüzüne geç"), paket kurulum planı oluşturabilir ("VLC kur") veya sistem doktorunu çalıştırabilirsin.</div>
           `;
         }
         const miniInput = document.getElementById('ai-mini-input');
@@ -12456,7 +12609,8 @@
 
       document.addEventListener('click', (e) => {
         if (!aiMiniFlyout.classList.contains('open')) return;
-        if (!aiMiniFlyout.contains(e.target) && !aiMiniBtn.contains(e.target)) {
+        const isAiTrigger = e.target.closest('#quick-ai-btn, #face-ai-bubble, .civata-ai-btn, #confirm-modal');
+        if (!aiMiniFlyout.contains(e.target) && !isAiTrigger) {
           window.toggleAiMiniChat(false);
         }
       });
@@ -13392,7 +13546,7 @@
   // 11. ANKORA GÜNCELLEYİCİ (ANKORA DE UPDATE MANAGER)
   // ============================================================================
   const UpdaterManager = {
-    currentVersion: '4.7.0',
+    currentVersion: '5.0.0',
     latestRelease: null,
 
     init() {
@@ -15800,7 +15954,7 @@
         md += `#### Sistem Tanılama Verileri\n`;
         md += `\`\`\`yaml\n`;
         md += `İşletim Sistemi : ${this.telemetry.os_name}\n`;
-        md += `Masaüstü Ortamı : Ayaz DE v4.7.0 (Ankora Kiosk / X11)\n`;
+        md += `Masaüstü Ortamı : Ayaz DE v5.0.0 (Ankora Kiosk / X11)\n`;
         md += `Çekirdek (Kernel): ${this.telemetry.kernel}\n`;
         md += `İnit Sistemi     : ${this.telemetry.init_system}\n`;
         md += `CPU Çekirdek     : ${this.telemetry.cpu_cores} İş parçacığı\n`;

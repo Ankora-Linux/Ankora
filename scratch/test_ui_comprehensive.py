@@ -483,8 +483,37 @@ def run_tests():
                     `hit=${hit ? hit.tagName + '.' + hit.className : 'null'} @ (${Math.round(cx)},${Math.round(cy)})`);
 
                 const bubble = document.getElementById('face-ai-bubble');
-                assert(`Yüz ${f}: Yüzen AI balonu gizli`,
-                    !bubble || getComputedStyle(bubble).display === 'none');
+                const bCs = bubble ? getComputedStyle(bubble) : null;
+                const bRect = bubble ? bubble.getBoundingClientRect() : null;
+                assert(`Yüz ${f}: Ankora AI konuşma balonu görünür ve kompakt`,
+                    !!(bubble && bCs && bCs.display !== 'none' && bRect && bRect.height > 20 && bRect.height <= 42 && bRect.right <= window.innerWidth && bRect.bottom < dockRect.top + 4),
+                    `disp=${bCs?.display}, h=${bRect?.height}, bot=${bRect?.bottom}, dockTop=${dockRect?.top}`);
+                if (bubble) {
+                    bubble.click();
+                    await waitFrame(30);
+                    const miniPop = document.getElementById('ai-mini-popover');
+                    assert(`Yüz ${f}: AI konuşma balonu mini sohbeti açar`, !!(miniPop && miniPop.classList.contains('open')));
+                    if (f === '3') {
+                        const mInput = document.getElementById('ai-mini-input');
+                        const mSend = document.getElementById('btn-ai-mini-send');
+                        if (mInput && mSend) {
+                            mInput.value = 'Hesap makinesini aç';
+                            mSend.click();
+                            await waitFrame(40);
+                            assert('Ankora AI Ajan: "Hesap makinesini aç" pencereyi açar',
+                                !!document.getElementById('win-calc')?.classList.contains('open'));
+                            mInput.value = 'Sistem doktoru taraması yap';
+                            mSend.click();
+                            for (let t = 0; t < 12 && !document.querySelector('#ai-mini-feed .ai-mini-action-btn'); t++) {
+                                await waitFrame(50);
+                            }
+                            assert('Ankora AI Ajan: Mini sohbette etkileşimli eylem onay düğmesi oluşur',
+                                !!document.querySelector('#ai-mini-feed .ai-mini-action-btn'));
+                        }
+                    }
+                    bubble.click();
+                    await waitFrame(20);
+                }
 
                 window.WindowManager.open('win-terminal');
                 await waitFrame(40);

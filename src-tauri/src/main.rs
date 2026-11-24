@@ -48,6 +48,8 @@ const EXACT_ALLOWED_COMMANDS: &[&str] = &[
     "rm -rf /tmp/*",
     "apt-get clean && rm -rf /tmp/*",
     "df -h / && free -m",
+    "swapon --show",
+    "ip -br addr",
     "clear",
     "sync",
 ];
@@ -101,9 +103,12 @@ const ALLOWED_AGENT_ACTIONS: &[&str] = &[
     "apt-get clean",
     "rm -rf /tmp/*",
     "df -h / && free -m",
+    "df -h /",
     "df -h",
     "free -m",
     "free -h",
+    "swapon --show",
+    "ip -br addr",
     "uptime",
     "uname -a",
     "lscpu",
@@ -453,6 +458,12 @@ pub struct AiResponse {
     pub action_desc: Option<String>,
     #[serde(default)]
     pub action_token: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct AiHistoryTurn {
+    pub role: String,
+    pub text: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -3565,6 +3576,7 @@ async fn query_local_ai(
     agent_mode: Option<String>,
     imageB64: Option<String>,
     image_b64: Option<String>,
+    history: Option<Vec<AiHistoryTurn>>,
 ) -> Result<AiResponse, String> {
     let raw_img = imageB64.or(image_b64).unwrap_or_default();
     let trimmed_img = raw_img.trim();
@@ -3595,20 +3607,21 @@ async fn query_local_ai(
             Kırık paketler, ZRAM takas alanı, disk doluluğu, X11/Openbox/WebKitGTK oturumu ve ağ sorunlarını teşhis et. \
             Eğer bir komut yürütülmesi gerekiyorsa yanıtının sonuna tam olarak şu formatta bir eylem etiketi ekle: \
             <<<ACTION:{\"command\":\"izin_verilen_komut\",\"desc\":\"Eylemin açıklaması\"}>>> \
-            İzin verilen komutlar: /usr/local/bin/ankora-doctor, apt-get clean && rm -rf /tmp/*, df -h / && free -m, free -h, lscpu, lsblk, ps aux, top -b -n 1, uptime, sync."
+            İzin verilen komutlar: /usr/local/bin/ankora-doctor, apt-get clean && rm -rf /tmp/*, df -h / && free -m, df -h /, free -h, swapon --show, ip -br addr, lscpu, lsblk, ps aux, top -b -n 1, uptime, uname -a, sync."
         }
         "developer" => {
             "Sen Ankora Linux (Devuan Excalibur) sistem geliştirici ve terminal asistanısın. \
             Bash betikleri, Debian derleme, Rust/C geliştirme ve paket araçları konusunda teknik rehberlik sağla. \
             Eğer bir komut yürütülmesi gerekiyorsa yanıtının sonuna tam olarak şu formatta bir eylem etiketi ekle: \
             <<<ACTION:{\"command\":\"izin_verilen_komut\",\"desc\":\"Eylemin açıklaması\"}>>> \
-            Sadece izin verilen sistem bakım komutları üret."
+            İzin verilen komutlar: /usr/local/bin/ankora-doctor, apt-get clean && rm -rf /tmp/*, df -h / && free -m, df -h /, free -h, swapon --show, ip -br addr, lscpu, lsblk, ps aux, top -b -n 1, uptime, uname -a, sync."
         }
         "general" => {
             "Sen Ankora Linux işletim sisteminin dost canlısı, Türkçe ve profesyonel genel asistanısın. \
             Kullanıcının sorularını açık, kibar ve teknik doğrulukla yanıtla. \
-            Gerekirse sistem komutunu şu formatta ekle: \
-            <<<ACTION:{\"command\":\"izin_verilen_komut\",\"desc\":\"Eylemin açıklaması\"}>>>"
+            Gerekirse şu izinli sistem komutlarından birini ekleyebilirsin: \
+            <<<ACTION:{\"command\":\"izin_verilen_komut\",\"desc\":\"Eylemin açıklaması\"}>>> \
+            (İzin verilen: /usr/local/bin/ankora-doctor, df -h / && free -m, df -h /, free -h, swapon --show, ip -br addr, lscpu, lsblk, ps aux, top -b -n 1, uptime, uname -a, apt-get clean && rm -rf /tmp/*, sync)."
         }
         _ => {
             "Sen Ankora Linux (Devuan Excalibur) işletim sisteminin yerel sistem yöneticisi ve teftiş ajanısın. \
@@ -3616,7 +3629,8 @@ async fn query_local_ai(
             Eğer kullanıcının talebi sistemde bir bakım, telemetre sorgusu veya temizlik gerektiriyorsa, \
             yanıtının sonuna tam olarak şu formatta bir eylem etiketi ekle: \
             <<<ACTION:{\"command\":\"izin_verilen_komut\",\"desc\":\"Eylemin açıklaması\"}>>> \
-            Asla tehlikeli veya rastgele komut üretme. Sadece doğrulanmış sistem komutları üret."
+            İzin verilen komutlar: /usr/local/bin/ankora-doctor, apt-get clean && rm -rf /tmp/*, df -h / && free -m, df -h /, free -h, swapon --show, ip -br addr, lscpu, lsblk, ps aux, top -b -n 1, uptime, uname -a, sync. \
+            Asla tehlikeli veya rastgele komut üretme."
         }
     };
     let sys_prompt = if img_b64.is_some() {
@@ -3674,10 +3688,35 @@ async fn query_local_ai(
                         let token = generate_agent_action_token(&proposed_cmd);
                         return (clean_reply, true, Some(proposed_cmd), desc_opt, Some(token));
                     }
+                    // İzin listesi dışındaki ham <<<ACTION:...>>> etiketini kullanıcıya sızdırma
+                    let after = text[start_idx + end_idx + 3..].trim();
+                    let stripped = if after.is_empty() {
+                        clean_reply
+                    } else if clean_reply.is_empty() {
+                        after.to_string()
+                    } else {
+                        format!("{}\n{}", clean_reply, after)
+                    };
+                    return (stripped, false, None, None, None);
                 }
             }
             (text.to_string(), false, None, None, None)
         };
+
+    let recent_history: Vec<(String, String)> = history
+        .unwrap_or_default()
+        .into_iter()
+        .filter(|h| !h.text.trim().is_empty())
+        .rev()
+        .take(6)
+        .collect::<Vec<_>>()
+        .into_iter()
+        .rev()
+        .map(|h| {
+            let trimmed: String = h.text.trim().chars().take(800).collect();
+            (h.role.to_lowercase(), trimmed)
+        })
+        .collect();
 
     // 1. OLLAMA (Yalnızca yerel IP / localhost)
     if prov == "ollama" {
@@ -3694,9 +3733,19 @@ async fn query_local_ai(
             || model_low.contains("minicpm")
             || model_low.contains("bakllava")
             || model_low.contains("gemma3");
+        let history_ctx = if recent_history.is_empty() {
+            String::new()
+        } else {
+            let mut buf = String::from("\n\nSon konuşma geçmişi:\n");
+            for (r, t) in &recent_history {
+                let who = if r == "user" { "Kullanıcı" } else { "Ankora AI" };
+                buf.push_str(&format!("{}: {}\n", who, t));
+            }
+            buf
+        };
         let mut payload = serde_json::json!({
             "model": ai_model,
-            "prompt": format!("{}\n\nKullanıcı: {}", sys_prompt, prompt),
+            "prompt": format!("{}{}\n\nKullanıcı: {}", sys_prompt, history_ctx, prompt),
             "stream": false
         });
         let vision_b64 = if is_vision_model {
@@ -3730,7 +3779,7 @@ async fn query_local_ai(
         if resolved_key.is_empty() {
             return Err("Google Gemini API anahtarı bulunamadı. Lütfen API Ayarları panelinden anahtarınızı kaydedin.".to_string());
         }
-        let ai_model = model.unwrap_or_else(|| "gemini-2.0-flash".to_string());
+        let ai_model = model.unwrap_or_else(|| "gemini-2.5-flash".to_string());
         // Anahtar URL'ye yazılmaz: sorgu satırları proxy, günlük ve hata
         // ekranlarına aynen düşer. Model adı yol kısmını da dar tutulur.
         if !ai_model
@@ -3744,7 +3793,7 @@ async fn query_local_ai(
             ai_model
         );
         let mut parts = vec![serde_json::json!({
-            "text": format!("{}\n\nKullanıcı: {}", sys_prompt, prompt)
+            "text": prompt
         })];
         if let Some(ref b64) = img_b64 {
             parts.push(serde_json::json!({
@@ -3754,10 +3803,23 @@ async fn query_local_ai(
                 }
             }));
         }
+        let mut contents: Vec<serde_json::Value> = Vec::new();
+        for (r, t) in &recent_history {
+            let role = if r == "user" { "user" } else { "model" };
+            contents.push(serde_json::json!({
+                "role": role,
+                "parts": [{ "text": t }]
+            }));
+        }
+        contents.push(serde_json::json!({
+            "role": "user",
+            "parts": parts
+        }));
         let payload = serde_json::json!({
-            "contents": [{
-                "parts": parts
-            }]
+            "system_instruction": {
+                "parts": [{ "text": sys_prompt }]
+            },
+            "contents": contents
         });
 
         match client
@@ -3839,12 +3901,16 @@ async fn query_local_ai(
             serde_json::json!(prompt)
         };
 
+        let mut messages = vec![serde_json::json!({"role": "system", "content": sys_prompt})];
+        for (r, t) in &recent_history {
+            let role = if r == "user" { "user" } else { "assistant" };
+            messages.push(serde_json::json!({"role": role, "content": t}));
+        }
+        messages.push(serde_json::json!({"role": "user", "content": user_content}));
+
         let payload = serde_json::json!({
             "model": ai_model,
-            "messages": [
-                {"role": "system", "content": sys_prompt},
-                {"role": "user", "content": user_content}
-            ],
+            "messages": messages,
             "temperature": 0.3
         });
 
@@ -4734,7 +4800,7 @@ fn execute_system_installation_blocking(
         // ZRAM Takas Servisi
         let _ = root_write(
             "/target/etc/default/rcS",
-            "# Ankora Linux 4.7.0 Hızlı Paralel Açılış\nCONCURRENCY=makefile\nUTC=yes\nVERBOSE=no\nFSCKFIX=no\n",
+            "# Ankora Linux 5.0.0 Hızlı Paralel Açılış\nCONCURRENCY=makefile\nUTC=yes\nVERBOSE=no\nFSCKFIX=no\n",
         );
         let _ = root_write(
             "/target/etc/sysctl.d/99-zram.conf",

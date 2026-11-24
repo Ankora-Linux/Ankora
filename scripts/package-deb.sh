@@ -19,7 +19,7 @@ VERSION=$(sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' src-tauri/tauri.conf.json 
 if [ -z "$VERSION" ] && [ -f "VERSION" ]; then
     VERSION=$(tr -d '[:space:]' < VERSION)
 fi
-VERSION="${VERSION:-4.7.0}"
+VERSION="${VERSION:-5.0.0}"
 
 # 1. Bağımlılık kontrolü
 MISSING_PKGS=()

@@ -1,11 +1,11 @@
 <div align="center">
   <img src="assets/logo.png" alt="Ayaz DE Logo" width="200" style="border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.8);">
   <br><br>
-  <h1>Ankora Linux "Bora"</h1>
-  <p><b>Resmî ana depo · 4.7.0 Bora · Ayaz Desktop Environment (Ayaz DE)</b></p>
+  <h1>Ankora Linux 5.0</h1>
+  <p><b>Resmî ana depo · 5.0.0 · Ayaz Desktop Environment (Ayaz DE)</b></p>
 
   <p>
-    <img src="https://img.shields.io/badge/S%C3%9CR%C3%9CM-4.7.0-ffffff?style=for-the-badge&labelColor=111111" alt="Sürüm">
+    <img src="https://img.shields.io/badge/S%C3%9CR%C3%9CM-5.0.0-ffffff?style=for-the-badge&labelColor=111111" alt="Sürüm">
     <img src="https://img.shields.io/badge/HEDEF-ANKORA_LINUX-2563eb?style=for-the-badge&labelColor=111111" alt="Dağıtım">
   </p>
   <p>

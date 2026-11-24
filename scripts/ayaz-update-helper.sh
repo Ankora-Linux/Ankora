@@ -194,7 +194,7 @@ if [[ "$MODE" == "--fetch-and-install" ]]; then
     REPO_SEG="${DOWNLOAD_URL#https://github.com/Ankora-Linux/}"
     REPO_NAME="${REPO_SEG%%/releases/*}"
     API_URL="https://api.github.com/repos/Ankora-Linux/${REPO_NAME}/releases/tags/${TAG_NAME}"
-    if API_JSON=$(curl -fsSL --proto '=https' --tlsv1.2 --max-time 15 -A "ayaz-update-helper/4.7" "$API_URL" 2>/dev/null); then
+    if API_JSON=$(curl -fsSL --proto '=https' --tlsv1.2 --max-time 15 -A "ayaz-update-helper/5.0" "$API_URL" 2>/dev/null); then
         # Release'deki asset digest veya .sha256 dosyasıyla çapraz kontrol
         if printf '%s' "$API_JSON" | grep -qi "sha256:${ACTUAL_SHA}"; then
             echo "[AYAZ GÜNCELLEYİCİ] Paket özeti resmî GitHub API asset digest ile eşleşti."

@@ -1,6 +1,6 @@
 #!/bin/bash
 # ==============================================================================
-# Ankora Linux 4.7 "Bora" (Excalibur) — Canlı (Live) ISO Derleme Betiği
+# Ankora Linux 5.0 (Excalibur) — Canlı (Live) ISO Derleme Betiği
 # Masaüstü Ortamı: Ayaz DE (Tauri + WebKitGTK + SysVinit Core)
 # Mimari: x86_64 (UEFI + BIOS Hibrit Boot)
 # ==============================================================================
@@ -22,7 +22,7 @@ AYAZ_VERSION=$(sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' "$ROOT_DIR/src-tauri/
 if [ -z "$AYAZ_VERSION" ] && [ -f "$ROOT_DIR/VERSION" ]; then
     AYAZ_VERSION=$(tr -d '[:space:]' < "$ROOT_DIR/VERSION")
 fi
-[ -z "$AYAZ_VERSION" ] && AYAZ_VERSION="4.7.0"
+[ -z "$AYAZ_VERSION" ] && AYAZ_VERSION="5.0.0"
 ISO_NAME="ankora-linux-${AYAZ_VERSION}-ayaz-amd64.iso"
 # ISO9660 etiketi sürümü yansıtır; grub.cfg'deki search --label ile birebir
 # aynı etikettir — ikisi tek değişkenden üretilir, elle düzeltmeyin.
@@ -1154,7 +1154,7 @@ else
     rm -f "$BDIR/ankora-sistem-rehberi.pdf"
 fi
 cat << 'KIOSKTXT' > "$BDIR/kiosk-ayarlari.txt"
-Ankora Linux 4.7.0 — Kiosk Yapılandırma Raporu
+Ankora Linux 5.0.0 — Kiosk Yapılandırma Raporu
 =============================================
 
 Taban            : Devuan GNU/Linux 6 (excalibur)
@@ -1170,7 +1170,7 @@ Bu dosya Ayaz Dosyalar ve Ofis uygulamalarından açılabilir.
 Kiosk kilit ekranı ve widget ayarları Ayarlar penceresinden yönetilir.
 KIOSKTXT
 cat << 'KIOSKMD' > "$BDIR/kiosk-ayarlari.md"
-# Ankora Linux 4.7.0 — Kiosk Yapılandırma Raporu
+# Ankora Linux 5.0.0 — Kiosk Yapılandırma Raporu
 
 - Taban: Devuan 6 Excalibur (SysVinit, systemd-free)
 - Çekirdek: Linux 6.12 LTS
@@ -1455,7 +1455,7 @@ echo "[MANIFEST] Sistem künyesi yazılıyor..."
 AYAZ_VERSION=$(sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' "$ROOT_DIR/src-tauri/tauri.conf.json")
 AYAZ_VERSION="${AYAZ_VERSION%%$'\n'*}"
 if [ -z "$AYAZ_VERSION" ]; then
-    AYAZ_VERSION="4.7.0"
+    AYAZ_VERSION="5.0.0"
 fi
 # git yoksa (ör. WSL) .git/HEAD + ref dosyaları doğrudan okunur; revizyon
 # manifestte hiçbir koşulda boş kalmaz.
