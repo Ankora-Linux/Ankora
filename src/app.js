@@ -13286,7 +13286,7 @@
 
           const info = document.createElement('div');
           info.style.cssText = 'flex:1;min-width:0;';
-          info.innerHTML = `<div style="font-size:12.5px;font-weight:600;color:#fff;">${escapeHtml(u.username)}${u.is_current ? ' <span style="font-weight:400;font-size:10.5px;color:#38bdf8;">(bu oturum)</span>' : ''}${u.in_sudo_group ? ' <span style="font-weight:400;font-size:10.5px;color:#fbbf24;">sudo</span>' : ''}</div>
+          info.innerHTML = `<div style="font-size:12.5px;font-weight:600;color:var(--text-primary);">${escapeHtml(u.username)}${u.is_current ? ' <span style="font-weight:400;font-size:10.5px;color:var(--accent-active);">(bu oturum)</span>' : ''}${u.in_sudo_group ? ' <span style="font-weight:400;font-size:10.5px;color:#fbbf24;">sudo</span>' : ''}</div>
             <div style="font-size:10.5px;color:var(--text-muted,#64748b);">UID ${u.uid} · ${escapeHtml(u.shell || '')}</div>`;
 
           const btnDel = document.createElement('button');

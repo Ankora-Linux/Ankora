@@ -3078,7 +3078,7 @@
             </div>
             <div style="display: flex; gap: 8px; flex-shrink: 0;">
               <button class="btn btn-secondary btn-sm" id="me-btn-rescan">Tara</button>
-              <input type="text" id="me-search" placeholder="Ara…" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 6px; padding: 6px 10px; font-size: 12px; color: #fff; width: 130px;">
+              <input type="text" id="me-search" placeholder="Ara…" style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 6px 10px; font-size: 12px; color: var(--text-primary); width: 130px;">
             </div>
           </div>
           <div id="me-list" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding-right: 4px;"></div>
@@ -3189,7 +3189,7 @@
           <span id="pkg-installer-title">Paket Yükleyici</span>
         </div>
         <div class="window-controls">
-          <button class="ctrl-btn close" title="Kapat (Esc)"></button>
+          <button class="ctrl-btn close" title="Kapat (Esc)" aria-label="Kapat">✕</button>
         </div>
       </div>
       <div class="window-view" style="padding: 20px 24px; display: flex; flex-direction: column; gap: 14px;">
@@ -4149,7 +4149,7 @@
       <div style="border-top:1px solid rgba(255,255,255,0.08);padding-top:10px;">
         <label style="display:block;font-size:11px;color:var(--text-muted);margin-bottom:4px;">Özel Komut İle Çalıştır:</label>
         <div style="display:flex;gap:6px;">
-          <input type="text" id="open-with-custom-cmd" placeholder="örn: vlc %f" style="flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);border-radius:4px;padding:6px 10px;color:#fff;font-size:12px;">
+          <input type="text" id="open-with-custom-cmd" placeholder="örn: vlc %f" style="flex:1;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:4px;padding:6px 10px;color:var(--text-primary);font-size:12px;">
           <button class="btn-pkg btn-pkg-primary" id="btn-open-with-custom" style="padding:6px 12px;font-size:12px;cursor:pointer;">Çalıştır</button>
         </div>
       </div>

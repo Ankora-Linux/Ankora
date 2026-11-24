@@ -32,6 +32,7 @@
 
 .face-card-choice.active {
   background: rgba(204, 93, 53, 0.09);
+  background: color-mix(in srgb, var(--accent-active, #cc5d35) 9%, transparent);
   border-color: var(--accent-active, #cc5d35);
   box-shadow: 0 0 0 1px var(--accent-active, #cc5d35);
 }
@@ -1440,8 +1441,8 @@ html[data-face="8"][data-iconset] .desktop-item .item-icon svg {
 }
 
 [data-face="3"] .settings-nav-item,
-[data-face="3"] .files-nav-item,
-[data-face="3"] .store-category-btn,
+[data-face="3"] .files-sidebar-item,
+[data-face="3"] .store-filter-btn,
 [data-face="3"] .store-filter-btn {
   color: #526148 !important;
   border: 1px solid transparent !important;
@@ -1449,16 +1450,16 @@ html[data-face="8"][data-iconset] .desktop-item .item-icon svg {
 }
 
 [data-face="3"] .settings-nav-item:hover,
-[data-face="3"] .files-nav-item:hover,
-[data-face="3"] .store-category-btn:hover,
+[data-face="3"] .files-sidebar-item:hover,
+[data-face="3"] .store-filter-btn:hover,
 [data-face="3"] .store-filter-btn:hover {
   background: #e1e6cf !important;
   color: #23301c !important;
 }
 
 [data-face="3"] .settings-nav-item.active,
-[data-face="3"] .files-nav-item.active,
-[data-face="3"] .store-category-btn.active,
+[data-face="3"] .files-sidebar-item.active,
+[data-face="3"] .store-filter-btn.active,
 [data-face="3"] .store-filter-btn.active {
   background: #ffffff !important;
   border-color: #3b7230 !important;
@@ -1510,8 +1511,8 @@ html[data-face="8"][data-iconset] .desktop-item .item-icon svg {
 }
 
 [data-face="8"] .settings-nav-item,
-[data-face="8"] .files-nav-item,
-[data-face="8"] .store-category-btn,
+[data-face="8"] .files-sidebar-item,
+[data-face="8"] .store-filter-btn,
 [data-face="8"] .store-filter-btn {
   color: #14120a !important;
   font-weight: 500 !important;
@@ -1519,16 +1520,16 @@ html[data-face="8"][data-iconset] .desktop-item .item-icon svg {
 }
 
 [data-face="8"] .settings-nav-item:hover,
-[data-face="8"] .files-nav-item:hover,
-[data-face="8"] .store-category-btn:hover,
+[data-face="8"] .files-sidebar-item:hover,
+[data-face="8"] .store-filter-btn:hover,
 [data-face="8"] .store-filter-btn:hover {
   background: #ecebe3 !important;
   color: #14120a !important;
 }
 
 [data-face="8"] .settings-nav-item.active,
-[data-face="8"] .files-nav-item.active,
-[data-face="8"] .store-category-btn.active,
+[data-face="8"] .files-sidebar-item.active,
+[data-face="8"] .store-filter-btn.active,
 [data-face="8"] .store-filter-btn.active {
   background: #14120a !important;
   color: #fcfcf9 !important;
@@ -2746,3 +2747,257 @@ body[data-face].render-software .window {
 body[data-face].render-software .window.active {
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.44), 0 0 0 1px var(--accent-active, #3b7230) !important;
 }
+
+/* ==========================================================================
+   4.7 BORA DENETİM DÜZELTMELERİ (Kasım 2026)
+   Açık tema kontrastı, yüz vurgu rengi, ekran kaplayan katman sırası ve
+   büyütülmüş pencere geometrisi. "legacy" (4.7 Klasik) yüzü kapsam dışıdır.
+   ========================================================================== */
+:root:not([data-face="legacy"]) {
+  --on-accent: #ffffff;
+  --accent-tint: rgba(204, 93, 53, 0.14);
+  --accent-tint: color-mix(in srgb, var(--accent-active) 14%, transparent);
+  --accent-line: rgba(204, 93, 53, 0.4);
+  --accent-line: color-mix(in srgb, var(--accent-active) 40%, transparent);
+}
+[data-face="2"] { --on-accent: #14100d; }
+
+/* --- Dosyalar: araç çubuğu, durum çubuğu ve vurgu öğeleri ---------------- */
+:root:not([data-face="legacy"]) .files-top-toolbar {
+  background: var(--bg-panel) !important;
+  border-bottom: 1px solid var(--border-subtle) !important;
+}
+:root:not([data-face="legacy"]) .files-tool-btn { color: var(--text-primary) !important; }
+:root:not([data-face="legacy"]) .files-status-bar {
+  background: var(--bg-panel) !important;
+  border-top: 1px solid var(--border-subtle) !important;
+  color: var(--text-secondary) !important;
+}
+:root:not([data-face="legacy"]) .files-primary-btn {
+  background: var(--accent-active) !important;
+  border: 1px solid var(--accent-active) !important;
+  color: var(--on-accent) !important;
+  box-shadow: none !important;
+}
+:root:not([data-face="legacy"]) .files-sidebar-item.active {
+  background: var(--accent-tint) !important;
+  color: var(--text-primary) !important;
+  border-left-color: var(--accent-active) !important;
+}
+:root:not([data-face="legacy"]) .files-crumb.active {
+  background: var(--accent-tint) !important;
+  color: var(--text-primary) !important;
+  font-weight: 600;
+}
+:root:not([data-face="legacy"]) .files-item-card.selected {
+  background: var(--accent-tint) !important;
+  border-color: var(--accent-active) !important;
+}
+:root:not([data-face="legacy"]) #win-files .window-title-icon,
+:root:not([data-face="legacy"]) #win-files .title-icon { color: var(--accent-active) !important; }
+body.is-light-theme .trash-banner {
+  color: #991b1b !important;
+  background: #fef2f2 !important;
+  border-bottom-color: #fecaca !important;
+}
+:root:not([data-face="legacy"]) .open-with-app-name { color: var(--text-primary) !important; }
+
+/* --- Mağaza: vurgu rengi tüm yüzlerde temadan gelir ---------------------- */
+:root:not([data-face="legacy"]) .store-filter-btn.active {
+  background: var(--accent-tint) !important;
+  border-color: var(--accent-line) !important;
+  color: var(--text-primary) !important;
+}
+[data-face="2"] #win-store .btn-pkg:not(.installed):not(.btn-pkg-open):not(.btn-pkg-site),
+[data-face="default"] #win-store .btn-pkg:not(.installed):not(.btn-pkg-open):not(.btn-pkg-site) {
+  background: var(--accent-active) !important;
+  border-color: var(--accent-active) !important;
+  color: var(--on-accent) !important;
+}
+:root:not([data-face="legacy"]) #win-store .btn-pkg.installed,
+:root:not([data-face="legacy"]) #win-store .btn-pkg-open,
+:root:not([data-face="legacy"]) #win-store .btn-pkg-site {
+  background: var(--bg-panel) !important;
+  border: 1px solid var(--border-subtle) !important;
+  color: var(--text-primary) !important;
+}
+:root:not([data-face="legacy"]) .pkg-progress-bar { background: var(--accent-active) !important; }
+:root:not([data-face="legacy"]) .store-detail-source { color: var(--accent-active) !important; }
+:root:not([data-face="legacy"]) .store-section-title { border-bottom-color: var(--border-subtle) !important; }
+:root:not([data-face="legacy"]) .store-detail-name { color: var(--text-primary) !important; }
+body.is-light-theme .store-detail-overlay { background: rgba(248, 247, 239, 0.94) !important; }
+body.is-light-theme .store-detail-toolbar,
+body.is-light-theme .store-spec-card,
+body.is-light-theme .store-detail-chip {
+  background: var(--bg-surface) !important;
+  border-color: var(--border-subtle) !important;
+  color: var(--text-primary) !important;
+}
+body.is-light-theme .store-detail-back-btn:hover { color: var(--text-primary) !important; }
+body.is-light-theme .store-detail-compat-badge {
+  color: #2f5e25 !important;
+  background: rgba(59, 114, 48, 0.12) !important;
+  border-color: rgba(59, 114, 48, 0.3) !important;
+}
+
+/* --- Paket yükleyici ve kurulum aracı ------------------------------------ */
+:root:not([data-face="legacy"]) #pkg-inst-icon-box,
+:root:not([data-face="legacy"]) #pkg-inst-desc {
+  background: var(--bg-surface) !important;
+  border: 1px solid var(--border-subtle) !important;
+  color: var(--text-primary) !important;
+}
+body.is-light-theme #pkg-inst-error,
+body.is-light-theme .alert-box-mono {
+  color: #991b1b !important;
+  background: #fef2f2 !important;
+  border-color: #fecaca !important;
+}
+:root:not([data-face="legacy"]) .slider-mono,
+:root:not([data-face="legacy"]) .check-mono,
+:root:not([data-face="legacy"]) .radio-card input,
+:root:not([data-face="legacy"]) .app-check-item input { accent-color: var(--accent-active) !important; }
+
+/* --- Ayarlar alt panelleri ------------------------------------------------ */
+:root:not([data-face="legacy"]) .snapshot-card,
+:root:not([data-face="legacy"]) .shortcut-item-row,
+:root:not([data-face="legacy"]) .bt-device-row {
+  background: var(--bg-panel) !important;
+  border: 1px solid var(--border-subtle) !important;
+}
+:root:not([data-face="legacy"]) .snapshot-title { color: var(--text-primary) !important; }
+:root:not([data-face="legacy"]) .shortcut-key-badge {
+  background: var(--bg-surface) !important;
+  border: 1px solid var(--border-subtle) !important;
+  color: var(--text-primary) !important;
+}
+:root:not([data-face="legacy"]) #btn-reset-shortcuts,
+:root:not([data-face="legacy"]) .btn-edit-shortcut,
+:root:not([data-face="legacy"]) #btn-bt-scan,
+:root:not([data-face="legacy"]) .qs-footer-settings-btn,
+:root:not([data-face="legacy"]) .cal-nav-btn {
+  background: var(--bg-surface) !important;
+  border: 1px solid var(--border-subtle) !important;
+  color: var(--text-primary) !important;
+}
+:root:not([data-face="legacy"]) .wifi-sec-tag { color: var(--accent-active) !important; }
+:root:not([data-face="legacy"]) #btn-save-settings-pin {
+  background: var(--accent-active) !important;
+  border-color: var(--accent-active) !important;
+  color: var(--on-accent) !important;
+}
+:root:not([data-face="legacy"]) .settings-input-sm:focus,
+:root:not([data-face="legacy"]) .lock-input:focus {
+  border-color: var(--accent-active) !important;
+  box-shadow: 0 0 0 2px var(--accent-tint) !important;
+}
+:root:not([data-face="legacy"]) .btn-unlock:hover { background: var(--accent-active) !important; filter: brightness(0.92); }
+body.is-light-theme .status-pill {
+  background: rgba(59, 114, 48, 0.12) !important;
+  border-color: rgba(59, 114, 48, 0.3) !important;
+  color: #2f5e25 !important;
+}
+
+/* --- Tanımsız .btn sınıfları (Menü Düzenleyici, Ekran Görüntüsü) ---------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font: 500 12px/1.2 var(--font-sans);
+  border-radius: 6px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background-color 0.14s ease, border-color 0.14s ease;
+}
+.btn:hover { border-color: var(--border-medium, var(--border-subtle)); }
+.btn-primary { background: var(--accent-active); border-color: var(--accent-active); color: var(--on-accent, #fff); }
+.btn-secondary { background: var(--bg-surface); }
+
+/* --- Spotlight, bildirim çekmecesi, ses ve klasör katmanları -------------- */
+:root:not([data-face="legacy"]) .spotlight-input,
+:root:not([data-face="legacy"]) .spotlight-item-name { color: var(--text-primary) !important; }
+:root:not([data-face="legacy"]) .spotlight-input::placeholder { color: var(--text-muted) !important; }
+:root:not([data-face="legacy"]) .notif-drawer-header { border-bottom-color: var(--border-subtle) !important; }
+:root:not([data-face="legacy"]) .btn-notif-action,
+:root:not([data-face="legacy"]) .notif-card-item {
+  background: var(--bg-surface) !important;
+  border: 1px solid var(--border-subtle) !important;
+  color: var(--text-primary) !important;
+}
+:root:not([data-face="legacy"]) .btn-notif-action:hover,
+:root:not([data-face="legacy"]) .btn-notif-close:hover { color: var(--text-primary) !important; }
+:root:not([data-face="legacy"]) #volume-popover,
+:root:not([data-face="legacy"]) .desktop-folder,
+:root:not([data-face="legacy"]) #clipboard-flyout {
+  background: var(--bg-panel) !important;
+  border: 1px solid var(--border-subtle) !important;
+  color: var(--text-primary) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* --- Katman sırası: modallar ve bildirimler kabuk panellerinin üstünde ---- */
+#spotlight-overlay, .spotlight-overlay { z-index: 100010 !important; }
+#notification-center-drawer { z-index: 99997 !important; }
+#modal-open-with, #modal-wifi-password { z-index: 100020 !important; }
+#ayaz-global-toast { z-index: 100030 !important; }
+
+/* --- Büyütülmüş pencere: yüz çerçevesi ve gölgesi kalkar ------------------ */
+[data-face="2"] .window.maximized,
+[data-face="3"] .window.maximized,
+[data-face="8"] .window.maximized,
+[data-face="default"] .window.maximized {
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  border-left: none !important;
+  border-right: none !important;
+}
+
+/* --- Arduvaz başlat menüsü kategori vurgusu ------------------------------- */
+[data-face="default"] .start-cat-btn.active {
+  background: var(--accent-tint) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--accent-line) !important;
+}
+
+/* --- Ayarlar > yüz önizleme kartları prototiplere göre -------------------- */
+.face-preview-box { border: 1px solid var(--border-subtle) !important; }
+.fp-preview-dock-default {
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: auto !important;
+  transform: none !important;
+  height: 10px !important;
+  border-radius: 0 !important;
+  background: #181a1f !important;
+  border-top: 1px solid #2a2e37 !important;
+}
+.fp-preview-dock-8 {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 9px;
+  background: #fcfcf9;
+  border-top: 1.5px solid #14120a;
+}
+
+/* --- Anahtarlar: klavye odağı ve sınırlı geçiş ---------------------------- */
+.toggle-slider { transition: background-color 0.16s ease, border-color 0.16s ease !important; }
+.toggle-slider:before { transition: transform 0.16s ease, background-color 0.16s ease !important; }
+.toggle-switch input:focus-visible + .toggle-slider {
+  outline: 2px solid var(--accent-active);
+  outline-offset: 2px;
+}
+
+/* --- Kalan neon parıltılar ------------------------------------------------ */
+:root:not([data-face="legacy"]) .ai-watch-wave {
+  stroke: var(--accent-active) !important;
+  filter: none !important;
+}
+:root:not([data-face="legacy"]) .files-primary-btn:hover { filter: brightness(0.94); }
