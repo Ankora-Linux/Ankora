@@ -607,7 +607,8 @@
       topPanel.querySelector('.civata-brand').addEventListener('click', (e) => this.toggleStartMenu(e));
       topPanel.querySelector('.civata-btn-apps').addEventListener('click', (e) => this.toggleStartMenu(e));
       topPanel.querySelector('.civata-btn-term').addEventListener('click', () => this.openApp('win-terminal'));
-      topPanel.querySelector('.civata-btn-ai').addEventListener('click', () => {
+      topPanel.querySelector('.civata-btn-ai').addEventListener('click', (e) => {
+        e.stopPropagation();
         if (typeof window.toggleAiMiniChat === 'function') window.toggleAiMiniChat();
         else this.openApp('win-ai');
       });

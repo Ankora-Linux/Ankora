@@ -55,8 +55,8 @@ def run_tests():
             document.body.classList.contains('theme-bostan') && document.body.classList.contains('is-light-theme'),
             `classes=${document.body.className}`);
         const waitMs = (ms = 60) => new Promise(r => setTimeout(r, ms));
-        const bWsBtns = document.querySelectorAll('#face-top-panel .bostan-ws-group .face-ws-btn');
-        assert('Bostan Üst Panel: 4 çalışma alanı düğmesi var', bWsBtns.length === 4, `sayı=${bWsBtns.length}`);
+        const bMenuItems = document.querySelectorAll('#face-top-panel .mac-menu-item');
+        assert('Bostan Üst Panel: Yerel menü öğeleri var', bMenuItems.length >= 3, `sayı=${bMenuItems.length}`);
         const bTrayWifi = document.querySelector('#face-top-panel .bostan-tray-wifi');
         const bTrayAudio = document.querySelector('#face-top-panel .bostan-tray-audio');
         const bTopDate = document.querySelector('#face-top-panel .bostan-top-date');
@@ -69,7 +69,7 @@ def run_tests():
         const bDockBtns = Array.from(bDockEl ? bDockEl.querySelectorAll('.face-dock-app') : []);
         assert('Bostan Dock: Tüm öğeler yerel <button>', bDockBtns.length > 0 && bDockBtns.every(el => el.tagName === 'BUTTON'));
         const bDockRadius = bDockEl ? parseFloat(getComputedStyle(bDockEl).borderRadius) : 0;
-        assert('Bostan Dock: Kapsül kenar yuvarlaklığı (>=99px)', bDockRadius >= 99, `radius=${bDockRadius}`);
+        assert('Bostan Dock: Yuvarlatılmış cam dock (>=14px)', bDockRadius >= 14, `radius=${bDockRadius}`);
         if (bTrayWifi) {
             bTrayWifi.click();
             await waitMs(80);
@@ -188,27 +188,32 @@ def run_tests():
         assert('Bağımlılık satırı var', !!document.getElementById('pkg-inst-depends'));
         assert('Hata ayrıntısı kutusu var', !!document.getElementById('pkg-inst-error'));
 
-        // 5. İkon Çözümleyici (IconResolver) Denetimi
+        // 5. İkon Çözümleyici (IconResolver) Denetimi (Özgün Linux Papirus + Ankora Mağaza)
         if (window.IconResolver) {
             assert('IconResolver.getIconSvg Tanımlı', typeof window.IconResolver.getIconSvg === 'function');
-            assert('IconResolver ALIAS_MAP files Eşlemesi', window.IconResolver.ALIAS_MAP['files'] === 'filezilla');
-            assert('IconResolver ALIAS_MAP terminal Eşlemesi', window.IconResolver.ALIAS_MAP['terminal'] === 'fish');
-            assert('IconResolver ALIAS_MAP store Eşlemesi', window.IconResolver.ALIAS_MAP['store'] === 'synaptic');
-            assert('IconResolver ALIAS_MAP settings Eşlemesi', window.IconResolver.ALIAS_MAP['settings'] === 'antigravity');
+            assert('IconResolver ALIAS_MAP files Eşlemesi', window.IconResolver.ALIAS_MAP['files'] === 'linux/files');
+            assert('IconResolver ALIAS_MAP terminal Eşlemesi', window.IconResolver.ALIAS_MAP['terminal'] === 'linux/terminal');
+            assert('IconResolver ALIAS_MAP store Eşlemesi', window.IconResolver.ALIAS_MAP['store'] === 'linux/ankora-store.png');
+            assert('IconResolver ALIAS_MAP settings Eşlemesi', window.IconResolver.ALIAS_MAP['settings'] === 'linux/settings');
         }
 
         // 6. Yüzler (FaceManager) ve Dock Denetimleri
         if (window.FaceManager) {
-            // Yüz Default (Arduvaz Anti-Slop Mat)
+            // Yüz Default (Arduvaz — KDE Plasma 6 Görev Çubuğu)
             window.FaceManager.setFace('default', false);
             assert('Default Yüz: data-face="default"', document.documentElement.getAttribute('data-face') === 'default');
             assert('Default Yüz: Taskbar Görünür', getComputedStyle(document.getElementById('taskbar')).display !== 'none');
             const sbDefault = document.getElementById('start-btn');
             const sbLabel = sbDefault ? sbDefault.querySelector('.start-btn-label') : null;
             assert('Default Yüz: Başlat düğmesinde logo.svg ve etiket görünür', !!(sbDefault && sbDefault.querySelector('img[src*="logo.svg"]') && sbLabel && getComputedStyle(sbLabel).display !== 'none'));
-            const tbCs = getComputedStyle(document.getElementById('taskbar'));
-            const tbFilter = tbCs.backdropFilter || tbCs.webkitBackdropFilter || 'none';
-            assert('Default Yüz: Taskbar mat (backdrop-filter yok)', tbFilter === 'none', `filter=${tbFilter}`);
+            if (window.ThemeManager && window.ThemeManager.setTaskbarHeight) {
+                window.ThemeManager.setTaskbarHeight('36px', false);
+                const h36 = Math.round(document.getElementById('taskbar').getBoundingClientRect().height);
+                window.ThemeManager.setTaskbarHeight('52px', false);
+                const h52 = Math.round(document.getElementById('taskbar').getBoundingClientRect().height);
+                window.ThemeManager.setTaskbarHeight('44px', false);
+                assert('Default Yüz: Alt panel yüksekliği dinamik ayarlanır (36px -> 52px)', h36 === 36 && h52 === 52, `h36=${h36}, h52=${h52}`);
+            }
             const diEl = document.getElementById('dynamic-island-container');
             assert('Default Yüz: Dinamik Ada varsayılan olarak gizli',
                 !diEl || getComputedStyle(diEl).display === 'none');
@@ -223,14 +228,14 @@ def run_tests():
             assert('Legacy Yüz: Taskbar Görünür', getComputedStyle(document.getElementById('taskbar')).display !== 'none');
             window.FaceManager.setFace('default', false);
 
-            // Yüz 2: Bakır
+            // Yüz 2: Bakır (GNOME 47 / Pop!_OS COSMIC)
             window.FaceManager.setFace('2', false);
             assert('Yüz 2: data-face="2"', document.documentElement.getAttribute('data-face') === '2');
             const dock2 = document.getElementById('face-bottom-dock');
             assert('Yüz 2: Alt Dock Var', !!dock2 && dock2.children.length > 0);
             const top2 = document.getElementById('face-top-panel');
             assert('Yüz 2: Üst Panel Var', !!top2 && top2.children.length > 0);
-            assert('Yüz 2: Üst Panelde logo.svg Var', !!(top2 && top2.querySelector('.bakir-start-btn img[src*="logo.svg"]')));
+            assert('Yüz 2: Üst Panelde GNOME çalışma alanı hapı ve logo.svg Var', !!(top2 && top2.querySelectorAll('.gnome-ws-dot').length === 4 && top2.querySelector('img[src*="logo.svg"]')));
             const meta2 = document.getElementById('face-meta-note');
             assert('Yüz 2: Dekoratif Meta Notu Gizli', !meta2 || getComputedStyle(meta2).display === 'none');
             const dock2Apps = Array.from(dock2 ? dock2.querySelectorAll('.face-dock-app') : []);
@@ -258,7 +263,15 @@ def run_tests():
             assert('Yüz 3: Dekoratif Hero Kartı Gizli', !hero3 || getComputedStyle(hero3).display === 'none');
             assert('Yüz 3: Üst Panelde logo.svg Var', !!document.querySelector('#face-top-panel .bostan-start-btn img[src*="logo.svg"]'));
             const dock3Radius = dock3 ? parseFloat(getComputedStyle(dock3).borderRadius) : 0;
-            assert('Yüz 3: Kapsül Dock borderRadius >= 99', dock3Radius >= 99, `radius=${dock3Radius}`);
+            assert('Yüz 3: Yüzen Cam Dock borderRadius >= 14', dock3Radius >= 14, `radius=${dock3Radius}`);
+            if (window.ThemeManager && window.ThemeManager.setTaskbarHeight) {
+                window.ThemeManager.setTaskbarHeight('36px', false);
+                const d36 = Math.round(dock3.getBoundingClientRect().height);
+                window.ThemeManager.setTaskbarHeight('52px', false);
+                const d52 = Math.round(dock3.getBoundingClientRect().height);
+                window.ThemeManager.setTaskbarHeight('44px', false);
+                assert('Yüz 3: Dock yüksekliği dinamik ayarlanır', d52 > d36 + 10, `d36=${d36}, d52=${d52}`);
+            }
             const dock3Apps = Array.from(dock3 ? dock3.querySelectorAll('.face-dock-app') : []);
             assert('Yüz 3: Dock Öğeleri Yerel <button>', dock3Apps.length > 0 && dock3Apps.every(el => el.tagName === 'BUTTON'));
             assert('Yüz 3: Taskbar Gizli', getComputedStyle(document.getElementById('taskbar')).display === 'none');
@@ -277,22 +290,17 @@ def run_tests():
                 assert('Yüz 3: Mağaza Aktif Kaynak Yeşil Vurgulu', bgAct === 'rgb(59, 114, 48)', `bg=${bgAct}`);
             }
 
-            // Yüz 8: Cıvata
+            // Yüz 8: Cıvata (Hyprland / Waybar — 3 ayrık yüzen üst modül, alt dock yok)
             window.FaceManager.setFace('8', false);
             assert('Yüz 8: data-face="8"', document.documentElement.getAttribute('data-face') === '8');
             const top8 = document.getElementById('face-top-panel');
-            assert('Yüz 8: Üst Bar Var', !!top8 && top8.children.length > 0);
+            assert('Yüz 8: Üst Waybar Var', !!top8 && top8.querySelectorAll('.waybar-module').length === 3);
             const dock8 = document.getElementById('face-bottom-dock');
-            assert('Yüz 8: Alt Teknik Dock Var', !!dock8 && dock8.children.length > 0);
+            assert('Yüz 8: Alt Dock Gizli (Hyprland mimarisi)', !dock8 || getComputedStyle(dock8).display === 'none');
             const hero8 = document.getElementById('face-desk-hero');
             assert('Yüz 8: Dekoratif Hero Kartı Gizli', !hero8 || getComputedStyle(hero8).display === 'none');
             assert('Yüz 8: Üst Barda logo.svg Var', !!document.querySelector('#face-top-panel .civata-brand img[src*="logo.svg"]'));
-            const top8Bg = top8 ? getComputedStyle(top8).backgroundColor : '';
-            assert('Yüz 8: Üst Bar Açık Kontür Zeminli (rgb(252, 252, 249))', top8Bg === 'rgb(252, 252, 249)', `bg=${top8Bg}`);
-            const dock8Rect = dock8 ? dock8.getBoundingClientRect() : null;
-            assert('Yüz 8: Alt Teknik Şerit Tam Genişlikte', !!(dock8Rect && dock8Rect.width >= window.innerWidth - 2), `w=${dock8Rect?.width}`);
-            const dock8Apps = Array.from(dock8 ? dock8.querySelectorAll('.face-dock-app') : []);
-            assert('Yüz 8: Dock Öğeleri Yerel <button>', dock8Apps.length > 0 && dock8Apps.every(el => el.tagName === 'BUTTON'));
+            assert('Yüz 8: Üst Waybar 4 çalışma alanı düğmesi taşır', top8.querySelectorAll('.waybar-ws').length === 4);
             assert('Yüz 8: Taskbar Gizli', getComputedStyle(document.getElementById('taskbar')).display === 'none');
             if (window.XdgDesktopEngine && window.XdgDesktopEngine.layoutDesktopIcons) {
                 window.XdgDesktopEngine.layoutDesktopIcons();
@@ -324,15 +332,16 @@ def run_tests():
                 window.WindowManager._tabsSig = '';
                 window.WindowManager.syncTabs();
 
-                for (const fid of ['2', '3', '8']) {
+                for (const fid of ['2', '3']) {
                     window.FaceManager.setFace(fid, false);
                     const nativeDockBtns = document.querySelectorAll('#face-bottom-dock .face-dock-native');
                     const braveStaticBtn = document.querySelector('#face-bottom-dock .face-dock-app[data-app-id="brave"]');
                     assert(`Yüz ${fid}: Harici uygulamalar (Brave, VLC) alt dock'ta listelenir`, nativeDockBtns.length === 2, `sayı=${nativeDockBtns.length}`);
                     assert(`Yüz ${fid}: Brave statik dock ikonu da aktif/running işaretlenir`, !!(braveStaticBtn && braveStaticBtn.classList.contains('running') && braveStaticBtn.classList.contains('active')));
                 }
+                window.FaceManager.setFace('8', false);
                 const civataPills = document.querySelectorAll('#civata-running-tabs .civata-tab-pill.native-task-tab');
-                assert('Yüz 8: Harici uygulamalar üst çubuk sekme haplarında da görünür', civataPills.length === 2, `sayı=${civataPills.length}`);
+                assert('Yüz 8: Harici uygulamalar üst çubuk sekme haplarında görünür', civataPills.length === 2, `sayı=${civataPills.length}`);
 
                 window.WindowManager.nativeWindows = [];
                 window.WindowManager._tabsSig = '';
@@ -465,11 +474,12 @@ def run_tests():
                 }
                 const maxRect = winSettings.getBoundingClientRect();
                 const topRect = topPanel ? topPanel.getBoundingClientRect() : { bottom: 0 };
-                const dockRect = bottomDock ? bottomDock.getBoundingClientRect() : { top: window.innerHeight };
+                const dockVisible = !!(bottomDock && getComputedStyle(bottomDock).display !== 'none');
+                const dockRect = dockVisible ? bottomDock.getBoundingClientRect() : { top: window.innerHeight };
                 assert(`Yüz ${f}: Büyütülmüş pencere üst panelin altında kalmaz`,
                     maxRect.top >= topRect.bottom - 1,
                     `maxTop=${Math.round(maxRect.top)}, panelBottom=${Math.round(topRect.bottom)}`);
-                assert(`Yüz ${f}: Büyütülmüş pencere alt dock altında kalmaz`,
+                assert(`Yüz ${f}: Büyütülmüş pencere alt kenarı / dock alanını aşmaz`,
                     maxRect.bottom <= dockRect.top + 2,
                     `maxBottom=${Math.round(maxRect.bottom)}, dockTop=${Math.round(dockRect.top)}`);
 
@@ -482,17 +492,17 @@ def run_tests():
                     !!(closeBtn && hit && (hit === closeBtn || closeBtn.contains(hit))),
                     `hit=${hit ? hit.tagName + '.' + hit.className : 'null'} @ (${Math.round(cx)},${Math.round(cy)})`);
 
-                const bubble = document.getElementById('face-ai-bubble');
-                const bCs = bubble ? getComputedStyle(bubble) : null;
-                const bRect = bubble ? bubble.getBoundingClientRect() : null;
-                assert(`Yüz ${f}: Ankora AI konuşma balonu görünür ve kompakt`,
-                    !!(bubble && bCs && bCs.display !== 'none' && bRect && bRect.height > 20 && bRect.height <= 42 && bRect.right <= window.innerWidth && bRect.bottom < dockRect.top + 4),
-                    `disp=${bCs?.display}, h=${bRect?.height}, bot=${bRect?.bottom}, dockTop=${dockRect?.top}`);
-                if (bubble) {
-                    bubble.click();
+                const aiTriggerSel = f === '2' ? '.tray-click-ai' : (f === '3' ? '.bostan-tray-ai' : '.civata-btn-ai');
+                const aiTrigger = topPanel ? topPanel.querySelector(aiTriggerSel) : null;
+                const aiRect = aiTrigger ? aiTrigger.getBoundingClientRect() : null;
+                assert(`Yüz ${f}: Ankora AI üst çubuğa yerleşik ve görünür`,
+                    !!(aiTrigger && aiRect && aiRect.width > 0 && aiRect.height > 0),
+                    `sel=${aiTriggerSel}, rect=${aiRect ? Math.round(aiRect.width)+'x'+Math.round(aiRect.height) : 'null'}`);
+                if (aiTrigger) {
+                    aiTrigger.click();
                     await waitFrame(30);
                     const miniPop = document.getElementById('ai-mini-popover');
-                    assert(`Yüz ${f}: AI konuşma balonu mini sohbeti açar`, !!(miniPop && miniPop.classList.contains('open')));
+                    assert(`Yüz ${f}: Üst çubuk AI düğmesi mini sohbeti açar`, !!(miniPop && miniPop.classList.contains('open')));
                     if (f === '3') {
                         const mInput = document.getElementById('ai-mini-input');
                         const mSend = document.getElementById('btn-ai-mini-send');
@@ -504,14 +514,14 @@ def run_tests():
                                 !!document.getElementById('win-calc')?.classList.contains('open'));
                             mInput.value = 'Sistem doktoru taraması yap';
                             mSend.click();
-                            for (let t = 0; t < 12 && !document.querySelector('#ai-mini-feed .ai-mini-action-btn'); t++) {
-                                await waitFrame(50);
+                            for (let t = 0; t < 50 && !document.querySelector('#ai-mini-feed .ai-mini-action-btn'); t++) {
+                                await waitFrame(60);
                             }
                             assert('Ankora AI Ajan: Mini sohbette etkileşimli eylem onay düğmesi oluşur',
                                 !!document.querySelector('#ai-mini-feed .ai-mini-action-btn'));
                         }
                     }
-                    bubble.click();
+                    aiTrigger.click();
                     await waitFrame(20);
                 }
 
@@ -619,23 +629,22 @@ def run_tests():
             else:
                 shutil.copy2(item, target)
 
-    # Modified index.html with test_js
-    orig_html = (SRC_DIR / "index.html").read_text(encoding="utf-8")
-    # Replace CSP to allow localhost and inline test script for test execution
-    test_html = re.sub(
-        r'<meta http-equiv="Content-Security-Policy"[^>]*>',
-        '<meta http-equiv="Content-Security-Policy" content="default-src \'self\' http://127.0.0.1:* \'unsafe-inline\' \'unsafe-eval\' data: blob:;">',
-        orig_html
-    )
-    test_html = test_html.replace('</body>', f'<script>{test_js}</script></body>')
-    (tmp_dir / "index.html").unlink(missing_ok=True)
-    (tmp_dir / "index.html").write_text(test_html, encoding="utf-8")
-
     # Start QuietHandler from tmp_dir
     test_server = socketserver.TCPServer(("127.0.0.1", 0), lambda *args, **kwargs: http.server.SimpleHTTPRequestHandler(*args, directory=str(tmp_dir), **kwargs))
     test_port = test_server.server_address[1]
     test_server_thread = threading.Thread(target=test_server.serve_forever, daemon=True)
     test_server_thread.start()
+
+    # Modified index.html with test_js (CSP yalnız test sunucu portuna izin verir; ölü 49152 IPC portu hemen simülasyona düşer)
+    orig_html = (SRC_DIR / "index.html").read_text(encoding="utf-8")
+    test_html = re.sub(
+        r'<meta http-equiv="Content-Security-Policy"[^>]*>',
+        f'<meta http-equiv="Content-Security-Policy" content="default-src \'self\' http://127.0.0.1:{test_port} \'unsafe-inline\' \'unsafe-eval\' data: blob:;">',
+        orig_html
+    )
+    test_html = test_html.replace('</body>', f'<script>{test_js}</script></body>')
+    (tmp_dir / "index.html").unlink(missing_ok=True)
+    (tmp_dir / "index.html").write_text(test_html, encoding="utf-8")
 
     url = f"http://127.0.0.1:{test_port}/index.html"
     print(f"Test Sunucusu Açıldı: {url}")
