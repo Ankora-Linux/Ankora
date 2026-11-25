@@ -844,13 +844,13 @@ body[data-face="default"] .start-flyout {
 }
 
 [data-face="3"] .desktop-item:hover {
-  background: rgba(255, 255, 255, 0.55) !important;
-  border-color: rgba(35, 48, 28, 0.24) !important;
+  background: rgba(15, 24, 18, 0.38) !important;
+  border-color: rgba(248, 250, 244, 0.34) !important;
 }
 
 [data-face="3"] .desktop-item .item-name {
-  color: #23301c !important;
-  text-shadow: 0 1px 3px rgba(248, 247, 239, 0.95), 0 0 8px rgba(248, 247, 239, 0.85) !important;
+  color: #f8faf4 !important;
+  text-shadow: 0 1px 3px rgba(10, 18, 12, 0.92), 0 2px 8px rgba(10, 18, 12, 0.65) !important;
   font-size: 11.5px !important;
   font-weight: 500 !important;
 }
@@ -1381,18 +1381,18 @@ html[data-iconset] .desktop-item .item-icon svg {
   transform: scale(1.1) !important;
 }
 
-/* Açık zeminli yüzlerde (Yüz 3 Bostan, Yüz 8 Cıvata) masaüstü ikon kontrastı */
+/* Doğal fotoğraf duvar kağıtlı Bostan (Yüz 3) masaüstü ikon kontrastı */
 [data-face="3"] .desktop-grid .desktop-item .item-icon svg,
 [data-face="3"] #dynamic-desktop-icons .desktop-item .item-icon svg,
 html[data-face="3"][data-iconset] .desktop-item .item-icon svg {
-  stroke: #23301c !important;
-  color: #23301c !important;
-  filter: drop-shadow(0 1px 2px rgba(248, 247, 239, 0.92)) !important;
+  stroke: #f6f8f2 !important;
+  color: #f6f8f2 !important;
+  filter: drop-shadow(0 1px 3px rgba(10, 18, 12, 0.78)) !important;
 }
 
 [data-face="3"] .desktop-grid .desktop-item .item-icon img,
 [data-face="3"] #dynamic-desktop-icons .desktop-item .item-icon img {
-  filter: drop-shadow(0 2px 4px rgba(35, 48, 28, 0.2)) !important;
+  filter: drop-shadow(0 2px 5px rgba(10, 18, 12, 0.45)) !important;
 }
 
 [data-face="8"] .desktop-grid .desktop-item .item-icon svg,
@@ -1618,18 +1618,18 @@ body.theme-arctic .dynamic-island {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08) !important;
 }
 
-/* 3. Masaüstü Simgeleri Açık Tema Kontrastı */
-body.is-light-theme .desktop-item .item-name,
-body.theme-light .desktop-item .item-name,
-body.theme-arctic .desktop-item .item-name {
+/* 3. Masaüstü Simgeleri Açık Tema Kontrastı (Bostan doğa fotoğrafı kendi açık metin kuralını kullanır) */
+body.is-light-theme:not([data-face="3"]) .desktop-item .item-name,
+body.theme-light:not([data-face="3"]) .desktop-item .item-name,
+body.theme-arctic:not([data-face="3"]) .desktop-item .item-name {
   color: #18181b !important;
   text-shadow: 0 1px 3px rgba(255, 255, 255, 0.95), 0 0 10px rgba(255, 255, 255, 0.8) !important;
   font-weight: 600 !important;
 }
 
-body.is-light-theme .desktop-item .item-icon svg,
-body.theme-light .desktop-item .item-icon svg,
-body.theme-arctic .desktop-item .item-icon svg {
+body.is-light-theme:not([data-face="3"]) .desktop-item .item-icon svg,
+body.theme-light:not([data-face="3"]) .desktop-item .item-icon svg,
+body.theme-arctic:not([data-face="3"]) .desktop-item .item-icon svg {
   stroke: #18181b !important;
   filter: drop-shadow(0 2px 4px rgba(255, 255, 255, 0.9)) !important;
 }

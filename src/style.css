@@ -9107,10 +9107,9 @@ textarea:disabled {
 .window-snap-preview {
   position: absolute;
   pointer-events: none;
-  border-radius: 12px;
-  background: rgba(37, 99, 235, 0.18);
-  border: 2px dashed rgba(59, 130, 246, 0.85);
-  box-shadow: 0 0 16px rgba(37, 99, 235, 0.2);
+  border-radius: 8px;
+  background: rgba(37, 99, 235, 0.14);
+  border: 2px dashed var(--accent-active, #2563eb);
   z-index: 19;
   opacity: 0;
   visibility: hidden;
@@ -10184,7 +10183,7 @@ body.is-light-theme .snap-zone:hover {
   left: 0;
   height: 2.5px;
   width: 0%;
-  background: linear-gradient(90deg, #0284c7, #38bdf8);
+  background: var(--accent-active, #2563eb);
   transition: width 0.2s ease, opacity 0.2s ease;
   z-index: 10;
   pointer-events: none;
@@ -11230,15 +11229,14 @@ body.is-light-theme .ayaz-toast-notification {
   gap: 6px;
   height: 32px;
   padding: 0 12px;
-  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
-  border: 1px solid rgba(56, 189, 248, 0.4);
+  background: var(--accent-active, #2563eb);
+  border: 1px solid rgba(0, 0, 0, 0.14);
   border-radius: 6px;
   color: #ffffff;
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 2px 6px rgba(2, 132, 199, 0.35);
-  transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease, transform 0.15s ease;
+  transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
 }
 
 .files-primary-btn svg {
@@ -11247,10 +11245,7 @@ body.is-light-theme .ayaz-toast-notification {
 }
 
 .files-primary-btn:hover {
-  background: linear-gradient(135deg, #0369a1 0%, #075985 100%);
-  border-color: #38bdf8;
-  transform: translateY(-1px);
-  box-shadow: 0 3px 8px rgba(2, 132, 199, 0.5);
+  opacity: 0.92;
 }
 
 .files-main-layout {
@@ -11504,8 +11499,8 @@ body[data-face="legacy"] .pinned-icon-box.terminal-accent {
 }
 
 body[data-face="legacy"] .pinned-icon-box.ai-accent {
-  background: rgba(236, 72, 153, 0.15);
-  color: #ec4899;
+  background: rgba(196, 83, 51, 0.15);
+  color: #c45333;
 }
 
 body[data-face="legacy"] .pinned-icon-box.settings-accent {
@@ -11846,7 +11841,6 @@ html[data-iconset='nordic'] .pinned-icon-box {
   background: rgba(14, 165, 233, 0.12) !important;
   color: #38bdf8 !important;
   border: 1px solid rgba(56, 189, 248, 0.3) !important;
-  box-shadow: 0 0 14px rgba(56, 189, 248, 0.15) !important;
 }
 html[data-iconset='nordic'] .pinned-icon-box.browser-accent {
   background: rgba(255, 107, 0, 0.15) !important;
@@ -11878,8 +11872,7 @@ html[data-iconset='nordic'] .ayaz-desktop-shortcut .item-icon {
 html[data-iconset='nordic'] .desktop-item:hover .item-icon,
 html[data-iconset='nordic'] .ayaz-desktop-shortcut:hover .item-icon {
   border-color: #38bdf8 !important;
-  box-shadow: 0 0 18px rgba(56, 189, 248, 0.5) !important;
-  transform: translateY(-2px) !important;
+  transform: translateY(-1px) !important;
 }
 
 

@@ -383,7 +383,7 @@
             current_version: '5.0.0',
             latest_version: '5.0.0',
             release_name: 'Ayaz DE v5.0.0 (Excalibur)',
-            release_notes: '## Ayaz DE v5.0.0\n- Ankora Linux için geliştirilen minimalist masaüstü ortamı.\n- SysVinit uyumlu Kiosk tasarımı.\n- 4 çekirdek Anti-Slop yüz ve yerel AI ajan entegrasyonu.',
+            release_notes: '## Ayaz DE v5.0.0\n- Ankora Linux için geliştirilen minimalist masaüstü ortamı.\n- SysVinit uyumlu Kiosk tasarımı.\n- 4 özgün masaüstü yüzü ve yerel AI ajan entegrasyonu.',
             download_url: null,
             published_at: new Date().toISOString(),
             package_size_bytes: 0
@@ -6401,7 +6401,7 @@
       const statusSelected = document.getElementById('files-status-selected');
 
       if (breadcrumbs) {
-        breadcrumbs.innerHTML = '<span class="files-crumb active">🗑️ Çöp Kutusu (Trash)</span>';
+        breadcrumbs.innerHTML = '<span class="files-crumb active">Çöp Kutusu</span>';
       }
 
       if (grid) {
@@ -6422,7 +6422,7 @@
         const banner = document.createElement('div');
         banner.className = 'trash-banner';
         banner.innerHTML = `
-          <span>🗑️ <strong>Çöp Kutusu</strong> (${items.length} öge) — Silinen dosyalar burada saklanır.</span>
+          <span><strong>Çöp Kutusu</strong> (${items.length} öge): Silinen dosyalar burada saklanır.</span>
           <button class="btn-pkg" id="btn-empty-trash-action" style="background:#ef4444;border:none;color:#fff;padding:4px 12px;border-radius:4px;cursor:pointer;font-size:11.5px;font-weight:600;">Çöpü Boşalt</button>
         `;
         banner.querySelector('#btn-empty-trash-action').addEventListener('click', () => this.emptyTrash());
@@ -6432,7 +6432,7 @@
           const emptyNotice = document.createElement('div');
           emptyNotice.className = 'files-empty-state';
           emptyNotice.innerHTML = `
-            <div style="font-size: 38px; opacity: 0.5; margin-bottom: 8px;">🗑️</div>
+            <div style="opacity: 0.45; margin-bottom: 10px;"><svg class="glyph" style="width:32px;height:32px;" aria-hidden="true"><use href="#ico-trash"></use></svg></div>
             <div style="font-size: 13px; font-weight: 600; color: var(--text-secondary);">Çöp Kutusu Boş</div>
             <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 4px;">Silinen dosyalarınız burada güvenle saklanır.</div>
           `;
@@ -6544,7 +6544,7 @@
 
     async extractArchive(archivePath) {
       if (typeof ReportManager !== 'undefined' && ReportManager.showToast) {
-        ReportManager.showToast('📦 Arşiv çıkartılıyor...');
+        ReportManager.showToast('Arşiv çıkartılıyor...');
       }
       try {
         const res = await TauriBridge.invoke('extract_archive', { archivePath });
@@ -6559,7 +6559,7 @@
 
     async createArchive(sourcePath, type = 'zip') {
       if (typeof ReportManager !== 'undefined' && ReportManager.showToast) {
-        ReportManager.showToast('📦 Arşiv oluşturuluyor...');
+        ReportManager.showToast('Arşiv oluşturuluyor...');
       }
       try {
         const res = await TauriBridge.invoke('create_archive', { sourcePath, archiveType: type });
@@ -6902,7 +6902,7 @@
           dirs.forEach(d => {
             const row = document.createElement('div');
             row.className = 'copyto-row';
-            row.innerHTML = `<span style="padding:6px 8px;font-size:12.5px;cursor:pointer;">📁 ${escapeHtml(d.name)}</span>`;
+            row.innerHTML = `<span style="padding:6px 8px;font-size:12.5px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;"><svg class="glyph" style="width:14px;height:14px;" aria-hidden="true"><use href="#ico-folder"></use></svg>${escapeHtml(d.name)}</span>`;
             row.addEventListener('click', () => browse(d.path));
             listEl.appendChild(row);
           });
@@ -6941,7 +6941,7 @@
       overlay.innerHTML = `
         <div style="background:var(--bg-panel,#16181d);border:1px solid rgba(255,255,255,0.12);border-radius:12px;width:520px;max-height:76vh;display:flex;flex-direction:column;overflow:hidden;">
           <div style="padding:14px 16px;font-weight:700;font-size:14px;display:flex;align-items:center;gap:8px;">
-            <svg class="glyph"><use href="#ico-file"></use></svg><span>Özellikler — ${escapeHtml(item.name)}</span>
+            <svg class="glyph"><use href="#ico-file"></use></svg><span>Özellikler: ${escapeHtml(item.name)}</span>
           </div>
           <div class="props-tabs" style="display:flex;gap:4px;padding:0 16px;border-bottom:1px solid rgba(255,255,255,0.08);">
             <button class="props-tab active" data-tab="general" style="padding:8px 14px;background:none;border:none;border-bottom:2px solid #2563eb;color:inherit;font-size:12.5px;font-weight:600;cursor:pointer;">Genel</button>
@@ -9286,7 +9286,7 @@
 
       const clipped = text.length > 14000 ? `${text.slice(0, 14000)}\n\n[... kısaltıldı ...]` : text;
       this.showFileActions(name, clipped, file.size);
-      this.mirrorInfo(`📄 ${name} hazır · ${Math.max(1, Math.round(file.size / 1024))} KB`);
+      this.mirrorInfo(`${name} hazır · ${Math.max(1, Math.round(file.size / 1024))} KB`);
     },
 
     showFileActions(name, content, size) {
@@ -9295,7 +9295,7 @@
       card.className = 'ai-mini-file-card';
       const head = document.createElement('span');
       head.className = 'ai-mini-file-name';
-      head.textContent = `📄 ${name} · ${Math.max(1, Math.round(size / 1024))} KB`;
+      head.textContent = `${name} · ${Math.max(1, Math.round(size / 1024))} KB`;
       card.appendChild(head);
 
       const makePrompt = (instruction) => `Aşağıdaki dosyanın adı "${name}". ${instruction}\n\n\`\`\`\n${content}\n\`\`\``;
@@ -9315,7 +9315,7 @@
           card.remove();
           this.handleQuery(makePrompt(instruction), {
             skipPlan: true,
-            displayText: `📄 ${name} → ${label}`
+            displayText: `${name}: ${label}`
           });
         });
         row.appendChild(btn);
@@ -9805,7 +9805,7 @@
           this.selectedDisk = null;
           box.innerHTML = `
             <div style="padding: 24px; text-align: center; color: var(--text-muted); font-size: 13px;">
-              ⚠️ Kurulum yapılabilecek uygun bir sabit disk veya depolama sürücüsü bulunamadı.<br>
+              Kurulum yapılabilecek uygun bir sabit disk veya depolama sürücüsü bulunamadı.<br>
               <span style="font-size: 11px; opacity: 0.7;">Canlı USB medyası koruma altındadır ve üzerine kurulum yapılamaz.</span>
             </div>
           `;
@@ -10017,17 +10017,17 @@
     // birlikte uygulanır (kullanıcı "bütün sistemin teması değişsin" isteği).
     // 'ankora_theme_fullsystem' kaydı ile kapatılabilir.
     THEME_BUNDLES: {
-      'theme-dark':         { wallpaper: 'wallpaper-arduvaz.svg',      iconset: 'monokrom', accent: '#cc5d35' },
-      'theme-light':        { wallpaper: 'wallpaper-arduvaz-acik.svg', iconset: 'outline',  accent: '#b84a24' },
-      'theme-bakir':        { wallpaper: 'wallpaper-bakir.svg',        iconset: 'monokrom', accent: '#d1794f' },
-      'theme-bostan':       { wallpaper: 'wallpaper-bostan.svg',       iconset: 'outline',  accent: '#3b7230' },
-      'theme-civata':       { wallpaper: 'wallpaper-civata.svg',       iconset: 'monokrom', accent: '#1d4ed8' },
+      'theme-dark':         { wallpaper: 'wallpaper-arduvaz.jpg',      iconset: 'monokrom', accent: '#cc5d35' },
+      'theme-light':        { wallpaper: 'wallpaper-arduvaz-acik.jpg', iconset: 'outline',  accent: '#b84a24' },
+      'theme-bakir':        { wallpaper: 'wallpaper-bakir.jpg',        iconset: 'monokrom', accent: '#d1794f' },
+      'theme-bostan':       { wallpaper: 'wallpaper-bostan.jpg',       iconset: 'outline',  accent: '#3b7230' },
+      'theme-civata':       { wallpaper: 'wallpaper-civata.jpg',       iconset: 'monokrom', accent: '#1d4ed8' },
       // Yayımlanan 4.7 Klasik Temalar (isteğe bağlı korundu)
       'theme-classic-dark': { wallpaper: 'wallpaper-kobalt.jpg',       iconset: 'nordic',   accent: '#2563eb' },
       'theme-midnight':     { wallpaper: 'wallpaper-kozmik.jpg',       iconset: 'ink',      accent: '#3b82f6' },
       'theme-nord':         { wallpaper: 'wallpaper-gece-yolu.jpg',    iconset: 'nordic',   accent: '#ffffff' },
-      'theme-evergreen':    { wallpaper: 'wallpaper-gece-yolu.jpg',    iconset: 'emerald',  accent: '#059669' },
-      'theme-ember':        { wallpaper: 'wallpaper-kozmik.jpg',       iconset: 'sunset',   accent: '#ea580c' },
+      'theme-evergreen':    { wallpaper: 'wallpaper-sonbahar-sisi.jpg', iconset: 'emerald', accent: '#059669' },
+      'theme-ember':        { wallpaper: 'wallpaper-bakir.jpg',        iconset: 'sunset',   accent: '#ea580c' },
       'theme-arctic':       { wallpaper: 'wallpaper-karli-safak.jpg',  iconset: 'pastel',   accent: '#059669' },
       'theme-cumhuriyet':   { wallpaper: 'wallpaper-kozmik.jpg',       iconset: 'monokrom', accent: '#e23744' }
     },
@@ -10037,7 +10037,7 @@
       return SafeStorage.getItem('ankora_theme_fullsystem') !== 'false';
     },
     currentAccent: '#3b7230',
-    currentWallpaper: 'wallpaper-bostan.svg',
+    currentWallpaper: 'wallpaper-bostan.jpg',
     currentRadius: '6px',
     currentGlass: 'solid',
     currentTaskbarAlign: 'left',
@@ -10050,7 +10050,18 @@
       const rawSavedTheme = SafeStorage.getItem('ankora_theme_mode') || 'theme-bostan';
       const savedTheme = (rawSavedTheme === 'theme-custom' || this.THEME_BUNDLES[rawSavedTheme]) ? rawSavedTheme : 'theme-bostan';
       const savedAccent = SafeStorage.getItem('ankora_accent_color') || '#3b7230';
-      const savedWp = SafeStorage.getItem('ankora_wallpaper') || 'wallpaper-bostan.svg';
+      const legacySvgToNatural = {
+        'wallpaper-bostan.svg': 'wallpaper-bostan.jpg',
+        'wallpaper-bakir.svg': 'wallpaper-bakir.jpg',
+        'wallpaper-arduvaz.svg': 'wallpaper-arduvaz.jpg',
+        'wallpaper-arduvaz-acik.svg': 'wallpaper-arduvaz-acik.jpg',
+        'wallpaper-civata.svg': 'wallpaper-civata.jpg'
+      };
+      const rawSavedWp = SafeStorage.getItem('ankora_wallpaper') || 'wallpaper-bostan.jpg';
+      const savedWp = legacySvgToNatural[rawSavedWp] || rawSavedWp;
+      if (legacySvgToNatural[rawSavedWp]) {
+        SafeStorage.setItem('ankora_wallpaper', savedWp);
+      }
       const savedRadius = SafeStorage.getItem('ankora_corner_radius') || '6px';
       const savedGlass = SafeStorage.getItem('ankora_window_glass') || 'solid';
       const savedAlign = SafeStorage.getItem('ankora_taskbar_align') || 'left';
@@ -15158,7 +15169,7 @@
       TauriBridge.invoke('get_volume').then((cur) => {
         const nxt = Math.min(100, (typeof cur === 'number' ? cur : 50) + 5);
         TauriBridge.invoke('set_volume', { level: nxt });
-        ReportManager?.showToast(`🔊 Ses: %${nxt}`);
+        ReportManager?.showToast(`Ses: %${nxt}`);
       }).catch(() => {});
     }
     // Donanım Medya Tuşları: Ses Azaltma
@@ -15167,7 +15178,7 @@
       TauriBridge.invoke('get_volume').then((cur) => {
         const nxt = Math.max(0, (typeof cur === 'number' ? cur : 50) - 5);
         TauriBridge.invoke('set_volume', { level: nxt });
-        ReportManager?.showToast(`🔉 Ses: %${nxt}`);
+        ReportManager?.showToast(`Ses: %${nxt}`);
       }).catch(() => {});
     }
     // Donanım Medya Tuşları: Sessize Alma
@@ -15176,21 +15187,21 @@
       TauriBridge.invoke('get_volume').then((cur) => {
         const nxt = (cur > 0) ? 0 : 50;
         TauriBridge.invoke('set_volume', { level: nxt });
-        ReportManager?.showToast(nxt === 0 ? '🔇 Ses Kapatıldı' : `🔊 Ses: %${nxt}`);
+        ReportManager?.showToast(nxt === 0 ? 'Ses Kapatıldı' : `Ses: %${nxt}`);
       }).catch(() => {});
     }
     // Donanım Medya Tuşları: Ekran Parlaklığı Artırma
     else if (e.key === 'BrightnessUp') {
       e.preventDefault();
       TauriBridge.invoke('set_brightness', { level: 90 }).then(() => {
-        ReportManager?.showToast('☀️ Parlaklık Artırıldı');
+        ReportManager?.showToast('Parlaklık Artırıldı');
       }).catch(() => {});
     }
     // Donanım Medya Tuşları: Ekran Parlaklığı Azaltma
     else if (e.key === 'BrightnessDown') {
       e.preventDefault();
       TauriBridge.invoke('set_brightness', { level: 40 }).then(() => {
-        ReportManager?.showToast('🔅 Parlaklık Azaltıldı');
+        ReportManager?.showToast('Parlaklık Azaltıldı');
       }).catch(() => {});
     }
     // Esc: başlangıç menüsü ve genel görünüm kapatma initDesktopControls
@@ -17836,7 +17847,7 @@
           prevImg.src = `data:image/png;base64,${res.image_b64}`;
           prevImg.style.display = 'block';
         }
-        ReportManager.showToast(`📸 Ekran görüntüsü yakalandı: ${res.file_name || ''}`);
+        ReportManager.showToast(`Ekran görüntüsü yakalandı: ${res.file_name || ''}`);
       } catch (e) {
         if (statusText) statusText.textContent = `Hata: ${e.message || e}`;
         ReportManager.showToast(`Ekran görüntüsü hatası: ${e.message || e}`);

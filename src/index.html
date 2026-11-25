@@ -1117,7 +1117,7 @@
 
             <!-- Hızlı Arama ve Brave Başlatıcı Butonları -->
             <div class="browser-actions-group">
-              <button class="browser-action-pill" id="btn-launch-brave-direct" style="background: linear-gradient(135deg, #ff6b00, #ea580c); color: #fff; font-weight: 600; border: none;" title="Brave Web Tarayıcısını Başlat">Brave'i Başlat</button>
+              <button class="browser-action-pill" id="btn-launch-brave-direct" style="background: #d94e1f; color: #fff; font-weight: 600; border: 1px solid rgba(0,0,0,0.14);" title="Brave Web Tarayıcısını Başlat">Brave'i Başlat</button>
               <button class="browser-action-pill" id="btn-browser-search-mode">DuckDuckGo</button>
               <button class="browser-action-pill" id="btn-browser-external" title="Sayfayı sistem tarayıcısında aç">Dış Tarayıcıda Aç</button>
             </div>
@@ -1466,14 +1466,14 @@
               <!-- Arayüz Yüzü / Mimari Düzen Seçimi -->
               <div class="settings-card-group" id="group-face-architecture">
                 <span class="card-group-title">Arayüz Yüzü &amp; Masaüstü Mimarisi</span>
-                <p style="font-size:12px;color:var(--text-muted);margin:4px 0 12px;line-height:1.5;">4 Anti-Slop masaüstü mimarisinden birini seçin veya isteğe bağlı olarak yayımlanan 4.7 klasik cam arayüzüne dönün.</p>
+                <p style="font-size:12px;color:var(--text-muted);margin:4px 0 12px;line-height:1.5;">4 özgün masaüstü mimarisinden birini seçin veya isteğe bağlı olarak 4.7 klasik cam arayüzüne dönün.</p>
                 <div class="face-picker-grid">
                   <div class="face-card-choice" data-face="default">
                     <div class="face-preview-box face-preview-default">
                       <div class="fp-preview-desk-default"></div>
                       <div class="fp-preview-dock-default"></div>
                     </div>
-                    <strong>Yüz 1 · Arduvaz (Anti-Slop Mat)</strong>
+                    <strong>Yüz 1 · Arduvaz</strong>
                     <span>Düz mat yüzeyler, 1px kenarlıklar, terakota vurgu ve alt/üst panel desteği</span>
                   </div>
                   <div class="face-card-choice" data-face="2">
@@ -1534,7 +1534,7 @@
 
               <!-- Tema Modu Seçimi -->
               <div class="settings-card-group">
-                <span class="card-group-title">Masaüstü Teması (Çekirdek Anti-Slop Temalar)</span>
+                <span class="card-group-title">Masaüstü Teması</span>
                 <div class="theme-picker-grid">
                   <div class="theme-card-choice" data-theme="theme-dark">
                     <div class="theme-preview-box dark">
@@ -1646,7 +1646,7 @@
                 <div class="settings-card" style="margin-top:12px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;">
                   <div>
                     <h4 style="margin:0 0 3px;font-size:13px;">Galeri + kendi tema paketin</h4>
-                    <p style="margin:0;font-size:12px;color:var(--text-muted);">5 çekirdek Anti-Slop temayı tek listeden uygula; kendi CSS değişken bloğunu yaz, panoyla taşı.</p>
+                    <p style="margin:0;font-size:12px;color:var(--text-muted);">5 temel temayı tek listeden uygula; kendi CSS değişken bloğunu yaz, panoyla taşı.</p>
                   </div>
                   <button class="btn-pkg btn-pkg-primary" id="btn-open-studio" style="padding:7px 16px;font-size:12px;cursor:pointer;white-space:nowrap;">Stüdyoyu Aç</button>
                 </div>
@@ -1684,27 +1684,31 @@
 
               <!-- Duvar Kağıdı Seçimi -->
               <div class="settings-card-group">
-                <span class="card-group-title">Duvar Kağıdı (5 Mat Yüz + Klasik Fotoğraf ve Vektörel)</span>
+                <span class="card-group-title">Duvar Kağıdı</span>
                 <div class="wallpaper-thumb-grid">
-                  <div class="wp-thumb-card" data-wp="wallpaper-arduvaz.svg">
-                    <div class="thumb-img" style="background-image: url('wallpaper-arduvaz.svg');"></div>
-                    <span>Arduvaz Dağları</span>
+                  <div class="wp-thumb-card active" data-wp="wallpaper-bostan.jpg">
+                    <div class="thumb-img" style="background-image: url('wallpaper-bostan.jpg');"></div>
+                    <span>Bostan Vadisi</span>
                   </div>
-                  <div class="wp-thumb-card" data-wp="wallpaper-arduvaz-acik.svg">
-                    <div class="thumb-img" style="background-image: url('wallpaper-arduvaz-acik.svg');"></div>
-                    <span>Arduvaz Açık</span>
+                  <div class="wp-thumb-card" data-wp="wallpaper-bakir.jpg">
+                    <div class="thumb-img" style="background-image: url('wallpaper-bakir.jpg');"></div>
+                    <span>Bakır Zirve</span>
                   </div>
-                  <div class="wp-thumb-card" data-wp="wallpaper-bakir.svg">
-                    <div class="thumb-img" style="background-image: url('wallpaper-bakir.svg');"></div>
-                    <span>Bakır Silsile</span>
+                  <div class="wp-thumb-card" data-wp="wallpaper-arduvaz.jpg">
+                    <div class="thumb-img" style="background-image: url('wallpaper-arduvaz.jpg');"></div>
+                    <span>Arduvaz Sisi</span>
                   </div>
-                  <div class="wp-thumb-card active" data-wp="wallpaper-bostan.svg">
-                    <div class="thumb-img" style="background-image: url('wallpaper-bostan.svg');"></div>
-                    <span>Bostan Tepeleri</span>
+                  <div class="wp-thumb-card" data-wp="wallpaper-arduvaz-acik.jpg">
+                    <div class="thumb-img" style="background-image: url('wallpaper-arduvaz-acik.jpg');"></div>
+                    <span>Sabah Zirvesi</span>
                   </div>
-                  <div class="wp-thumb-card" data-wp="wallpaper-civata.svg">
-                    <div class="thumb-img" style="background-image: url('wallpaper-civata.svg');"></div>
-                    <span>Cıvata Kontur</span>
+                  <div class="wp-thumb-card" data-wp="wallpaper-civata.jpg">
+                    <div class="thumb-img" style="background-image: url('wallpaper-civata.jpg');"></div>
+                    <span>Cıvata Kar Sırtı</span>
+                  </div>
+                  <div class="wp-thumb-card" data-wp="wallpaper-sonbahar-sisi.jpg">
+                    <div class="thumb-img" style="background-image: url('wallpaper-sonbahar-sisi.jpg');"></div>
+                    <span>Sonbahar Ormanı</span>
                   </div>
                   <div class="wp-thumb-card" data-wp="wallpaper-kobalt.jpg">
                     <div class="thumb-img" style="background-image: url('wallpaper-kobalt.jpg');"></div>
@@ -4107,7 +4111,7 @@
 
     <div class="notif-drawer-body" id="notif-items-container">
       <div class="notif-empty-state" id="notif-empty-state">
-        <div style="font-size: 32px; opacity: 0.4; margin-bottom: 6px;">🔔</div>
+        <div style="opacity: 0.42; margin-bottom: 8px;"><svg class="glyph" style="width:28px;height:28px;" aria-hidden="true"><use href="#ico-inbox"></use></svg></div>
         <div>Yeni Bildirim Yok</div>
         <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">Uygulama ve sistem bildirimleri burada toplanır.</div>
       </div>
