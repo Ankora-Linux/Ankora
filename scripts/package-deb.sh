@@ -154,6 +154,7 @@ Installed-Size: ${INSTALLED_SIZE}
 Section: x11
 Priority: optional
 Depends: libwebkit2gtk-4.1-0 | libwebkit2gtk-4.0-37, libgtk-3-0, libayatana-appindicator3-1 | libappindicator3-1, bubblewrap, xdg-dbus-proxy, openbox, wmctrl, xdotool, x11-xserver-utils, libnss3-tools, plymouth
+Recommends: pkexec, lxpolkit | policykit-1-gnome, scrot, xclip, libnotify-bin, flatpak
 Provides: ayaz
 Description: Ayaz Minimalist Kiosk Desktop Environment for Ankora Linux
  Ankora Linux (Devuan 6 Excalibur, SysVinit) için Tauri 2 ve WebKitGTK 4.1

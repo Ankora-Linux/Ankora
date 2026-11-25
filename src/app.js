@@ -831,10 +831,10 @@
       });
     },
 
-    ensureDesktopLayer(above) {
-      if (this._isLayerAbove === above) return;
-      this._isLayerAbove = above;
-      TauriBridge.invoke('set_desktop_layer', { above }).catch(() => {});
+    ensureDesktopLayer(above, force = false) {
+      if (above && !force && this._isLayerAbove === true) return;
+      this._isLayerAbove = Boolean(above);
+      TauriBridge.invoke('set_desktop_layer', { above: Boolean(above) }).catch(() => {});
     },
 
     checkAllMinimizedOrClosed() {
@@ -1680,7 +1680,8 @@
           refresh(400);
         };
         tab.addEventListener('click', () => {
-          if (nw.is_active && !this._isLayerAbove) minimize();
+          const ayazHasFocus = typeof document.hasFocus === 'function' && document.hasFocus();
+          if (nw.is_active && !this._isLayerAbove && !ayazHasFocus) minimize();
           else activate();
         });
         tab.addEventListener('auxclick', (e) => { if (e.button === 1) { e.preventDefault(); close(); } });
@@ -4606,6 +4607,9 @@
     // Açılışta kafa karıştırmayan kısa liste; tamamı "Tümü" sekmesinde.
     currentCat: 'featured',
     currentSource: 'all',
+    _busyIds: new Set(),
+    _aptBusy: false,
+    _detailPkgId: null,
 
     init() {
       // Kaydedilmiş kurulu paketleri yükle
@@ -4913,8 +4917,13 @@
       const iconBox = card.querySelector('.store-card-icon');
       if (iconBox) IconResolver.tagIcon(iconBox, { id: pkg.id, exec: pkgSub, deb: pkg.deb, flatpak: pkg.flatpak });
 
+      const isBusy = this._busyIds && this._busyIds.has(pkg.id);
       const btn = card.querySelector('.btn-pkg:not(.btn-pkg-open):not(.btn-pkg-site)');
       if (btn) {
+        if (isBusy) {
+          btn.disabled = true;
+          btn.textContent = pkg.installed ? 'Kaldırılıyor...' : 'İndiriliyor...';
+        }
         btn.addEventListener('click', () => this.togglePackage(pkg, card));
       }
 
@@ -4950,6 +4959,7 @@
     openDetail(pkg) {
       const overlay = document.getElementById('store-detail-overlay');
       if (!overlay) return;
+      this._detailPkgId = pkg.id;
       const iconWrap = document.getElementById('store-detail-icon');
       const nameEl = document.getElementById('store-detail-name');
       const leadEl = document.getElementById('store-detail-lead');
@@ -5000,11 +5010,18 @@
         }
         const btnPkg = actionWrap.querySelector('.btn-pkg:not(.btn-pkg-open):not(.btn-pkg-site)');
         if (btnPkg) {
+          if (this._busyIds && this._busyIds.has(pkg.id)) {
+            btnPkg.disabled = true;
+            btnPkg.textContent = pkg.installed ? 'Kaldırılıyor...' : 'İndiriliyor...';
+          }
           btnPkg.addEventListener('click', async () => {
+            if (this._busyIds && this._busyIds.has(pkg.id)) return;
             btnPkg.disabled = true;
             btnPkg.textContent = pkg.installed ? 'Kaldırılıyor...' : 'İndiriliyor...';
             await this.togglePackage(pkg);
-            this.openDetail(pkg);
+            if (!overlay.hidden && this._detailPkgId === pkg.id) {
+              this.openDetail(pkg);
+            }
           });
         }
       }
@@ -5013,6 +5030,7 @@
     },
 
     closeDetail() {
+      this._detailPkgId = null;
       const overlay = document.getElementById('store-detail-overlay');
       if (overlay) overlay.hidden = true;
     },
@@ -5130,190 +5148,220 @@
     },
 
     async togglePackage(pkg, row = null) {
+      if (!pkg || !pkg.id) return;
+      if (this._busyIds && this._busyIds.has(pkg.id)) {
+        ReportManager.showToast(`${pkg.name} işlemi zaten devam ediyor.`, 'info');
+        return;
+      }
+      const usesApt = !pkg.flatpak && pkg.action !== 'meb-cert';
+      if (usesApt && this._aptBusy) {
+        ReportManager.showToast('Başka bir APT paket işlemi sürüyor; bitmesini bekleyin.', 'info');
+        return;
+      }
+
+      if (this._busyIds) this._busyIds.add(pkg.id);
+      if (usesApt) this._aptBusy = true;
+
       const btn = row ? row.querySelector('.btn-pkg:not(.btn-pkg-open)')
                       : document.getElementById(`btn-pkg-${pkg.id}`);
       const prog = row ? row.querySelector('.pkg-progress-bar')
                        : document.getElementById(`prog-${pkg.id}`);
 
-      // Sistem eylemleri (MEB sertifikası): paket yok, onaylı yardımcı
-      // betik çalışır. Kaldırma, yalnızca yerel durumu sıfırlar.
-      if (pkg.action === 'meb-cert') {
-        if (pkg.installed) {
-          if (btn) { btn.disabled = true; btn.textContent = 'Kaldırılıyor...'; }
-          Terminal.log('[SİSTEM] MEB kök sertifikası sistemden ve tarayıcı depolarından kaldırılıyor...', 'cmd');
-          try {
-            const msg = await TauriBridge.invoke('remove_meb_certificate', {});
-            this.syncInstalledState(pkg.id, false);
-            this.saveInstalledState();
-            Terminal.log(`[BAŞARILI] ${msg || 'MEB sertifikası kaldırıldı.'}`, 'success');
-            ReportManager.showToast('MEB sertifikası kaldırıldı.');
-            this.render(document.getElementById('store-search')?.value || '');
-          } catch (err) {
-            if (btn) { btn.disabled = false; btn.textContent = 'Kaldır'; }
-            Terminal.log(`[ERR] MEB sertifika kaldırma hatası: ${err}`, 'error');
-            ReportManager.showToast(`Kaldırma hatası: ${err.message || err}`, 'error');
+      try {
+        // Sistem eylemleri (MEB sertifikası): paket yok, onaylı yardımcı
+        // betik çalışır. Kaldırma, yalnızca yerel durumu sıfırlar.
+        if (pkg.action === 'meb-cert') {
+          if (pkg.installed) {
+            if (btn) { btn.disabled = true; btn.textContent = 'Kaldırılıyor...'; }
+            Terminal.log('[SİSTEM] MEB kök sertifikası sistemden ve tarayıcı depolarından kaldırılıyor...', 'cmd');
+            try {
+              const msg = await TauriBridge.invoke('remove_meb_certificate', {});
+              this.syncInstalledState(pkg.id, false);
+              this.saveInstalledState();
+              Terminal.log(`[BAŞARILI] ${msg || 'MEB sertifikası kaldırıldı.'}`, 'success');
+              ReportManager.showToast('MEB sertifikası kaldırıldı.');
+              this.render(document.getElementById('store-search')?.value || '');
+            } catch (err) {
+              if (btn) { btn.disabled = false; btn.textContent = 'Kaldır'; }
+              Terminal.log(`[ERR] MEB sertifika kaldırma hatası: ${err}`, 'error');
+              ReportManager.showToast(`Kaldırma hatası: ${err.message || err}`, 'error');
+            }
+            return;
           }
-          return;
-        }
-        if (btn) { btn.disabled = true; btn.textContent = 'Kuruluyor...'; }
-        Terminal.log('[SİSTEM] MEB okul ağı sertifikası resmi adresten kuruluyor...', 'cmd');
-        try {
-          const msg = await TauriBridge.invoke('install_meb_certificate', {});
-          this.syncInstalledState(pkg.id, true);
-          this.saveInstalledState();
-          Terminal.log(`[BAŞARILI] ${msg || 'MEB sertifikası kuruldu.'}`, 'success');
-          ReportManager.showToast('MEB sertifikası kuruldu; tarayıcı güven deposu güncellendi.');
-          this.render(document.getElementById('store-search')?.value || '');
-        } catch (err) {
-          if (btn) { btn.disabled = false; btn.textContent = 'Kur'; }
-          Terminal.log(`[ERR] MEB sertifika hatası: ${err}`, 'error');
-          ReportManager.showToast(`Kurulum hatası: ${err.message || err}`, 'error');
-        }
-        return;
-      }
-
-      if (pkg.flatpak) {
-        if (pkg.installed) {
-          if (btn) { btn.disabled = true; btn.textContent = 'Kaldırılıyor...'; }
-          Terminal.log(`[FLATPAK] flatpak uninstall -y ${pkg.flatpak} yürütülüyor...`, 'cmd');
+          if (btn) { btn.disabled = true; btn.textContent = 'Kuruluyor...'; }
+          Terminal.log('[SİSTEM] MEB okul ağı sertifikası resmi adresten kuruluyor...', 'cmd');
           try {
-            await TauriBridge.invoke('remove_flatpak_app', { appId: pkg.flatpak });
-            this.syncInstalledState(pkg.id, false);
-            this.saveInstalledState();
-            XdgDesktopEngine.removeApplication(pkg.id, pkg.deb, pkg.flatpak);
-            await XdgDesktopEngine.rescanXdgApps(true);
-            Terminal.log(`[FLATPAK] '${pkg.name}' (${pkg.flatpak}) kaldırıldı.`, 'success');
-            ReportManager.showToast(`${pkg.name} kaldırıldı.`);
-            this.render(document.getElementById('store-search')?.value || '');
-          } catch (err) {
-            if (btn) { btn.disabled = false; btn.textContent = 'Kaldır'; }
-            Terminal.log(`[ERR] Flatpak kaldırma hatası: ${err}`, 'error');
-            ReportManager.showToast(`Kaldırılamadı: ${err.message || err}`, 'error');
-          }
-        } else {
-          if (btn) { btn.disabled = true; btn.textContent = 'İndiriliyor...'; }
-          Terminal.log(`[FLATPAK] flatpak install -y flathub ${pkg.flatpak} yürütülüyor...`, 'cmd');
-          try {
-            await TauriBridge.invoke('install_flatpak_app', { appId: pkg.flatpak });
+            const msg = await TauriBridge.invoke('install_meb_certificate', {});
             this.syncInstalledState(pkg.id, true);
             this.saveInstalledState();
-            XdgDesktopEngine.addApplication({
-              id: pkg.flatpak || pkg.id,
-              storeId: pkg.id,
-              flatpak: pkg.flatpak,
-              name: pkg.name,
-              icon: pkg.id,
-              exec: `flatpak run ${pkg.flatpak}`,
-              cat: pkg.cat,
-              comment: pkg.desc,
-              is_installed_by_user: true,
-              on_desktop: true
-            });
-            await XdgDesktopEngine.rescanXdgApps(false);
-            Terminal.log(`[FLATPAK] '${pkg.name}' (${pkg.flatpak}) başarıyla kuruldu ve masaüstüne eklendi!`, 'success');
-            ReportManager.showToast(`${pkg.name} kuruldu ve masaüstüne eklendi!`);
+            Terminal.log(`[BAŞARILI] ${msg || 'MEB sertifikası kuruldu.'}`, 'success');
+            ReportManager.showToast('MEB sertifikası kuruldu; tarayıcı güven deposu güncellendi.');
             this.render(document.getElementById('store-search')?.value || '');
           } catch (err) {
             if (btn) { btn.disabled = false; btn.textContent = 'Kur'; }
-            Terminal.log(`[ERR] Flatpak kurulum hatası: ${err}`, 'error');
+            Terminal.log(`[ERR] MEB sertifika hatası: ${err}`, 'error');
             ReportManager.showToast(`Kurulum hatası: ${err.message || err}`, 'error');
           }
+          return;
         }
-        return;
-      }
 
-      if (pkg.installed) {
+        if (pkg.flatpak) {
+          if (pkg.installed) {
+            if (btn) { btn.disabled = true; btn.textContent = 'Kaldırılıyor...'; }
+            Terminal.log(`[FLATPAK] flatpak uninstall -y ${pkg.flatpak} yürütülüyor...`, 'cmd');
+            try {
+              await TauriBridge.invoke('remove_flatpak_app', { appId: pkg.flatpak });
+              this.syncInstalledState(pkg.id, false);
+              this.saveInstalledState();
+              XdgDesktopEngine.removeApplication(pkg.id, pkg.deb, pkg.flatpak);
+              await XdgDesktopEngine.rescanXdgApps(true);
+              Terminal.log(`[FLATPAK] '${pkg.name}' (${pkg.flatpak}) kaldırıldı.`, 'success');
+              ReportManager.showToast(`${pkg.name} kaldırıldı.`);
+              this.render(document.getElementById('store-search')?.value || '');
+            } catch (err) {
+              if (btn) { btn.disabled = false; btn.textContent = 'Kaldır'; }
+              Terminal.log(`[ERR] Flatpak kaldırma hatası: ${err}`, 'error');
+              ReportManager.showToast(`Kaldırılamadı: ${err.message || err}`, 'error');
+            }
+          } else {
+            if (btn) { btn.disabled = true; btn.textContent = 'İndiriliyor...'; }
+            Terminal.log(`[FLATPAK] flatpak install -y flathub ${pkg.flatpak} yürütülüyor...`, 'cmd');
+            let fpVal = 6;
+            if (prog) prog.style.width = `${fpVal}%`;
+            const fpInterval = setInterval(() => {
+              fpVal = Math.min(88, fpVal + 4);
+              if (prog) prog.style.width = `${fpVal}%`;
+            }, 900);
+            try {
+              await TauriBridge.invoke('install_flatpak_app', { appId: pkg.flatpak });
+              clearInterval(fpInterval);
+              this.syncInstalledState(pkg.id, true);
+              if (prog) prog.style.width = '100%';
+              setTimeout(() => { if (prog) prog.style.width = '0%'; }, 400);
+              this.saveInstalledState();
+              XdgDesktopEngine.addApplication({
+                id: pkg.flatpak || pkg.id,
+                storeId: pkg.id,
+                flatpak: pkg.flatpak,
+                name: pkg.name,
+                icon: pkg.id,
+                exec: `flatpak run ${pkg.flatpak}`,
+                cat: pkg.cat,
+                comment: pkg.desc,
+                is_installed_by_user: true,
+                on_desktop: true
+              });
+              await XdgDesktopEngine.rescanXdgApps(false);
+              Terminal.log(`[FLATPAK] '${pkg.name}' (${pkg.flatpak}) başarıyla kuruldu ve masaüstüne eklendi!`, 'success');
+              ReportManager.showToast(`${pkg.name} kuruldu ve masaüstüne eklendi!`);
+              this.render(document.getElementById('store-search')?.value || '');
+            } catch (err) {
+              clearInterval(fpInterval);
+              if (prog) prog.style.width = '0%';
+              if (btn) { btn.disabled = false; btn.textContent = 'Kur'; }
+              Terminal.log(`[ERR] Flatpak kurulum hatası: ${err}`, 'error');
+              ReportManager.showToast(`Kurulum hatası: ${err.message || err}`, 'error');
+            }
+          }
+          return;
+        }
+
+        if (pkg.installed) {
+          if (btn) {
+            btn.disabled = true;
+            btn.textContent = 'Kaldırılıyor...';
+          }
+          Terminal.log(`[APT] sudo apt-get remove -y -- ${pkg.deb} yürütülüyor...`, 'cmd');
+
+          try {
+            await TauriBridge.invoke('remove_deb_package', { packageName: pkg.deb });
+            this.syncInstalledState(pkg.id, false);
+            if (btn) {
+              btn.disabled = false;
+              btn.classList.remove('installed');
+              btn.textContent = 'Kur';
+            }
+            this.saveInstalledState();
+            XdgDesktopEngine.removeApplication(pkg.id, pkg.deb, pkg.flatpak);
+            await XdgDesktopEngine.rescanXdgApps(true);
+            Terminal.log(`[APT] '${pkg.name}' (${pkg.deb}) başarıyla kaldırıldı.`, 'success');
+            this.render(document.getElementById('store-search')?.value || '');
+          } catch (err) {
+            if (btn) {
+              btn.disabled = false;
+              btn.textContent = 'Kaldır';
+            }
+            Terminal.log(`[ERR] Kaldırma başarısız: ${err}`, 'error');
+            ReportManager.showToast(`Kaldırılamadı: ${err.message || err}`, 'error');
+            setTimeout(() => this.render(document.getElementById('store-search')?.value || ''), 1600);
+          }
+          return;
+        }
+
         if (btn) {
           btn.disabled = true;
-          btn.textContent = 'Kaldırılıyor...';
+          btn.textContent = 'İndiriliyor...';
         }
-        Terminal.log(`[APT] sudo apt-get remove -y -- ${pkg.deb} yürütülüyor...`, 'cmd');
+        Terminal.log(pkg.vendor
+          ? `[DEPO] ${pkg.vendor} resmî deposu hazırlanıp '${pkg.deb}' kuruluyor...`
+          : `[APT] sudo apt-get install -y -- ${pkg.deb} yürütülüyor...`, 'cmd');
+
+        let val = 8;
+        if (prog) prog.style.width = `${val}%`;
+        const interval = setInterval(() => {
+          val = Math.min(85, val + 6);
+          if (prog) prog.style.width = `${val}%`;
+        }, 600);
 
         try {
-          await TauriBridge.invoke('remove_deb_package', { packageName: pkg.deb });
-          this.syncInstalledState(pkg.id, false);
-          if (btn) {
-            btn.disabled = false;
-            btn.classList.remove('installed');
-            btn.textContent = 'Kur';
-          }
+          // vendor girdileri (Brave/Helium/Antigravity) root-owned
+          // ayaz-pkg-helper'ın vendor eylemiyle; diğerleri normal apt akışıyla kurulur.
+          const xdgApp = pkg.vendor
+            ? await TauriBridge.invoke('install_vendor_package', { vendor: pkg.vendor })
+            : await TauriBridge.invoke('install_deb_package', { packageName: pkg.deb });
+          clearInterval(interval);
+          this.syncInstalledState(pkg.id, true);
+          if (prog) prog.style.width = '100%';
+          setTimeout(() => { if (prog) prog.style.width = '0%'; }, 400);
+
           this.saveInstalledState();
-          XdgDesktopEngine.removeApplication(pkg.id, pkg.deb, pkg.flatpak);
-          await XdgDesktopEngine.rescanXdgApps(true);
-          Terminal.log(`[APT] '${pkg.name}' (${pkg.deb}) başarıyla kaldırıldı.`, 'success');
+
+          // Host, .desktop dosyasından kimliği ve görünen adı çözer; onu yok
+          // sayarsak kayıt başka bir id ile eklenir ve sonraki taramada menüde
+          // iki kez görünür. .deb dosya adı ikon olarak kullanılamaz.
+          const resolved = xdgApp || {};
+          XdgDesktopEngine.addApplication({
+            id: resolved.id || pkg.id,
+            storeId: pkg.id,
+            name: resolved.name || pkg.name,
+            exec: resolved.exec || pkg.deb,
+            deb: pkg.deb,
+            desktopFile: resolved.desktop_file || '',
+            cat: resolved.cat || pkg.cat,
+            comment: resolved.comment || pkg.desc,
+            is_installed_by_user: true,
+            on_desktop: true
+          });
+          await XdgDesktopEngine.rescanXdgApps(false);
+
+          Terminal.log(`[XDG OK] ${resolved.name || pkg.name} kuruldu ve masaüstüne eklendi.`, 'success');
+          ReportManager.showToast(`${resolved.name || pkg.name} kuruldu; masaüstüne eklendi.`);
           this.render(document.getElementById('store-search')?.value || '');
         } catch (err) {
+          clearInterval(interval);
           if (btn) {
             btn.disabled = false;
-            btn.textContent = 'Kaldır';
+            btn.textContent = 'Kur';
           }
-          Terminal.log(`[ERR] Kaldırma başarısız: ${err}`, 'error');
-          ReportManager.showToast(`Kaldırılamadı: ${err.message || err}`, 'error');
+          if (prog) prog.style.width = '0%';
+          const errMsg = err && err.message ? err.message : String(err);
+          Terminal.log(`[ERR] Kurulum başarısız: ${errMsg}`, 'error');
+          ReportManager.showToast(`Kurulum başarısız: ${errMsg.slice(0, 220)}`, 'error');
           setTimeout(() => this.render(document.getElementById('store-search')?.value || ''), 1600);
         }
-        return;
-      }
-
-      if (btn) {
-        btn.disabled = true;
-        btn.textContent = 'İndiriliyor...';
-      }
-      Terminal.log(pkg.vendor
-        ? `[DEPO] ${pkg.vendor} resmî deposu hazırlanıp '${pkg.deb}' kuruluyor...`
-        : `[APT] sudo apt-get install -y -- ${pkg.deb} yürütülüyor...`, 'cmd');
-
-      let val = 8;
-      if (prog) prog.style.width = `${val}%`;
-      const interval = setInterval(() => {
-        val = Math.min(85, val + 6);
-        if (prog) prog.style.width = `${val}%`;
-      }, 600);
-
-      try {
-        // vendor girdileri (Brave/Helium/Antigravity) root-owned
-        // ayaz-pkg-helper'ın vendor eylemiyle; diğerleri normal apt akışıyla kurulur.
-        const xdgApp = pkg.vendor
-          ? await TauriBridge.invoke('install_vendor_package', { vendor: pkg.vendor })
-          : await TauriBridge.invoke('install_deb_package', { packageName: pkg.deb });
-        clearInterval(interval);
-        this.syncInstalledState(pkg.id, true);
-        if (prog) prog.style.width = '100%';
-        setTimeout(() => { if (prog) prog.style.width = '0%'; }, 400);
-
-        this.saveInstalledState();
-
-        // Host, .desktop dosyasından kimliği ve görünen adı çözer; onu yok
-        // sayarsak kayıt başka bir id ile eklenir ve sonraki taramada menüde
-        // iki kez görünür. .deb dosya adı ikon olarak kullanılamaz.
-        const resolved = xdgApp || {};
-        XdgDesktopEngine.addApplication({
-          id: resolved.id || pkg.id,
-          storeId: pkg.id,
-          name: resolved.name || pkg.name,
-          exec: resolved.exec || pkg.deb,
-          deb: pkg.deb,
-          desktopFile: resolved.desktop_file || '',
-          cat: resolved.cat || pkg.cat,
-          comment: resolved.comment || pkg.desc,
-          is_installed_by_user: true,
-          on_desktop: true
-        });
-        await XdgDesktopEngine.rescanXdgApps(false);
-
-        Terminal.log(`[XDG OK] ${resolved.name || pkg.name} kuruldu ve masaüstüne eklendi.`, 'success');
-        ReportManager.showToast(`${resolved.name || pkg.name} kuruldu; masaüstüne eklendi.`);
-        this.render(document.getElementById('store-search')?.value || '');
-      } catch (err) {
-        clearInterval(interval);
-        if (btn) {
-          btn.disabled = false;
-          btn.textContent = 'Kur';
-        }
-        if (prog) prog.style.width = '0%';
-        const errMsg = err && err.message ? err.message : String(err);
-        Terminal.log(`[ERR] Kurulum başarısız: ${errMsg}`, 'error');
-        ReportManager.showToast(`Kurulum başarısız: ${errMsg.slice(0, 220)}`, 'error');
-        setTimeout(() => this.render(document.getElementById('store-search')?.value || ''), 1600);
+      } finally {
+        if (this._busyIds) this._busyIds.delete(pkg.id);
+        if (usesApt) this._aptBusy = false;
       }
     },
 

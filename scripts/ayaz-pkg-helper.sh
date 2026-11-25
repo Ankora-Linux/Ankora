@@ -166,16 +166,51 @@ need_curl() {
     return 0
 }
 
+safe_apt_update_source() {
+    local src_file="$1"
+    [[ -f "$src_file" ]] || return 1
+    ensure_apt_keyrings_readable
+    local -a opts=(
+        -o "DPkg::Lock::Timeout=30"
+        -o "Acquire::Retries=3"
+        -o "Acquire::http::Timeout=20"
+        -o "Acquire::https::Timeout=20"
+        -o "Dir::Etc::sourcelist=/dev/null"
+    )
+    local tmp_src_dir rc=0
+    tmp_src_dir=$(mktemp -d /tmp/ankora-vendor-src.XXXXXX)
+    cp -f "$src_file" "$tmp_src_dir/$(basename "$src_file")"
+    LC_ALL=C LANG=C /usr/bin/apt-get "${opts[@]}" -o "Dir::Etc::sourceparts=$tmp_src_dir" update >/dev/null 2>&1 || rc=$?
+    if [[ $rc -ne 0 ]]; then
+        sync_clock_if_needed
+        /usr/sbin/update-ca-certificates >/dev/null 2>&1 || true
+        LC_ALL=C LANG=C /usr/bin/apt-get "${opts[@]}" -o "Dir::Etc::sourceparts=$tmp_src_dir" -o "Acquire::ForceIPv4=true" -o "Acquire::Check-Valid-Until=false" -o "Acquire::Check-Date=false" update >/dev/null 2>&1 && rc=0 || rc=$?
+    fi
+    rm -rf "$tmp_src_dir"
+    return "$rc"
+}
+
 vendor_brave() {
     need_net_tools
     rm -f /etc/apt/sources.list.d/brave-browser-release.list /etc/apt/sources.list.d/brave-browser.sources
-    curl -fsSLo /usr/share/keyrings/brave-browser-archive-keyring.gpg \
+    curl -fsSL --retry 2 --max-time 30 -o /usr/share/keyrings/brave-browser-archive-keyring.gpg \
         https://brave-browser-apt-release.s3.brave.com/brave-browser-archive-keyring.gpg
     chmod 0644 /usr/share/keyrings/brave-browser-archive-keyring.gpg
-    curl -fsSLo /etc/apt/sources.list.d/brave-browser-release.sources \
-        https://brave-browser-apt-release.s3.brave.com/brave-browser.sources
+    if ! curl -fsSL --retry 2 --max-time 30 -o /etc/apt/sources.list.d/brave-browser-release.sources \
+        https://brave-browser-apt-release.s3.brave.com/brave-browser.sources \
+        || ! grep -qi '^Types:' /etc/apt/sources.list.d/brave-browser-release.sources 2>/dev/null; then
+        cat << 'BRAVESRC' > /etc/apt/sources.list.d/brave-browser-release.sources
+Types: deb
+URIs: https://brave-browser-apt-release.s3.brave.com
+Suites: stable
+Components: main
+Architectures: amd64
+Signed-By: /usr/share/keyrings/brave-browser-archive-keyring.gpg
+BRAVESRC
+    fi
     chmod 0644 /etc/apt/sources.list.d/brave-browser-release.sources
     safe_apt_update >/dev/null 2>&1 || true
+    safe_apt_update_source /etc/apt/sources.list.d/brave-browser-release.sources || true
     safe_apt_get install -y --no-install-recommends -- brave-browser
     rm -f /etc/apt/sources.list.d/brave-browser-release.list /etc/apt/sources.list.d/brave-browser.sources 2>/dev/null || true
 }
@@ -211,16 +246,15 @@ Architectures: amd64 arm64
 Signed-By: /usr/share/keyrings/helium.gpg
 HELIUMSRC
     chmod 0644 /etc/apt/sources.list.d/helium.sources
-    if ! safe_apt_update >/dev/null 2>&1; then
-        safe_apt_update || true
-    fi
+    safe_apt_update >/dev/null 2>&1 || true
+    safe_apt_update_source /etc/apt/sources.list.d/helium.sources || true
     safe_apt_get install -y --no-install-recommends -- helium-bin
 }
 
 vendor_antigravity() {
     need_net_tools
     mkdir -p /etc/apt/keyrings
-    curl -fsSL https://us-central1-apt.pkg.dev/doc/repo-signing-key.gpg \
+    curl -fsSL --retry 2 --max-time 30 https://us-central1-apt.pkg.dev/doc/repo-signing-key.gpg \
         | gpg --dearmor --yes -o /etc/apt/keyrings/antigravity-repo-key.gpg
     chmod 0644 /etc/apt/keyrings/antigravity-repo-key.gpg
     rm -f /etc/apt/sources.list.d/antigravity.list
@@ -232,9 +266,8 @@ Components: main
 Signed-By: /etc/apt/keyrings/antigravity-repo-key.gpg
 AGYSRC
     chmod 0644 /etc/apt/sources.list.d/antigravity.sources
-    if ! safe_apt_update >/dev/null 2>&1; then
-        safe_apt_update || true
-    fi
+    safe_apt_update >/dev/null 2>&1 || true
+    safe_apt_update_source /etc/apt/sources.list.d/antigravity.sources || true
     safe_apt_get install -y --no-install-recommends -- antigravity
 }
 

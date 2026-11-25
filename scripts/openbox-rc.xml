@@ -259,10 +259,25 @@
       </action>
     </keybind>
 
-    <!-- PrintScreen: Ekran Görüntüsü -->
+    <!-- PrintScreen / SysRq: Doğrudan canlı ekran görüntüsü (odak çalmadan) -->
     <keybind key="Print">
       <action name="Execute">
         <command>/usr/bin/ayaz-ctl screenshot</command>
+      </action>
+    </keybind>
+    <keybind key="Sys_Req">
+      <action name="Execute">
+        <command>/usr/bin/ayaz-ctl screenshot</command>
+      </action>
+    </keybind>
+    <keybind key="A-Print">
+      <action name="Execute">
+        <command>/usr/bin/ayaz-ctl screenshot-window</command>
+      </action>
+    </keybind>
+    <keybind key="A-Sys_Req">
+      <action name="Execute">
+        <command>/usr/bin/ayaz-ctl screenshot-window</command>
       </action>
     </keybind>
   </keyboard>

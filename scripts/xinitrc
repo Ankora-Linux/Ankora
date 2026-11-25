@@ -13,6 +13,12 @@ if [ -z "${DBUS_SESSION_BUS_ADDRESS:-}" ] && command -v dbus-launch >/dev/null 2
     eval "$(dbus-launch --sh-syntax --exit-with-session)" 2>/dev/null || true
 fi
 
+# Flatpak kullanıcı/sistem uygulama ve simge dizinlerini XDG yoluna ekle
+_FP_USER="${HOME}/.local/share/flatpak/exports/share"
+_FP_SYS="/var/lib/flatpak/exports/share"
+export XDG_DATA_DIRS="${_FP_USER}:${_FP_SYS}:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
+unset _FP_USER _FP_SYS
+
 xsetroot -solid "#0b0c10" 2>/dev/null || true
 xset -dpms 2>/dev/null || true
 xset s off 2>/dev/null || true

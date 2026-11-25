@@ -14,6 +14,10 @@ fi
 if [ -z "${DBUS_SESSION_BUS_ADDRESS:-}" ] && command -v dbus-launch >/dev/null 2>&1; then
     eval "$(dbus-launch --sh-syntax --exit-with-session)" 2>/dev/null || true
 fi
+_FP_USER="${HOME}/.local/share/flatpak/exports/share"
+_FP_SYS="/var/lib/flatpak/exports/share"
+export XDG_DATA_DIRS="${_FP_USER}:${_FP_SYS}:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
+unset _FP_USER _FP_SYS
 if command -v xsetroot >/dev/null 2>&1; then
     xsetroot -solid "#13141b"
 fi

@@ -1559,8 +1559,49 @@ fn install_vendor_package_blocking(vendor: String) -> Result<XdgApplication, Str
             Err(e) => return Err(format!("Paket yardımcısı çalıştırılamadı: {}", e)),
         };
         if !res.status.success() {
-            let err = String::from_utf8_lossy(&res.stderr);
-            return Err(format!("Vendor kurulumu başarısız: {}", err));
+            let exit_code = res.status.code().unwrap_or(-1);
+            let err = String::from_utf8_lossy(&res.stderr).trim().to_string();
+            let out = String::from_utf8_lossy(&res.stdout).trim().to_string();
+            let combined = match (err.is_empty(), out.is_empty()) {
+                (false, false) => format!("{}\n{}", err, out),
+                (false, true) => err,
+                (true, false) => out,
+                (true, true) => "Bilinmeyen depo/paket hatası".to_string(),
+            };
+            let mut detail = combined
+                .lines()
+                .filter(|l| !l.trim().is_empty())
+                .rev()
+                .take(6)
+                .collect::<Vec<_>>()
+                .into_iter()
+                .rev()
+                .collect::<Vec<_>>()
+                .join("\n");
+            let detail_l = detail.to_lowercase();
+            let auth_failed = matches!(exit_code, 126 | 127)
+                || detail_l.contains("not authorized")
+                || detail_l.contains("authentication")
+                || detail_l.contains("polkit")
+                || detail_l.contains("dismissed")
+                || detail_l.contains("password is required")
+                || detail_l.contains("sudo:");
+            if detail_l.contains("temporary failure")
+                || detail_l.contains("could not resolve")
+                || detail_l.contains("connection refused")
+                || detail_l.contains("network is unreachable")
+            {
+                detail = format!(
+                    " — Ağ bağlantısı yok veya resmî depoya ulaşılamıyor.\n{}",
+                    detail
+                );
+            } else if auth_failed && !sudo_available() && pkexec_available() {
+                detail = format!(
+                    " — Yönetici yetkisi penceresi onaylanmadı veya açılamadı.\n{}",
+                    detail
+                );
+            }
+            return Err(format!("Vendor kurulumu başarısız:\n{}", detail));
         }
         // Depo eklendikten ve paket kurulduktan sonra XDG taraması ile
         // .desktop yerleşimi normal paket akışı üzerinden yapılır; paket zaten
@@ -2282,23 +2323,23 @@ fn run_pkexec(prog: &str, args: &[&str]) -> Option<std::process::Output> {
         return None;
     }
     ensure_polkit_agent_running();
-    // Parola penceresi Ayaz masaüstü katmanının arkasında kalmasın
+    // Parola penceresi (openbox-rc.xml'de layer=above) Ayaz'ın arkasında kalmasın;
+    // Ayaz yalnızca `above` katmanından `normal` katmana alınır (add,below yapılmaz,
+    // böylece mağaza harici pencerelerin arkasına düşmez ve bitince odak çalınmaz).
     #[cfg(target_os = "linux")]
-    lower_ayaz_window();
-    let res = Command::new("pkexec")
+    {
+        if let Some(win_id) = find_ayaz_window_id() {
+            let _ = Command::new("wmctrl")
+                .args(["-i", "-r", &win_id, "-b", "remove,above"])
+                .output();
+        }
+    }
+    Command::new("pkexec")
         .arg(prog)
         .args(args)
         .stdin(Stdio::null())
         .output()
-        .ok();
-    #[cfg(target_os = "linux")]
-    raise_ayaz_window();
-    let out = res?;
-    if out.status.success() || !out.stderr.is_empty() || !out.stdout.is_empty() {
-        Some(out)
-    } else {
-        None
-    }
+        .ok()
 }
 
 // Root gereken yollar: önce sudo -n denenir (kurulu sistemlerde /etc/sudoers.d/ankora-updater
@@ -7641,6 +7682,8 @@ fn find_ayaz_window_id() -> Option<String> {
             String::new()
         };
         if wm_class.contains("ankora-desktop")
+            || wm_class.contains("ayaz-de")
+            || wm_class.contains("org.ankora.ayaz")
             || title.contains("ayaz · ankora")
             || title.contains("ayaz — ankora")
         {
@@ -7659,14 +7702,7 @@ async fn activate_native_window(id: String) -> Result<(), String> {
     tauri::async_runtime::spawn_blocking(move || {
         #[cfg(target_os = "linux")]
         {
-            if let Some(ayaz_id) = find_ayaz_window_id() {
-                let _ = Command::new("wmctrl")
-                    .args(["-i", "-r", &ayaz_id, "-b", "remove,above"])
-                    .output();
-                let _ = Command::new("wmctrl")
-                    .args(["-i", "-r", &ayaz_id, "-b", "add,below"])
-                    .output();
-            }
+            lower_ayaz_window();
             let _ = Command::new("wmctrl")
                 .args(["-i", "-r", &clean, "-b", "remove,hidden"])
                 .output();
@@ -7674,6 +7710,12 @@ async fn activate_native_window(id: String) -> Result<(), String> {
                 .args(["-i", "-r", &clean, "-b", "remove,shaded"])
                 .output();
             let _ = Command::new("wmctrl").args(["-i", "-a", &clean]).output();
+            let _ = Command::new("xdotool")
+                .args(["windowraise", &clean])
+                .output();
+            let _ = Command::new("xdotool")
+                .args(["windowactivate", &clean])
+                .output();
         }
         Ok(())
     })
@@ -8871,7 +8913,7 @@ async fn install_flatpak_app(app_id: String) -> Result<String, String> {
     #[cfg(target_os = "linux")]
     {
         tauri::async_runtime::spawn_blocking(move || {
-            let _ = Command::new("flatpak")
+            let remote_out = Command::new("flatpak")
                 .args([
                     "remote-add",
                     "--user",
@@ -8880,6 +8922,23 @@ async fn install_flatpak_app(app_id: String) -> Result<String, String> {
                     "https://dl.flathub.org/repo/flathub.flatpakrepo",
                 ])
                 .output();
+            let remote_err = match &remote_out {
+                Ok(o) if !o.status.success() => {
+                    let e = String::from_utf8_lossy(&o.stderr).trim().to_string();
+                    if e.is_empty() {
+                        String::from_utf8_lossy(&o.stdout).trim().to_string()
+                    } else {
+                        e
+                    }
+                }
+                Err(e) => {
+                    return Err(format!(
+                        "Flatpak bulunamadı veya çalıştırılamadı: {}",
+                        e
+                    ));
+                }
+                _ => String::new(),
+            };
             let out = Command::new("flatpak")
                 .args(["install", "--user", "-y", "--noninteractive", "flathub", &id])
                 .output();
@@ -8887,12 +8946,27 @@ async fn install_flatpak_app(app_id: String) -> Result<String, String> {
                 Ok(o) if o.status.success() => Ok(format!("{} Flatpak başarıyla kuruldu.", id)),
                 Ok(o) => {
                     let err = String::from_utf8_lossy(&o.stderr).trim().to_string();
-                    let msg = if err.is_empty() {
-                        String::from_utf8_lossy(&o.stdout).trim().to_string()
-                    } else {
+                    let out_s = String::from_utf8_lossy(&o.stdout).trim().to_string();
+                    let raw = if !err.is_empty() {
                         err
+                    } else if !out_s.is_empty() {
+                        out_s
+                    } else {
+                        remote_err.clone()
                     };
-                    Err(format!("Flatpak kurulum hatası: {}", msg))
+                    let low = raw.to_lowercase();
+                    let hint = if low.contains("could not resolve")
+                        || low.contains("temporary failure")
+                        || low.contains("network is unreachable")
+                        || low.contains("unable to connect")
+                    {
+                        " — İnternet bağlantısı yok veya Flathub sunucusuna ulaşılamıyor.\n"
+                    } else if low.contains("remote") && low.contains("not found") && !remote_err.is_empty() {
+                        " — Flathub deposu eklenemedi; ağ bağlantısını kontrol edin.\n"
+                    } else {
+                        ""
+                    };
+                    Err(format!("Flatpak kurulum hatası:{}{}", hint, raw))
                 }
                 Err(e) => Err(format!("Flatpak çalıştırılamadı: {}", e)),
             }
@@ -12092,11 +12166,14 @@ fn main() {
                                     Some(true),
                                     Some(true),
                                 ) {
-                                    let _ = Command::new("notify-send")
-                                        .args(["-a", "AyazDE", "-i", "camera"])
+                                    let mut ncmd = Command::new("notify-send");
+                                    ncmd.args(["-a", "AyazDE", "-i", "camera"])
                                         .arg("Ekran görüntüsü kaydedildi")
                                         .arg(res.file_path)
-                                        .output();
+                                        .stdin(Stdio::null())
+                                        .stdout(Stdio::null())
+                                        .stderr(Stdio::null());
+                                    let _ = spawn_reaped(&mut ncmd);
                                 }
                             });
                         },

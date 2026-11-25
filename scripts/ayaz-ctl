@@ -10,19 +10,100 @@ CMD="${1:-help}"
 # Ayaz ana penceresinin X11 ID'sini bulur
 get_ayaz_win_id() {
     local wid=""
-    if command -v xdotool >/dev/null 2>&1; then
-        wid=$(xdotool search --name "Ayaz · Ankora" 2>/dev/null | head -n 1 || true)
-        if [ -z "$wid" ]; then
-            wid=$(xdotool search --name "Ayaz — Ankora" 2>/dev/null | head -n 1 || true)
-        fi
-        if [ -z "$wid" ]; then
-            wid=$(xdotool search --class "ayaz" 2>/dev/null | head -n 1 || true)
-        fi
+    if command -v wmctrl >/dev/null 2>&1; then
+        wid=$(wmctrl -l -x 2>/dev/null | awk '
+            tolower($3) ~ /ankora-desktop|ayaz-de|org\.ankora\.ayaz/ ||
+            tolower($0) ~ /ayaz · ankora|ayaz — ankora/ { print $1; exit }
+        ' || true)
     fi
-    if [ -z "$wid" ] && command -v wmctrl >/dev/null 2>&1; then
-        wid=$(wmctrl -l -x 2>/dev/null | awk '/[aA]yaz/{print $1; exit}' || true)
+    if [ -z "$wid" ] && command -v xdotool >/dev/null 2>&1; then
+        wid=$(xdotool search --onlyvisible --name "Ayaz · Ankora" 2>/dev/null | head -n 1 || true)
+        if [ -z "$wid" ]; then
+            wid=$(xdotool search --onlyvisible --name "Ayaz — Ankora" 2>/dev/null | head -n 1 || true)
+        fi
+        if [ -z "$wid" ]; then
+            wid=$(xdotool search --onlyvisible --class "ayaz" 2>/dev/null | head -n 1 || true)
+        fi
     fi
     echo "$wid"
+}
+
+# XDG Resimler klasörünü çöz (Türkçe oturumda ~/Resimler)
+resolve_pictures_dir() {
+    local pic_dir=""
+    if command -v xdg-user-dir >/dev/null 2>&1; then
+        pic_dir=$(xdg-user-dir PICTURES 2>/dev/null || true)
+    fi
+    if [ -z "$pic_dir" ] || [ "$pic_dir" = "$HOME" ]; then
+        if [ -d "$HOME/Resimler" ]; then
+            pic_dir="$HOME/Resimler"
+        elif [ -d "$HOME/Pictures" ]; then
+            pic_dir="$HOME/Pictures"
+        else
+            pic_dir="$HOME/Resimler"
+        fi
+    fi
+    mkdir -p "$pic_dir" 2>/dev/null || pic_dir="/tmp"
+    echo "$pic_dir"
+}
+
+# Canlı X11 ekran görüntüsü al: AyazDE penceresine odak/katman dokunmaz;
+# harici pencereler (Brave vb.) kesinlikle arka plana atılmaz.
+capture_x11_screenshot() {
+    local mode="${1:-fullscreen}"
+    local lock_file="/tmp/ayaz-screenshot-${UID:-1000}.stamp"
+    local now_ms last_ms diff_ms
+    now_ms=$(date +%s%3N 2>/dev/null || echo 0)
+    case "$now_ms" in ''|*[!0-9]*) now_ms=0 ;; esac
+    if [ -f "$lock_file" ] && [ "$now_ms" != "0" ]; then
+        last_ms=$(cat "$lock_file" 2>/dev/null || echo 0)
+        case "$last_ms" in ''|*[!0-9]*) last_ms=0 ;; esac
+        if [ "$last_ms" -gt 0 ]; then
+            diff_ms=$(( now_ms - last_ms ))
+            if [ "$diff_ms" -ge 0 ] && [ "$diff_ms" -lt 450 ]; then
+                return 0
+            fi
+        fi
+    fi
+    printf '%s\n' "$now_ms" > "$lock_file" 2>/dev/null || true
+
+    local pic_dir stamp out_file
+    pic_dir=$(resolve_pictures_dir)
+    stamp=$(date +%Y%m%d-%H%M%S)
+    out_file="${pic_dir}/Ekran-Goruntusu_${stamp}.png"
+    if [ -e "$out_file" ]; then
+        out_file="${pic_dir}/Ekran-Goruntusu_${stamp}_$$.png"
+    fi
+
+    if ! command -v scrot >/dev/null 2>&1; then
+        if command -v notify-send >/dev/null 2>&1; then
+            notify-send -a "AyazDE" -u normal "Ekran görüntüsü alınamadı" "scrot aracı kurulu değil." </dev/null >/dev/null 2>&1 &
+        fi
+        return 1
+    fi
+
+    local rc=0
+    if [ "$mode" = "window" ]; then
+        scrot -u -b "$out_file" >/dev/null 2>&1 || rc=$?
+    else
+        scrot "$out_file" >/dev/null 2>&1 || rc=$?
+    fi
+
+    if [ "$rc" -ne 0 ] || [ ! -s "$out_file" ]; then
+        if command -v notify-send >/dev/null 2>&1; then
+            notify-send -a "AyazDE" -u normal "Ekran görüntüsü alınamadı" "X11 yakalama başarısız oldu." </dev/null >/dev/null 2>&1 &
+        fi
+        return 1
+    fi
+
+    if command -v xclip >/dev/null 2>&1; then
+        xclip -selection clipboard -t image/png -i "$out_file" </dev/null >/dev/null 2>&1 &
+    fi
+
+    if command -v notify-send >/dev/null 2>&1; then
+        notify-send -a "AyazDE" -i camera "Ekran görüntüsü kaydedildi" "$(basename "$out_file") (panoya kopyalandı)" </dev/null >/dev/null 2>&1 &
+    fi
+    return 0
 }
 
 case "$CMD" in
@@ -96,12 +177,13 @@ case "$CMD" in
         ;;
 
     screenshot)
-        # 7. Ekran görüntüsü alma
-        WID=$(get_ayaz_win_id)
-        if [ -n "$WID" ] && command -v xdotool >/dev/null 2>&1; then
-            xdotool windowactivate --sync "$WID" 2>/dev/null || true
-            xdotool key --clearmodifiers Print 2>/dev/null || true
-        fi
+        # 7. Canlı tam ekran görüntüsü al (odak/katman değiştirmeden)
+        capture_x11_screenshot fullscreen
+        ;;
+
+    screenshot-window)
+        # 7b. Etkin pencere görüntüsü al (Alt+PrtSc, odak/katman değiştirmeden)
+        capture_x11_screenshot window
         ;;
 
     help|*)
@@ -113,7 +195,8 @@ case "$CMD" in
         echo "  raise-ayaz        Ayaz penceresini öne al (Menü katmanı)"
         echo "  lower-ayaz        Ayaz penceresini arka plana al (Masaüstü katmanı)"
         echo "  lock              Ekranı güvenli kilit moduna al"
-        echo "  screenshot        Ekran görüntüsü aracını tetikle"
+        echo "  screenshot        Canlı tam ekran görüntüsü al (odak çalmadan)"
+        echo "  screenshot-window Etkin pencerenin görüntüsünü al (odak çalmadan)"
         ;;
 esac
 exit 0
