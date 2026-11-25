@@ -13,14 +13,19 @@
       // 1. Kabuk DOM kapsayıcılarını oluştur
       this.ensureShellContainers();
 
-      // 2. Kayıtlı yüzü yükle (varsayılan: Bostan '3')
-      const savedFace = (window.SafeStorage && window.SafeStorage.getItem('ankora_face')) || '3';
-      this.setFace(savedFace, false);
+      // 2. Kayıtlı yüzü veya URL önizleme parametresini yükle (varsayılan: Bostan '3')
+      const urlFace = new URLSearchParams(window.location.search).get('face');
+      if (urlFace && ['default', 'legacy', '2', '3', '8'].includes(urlFace)) {
+        this.setFace(urlFace, false, true, true);
+      } else {
+        const savedFace = (window.SafeStorage && window.SafeStorage.getItem('ankora_face')) || '3';
+        this.setFace(savedFace, false);
+      }
 
-      // 3. Ayarlar paneli kart seçimlerini dinle
+      // 3. Ayarlar paneli ve Karşılayıcı kart seçimlerini dinle
       document.addEventListener('click', (e) => {
         if (!e.target || typeof e.target.closest !== 'function') return;
-        const faceCard = e.target.closest('.face-card-choice');
+        const faceCard = e.target.closest('.face-card-choice, .welcome-face-chip');
         if (faceCard) {
           const face = faceCard.getAttribute('data-face');
           if (face) this.setFace(face, true);
@@ -92,15 +97,15 @@
       }
     },
 
-    setFace(faceId, persist = true, syncTheme = true) {
+    setFace(faceId, persist = true, syncTheme = true, forceThemeSync = false) {
       let id = String(faceId || '3');
       if (!['default', 'legacy', '2', '3', '8'].includes(id)) id = '3';
       this.currentFace = id;
       document.documentElement.setAttribute('data-face', this.currentFace);
       document.body.setAttribute('data-face', this.currentFace);
 
-      // Ayarlar kartları active durumunu güncelle
-      document.querySelectorAll('.face-card-choice').forEach(card => {
+      // Ayarlar ve Karşılayıcı kartları active durumunu güncelle
+      document.querySelectorAll('.face-card-choice, .welcome-face-chip').forEach(card => {
         card.classList.toggle('active', card.getAttribute('data-face') === this.currentFace);
       });
 
@@ -111,11 +116,11 @@
         }
       }
 
-      if (persist && syncTheme && window.ThemeManager && typeof window.ThemeManager.setTheme === 'function') {
+      if ((persist || forceThemeSync) && syncTheme && window.ThemeManager && typeof window.ThemeManager.setTheme === 'function') {
         const isFull = typeof window.ThemeManager.isFullSystemTheme === 'function'
           ? window.ThemeManager.isFullSystemTheme()
           : true;
-        if (isFull) {
+        if (isFull || forceThemeSync) {
           const faceThemes = {
             default: 'theme-dark',
             '2': 'theme-bakir',
@@ -124,8 +129,8 @@
             legacy: 'theme-classic-dark'
           };
           const targetTheme = faceThemes[this.currentFace];
-          if (targetTheme && window.ThemeManager.currentTheme !== targetTheme) {
-            window.ThemeManager.setTheme(targetTheme, true);
+          if (targetTheme && (window.ThemeManager.currentTheme !== targetTheme || forceThemeSync)) {
+            window.ThemeManager.setTheme(targetTheme, persist, true);
           }
         }
       }
@@ -150,7 +155,9 @@
         } else if (this.currentFace === 'legacy') {
           margins = { top: 0, bottom: tbH };
         } else {
-          const fm = { '2': [34, 70], '3': [36, 68], '8': [32, 42] }[this.currentFace];
+          const dockH = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--dock-height'), 10)
+            || Math.round(tbH * 1.36);
+          const fm = { '2': [32, dockH + 16], '3': [28, dockH + 16], '8': [46, 0] }[this.currentFace];
           if (fm) margins = { top: fm[0], bottom: fm[1] };
         }
         window.TauriBridge.invoke('set_openbox_margins', margins).catch(() => {});
@@ -281,41 +288,45 @@
       }
     },
 
+    // Özgün Linux Papirus (GPL-3.0) ikon paketi + Ankora Mağaza özel logosu
+    getNativeDockIcon(id) {
+      const map = {
+        files: 'icons/linux/files.svg',
+        brave: 'icons/linux/brave.svg',
+        store: 'icons/linux/ankora-store.png',
+        terminal: 'icons/linux/terminal.svg',
+        settings: 'icons/linux/settings.svg',
+        installer: 'icons/linux/installer.svg',
+        notes: 'icons/linux/notes.svg',
+        taskmgr: 'icons/linux/taskmgr.svg',
+        start: 'icons/linux/apps.svg',
+        ai: 'logo.svg'
+      };
+      const src = map[id];
+      if (!src) return '';
+      return `<img class="dock-colloid-icon" src="${src}" width="38" height="38" alt="" draggable="false">`;
+    },
+
     // ------------------------------------------------------------------------
-    // YÜZ 2: BAKIR (34px Sıcak Grafit Üst Çubuk + Merkezlenmiş Mat Alt Dock)
+    // YÜZ 2: BAKIR — GNOME 47 / POP!_OS COSMIC MİMARİSİ
+    // (32px üst çubuk: sol çalışma alanı hapı, ortalanmış tarih/saat, sağ Hızlı Ayarlar; alt COSMIC dock)
     // ------------------------------------------------------------------------
     renderBakir(topPanel, dock, meta) {
       if (meta) meta.textContent = '';
 
       const leftGroup = document.createElement('div');
-      leftGroup.className = 'bakir-panel-left';
-
-      const startBtn = document.createElement('button');
-      startBtn.type = 'button';
-      startBtn.className = 'bakir-start-btn ayaz-start-trigger';
-      startBtn.title = 'Uygulamalar Menüsü (Ctrl + Boşluk)';
-      startBtn.setAttribute('aria-label', 'Uygulamalar menüsünü aç');
-      startBtn.innerHTML = `<img src="logo.svg" alt="" width="15" height="15" class="face-brand-logo" aria-hidden="true"><span>Uygulamalar</span>`;
-      startBtn.addEventListener('click', (e) => this.toggleStartMenu(e));
-      leftGroup.appendChild(startBtn);
-
-      const activePill = document.createElement('span');
-      activePill.className = 'bakir-win-pill';
-      activePill.id = 'bakir-active-title';
-      activePill.textContent = 'Ankora Linux';
-      leftGroup.appendChild(activePill);
+      leftGroup.className = 'bakir-panel-left gnome-bar-left';
 
       const wsGroup = document.createElement('div');
-      wsGroup.className = 'face-ws-group';
+      wsGroup.className = 'face-ws-group gnome-ws-dots';
       wsGroup.setAttribute('role', 'group');
       wsGroup.setAttribute('aria-label', 'Çalışma Alanları');
       const activeWs = (window.WorkspaceManager && window.WorkspaceManager.active) || 1;
       for (let i = 1; i <= 4; i++) {
         const btn = document.createElement('button');
         btn.type = 'button';
-        btn.className = `face-ws-btn${i === activeWs ? ' active' : ''}`;
+        btn.className = `face-ws-btn gnome-ws-dot${i === activeWs ? ' active' : ''}`;
         btn.setAttribute('data-ws', String(i));
-        btn.textContent = String(i);
         btn.title = `Çalışma Alanı ${i}`;
         btn.setAttribute('aria-label', `Çalışma Alanı ${i}`);
         btn.addEventListener('click', () => {
@@ -327,25 +338,59 @@
         wsGroup.appendChild(btn);
       }
       leftGroup.appendChild(wsGroup);
+
+      const startBtn = document.createElement('button');
+      startBtn.type = 'button';
+      startBtn.className = 'bakir-start-btn ayaz-start-trigger';
+      startBtn.title = 'Uygulamalar Menüsü (Ctrl + Boşluk)';
+      startBtn.setAttribute('aria-label', 'Uygulamalar menüsünü aç');
+      startBtn.innerHTML = `<span>Uygulamalar</span>`;
+      startBtn.addEventListener('click', (e) => this.toggleStartMenu(e));
+      leftGroup.appendChild(startBtn);
+
+      const activePill = document.createElement('span');
+      activePill.className = 'bakir-win-pill';
+      activePill.id = 'bakir-active-title';
+      activePill.textContent = 'Ankora Linux';
+      leftGroup.appendChild(activePill);
+
       topPanel.appendChild(leftGroup);
 
-      const sp = document.createElement('div');
-      sp.className = 'face-panel-spacer';
-      topPanel.appendChild(sp);
+      // GNOME 47: Tam ortalanmış tarih ve saat hapı
+      const centerClock = document.createElement('button');
+      centerClock.type = 'button';
+      centerClock.className = 'bakir-tray-time gnome-center-clock';
+      centerClock.title = 'Takvim ve Bildirimler';
+      centerClock.setAttribute('aria-label', 'Saat ve Takvim');
+      centerClock.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const clk = document.getElementById('tray-clock');
+        if (clk) clk.click();
+      });
+      topPanel.appendChild(centerClock);
+
       this.ensureMediaBar(topPanel);
 
+      // Sağ GNOME 47 birleşik sistem menüsü hapı
       const tray = document.createElement('div');
-      tray.className = 'face-tray-group';
+      tray.className = 'face-tray-group gnome-quick-pill';
       tray.innerHTML = `
+        <button type="button" class="bakir-tray-btn tray-click-ai" title="Ankora AI" aria-label="Ankora AI">
+          <img src="logo.svg" width="14" height="14" alt="" aria-hidden="true">
+        </button>
         <button type="button" class="bakir-tray-btn tray-click-wifi" title="Ağ Durumu ve Hızlı Ayarlar" aria-label="Ağ ve Hızlı Ayarlar">
           <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 15a11 11 0 0 1 16 0M7.5 18a6 6 0 0 1 9 0"/><circle cx="12" cy="20.4" r=".9"/></svg>
         </button>
         <button type="button" class="bakir-tray-btn tray-click-audio" title="Ses ve Parlaklık" aria-label="Ses ve Parlaklık">
-          <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="2.4" height="8"/><rect x="9" y="7" width="2.4" height="11"/><rect x="14" y="9" width="2.4" height="9"/></svg>
+          <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
         </button>
         <span class="bakir-tray-tag" title="Klavye Yerleşimi">TR</span>
-        <button type="button" class="bakir-tray-time" title="Takvim ve Bildirimler" aria-label="Saat ve Takvim"></button>
       `;
+      tray.querySelector('.tray-click-ai').addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (typeof window.toggleAiMiniChat === 'function') window.toggleAiMiniChat();
+        else this.openApp('win-ai');
+      });
       tray.querySelector('.tray-click-wifi').addEventListener('click', (e) => {
         e.stopPropagation();
         const el = document.getElementById('tray-wifi-btn') || document.getElementById('tray-status-island');
@@ -356,22 +401,17 @@
         const el = document.getElementById('tray-volume-btn') || document.getElementById('tray-status-island');
         if (el) el.click();
       });
-      tray.querySelector('.bakir-tray-time').addEventListener('click', (e) => {
-        e.stopPropagation();
-        const clk = document.getElementById('tray-clock');
-        if (clk) clk.click();
-      });
       topPanel.appendChild(tray);
 
-      // Alt Bakır Dock (Merkezlenmiş 50px Mat Şerit)
+      // Alt COSMIC Dock (Colloid gerçek ikonlarla)
       const apps = [
-        { id: 'files', winId: 'win-files', title: 'Dosyalar', icon: '<path d="M3 6.5A1.5 1.5 0 0 1 4.5 5h4.3l2 2.2H19.5A1.5 1.5 0 0 1 21 8.7v9.8a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5z"/>', action: () => this.openApp('win-files') },
-        { id: 'brave', winId: 'win-browser', title: 'Brave Web Tarayıcısı', icon: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polygon points="10.2 10.2 15.5 8.5 13.8 13.8 8.5 15.5 10.2 10.2"/>', action: () => this.launchOrToggleBrave() },
-        { id: 'store', winId: 'win-store', title: 'Ankora Mağaza', icon: '<path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/>', action: () => this.openApp('win-store') },
-        { id: 'terminal', winId: 'win-terminal', title: 'Terminal', icon: '<rect x="3" y="4.5" width="18" height="15" rx="1.5"/><path d="M7.5 9.5l3 2.5-3 2.5M12.5 15h4.5"/>', action: () => this.openApp('win-terminal') },
-        { id: 'settings', winId: 'win-settings', title: 'Sistem Ayarları', icon: '<path d="M4 7h16M4 12h16M4 17h16"/><circle cx="14.5" cy="7" r="2"/><circle cx="8" cy="12" r="2"/><circle cx="16" cy="17" r="2"/>', action: () => this.openApp('win-settings') },
+        { id: 'files', winId: 'win-files', title: 'Dosyalar', action: () => this.openApp('win-files') },
+        { id: 'brave', winId: 'win-browser', title: 'Brave Web Tarayıcısı', action: () => this.launchOrToggleBrave() },
+        { id: 'store', winId: 'win-store', title: 'Yazılım Mağazası', action: () => this.openApp('win-store') },
+        { id: 'terminal', winId: 'win-terminal', title: 'Uçbirim', action: () => this.openApp('win-terminal') },
+        { id: 'settings', winId: 'win-settings', title: 'Sistem Ayarları', action: () => this.openApp('win-settings') },
         { sep: true },
-        { id: 'start', title: 'Uygulama Menüsü', icon: '<rect x="4" y="4" width="6" height="6"/><rect x="14" y="4" width="6" height="6"/><rect x="4" y="14" width="6" height="6"/><rect x="14" y="14" width="6" height="6"/>', action: (e) => this.toggleStartMenu(e) }
+        { id: 'start', title: 'Tüm Uygulamalar', action: (e) => this.toggleStartMenu(e) }
       ];
 
       apps.forEach(app => {
@@ -389,78 +429,95 @@
         if (app.winId) btn.setAttribute('data-win-id', app.winId);
         btn.title = app.title;
         btn.setAttribute('aria-label', app.title);
-        btn.innerHTML = `<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${app.icon}</svg>`;
+        btn.innerHTML = this.getNativeDockIcon(app.id);
         btn.addEventListener('click', (e) => app.action(e));
         dock.appendChild(btn);
       });
     },
 
     // ------------------------------------------------------------------------
-    // YÜZ 3: BOSTAN (36px Aydınlık Keten Üst Çubuk + Kompakt Alt Kapsül Dock)
+    // YÜZ 3: BOSTAN — macOS / ELEMENTARY OS MİMARİSİ
+    // (28px buzlu cam menü çubuğu + ortalanmış tarih/saat + yüzen Colloid dock)
     // ------------------------------------------------------------------------
     renderBostan(topPanel, dock, hero) {
       if (hero) hero.innerHTML = '';
 
       const leftGroup = document.createElement('div');
-      leftGroup.className = 'bostan-panel-left';
+      leftGroup.className = 'bostan-panel-left mac-menubar-left';
 
       const startBtn = document.createElement('button');
       startBtn.type = 'button';
-      startBtn.className = 'bostan-start-btn ayaz-start-trigger';
+      startBtn.className = 'bostan-start-btn ayaz-start-trigger mac-apple-btn';
       startBtn.title = 'Uygulamalar Menüsü (Ctrl + Boşluk)';
-      startBtn.setAttribute('aria-label', 'Uygulamalar menüsünü aç');
-      startBtn.innerHTML = `<img src="logo.svg" alt="" width="15" height="15" class="face-brand-logo" aria-hidden="true"><span>Uygulamalar</span>`;
+      startBtn.setAttribute('aria-label', 'Ankora menüsünü aç');
+      startBtn.innerHTML = `<img src="logo.svg" alt="" width="15" height="15" class="face-brand-logo" aria-hidden="true">`;
       startBtn.addEventListener('click', (e) => this.toggleStartMenu(e));
       leftGroup.appendChild(startBtn);
 
-      const wsGroup = document.createElement('div');
-      wsGroup.className = 'bostan-ws-group';
-      wsGroup.setAttribute('role', 'group');
-      wsGroup.setAttribute('aria-label', 'Çalışma Alanları');
-      const activeWs = (window.WorkspaceManager && window.WorkspaceManager.active) || 1;
-      for (let i = 1; i <= 4; i++) {
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = `face-ws-btn${i === activeWs ? ' active' : ''}`;
-        btn.setAttribute('data-ws', String(i));
-        btn.textContent = String(i);
-        btn.title = `Çalışma Alanı ${i}`;
-        btn.setAttribute('aria-label', `Çalışma Alanı ${i}`);
-        btn.addEventListener('click', () => {
-          if (window.WorkspaceManager) window.WorkspaceManager.set(i);
-          wsGroup.querySelectorAll('.face-ws-btn').forEach((b, idx) => {
-            b.classList.toggle('active', idx + 1 === i);
-          });
-        });
-        wsGroup.appendChild(btn);
-      }
-      leftGroup.appendChild(wsGroup);
-
       const topNote = document.createElement('span');
-      topNote.className = 'bostan-top-note';
+      topNote.className = 'bostan-top-note mac-active-app';
       topNote.id = 'bostan-active-title';
-      topNote.textContent = 'Bostan Yüzü · Aydınlık Çalışma Ortamı';
+      topNote.textContent = 'Ankora Masaüstü';
       leftGroup.appendChild(topNote);
+
+      const menuApps = document.createElement('button');
+      menuApps.type = 'button';
+      menuApps.className = 'mac-menu-item';
+      menuApps.textContent = 'Uygulamalar';
+      menuApps.addEventListener('click', (e) => this.toggleStartMenu(e));
+      leftGroup.appendChild(menuApps);
+
+      const menuFiles = document.createElement('button');
+      menuFiles.type = 'button';
+      menuFiles.className = 'mac-menu-item';
+      menuFiles.textContent = 'Dosyalar';
+      menuFiles.addEventListener('click', () => this.openApp('win-files'));
+      leftGroup.appendChild(menuFiles);
+
+      const menuSettings = document.createElement('button');
+      menuSettings.type = 'button';
+      menuSettings.className = 'mac-menu-item';
+      menuSettings.textContent = 'Ayarlar';
+      menuSettings.addEventListener('click', () => this.openApp('win-settings'));
+      leftGroup.appendChild(menuSettings);
 
       topPanel.appendChild(leftGroup);
 
-      const sp = document.createElement('div');
-      sp.style.flex = '1';
-      topPanel.appendChild(sp);
+      // Elementary / macOS: Ortalanmış temiz tarih ve saat
+      const clk = document.createElement('button');
+      clk.type = 'button';
+      clk.className = 'bostan-top-clock bostan-top-date mac-center-clock';
+      clk.title = 'Takvim ve Bildirimler';
+      clk.setAttribute('aria-label', 'Saat ve Takvim');
+      clk.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const targetClk = document.getElementById('tray-clock');
+        if (targetClk) targetClk.click();
+      });
+      topPanel.appendChild(clk);
 
       this.ensureMediaBar(topPanel);
 
       const tray = document.createElement('div');
-      tray.className = 'bostan-tray-group';
+      tray.className = 'bostan-tray-group mac-menubar-right';
       tray.innerHTML = `
+        <button type="button" class="bostan-tray-btn bostan-tray-search" title="Hızlı Arama (Alt + Boşluk)" aria-label="Arama">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
+        </button>
         <button type="button" class="bostan-tray-btn bostan-tray-wifi" title="Ağ &amp; Hızlı Ayarlar" aria-label="Ağ ve Hızlı Ayarlar">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 14a11 11 0 0 1 16 0"></path><path d="M7.5 17.5a6 6 0 0 1 9 0"></path><circle cx="12" cy="20.4" r="1" fill="currentColor"></circle></svg>
         </button>
         <button type="button" class="bostan-tray-btn bostan-tray-audio" title="Ses &amp; Parlaklık" aria-label="Ses ve Parlaklık">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
         </button>
-        <button type="button" class="bostan-tray-note bostan-tray-settings" title="Görünüm ve Ayarlar">Ayarlar</button>
+        <button type="button" class="bostan-tray-btn bostan-tray-ai" title="Ankora AI" aria-label="Ankora AI">
+          <img src="logo.svg" width="14" height="14" alt="" aria-hidden="true">
+        </button>
       `;
+      tray.querySelector('.bostan-tray-search').addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (window.SpotlightManager && window.SpotlightManager.toggle) window.SpotlightManager.toggle();
+      });
       tray.querySelector('.bostan-tray-wifi').addEventListener('click', (e) => {
         e.stopPropagation();
         const el = document.getElementById('tray-wifi-btn') || document.getElementById('tray-status-island');
@@ -471,28 +528,21 @@
         const el = document.getElementById('tray-volume-btn') || document.getElementById('tray-status-island');
         if (el) el.click();
       });
-      tray.querySelector('.bostan-tray-settings').addEventListener('click', () => this.openApp('win-settings'));
-
-      const clk = document.createElement('button');
-      clk.type = 'button';
-      clk.className = 'bostan-top-clock bostan-top-date';
-      clk.title = 'Takvim ve Bildirimler';
-      clk.setAttribute('aria-label', 'Saat ve Takvim');
-      clk.addEventListener('click', (e) => {
+      tray.querySelector('.bostan-tray-ai').addEventListener('click', (e) => {
         e.stopPropagation();
-        const targetClk = document.getElementById('tray-clock');
-        if (targetClk) targetClk.click();
+        if (typeof window.toggleAiMiniChat === 'function') window.toggleAiMiniChat();
+        else this.openApp('win-ai');
       });
-      tray.appendChild(clk);
       topPanel.appendChild(tray);
 
-      // Alt Kompakt Kapsül Dock (Prototip ile 1:1)
+      // macOS / Elementary Dock (gerçek 42px Colloid ikonları)
       const apps = [
-        { id: 'files', winId: 'win-files', title: 'Dosyalar', icon: '<path d="M3 6.5A1.5 1.5 0 0 1 4.5 5h4.3l2 2.2H19.5A1.5 1.5 0 0 1 21 8.7v9.8a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5z"/>', action: () => this.openApp('win-files') },
-        { id: 'brave', winId: 'win-browser', title: 'Brave Web Tarayıcısı', icon: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polygon points="10.2 10.2 15.5 8.5 13.8 13.8 8.5 15.5 10.2 10.2"/>', action: () => this.launchOrToggleBrave() },
-        { id: 'store', winId: 'win-store', title: 'Yazılım Mağazası', icon: '<path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/>', action: () => this.openApp('win-store') },
-        { id: 'terminal', winId: 'win-terminal', title: 'Terminal', icon: '<rect x="3" y="4.5" width="18" height="15" rx="1.5"/><path d="M7.5 9.5l3 2.5-3 2.5M12.5 15h4.5"/>', action: () => this.openApp('win-terminal') },
-        { id: 'settings', winId: 'win-settings', title: 'Sistem Ayarları', icon: '<path d="M4 7h16M4 12h16M4 17h16"/><circle cx="14.5" cy="7" r="2"/><circle cx="8" cy="12" r="2"/><circle cx="16" cy="17" r="2"/>', action: () => this.openApp('win-settings') }
+        { id: 'files', winId: 'win-files', title: 'Dosyalar', action: () => this.openApp('win-files') },
+        { id: 'brave', winId: 'win-browser', title: 'Brave Web Tarayıcısı', action: () => this.launchOrToggleBrave() },
+        { id: 'store', winId: 'win-store', title: 'Yazılım Mağazası', action: () => this.openApp('win-store') },
+        { id: 'terminal', winId: 'win-terminal', title: 'Uçbirim', action: () => this.openApp('win-terminal') },
+        { id: 'notes', winId: 'win-notepad', title: 'Not Defteri', action: () => this.openApp('win-notepad') },
+        { id: 'settings', winId: 'win-settings', title: 'Sistem Ayarları', action: () => this.openApp('win-settings') }
       ];
 
       apps.forEach(app => {
@@ -503,54 +553,65 @@
         if (app.winId) btn.setAttribute('data-win-id', app.winId);
         btn.title = app.title;
         btn.setAttribute('aria-label', app.title);
-        btn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${app.icon}</svg>`;
+        btn.innerHTML = this.getNativeDockIcon(app.id);
         btn.addEventListener('click', (e) => app.action(e));
         dock.appendChild(btn);
       });
     },
 
     // ------------------------------------------------------------------------
-    // YÜZ 8: CIVATA (32px Teknik Kâğıt Üst Çubuk + 42px Alt Araç Şeridi)
+    // YÜZ 8: CIVATA — HYPRLAND / WAYBAR MİNİMALİST ARCH RİCE MİMARİSİ
+    // (Alt dock YOK! Üstte 3 ayrık yüzen Waybar modülü + keskin 2px çerçeveli pencereler)
     // ------------------------------------------------------------------------
     renderCivata(topPanel, dock, hero) {
       if (hero) hero.innerHTML = '';
+      if (dock) dock.innerHTML = '';
 
       topPanel.innerHTML = `
-        <button type="button" class="civata-brand civata-sys-tag ayaz-start-trigger" title="Ankora / Uygulamalar" aria-label="Ankora menüsünü aç">
-          <img src="logo.svg" alt="" width="14" height="14" class="face-brand-logo" aria-hidden="true">
-          <span>ANKORA/08</span>
-        </button>
-        <button type="button" class="civata-bar-btn civata-btn-apps ayaz-start-trigger">UYGULAMALAR</button>
-        <button type="button" class="civata-bar-btn civata-btn-wins" title="Açık pencereler genel görünümü">PENCERE: <strong class="civata-open-count">0</strong></button>
-        <div class="civata-running-tabs" id="civata-running-tabs"></div>
-        <div style="flex:1;"></div>
-        <div class="civata-media-slot"></div>
-        <button type="button" class="civata-tray-btn civata-btn-ai" title="Ankora AI" aria-label="Ankora AI">AI</button>
-        <button type="button" class="civata-tray-btn civata-btn-wifi" title="Ağ &amp; Hızlı Ayarlar" aria-label="Ağ ve Hızlı Ayarlar">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><path d="M4 14a11 11 0 0 1 16 0"></path><path d="M7.5 17.5a6 6 0 0 1 9 0"></path><circle cx="12" cy="20.4" r="1" fill="currentColor"></circle></svg>
-        </button>
-        <button type="button" class="civata-tray-btn civata-btn-audio" title="Ses &amp; Parlaklık" aria-label="Ses ve Parlaklık">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
-        </button>
-        <button type="button" class="civata-top-datetime" title="Takvim ve Bildirimler" aria-label="Saat ve Takvim"></button>
+        <div class="waybar-module waybar-left">
+          <button type="button" class="civata-brand civata-sys-tag ayaz-start-trigger" title="Uygulamalar (Ctrl + Boşluk)" aria-label="Ankora menüsünü aç">
+            <img src="logo.svg" alt="" width="14" height="14" class="face-brand-logo" aria-hidden="true">
+          </button>
+          <div class="waybar-ws-group" role="group" aria-label="Çalışma Alanları">
+            <button type="button" class="face-ws-btn waybar-ws active" data-ws="1">1</button>
+            <button type="button" class="face-ws-btn waybar-ws" data-ws="2">2</button>
+            <button type="button" class="face-ws-btn waybar-ws" data-ws="3">3</button>
+            <button type="button" class="face-ws-btn waybar-ws" data-ws="4">4</button>
+          </div>
+          <div class="civata-running-tabs" id="civata-running-tabs"></div>
+        </div>
+        <div class="waybar-module waybar-center">
+          <button type="button" class="civata-top-datetime" title="Takvim ve Bildirimler" aria-label="Saat ve Takvim"></button>
+        </div>
+        <div class="waybar-module waybar-right">
+          <button type="button" class="civata-tray-btn civata-btn-apps ayaz-start-trigger" title="Uygulamalar">Uygulamalar</button>
+          <button type="button" class="civata-tray-btn civata-btn-term" title="Uçbirim">Term</button>
+          <button type="button" class="civata-tray-btn civata-btn-ai" title="Ankora AI" aria-label="Ankora AI">AI</button>
+          <button type="button" class="civata-tray-btn civata-btn-wifi" title="Ağ &amp; Hızlı Ayarlar" aria-label="Ağ ve Hızlı Ayarlar">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><path d="M4 14a11 11 0 0 1 16 0"></path><path d="M7.5 17.5a6 6 0 0 1 9 0"></path><circle cx="12" cy="20.4" r="1" fill="currentColor"></circle></svg>
+          </button>
+          <button type="button" class="civata-tray-btn civata-btn-audio" title="Ses &amp; Parlaklık" aria-label="Ses ve Parlaklık">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+          </button>
+          <button type="button" class="civata-tray-btn civata-btn-settings" title="Ayarlar">Ayarlar</button>
+        </div>
       `;
-      const mediaSlot = topPanel.querySelector('.civata-media-slot');
-      const mediaBar = this.ensureMediaBar(topPanel);
-      if (mediaSlot && mediaBar && mediaBar.parentNode === topPanel) {
-        topPanel.insertBefore(mediaBar, mediaSlot);
-        mediaSlot.remove();
-      } else if (mediaSlot) {
-        mediaSlot.remove();
-      }
 
+      topPanel.querySelectorAll('.waybar-ws').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const i = Number(btn.getAttribute('data-ws')) || 1;
+          if (window.WorkspaceManager) window.WorkspaceManager.set(i);
+          topPanel.querySelectorAll('.waybar-ws').forEach(b => b.classList.toggle('active', b === btn));
+        });
+      });
       topPanel.querySelector('.civata-brand').addEventListener('click', (e) => this.toggleStartMenu(e));
       topPanel.querySelector('.civata-btn-apps').addEventListener('click', (e) => this.toggleStartMenu(e));
-      topPanel.querySelector('.civata-btn-wins').addEventListener('click', () => {
-        if (window.WorkspaceManager && window.WorkspaceManager.toggleOverview) {
-          window.WorkspaceManager.toggleOverview();
-        }
+      topPanel.querySelector('.civata-btn-term').addEventListener('click', () => this.openApp('win-terminal'));
+      topPanel.querySelector('.civata-btn-ai').addEventListener('click', () => {
+        if (typeof window.toggleAiMiniChat === 'function') window.toggleAiMiniChat();
+        else this.openApp('win-ai');
       });
-      topPanel.querySelector('.civata-btn-ai').addEventListener('click', () => this.openApp('win-ai'));
+      topPanel.querySelector('.civata-btn-settings').addEventListener('click', () => this.openApp('win-settings'));
       topPanel.querySelector('.civata-btn-wifi').addEventListener('click', (e) => {
         e.stopPropagation();
         const el = document.getElementById('tray-wifi-btn') || document.getElementById('tray-status-island');
@@ -566,31 +627,6 @@
         const clk = document.getElementById('tray-clock');
         if (clk) clk.click();
       });
-
-      // Alt Teknik Araç Şeridi (Prototip ile 1:1)
-      if (dock) {
-        const apps = [
-          { id: 'files', winId: 'win-files', label: '[1] DOSYALAR', title: 'Dosyalar', action: () => this.openApp('win-files') },
-          { id: 'brave', winId: 'win-browser', label: '[2] BRAVE', title: 'Brave Web Tarayıcısı', action: () => this.launchOrToggleBrave() },
-          { id: 'store', winId: 'win-store', label: '[3] MAĞAZA', title: 'Yazılım Mağazası', action: () => this.openApp('win-store') },
-          { id: 'terminal', winId: 'win-terminal', label: '[4] TERMİNAL', title: 'Uçbirim (Terminal)', action: () => this.openApp('win-terminal') },
-          { id: 'settings', winId: 'win-settings', label: '[5] AYARLAR', title: 'Sistem Ayarları', action: () => this.openApp('win-settings') },
-          { id: 'start', label: '[0] MENÜ', title: 'Uygulamalar Menüsü', action: (e) => this.toggleStartMenu(e) }
-        ];
-
-        apps.forEach(app => {
-          const btn = document.createElement('button');
-          btn.type = 'button';
-          btn.className = 'face-dock-app';
-          btn.setAttribute('data-app-id', app.id);
-          if (app.winId) btn.setAttribute('data-win-id', app.winId);
-          btn.title = app.title;
-          btn.setAttribute('aria-label', app.title);
-          btn.innerHTML = `<span class="civata-strip-label">${app.label}</span>`;
-          btn.addEventListener('click', (e) => app.action(e));
-          dock.appendChild(btn);
-        });
-      }
     },
 
     // ------------------------------------------------------------------------
@@ -851,6 +887,8 @@
           btn.setAttribute('aria-label', title);
           if (this.currentFace === '8') {
             btn.innerHTML = `<span class="civata-strip-label">${title.substring(0, 14).replace(/[<>&"']/g, '').toLocaleUpperCase('tr')}</span>`;
+          } else if (win.id === 'win-welcome' || win.id === 'win-ai') {
+            btn.innerHTML = `<img src="logo.svg" class="dock-os-logo" width="26" height="26" alt="">`;
           } else {
             btn.innerHTML = svg
               ? svg.outerHTML
@@ -967,9 +1005,9 @@
         activeTitle = spanT ? spanT.textContent.split(/ [—–-] /)[0].trim().substring(0, 32) : '';
       }
       const bostanTitle = document.getElementById('bostan-active-title');
-      if (bostanTitle) bostanTitle.textContent = activeTitle || 'Bostan Yüzü · Aydınlık Çalışma Ortamı';
+      if (bostanTitle) bostanTitle.textContent = activeTitle || 'Masaüstü';
       const bakirTitle = document.getElementById('bakir-active-title');
-      if (bakirTitle) bakirTitle.textContent = activeTitle || 'Ankora Linux';
+      if (bakirTitle) bakirTitle.textContent = activeTitle || 'Masaüstü';
 
       // Yüz 8: Açık pencere sayısı ve üst çubuk sekme hapları
       const countEl = document.querySelector('.civata-open-count');
@@ -1038,24 +1076,26 @@
       const dayNum = now.getDate();
       const monthName = months[now.getMonth()];
 
-      // Yüz 2
+      const compactDateTime = `${dayNum} ${monthName}  ${timeStr}`;
+
+      // Yüz 2 (GNOME 47 / COSMIC — ortalanmış tarih ve saat)
       const bakirTrayTime = document.querySelector('.bakir-tray-time');
       if (bakirTrayTime) {
-        bakirTrayTime.textContent = timeStr;
+        bakirTrayTime.textContent = compactDateTime;
         bakirTrayTime.title = `${dayNum} ${monthName} ${dayName} · Takvim ve Bildirimler`;
       }
 
-      // Yüz 3
+      // Yüz 3 (macOS / Elementary — ortalanmış tarih ve saat)
       const bostanDate = document.querySelector('.bostan-top-date');
       if (bostanDate) {
-        bostanDate.textContent = timeStr;
+        bostanDate.textContent = compactDateTime;
         bostanDate.title = `${dayNum} ${monthName} ${dayName} · Takvim ve Bildirimler`;
       }
 
-      // Yüz 8
+      // Yüz 8 (Hyprland / Waybar — ortalanmış tarih ve saat)
       const civataTop = document.querySelector('.civata-top-datetime');
       if (civataTop) {
-        civataTop.textContent = timeStr;
+        civataTop.textContent = `${dayNum} ${monthName} · ${timeStr}`;
         civataTop.title = `${dayNum} ${monthName} ${dayName} · Takvim ve Bildirimler`;
       }
     }

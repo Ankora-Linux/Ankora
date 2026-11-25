@@ -449,8 +449,12 @@
           window.location.reload();
           return null;
 
-        case 'list_directory':
+        case 'list_directory': {
           const p = args.path || '/home/ankora';
+          const pLow = String(p).toLowerCase();
+          if (pLow.endsWith('/masaüstü') || pLow.endsWith('/desktop')) {
+            return { current_path: p, items: [] };
+          }
           return {
             current_path: p,
             items: [
@@ -464,6 +468,7 @@
               { name: 'kiosk-ayarlari.txt', path: p + '/kiosk-ayarlari.txt', is_dir: false, size_str: '2.4 KB', ext: 'txt', is_hidden: false }
             ]
           };
+        }
 
         case 'create_folder':
           return `Klasör oluşturuldu: ${args.path}`;
@@ -566,34 +571,40 @@
       'peek', 'python', 'qbittorrent', 'rawtherapee', 'rhythmbox', 'scratch', 'shotcut',
       'spotify', 'spotify-client', 'steam', 'stellarium', 'synaptic', 'telegram',
       'thunderbird', 'timeshift', 'transmission', 'transmission-gtk', 'tuxmath',
-      'tuxtype', 'viewnior', 'vlc', 'wine', 'wireshark', 'xournalpp', 'zathura'
+      'tuxtype', 'viewnior', 'vlc', 'wine', 'wireshark', 'xournalpp', 'zathura',
+      'linux/files', 'linux/ankora-store.png', 'linux/terminal', 'linux/settings',
+      'linux/installer', 'linux/brave', 'linux/trash', 'linux/notes',
+      'linux/taskmgr', 'linux/screenshot', 'linux/updater', 'linux/browser', 'linux/apps'
     ]),
 
     ALIAS_MAP: {
-      'brave': 'brave',
-      'brave-browser': 'brave',
+      'brave': 'linux/brave',
+      'brave-browser': 'linux/brave',
       'chrome': 'chromium',
       'google-chrome': 'chromium',
       'firefox': 'firefox-esr',
       'code': 'code',
       'vscode': 'code',
       'visual-studio-code': 'code',
-      'ankora-store': 'synaptic',
-      'software-store': 'synaptic',
-      'ankora-installer': 'disk-utility',
-      'ayaz-files': 'filezilla',
-      'ayaz-term': 'fish',
-      'ayaz-browser': 'chromium',
+      'ankora-store': 'linux/ankora-store.png',
+      'software-store': 'linux/ankora-store.png',
+      'ankora-installer': 'linux/installer',
+      'ayaz-files': 'linux/files',
+      'ayaz-term': 'linux/terminal',
+      'ayaz-browser': 'linux/browser',
       'ayaz-calc': 'libreoffice-calc',
-      'ayaz-notepad': 'geany',
-      'files': 'filezilla',
-      'terminal': 'fish',
-      'store': 'synaptic',
-      'settings': 'antigravity',
-      'installer': 'disk-utility',
-      'browser': 'brave',
+      'ayaz-notepad': 'linux/notes',
+      'ayaz-taskmgr': 'linux/taskmgr',
+      'ankora-screenshot': 'linux/screenshot',
+      'files': 'linux/files',
+      'terminal': 'linux/terminal',
+      'store': 'linux/ankora-store.png',
+      'settings': 'linux/settings',
+      'installer': 'linux/installer',
+      'browser': 'linux/brave',
       'calc': 'libreoffice-calc',
-      'notepad': 'geany'
+      'notepad': 'linux/notes',
+      'trash': 'linux/trash'
     },
 
     candidatesFor(app) {
@@ -629,7 +640,7 @@
         const norm = String(raw).toLowerCase().replace(/[^a-z0-9._-]/g, '');
         const target = this.ALIAS_MAP[norm] || norm;
         if (this.LOCAL_ICONS.has(target)) {
-          const localUrl = `icons/${target}.svg`;
+          const localUrl = /\.(png|svg|webp)$/i.test(target) ? `icons/${target}` : `icons/${target}.svg`;
           this._cache.set(key, localUrl);
           return localUrl;
         }
@@ -3597,7 +3608,15 @@
     _listeners: [],
     onChange(fn) { this._listeners.push(fn); },
     load() {
-      try { Object.assign(this.state, JSON.parse(localStorage.getItem(this.KEY) || '{}')); } catch (e) {}
+      try {
+        const raw = localStorage.getItem(this.KEY);
+        if (raw) {
+          Object.assign(this.state, JSON.parse(raw));
+        } else {
+          const legacyH = parseInt(SafeStorage.getItem('ankora_taskbar_height'), 10);
+          if (legacyH >= 32 && legacyH <= 60) this.state.height = legacyH;
+        }
+      } catch (e) {}
       this.apply();
     },
     save(patch) {
@@ -3608,7 +3627,16 @@
     },
     apply() {
       const h = Math.min(60, Math.max(32, parseInt(this.state.height, 10) || 44));
-      document.documentElement.style.setProperty('--taskbar-height', `${h}px`);
+      const dockH = Math.round(h * 1.36);
+      const dockBtn = Math.max(32, dockH - 14);
+      const dockIcon = Math.max(24, dockH - 20);
+      const tbIcon = Math.min(36, Math.max(20, h - 16));
+      const rootStyle = document.documentElement.style;
+      rootStyle.setProperty('--taskbar-height', `${h}px`);
+      rootStyle.setProperty('--dock-height', `${dockH}px`);
+      rootStyle.setProperty('--dock-btn-size', `${dockBtn}px`);
+      rootStyle.setProperty('--dock-icon-size', `${dockIcon}px`);
+      rootStyle.setProperty('--taskbar-icon-size', `${tbIcon}px`);
       document.body.classList.toggle('panel-no-pins', !this.state.showPins);
       document.body.classList.toggle('panel-no-wsdots', !this.state.showWsDots);
     }
@@ -3642,8 +3670,20 @@
         if (el) el.addEventListener('change', () => PanelPrefs.save({ [key]: el.checked }));
       });
       if (rng) {
-        rng.addEventListener('input', () => { if (val) val.textContent = `${rng.value} px`; });
-        rng.addEventListener('change', () => PanelPrefs.save({ height: parseInt(rng.value, 10) }));
+        rng.addEventListener('input', () => {
+          const liveH = Math.min(60, Math.max(32, parseInt(rng.value, 10) || 44));
+          if (val) val.textContent = `${liveH} px`;
+          if (typeof ThemeManager !== 'undefined' && ThemeManager.setTaskbarHeight) {
+            ThemeManager.setTaskbarHeight(`${liveH}px`, false);
+          }
+        });
+        rng.addEventListener('change', () => {
+          const finalH = Math.min(60, Math.max(32, parseInt(rng.value, 10) || 44));
+          PanelPrefs.save({ height: finalH });
+          if (typeof ThemeManager !== 'undefined' && ThemeManager.setTaskbarHeight) {
+            ThemeManager.setTaskbarHeight(`${finalH}px`, true);
+          }
+        });
       }
     }
   };
@@ -3769,7 +3809,7 @@
       el.title = 'Çöp Kutusu\n• Çift tıkla aç';
       el.innerHTML = `
         <div class="item-icon">
-          <svg class="glyph" aria-hidden="true"><use href="#ico-trash"></use></svg>
+          <img class="real-app-icon" src="icons/linux/trash.svg" alt="" draggable="false">
         </div>
         <span class="item-name">Çöp Kutusu</span>
       `;
@@ -10041,7 +10081,7 @@
     currentRadius: '6px',
     currentGlass: 'solid',
     currentTaskbarAlign: 'left',
-    currentTaskbarHeight: '40px',
+    currentTaskbarHeight: '44px',
     currentPanelPos: 'bottom',
     currentAnimSpeed: 'smooth',
 
@@ -10065,7 +10105,7 @@
       const savedRadius = SafeStorage.getItem('ankora_corner_radius') || '6px';
       const savedGlass = SafeStorage.getItem('ankora_window_glass') || 'solid';
       const savedAlign = SafeStorage.getItem('ankora_taskbar_align') || 'left';
-      const savedHeight = SafeStorage.getItem('ankora_taskbar_height') || '40px';
+      const savedHeight = SafeStorage.getItem('ankora_taskbar_height') || '44px';
       const savedPanelPos = SafeStorage.getItem('ankora_panel_pos') || 'bottom';
       const savedAnim = SafeStorage.getItem('ankora_anim_speed') || 'smooth';
       const savedIconSet = SafeStorage.getItem('ankora_icon_set') || 'outline';
@@ -10166,7 +10206,7 @@
       });
     },
 
-    setTheme(themeName, persist = true) {
+    setTheme(themeName, persist = true, applyBundle = false) {
       if (themeName !== 'theme-custom' && !this.THEME_BUNDLES[themeName]) {
         themeName = 'theme-bostan';
       }
@@ -10214,17 +10254,19 @@
       // Yanlış tetiklenmemesi için yalnız kullanıcı tıklamasında (persist)
       // ve "tüm sistem" anahtarı açıksa uygulanır.
       const bundle = this.THEME_BUNDLES && this.THEME_BUNDLES[themeName];
-      if (bundle && persist && this.isFullSystemTheme()) {
+      if (bundle && (persist || applyBundle) && (this.isFullSystemTheme() || applyBundle)) {
         if (bundle.accent && bundle.accent !== this.currentAccent) {
-          this.setAccent(bundle.accent);
+          this.setAccent(bundle.accent, persist);
         }
         if (bundle.iconset) {
-          this.setIconSet(bundle.iconset);
+          this.setIconSet(bundle.iconset, persist);
         }
         if (bundle.wallpaper) {
-          this.setWallpaper(bundle.wallpaper);
+          this.setWallpaper(bundle.wallpaper, persist);
         }
-        Terminal.log(`[TEMA] Tüm sistem teması paketi uygulandı: ${themeName} (simge: ${bundle.iconset}, kağıt: ${bundle.wallpaper})`, 'success');
+        if (persist) {
+          Terminal.log(`[TEMA] Tüm sistem teması paketi uygulandı: ${themeName} (simge: ${bundle.iconset}, kağıt: ${bundle.wallpaper})`, 'success');
+        }
       }
 
       // XSettings & GTK Tema Senkronizasyonu (xsettingsd, GTK-2/3/4, gsettings)
@@ -10346,25 +10388,59 @@
     },
 
     setTaskbarHeight(height, persist = true) {
-      this.currentTaskbarHeight = height;
-      document.documentElement.style.setProperty('--taskbar-height', height);
+      const h = Math.min(60, Math.max(32, parseInt(height, 10) || 44));
+      const cleanHeight = `${h}px`;
+      const dockH = Math.round(h * 1.36);
+      const dockBtn = Math.max(32, dockH - 14);
+      const dockIcon = Math.max(24, dockH - 20);
+      const tbIcon = Math.min(36, Math.max(20, h - 16));
+
+      this.currentTaskbarHeight = cleanHeight;
+      const rootStyle = document.documentElement.style;
+      rootStyle.setProperty('--taskbar-height', cleanHeight);
+      rootStyle.setProperty('--dock-height', `${dockH}px`);
+      rootStyle.setProperty('--dock-btn-size', `${dockBtn}px`);
+      rootStyle.setProperty('--dock-icon-size', `${dockIcon}px`);
+      rootStyle.setProperty('--taskbar-icon-size', `${tbIcon}px`);
+
+      // Ayarlar > Alt Panel & Saat kaydırıcısı ile Kişiselleştirme düğmelerini senkronize tut
+      if (typeof PanelPrefs !== 'undefined' && PanelPrefs.state) {
+        PanelPrefs.state.height = h;
+        if (persist) {
+          try { localStorage.setItem(PanelPrefs.KEY, JSON.stringify(PanelPrefs.state)); } catch (e) {}
+        }
+      }
+      const rng = document.getElementById('panel-height-range');
+      const val = document.getElementById('panel-height-value');
+      if (rng && rng.value !== String(h)) rng.value = String(h);
+      if (val) val.textContent = `${h} px`;
 
       document.querySelectorAll('#group-taskbar-size .option-pill-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.getAttribute('data-height') === height);
+        btn.classList.toggle('active', btn.getAttribute('data-height') === cleanHeight);
       });
 
       if (typeof WindowManager !== 'undefined' && typeof WindowManager.clampAllWindows === 'function') {
         WindowManager.clampAllWindows();
       }
-      if (window.FaceManager && window.FaceManager.currentFace === 'default' && typeof TauriBridge !== 'undefined' && typeof TauriBridge.invoke === 'function') {
-        const tbH = parseInt(height, 10) || 40;
-        const isTop = this.currentPanelPos === 'top';
-        TauriBridge.invoke('set_openbox_margins', { top: isTop ? tbH : 0, bottom: isTop ? 0 : tbH }).catch(() => {});
+      if (typeof TauriBridge !== 'undefined' && typeof TauriBridge.invoke === 'function') {
+        const curFace = (window.FaceManager && window.FaceManager.currentFace) || '3';
+        let margins = null;
+        if (curFace === 'default' || curFace === 'legacy') {
+          const isTop = curFace === 'default' && this.currentPanelPos === 'top';
+          margins = { top: isTop ? h : 0, bottom: isTop ? 0 : h };
+        } else if (curFace === '3') {
+          margins = { top: 28, bottom: dockH + 16 };
+        } else if (curFace === '2') {
+          margins = { top: 32, bottom: dockH + 16 };
+        } else if (curFace === '8') {
+          margins = { top: 46, bottom: 0 };
+        }
+        if (margins) TauriBridge.invoke('set_openbox_margins', margins).catch(() => {});
       }
 
       if (persist) {
-        SafeStorage.setItem('ankora_taskbar_height', height);
-        Terminal.log(`[KİŞİSELLEŞTİRME] Görev çubuğu yüksekliği: ${height}`, 'cmd');
+        SafeStorage.setItem('ankora_taskbar_height', cleanHeight);
+        Terminal.log(`[KİŞİSELLEŞTİRME] Alt panel / dock yüksekliği: ${cleanHeight}`, 'cmd');
       }
     },
 

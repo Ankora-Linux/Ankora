@@ -267,94 +267,105 @@
     </div>
 
     <!-- ======================================================================= -->
-    <!-- 1. ANKORA KARŞILAYICI (DESKTOP PREVIEW İLE BİREBİR)                     -->
+    <!-- 1. ANKORA KARŞILAYICI (NATIVE 2-SÜTUN OS ONBOARDING)                    -->
     <!-- ======================================================================= -->
-    <section class="window welcome-preview-window" id="win-welcome" style="top: calc(50vh - 275px); left: calc(50vw - 250px); width: 500px;" aria-labelledby="welcome-header-title">
+    <section class="window welcome-preview-window welcome-native-window" id="win-welcome" style="top: calc(50vh - 215px); left: calc(50vw - 330px); width: 660px;" aria-labelledby="welcome-header-title">
       <div class="window-header">
         <div class="window-meta">
-          <span id="welcome-header-title">Ankora Karşılayıcı - Hoş Geldiniz</span>
+          <span id="welcome-header-title">Ankora Karşılayıcı</span>
         </div>
         <div class="window-controls">
-          <button class="ctrl-btn close" title="Kapat">✕</button>
+          <button class="ctrl-btn close" title="Kapat" aria-label="Kapat">✕</button>
         </div>
       </div>
-      <div class="window-view welcome-preview-view">
-        <div class="welcome-preview-content">
-          <!-- Centered Ankora Logo -->
-          <div class="preview-logo-wrap">
-            <img src="logo.svg" alt="Ankora Logo" class="preview-anchor-logo" width="56" height="56">
-          </div>
-
-          <!-- ANKORA Heading -->
-          <h1 class="preview-title">ANKORA</h1>
-          <p class="preview-subtitle">Ayaz Masaüstü Ortamı</p>
-
-          <!-- Sisteminizi Keşfedin -->
-          <div class="preview-section-title">Sisteminizi Keşfedin:</div>
-
-          <div class="preview-features-list">
-            <!-- Row 1: Theme Toggles (Light/Dark Mode) -->
-            <div class="preview-feature-row">
-              <div class="feature-left">
-                <div class="feature-icon-circle">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="feature-svg">
-                    <circle cx="12" cy="12" r="9"></circle>
-                    <path d="M12 3a9 9 0 0 0 0 18z" fill="currentColor"></path>
-                  </svg>
-                </div>
-                <div class="feature-labels">
-                  <span class="feature-name">Görünüm Teması</span>
-                  <span class="feature-desc">Açık veya koyu arayüz modu</span>
-                </div>
-              </div>
-              <div class="feature-right">
-                <div class="theme-sun-moon-toggle" id="welcome-theme-toggle" role="button" tabindex="0" title="Açık / Koyu Tema Değiştir">
-                  <span class="toggle-icon sun" title="Açık Mod">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
-                  </span>
-                  <span class="toggle-icon moon" title="Koyu Mod">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
-                  </span>
-                  <span class="toggle-slider-knob"></span>
-                </div>
+      <div class="window-view welcome-preview-view welcome-native-view">
+        <div class="welcome-native-layout">
+          <!-- Sol Marka ve Hızlı Yüz/Tema Sütunu -->
+          <aside class="welcome-native-rail">
+            <div class="welcome-rail-brand">
+              <img src="logo.svg" alt="Ankora" class="preview-anchor-logo" width="44" height="44">
+              <div class="welcome-rail-titles">
+                <h1 class="preview-title">Ankora Linux 5.0</h1>
+                <p class="preview-subtitle">Excalibur · Ayaz DE</p>
               </div>
             </div>
 
-            <!-- Row 2: Package Installer (Search packages) -> "Yükle" -->
-            <div class="preview-feature-row">
-              <div class="feature-left">
-                <div class="feature-icon-circle">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="feature-svg">
-                    <circle cx="11" cy="11" r="8"></circle>
-                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                  </svg>
-                </div>
-                <div class="feature-labels">
-                  <span class="feature-name">Uygulama Mağazası</span>
-                  <span class="feature-desc">Yazılım ve paketleri keşfedin</span>
-                </div>
-              </div>
-              <div class="feature-right">
-                <button class="preview-action-btn" id="welcome-btn-store">Yükle</button>
+            <div class="welcome-rail-section">
+              <span class="welcome-rail-label">Masaüstü Yüzü</span>
+              <div class="welcome-face-swatches" id="welcome-face-swatches" role="group" aria-label="Masaüstü Yüzü Seçimi">
+                <button type="button" class="welcome-face-chip active" data-face="3" title="macOS / Elementary tarzı">
+                  <span class="wf-dot" style="background:#3b7230;"></span>
+                  <span>Bostan</span>
+                </button>
+                <button type="button" class="welcome-face-chip" data-face="2" title="GNOME / COSMIC tarzı">
+                  <span class="wf-dot" style="background:#c46d43;"></span>
+                  <span>Bakır</span>
+                </button>
+                <button type="button" class="welcome-face-chip" data-face="default" title="KDE Plasma / Klasik tarz">
+                  <span class="wf-dot" style="background:#334155;"></span>
+                  <span>Arduvaz</span>
+                </button>
+                <button type="button" class="welcome-face-chip" data-face="8" title="Hyprland / Waybar tarzı">
+                  <span class="wf-dot" style="background:#1d4ed8;"></span>
+                  <span>Cıvata</span>
+                </button>
               </div>
             </div>
 
-            <!-- Row 3: Sistem Yapılandırması -->
-            <div class="preview-feature-row">
-              <div class="feature-left">
-                <div class="feature-icon-circle">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="feature-svg">
-                    <circle cx="12" cy="12" r="3"></circle>
-                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-                  </svg>
-                </div>
-                <div class="feature-labels">
-                  <span class="feature-name">Sistem Yapılandırması</span>
-                  <span class="feature-desc">Ağ, ekran, donanım ve masaüstü tercihleri</span>
-                </div>
+            <div class="welcome-rail-section welcome-rail-mode">
+              <span class="welcome-rail-label">Aydınlık / Koyu</span>
+              <div class="theme-sun-moon-toggle" id="welcome-theme-toggle" role="button" tabindex="0" title="Açık / Koyu Tema Değiştir">
+                <span class="toggle-icon sun" title="Açık Mod">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+                </span>
+                <span class="toggle-icon moon" title="Koyu Mod">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+                </span>
+                <span class="toggle-slider-knob"></span>
               </div>
-              <div class="feature-right">
+            </div>
+
+            <div class="welcome-rail-foot">
+              <label class="check-container-sm">
+                <input type="checkbox" id="chk-show-on-startup" checked>
+                <span>Açılışta göster</span>
+              </label>
+            </div>
+          </aside>
+
+          <!-- Sağ Gruplanmış Native Sistem Satırları -->
+          <div class="welcome-native-main">
+            <div class="welcome-native-group">
+              <div class="welcome-native-row">
+                <div class="welcome-row-text">
+                  <span class="feature-name">Yazılım Mağazası</span>
+                  <span class="feature-desc">APT ve Flathub uygulamaları</span>
+                </div>
+                <button class="preview-action-btn" id="welcome-btn-store">Aç</button>
+              </div>
+
+              <div class="welcome-native-row">
+                <div class="welcome-row-text">
+                  <span class="feature-name">Sistem Ayarları</span>
+                  <span class="feature-desc">Ağ, ekran, ses ve görünüm</span>
+                </div>
                 <button class="preview-action-btn" id="welcome-btn-settings">Aç</button>
+              </div>
+
+              <div class="welcome-native-row">
+                <div class="welcome-row-text">
+                  <span class="feature-name">Uçbirim</span>
+                  <span class="feature-desc">Doğrudan sistem kabuğu</span>
+                </div>
+                <button class="preview-action-btn" id="welcome-btn-term">Aç</button>
+              </div>
+
+              <div class="welcome-native-row">
+                <div class="welcome-row-text">
+                  <span class="feature-name">Sistem Güncellemeleri</span>
+                  <span class="feature-desc">Ayaz DE ve paket denetimi</span>
+                </div>
+                <button class="preview-action-btn" id="welcome-btn-update">Denetle</button>
               </div>
             </div>
 
@@ -365,77 +376,24 @@
               <button id="welcome-btn-save-key"></button>
             </div>
 
-            <!-- Row 3.1: Oturum Güvenliği (Kilit PIN'i) -->
-            <div class="preview-feature-row lock-pin-row">
-              <div class="feature-left">
-                <div class="feature-icon-circle">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="feature-svg">
-                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                  </svg>
+            <div class="welcome-native-group welcome-pin-group">
+              <div class="welcome-native-row lock-pin-row">
+                <div class="welcome-row-text">
+                  <span class="feature-name">Oturum Kilidi</span>
+                  <span class="feature-desc" id="welcome-lock-status-label">Kilit ekranı PIN kodu</span>
                 </div>
-                <div class="feature-labels">
-                  <span class="feature-name">Oturum Güvenliği</span>
-                  <span class="feature-desc" id="welcome-lock-status-label">Kilit ekranı PIN kodunu belirleyin</span>
-                </div>
-              </div>
-              <div class="feature-right">
                 <div class="welcome-key-box">
-                  <input type="password" id="welcome-lock-pin-input" class="welcome-key-input" placeholder="Yeni PIN (4+ hane)" maxlength="16" autocomplete="off">
+                  <input type="password" id="welcome-lock-pin-input" class="welcome-key-input" placeholder="4+ hane PIN" maxlength="16" autocomplete="off">
                   <button class="preview-action-btn" id="welcome-btn-save-pin">Kaydet</button>
                 </div>
               </div>
             </div>
 
-            <!-- Row 4: Terminal & Konsol -> "Aç" -->
-            <div class="preview-feature-row">
-              <div class="feature-left">
-                <div class="feature-icon-circle">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="feature-svg">
-                    <polyline points="4 17 10 11 4 5"></polyline>
-                    <line x1="12" y1="19" x2="20" y2="19"></line>
-                  </svg>
-                </div>
-                <div class="feature-labels">
-                  <span class="feature-name">Terminal &amp; Konsol</span>
-                  <span class="feature-desc">Doğrudan komut satırı ve araçlar</span>
-                </div>
-              </div>
-              <div class="feature-right">
-                <button class="preview-action-btn" id="welcome-btn-term">Aç</button>
-              </div>
+            <div class="welcome-main-footer">
+              <button class="btn-text-link" id="btn-open-advanced-settings" title="Tüm sistem ayarlarını aç">
+                Tüm Ayarlar
+              </button>
             </div>
-
-            <!-- Row 5: Sistem Güncellemeleri -> "Denetle" -->
-            <div class="preview-feature-row">
-              <div class="feature-left">
-                <div class="feature-icon-circle">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="feature-svg">
-                    <polyline points="23 4 23 10 17 10"></polyline>
-                    <polyline points="1 20 1 14 7 14"></polyline>
-                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-                  </svg>
-                </div>
-                <div class="feature-labels">
-                  <span class="feature-name">Ayaz Güncelleyici</span>
-                  <span class="feature-desc">Ayaz DE ve sistem güncellemeleri</span>
-                </div>
-              </div>
-              <div class="feature-right">
-                <button class="preview-action-btn" id="welcome-btn-update">Denetle</button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Alt Seçenekler -->
-          <div class="welcome-preview-footer">
-            <label class="check-container-sm">
-              <input type="checkbox" id="chk-show-on-startup" checked>
-              <span>Açılışta Karşılayıcıyı Göster</span>
-            </label>
-            <button class="btn-text-link" id="btn-open-advanced-settings" title="Tüm sistem ayarlarını aç">
-              Tüm Ayarlar
-            </button>
           </div>
         </div>
       </div>
@@ -3581,37 +3539,37 @@
         <span class="start-btn-label">Uygulamalar</span>
       </button>
 
-      <!-- Hızlı Başlatıcılar: el-işi glif seti (yön dosyalarındaki dock ikonları) -->
+      <!-- Hızlı Başlatıcılar: Özgün Linux Papirus ikon seti + Ankora Mağaza logosu -->
       <div class="taskbar-quick-pins">
-        <button class="taskbar-pin-btn" id="quick-term-btn" title="Ayaz Uçbirim (Terminal)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:17px;height:17px;"><rect x="3" y="4.5" width="18" height="15" rx="1.5"></rect><path d="M7 9.5l3 2.5-3 2.5M12.5 15h5"></path></svg>
-        </button>
         <button class="taskbar-pin-btn" id="quick-files-btn" title="Dosyalar &amp; Belgeler">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:17px;height:17px;"><path d="M3 6.5A1.5 1.5 0 0 1 4.5 5h4.3l2 2.2H19.5A1.5 1.5 0 0 1 21 8.7v9.8a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5z"></path></svg>
-        </button>
-        <button class="taskbar-pin-btn" id="quick-ayaz-browser-btn" title="Ayaz Web Tarayıcısı (Dahili)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:17px;height:17px;"><circle cx="12" cy="12" r="8"></circle><path d="M4 12h16"></path><path d="M12 4c-3 4-3 12 0 16M12 4c3 4 3 12 0 16"></path></svg>
+          <img class="taskbar-colloid-icon" src="icons/linux/files.svg" width="28" height="28" alt="" draggable="false">
         </button>
         <button class="taskbar-pin-btn" id="quick-brave-btn" title="Brave Web Tarayıcı (Yerel)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:17px;height:17px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><polygon points="10.2 10.2 15.5 8.5 13.8 13.8 8.5 15.5 10.2 10.2"></polygon></svg>
-        </button>
-        <button class="taskbar-pin-btn" id="quick-screenshot-btn" title="Ekran Alıntısı Aracı (PrintScreen)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:17px;height:17px;"><path d="M8 3H6a3 3 0 0 0-3 3v2M16 3h2a3 3 0 0 1 3 3v2M8 21H6a3 3 0 0 1-3-3v-2M16 21h2a3 3 0 0 0 3-3v-2"></path><circle cx="12" cy="12" r="3.4"></circle></svg>
+          <img class="taskbar-colloid-icon" src="icons/linux/brave.svg" width="28" height="28" alt="" draggable="false">
         </button>
         <button class="taskbar-pin-btn" id="quick-store-btn" title="Paket Yöneticisi &amp; Mağaza">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:17px;height:17px;"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
+          <img class="taskbar-colloid-icon" src="icons/linux/ankora-store.png" width="28" height="28" alt="" draggable="false">
+        </button>
+        <button class="taskbar-pin-btn" id="quick-term-btn" title="Ayaz Uçbirim (Terminal)">
+          <img class="taskbar-colloid-icon" src="icons/linux/terminal.svg" width="28" height="28" alt="" draggable="false">
+        </button>
+        <button class="taskbar-pin-btn" id="quick-screenshot-btn" title="Ekran Alıntısı Aracı (PrintScreen)">
+          <img class="taskbar-colloid-icon" src="icons/linux/screenshot.svg" width="28" height="28" alt="" draggable="false">
         </button>
         <button class="taskbar-pin-btn" id="quick-ai-btn" title="Ankora AI Asistanı">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:17px;height:17px;"><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4h13A1.5 1.5 0 0 1 20 5.5V15a1.5 1.5 0 0 1-1.5 1.5h-8L6 21v-4.5h-.5A1.5 1.5 0 0 1 4 15z"></path><path d="M8.5 9h7M8.5 12h4"></path></svg>
-        </button>
-        <button class="taskbar-pin-btn ai-look-pin" id="quick-ai-look-btn" aria-label="Bak ve anlat" title="Bak ve anlat: ekranımda ne kaymıyor? (ekranı incele, hatayı açıkla)">
-          <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:17px;height:17px;"><path d="M2.5 12s3.6-6 9.5-6 9.5 6 9.5 6-3.6 6-9.5 6-9.5-6-9.5-6z"></path><circle cx="12" cy="12" r="2.6"></circle></svg>
-        </button>
-        <button class="taskbar-pin-btn" id="quick-calc-btn" title="Hesap Makinesi">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:17px;height:17px;"><rect x="4" y="2.5" width="16" height="19" rx="2"></rect><path d="M8 6.5h8M8.5 11h.01M12 11h.01M15.5 11h.01M8.5 14.5h.01M12 14.5h.01M15.5 14.5h.01M8.5 18h4.5"></path></svg>
+          <img class="taskbar-colloid-icon taskbar-ai-logo" src="logo.svg" width="24" height="24" alt="" draggable="false">
         </button>
         <button class="taskbar-pin-btn" id="quick-settings-btn" title="Sistem Ayarları">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:17px;height:17px;"><path d="M4 7h16M4 12h16M4 17h16"></path><circle cx="14.5" cy="7" r="2"></circle><circle cx="8" cy="12" r="2"></circle><circle cx="16" cy="17" r="2"></circle></svg>
+          <img class="taskbar-colloid-icon" src="icons/linux/settings.svg" width="28" height="28" alt="" draggable="false">
+        </button>
+        <button class="taskbar-pin-btn taskbar-pin-secondary" id="quick-ayaz-browser-btn" title="Ayaz Web Tarayıcısı (Dahili)">
+          <img class="taskbar-colloid-icon" src="icons/linux/browser.svg" width="28" height="28" alt="" draggable="false">
+        </button>
+        <button class="taskbar-pin-btn taskbar-pin-secondary ai-look-pin" id="quick-ai-look-btn" aria-label="Bak ve anlat" title="Bak ve anlat: ekranı incele ve açıkla">
+          <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;"><path d="M2.5 12s3.6-6 9.5-6 9.5 6 9.5 6-3.6 6-9.5 6-9.5-6-9.5-6z"></path><circle cx="12" cy="12" r="2.6"></circle></svg>
+        </button>
+        <button class="taskbar-pin-btn taskbar-pin-secondary" id="quick-calc-btn" title="Hesap Makinesi">
+          <img class="taskbar-colloid-icon" src="icons/linux/notes.svg" width="28" height="28" alt="" draggable="false">
         </button>
       </div>
 
