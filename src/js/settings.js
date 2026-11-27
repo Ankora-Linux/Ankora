@@ -362,17 +362,16 @@
         try { this._progressUnlisten(); } catch (e) {}
         this._progressUnlisten = null;
       }
-      if (window.__TAURI__?.event?.listen) {
-        try {
-          this._progressUnlisten = await window.__TAURI__.event.listen('install-progress', (ev) => {
-            const d = ev?.payload || {};
-            if (progress && Number.isFinite(Number(d.percent))) {
-              progress.style.width = `${Math.max(5, Math.min(100, Number(d.percent)))}%`;
-            }
-            if (d.message) append(d.message, d.level || 'muted');
-          });
-        } catch (e) {}
-      }
+      try {
+        const unlisten = TauriBridge.listen('install-progress', (ev) => {
+          const d = ev?.payload || {};
+          if (progress && Number.isFinite(Number(d.percent))) {
+            progress.style.width = `${Math.max(5, Math.min(100, Number(d.percent)))}%`;
+          }
+          if (d.message) append(d.message, d.level || 'muted');
+        });
+        this._progressUnlisten = unlisten ? await unlisten : null;
+      } catch (e) {}
 
       append(`Hedef disk hazırlanıyor: ${this.selectedDisk}...`);
       if (progress) progress.style.width = '10%';

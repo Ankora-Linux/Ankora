@@ -11,6 +11,8 @@
     latestRelease: null,
 
     init() {
+      const currVerInit = document.getElementById('updater-curr-ver');
+      if (currVerInit) currVerInit.textContent = `v${this.currentVersion}`;
       const btnCheck = document.getElementById('btn-updater-check');
       const btnApply = document.getElementById('btn-updater-apply');
       const btnRestart = document.getElementById('btn-updater-restart');
@@ -976,7 +978,7 @@
     reload() {
       if (this.iframe) {
         const cur = this.iframe.src;
-        this.iframe.src = '';
+        this.iframe.src = 'about:blank';
         // about:blank yüklemesi load olayını erken tetikler; sayaç ve maske
         // gerçek hedef yazılırken başlatılır.
         setTimeout(() => {

@@ -177,6 +177,15 @@
           event: eventName,
           target: { kind: 'Any' },
           handler: cbId
+        }).then((eventId) => () => {
+          try {
+            return internals.invoke('plugin:event|unlisten', {
+              event: eventName,
+              eventId
+            });
+          } catch (e) {
+            return null;
+          }
         });
       }
       return null;

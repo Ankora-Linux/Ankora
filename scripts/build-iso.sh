@@ -1241,7 +1241,7 @@ cp -r "$ROOT_DIR/src/"* "$CHROOT_DIR/usr/share/ayaz/"
 # .deb varsa kur (güncelleyici paket kimliği + ayaz-de ikilisi için)
 if [ -f "$ROOT_DIR/dist/ayaz-de-latest-amd64.deb" ]; then
     DEB_PATH="$ROOT_DIR/dist/ayaz-de-latest-amd64.deb"
-    if [ "$ROOT_DIR/src" -nt "$DEB_PATH" ] || [ "$ROOT_DIR/src-tauri/src" -nt "$DEB_PATH" ] || [ "$ROOT_DIR/src-tauri/tauri.conf.json" -nt "$DEB_PATH" ]; then
+    if find "$ROOT_DIR/src" "$ROOT_DIR/src-tauri/src" "$ROOT_DIR/src-tauri/tauri.conf.json" "$ROOT_DIR/scripts" -newer "$DEB_PATH" -print -quit 2>/dev/null | grep -q .; then
         echo "[UYARI] dist/ayaz-de-latest-amd64.deb kaynaktan eski; yeniden derleniyor..."
         bash "$ROOT_DIR/scripts/package-deb.sh" || echo "[UYARI] Yeniden derleme basarisiz, mevcut .deb ile devam ediliyor..."
     fi
