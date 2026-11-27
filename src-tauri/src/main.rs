@@ -1461,9 +1461,20 @@ fn install_deb_package_inner(
             }
         };
 
-        // Gerçek Masaüstü (~/Desktop) ve Başlat Menüsü (~/.local/share/applications) XDG .desktop Dosyası Yerleştirme
+        // Gerçek Masaüstü (~/Masaüstü veya XDG_DESKTOP_DIR) ve Başlat Menüsü (~/.local/share/applications) XDG .desktop Dosyası Yerleştirme
         if let Some(home_dir) = dirs::home_dir() {
-            let desktop_dir = home_dir.join("Desktop");
+            let desktop_dir = get_xdg_user_dirs()
+                .ok()
+                .map(|x| PathBuf::from(x.desktop))
+                .or_else(dirs::desktop_dir)
+                .unwrap_or_else(|| {
+                    let tr_desk = home_dir.join("Masaüstü");
+                    if tr_desk.is_dir() {
+                        tr_desk
+                    } else {
+                        home_dir.join("Desktop")
+                    }
+                });
             let local_apps_dir = home_dir.join(".local/share/applications");
             let _ = fs::create_dir_all(&desktop_dir);
             let _ = fs::create_dir_all(&local_apps_dir);
@@ -2191,13 +2202,20 @@ fn remove_deb_package_blocking(package_name: String) -> Result<String, String> {
             Ok(out) => {
                 if out.status.success() {
                     let mut cleanup_dirs: Vec<PathBuf> = Vec::new();
+                    if let Ok(xdg) = get_xdg_user_dirs() {
+                        cleanup_dirs.push(PathBuf::from(xdg.desktop));
+                    }
                     if let Some(desk_dir) = dirs::desktop_dir() {
-                        cleanup_dirs.push(desk_dir);
+                        if !cleanup_dirs.contains(&desk_dir) {
+                            cleanup_dirs.push(desk_dir);
+                        }
                     }
                     if let Some(home_dir) = dirs::home_dir() {
-                        let desk_fallback = home_dir.join("Desktop");
-                        if !cleanup_dirs.contains(&desk_fallback) {
-                            cleanup_dirs.push(desk_fallback);
+                        for cand in ["Masaüstü", "Desktop"] {
+                            let p = home_dir.join(cand);
+                            if !cleanup_dirs.contains(&p) {
+                                cleanup_dirs.push(p);
+                            }
                         }
                         cleanup_dirs.push(home_dir.join(".local/share/applications"));
                     }

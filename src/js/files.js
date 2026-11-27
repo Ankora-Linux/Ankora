@@ -1199,10 +1199,17 @@
         );
         if (installWine) {
           WindowManager.open('win-store');
-          const sInput = document.getElementById('store-search-input') || document.getElementById('store-search');
-          if (sInput) {
-            sInput.value = 'wine';
-            sInput.dispatchEvent(new Event('input', { bubbles: true }));
+          const winePkg = (typeof StoreManager !== 'undefined' && Array.isArray(StoreManager.packages))
+            ? StoreManager.packages.find(p => p.id === 'wine')
+            : null;
+          if (winePkg && typeof StoreManager.openDetail === 'function') {
+            StoreManager.openDetail(winePkg);
+          } else {
+            const sInput = document.getElementById('store-search');
+            if (sInput) {
+              sInput.value = 'wine';
+              if (typeof StoreManager !== 'undefined') StoreManager.render('wine');
+            }
           }
         }
       }
@@ -2389,8 +2396,8 @@
           if (typeof ReportManager !== 'undefined' && ReportManager.showToast) {
             ReportManager.showToast(msg || 'AppImage kuruldu.', 'success');
           }
-          if (typeof XdgDesktopEngine !== 'undefined' && XdgDesktopEngine.scanApplications) {
-            XdgDesktopEngine.scanApplications();
+          if (typeof XdgDesktopEngine !== 'undefined' && XdgDesktopEngine.rescanXdgApps) {
+            XdgDesktopEngine.rescanXdgApps(false);
           }
         } catch (err) {
           if (progLabel) progLabel.textContent = 'Kurulum başarısız oldu.';

@@ -1744,10 +1744,18 @@
             Terminal.runCommand(app.exec || app.id);
           } else if (act === 'store') {
             WindowManager.open('win-store');
-            const searchInput = document.getElementById('store-search');
-            if (searchInput) {
-              searchInput.value = app.id;
-              searchInput.dispatchEvent(new Event('input'));
+            const matchedPkg = (typeof StoreManager !== 'undefined' && StoreManager.findPackageForApp)
+              ? StoreManager.findPackageForApp(app.id, app)
+              : null;
+            if (matchedPkg && typeof StoreManager.openDetail === 'function') {
+              StoreManager.openDetail(matchedPkg);
+            } else {
+              const searchInput = document.getElementById('store-search');
+              if (searchInput) {
+                const q = app.storeId || app.deb || app.flatpak || app.name || app.id;
+                searchInput.value = q;
+                if (typeof StoreManager !== 'undefined') StoreManager.render(q);
+              }
             }
           } else if (act === 'pin-toggle') {
             AppPinManager.toggleMenuPin(app.id);
@@ -1764,7 +1772,7 @@
               this.moveAppToGroup(app.id, group.id);
             }
           } else if (act === 'uninstall') {
-            StoreManager.uninstallPackageById(app.id);
+            StoreManager.uninstallPackageById(app.id, app);
           }
         });
       });

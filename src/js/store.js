@@ -729,14 +729,19 @@
         }
       }
 
-      // APT kurulu paketleri sorgula
+      // APT kurulu paketleri sorgula (gerçek Linux dpkg listesi dönünce bayat kayıtları da uzlaştır)
       TauriBridge.invoke('list_installed_deb_packages').then((list) => {
         if (!Array.isArray(list)) return;
-        const installed = new Set(list.map(s => String(s).trim()));
+        const installed = new Set(list.map(s => String(s).trim()).filter(Boolean));
+        const hasAuthoritativeDpkg = installed.size > 0;
         let changed = false;
         this.packages.forEach(p => {
-          if (!p.installed && p.deb && installed.has(p.deb)) {
+          if (!p.deb || p.flatpak || p.action) return;
+          if (!p.installed && installed.has(p.deb)) {
             p.installed = true;
+            changed = true;
+          } else if (hasAuthoritativeDpkg && p.installed && !installed.has(p.deb) && p.deb !== 'fatih-kalem') {
+            p.installed = false;
             changed = true;
           }
         });
@@ -789,26 +794,44 @@
       }
     },
 
+    _normText(s) {
+      return String(s || '')
+        .toLocaleLowerCase('tr')
+        .replace(/ğ/g, 'g')
+        .replace(/ü/g, 'u')
+        .replace(/ş/g, 's')
+        .replace(/ö/g, 'o')
+        .replace(/ç/g, 'c')
+        .replace(/ı/g, 'i')
+        .replace(/â/g, 'a');
+    },
+
     render(query = '') {
       if (!this.tableBody) return;
       this.tableBody.replaceChildren();
 
       const frag = document.createDocumentFragment();
-      const q = query.toLowerCase().trim();
+      const qRaw = String(query || '').trim();
+      const q = qRaw.toLocaleLowerCase('tr');
+      const qNorm = this._normText(qRaw);
       const seen = new Set();
       const filtered = this.packages.filter(p => {
         const matchSource = this.currentSource === 'all'
           || (this.currentSource === 'flathub' && Boolean(p.flatpak))
           || (this.currentSource === 'apt' && Boolean(!p.flatpak));
+        // Arama kutusu doluyken "Öne Çıkanlar" vitrin kısıtı kaldırılır ki 550+ paketin tamamı aranabilsin.
         const matchCat = this.currentCat === 'all'
-          || (this.currentCat === 'featured' && Boolean(p.featured))
+          || (this.currentCat === 'featured' && (Boolean(q) || Boolean(p.featured)))
           || (this.currentCat === 'school' && Boolean(p.school || p.id === 'fatih-kalem'))
           || p.cat === this.currentCat;
         const matchQ = !q
-          || p.name.toLowerCase().includes(q)
-          || (p.deb && p.deb.toLowerCase().includes(q))
-          || (p.flatpak && p.flatpak.toLowerCase().includes(q))
-          || p.desc.toLowerCase().includes(q);
+          || p.name.toLocaleLowerCase('tr').includes(q)
+          || this._normText(p.name).includes(qNorm)
+          || (p.id && p.id.toLowerCase().includes(qNorm))
+          || (p.deb && p.deb.toLowerCase().includes(qNorm))
+          || (p.flatpak && p.flatpak.toLowerCase().includes(qNorm))
+          || p.desc.toLocaleLowerCase('tr').includes(q)
+          || this._normText(p.desc).includes(qNorm);
         if (!matchSource || !matchCat || !matchQ) return false;
         const dedupeKey = p.flatpak ? `fp:${p.flatpak}` : (p.deb ? `deb:${p.deb}:${p.id}` : p.id);
         if (seen.has(dedupeKey)) return false;
@@ -894,10 +917,16 @@
             <span class="store-spotlight-big-icon">${XdgDesktopEngine.getAppSvgIcon({ id: spotlightPkg.id, exec: spotDeb, cat: spotlightPkg.cat })}</span>
           </div>
         `;
+        const spotBigIcon = spotHero.querySelector('.store-spotlight-big-icon');
+        if (spotBigIcon) IconResolver.tagIcon(spotBigIcon, { id: spotlightPkg.id, exec: spotDeb, deb: spotlightPkg.deb, flatpak: spotlightPkg.flatpak });
         const spotBtn = spotHero.querySelector('.btn-pkg:not(.btn-pkg-open)');
         if (spotBtn) spotBtn.addEventListener('click', () => this.togglePackage(spotlightPkg, spotHero));
         const spotOpen = spotHero.querySelector('.btn-pkg-open');
         if (spotOpen) spotOpen.addEventListener('click', () => this.launchPackage(spotlightPkg));
+        spotHero.addEventListener('click', (e) => {
+          if (e.target.closest('.btn-pkg')) return;
+          this.openDetail(spotlightPkg);
+        });
         home.appendChild(spotHero);
       }
 
@@ -1012,6 +1041,7 @@
       const sizeEl = document.getElementById('store-detail-size');
       const pkgSpec = document.getElementById('store-spec-pkg');
       const sourceSpec = document.getElementById('store-spec-source');
+      const sandboxSpec = document.getElementById('store-spec-sandbox');
       const actionWrap = document.getElementById('store-detail-action-wrap');
 
       const isFlatpak = Boolean(pkg.flatpak);
@@ -1022,6 +1052,7 @@
         iconWrap.innerHTML = `<span class="store-detail-app-icon">${XdgDesktopEngine.getAppSvgIcon({ id: pkg.id, exec: pkgSub, cat: pkg.cat })}</span>`;
         const iconBox = iconWrap.querySelector('.store-detail-app-icon');
         if (iconBox) IconResolver.tagIcon(iconBox, { id: pkg.id, exec: pkgSub, deb: pkg.deb, flatpak: pkg.flatpak });
+        IconResolver.upgradeScope(iconWrap);
       }
       if (nameEl) nameEl.textContent = pkg.name;
       if (leadEl) leadEl.textContent = pkg.desc;
@@ -1031,6 +1062,7 @@
       if (sizeEl) sizeEl.textContent = pkg.size || 'Hafif';
       if (pkgSpec) pkgSpec.textContent = pkgSub || pkg.id;
       if (sourceSpec) sourceSpec.textContent = sourceLabel;
+      if (sandboxSpec) sandboxSpec.textContent = isFlatpak ? 'Bubblewrap Sandbox (İzole)' : (pkg.action === 'meb-cert' ? 'Sistem Güven Deposu' : 'Yerel Sistem / APT');
 
       if (actionWrap) {
         actionWrap.innerHTML = `
@@ -1408,13 +1440,58 @@
       }
     },
 
-    async uninstallPackageById(pkgId) {
-      const pkg = this.packages.find(p => p.id === pkgId);
-      if (pkg) {
-        await this.togglePackage(pkg);
-      } else {
-        XdgDesktopEngine.removeApplication(pkgId);
+    findPackageForApp(pkgId, appHint = null) {
+      const hint = appHint || ((typeof XdgDesktopEngine !== 'undefined' && Array.isArray(XdgDesktopEngine.installedApps))
+        ? XdgDesktopEngine.installedApps.find(a => a && a.id === pkgId)
+        : null);
+      const candIds = new Set([pkgId, hint?.storeId, hint?.id].filter(Boolean));
+      const candFp = hint?.flatpak || (pkgId && pkgId.includes('.') ? pkgId : '');
+      const candDeb = hint?.deb || '';
+      return this.packages.find(p =>
+        candIds.has(p.id)
+        || (candFp && p.flatpak === candFp)
+        || (candDeb && p.deb === candDeb)
+        || (p.deb && candIds.has(p.deb))
+        || (p.flatpak && candIds.has(p.flatpak))
+      ) || null;
+    },
+
+    async uninstallPackageById(pkgId, appHint = null) {
+      const hint = appHint || ((typeof XdgDesktopEngine !== 'undefined' && Array.isArray(XdgDesktopEngine.installedApps))
+        ? XdgDesktopEngine.installedApps.find(a => a && a.id === pkgId)
+        : null);
+      if (hint && hint.isBuiltin) {
+        ReportManager?.showToast('Yerleşik sistem bileşenleri kaldırılamaz; masaüstünden gizleyebilirsiniz.', 'info');
+        return;
       }
+      const pkg = this.findPackageForApp(pkgId, hint);
+      const label = (pkg && pkg.name) || (hint && hint.name) || pkgId;
+      if (!confirm(`'${label}' uygulamasını sistemden ve masaüstünden kaldırmak istiyor musunuz?`)) return;
+
+      if (pkg) {
+        pkg.installed = true;
+        await this.togglePackage(pkg);
+        return;
+      }
+
+      if (hint && hint.flatpak) {
+        try {
+          await TauriBridge.invoke('remove_flatpak_app', { appId: hint.flatpak });
+          ReportManager?.showToast(`${label} kaldırıldı.`);
+        } catch (err) {
+          ReportManager?.showToast(`Kaldırılamadı: ${err.message || err}`, 'error');
+          return;
+        }
+      } else if (hint && hint.deb) {
+        try {
+          await TauriBridge.invoke('remove_deb_package', { packageName: hint.deb });
+          ReportManager?.showToast(`${label} kaldırıldı.`);
+        } catch (err) {
+          ReportManager?.showToast(`Kaldırılamadı: ${err.message || err}`, 'error');
+          return;
+        }
+      }
+      XdgDesktopEngine.removeApplication(pkgId, hint?.deb || null, hint?.flatpak || null);
     }
   };
 
