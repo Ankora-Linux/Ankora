@@ -355,8 +355,182 @@
 
       this.initFileMenus();
       this.initEmptyAreaMenu();
+      this.initPathBarEditor();
+      this.initKeyboardShortcuts();
       this.initProgressListener();
       this.loadDirectory('');
+    },
+
+    initPathBarEditor() {
+      const bar = document.getElementById('files-path-bar');
+      if (!bar) return;
+      bar.addEventListener('click', (e) => {
+        if (e.target.closest('.files-crumb') || e.target.closest('.files-path-input')) return;
+        this.openPathEditor();
+      });
+    },
+
+    openPathEditor() {
+      const bar = document.getElementById('files-path-bar');
+      const crumbs = document.getElementById('files-breadcrumbs');
+      if (!bar || !crumbs) return;
+      if (bar.querySelector('.files-path-input')) {
+        bar.querySelector('.files-path-input').select();
+        return;
+      }
+      crumbs.style.display = 'none';
+      const inp = document.createElement('input');
+      inp.type = 'text';
+      inp.className = 'files-path-input';
+      inp.value = this.currentPath || this.userHome || '/';
+      inp.style.cssText = 'flex:1;min-width:120px;background:transparent;border:none;outline:none;color:inherit;font-size:12.5px;font-family:inherit;';
+      const close = () => {
+        inp.remove();
+        crumbs.style.display = '';
+      };
+      inp.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          let target = inp.value.trim().replace(/\\+/g, '/');
+          if (target === '~' || target.startsWith('~/')) {
+            const h = this.userHome || '/home/ankora';
+            target = target === '~' ? h : `${h}${target.slice(1)}`;
+          }
+          close();
+          if (target) this.loadDirectory(target);
+        } else if (e.key === 'Escape') {
+          e.preventDefault();
+          close();
+        }
+      });
+      inp.addEventListener('blur', close);
+      bar.appendChild(inp);
+      inp.focus();
+      inp.select();
+    },
+
+    getSelectedTargets() {
+      if (Array.isArray(this.selectedItems) && this.selectedItems.length > 0) {
+        return this.selectedItems.slice();
+      }
+      return this.selectedItem ? [this.selectedItem] : [];
+    },
+
+    selectAllVisible() {
+      const cards = Array.from(document.querySelectorAll('#files-grid .files-item-card'));
+      if (!cards.length) return;
+      const visible = this.visibleSorted(this.items || []);
+      this.selectedItems = visible.slice();
+      this.selectedItem = visible[visible.length - 1] || null;
+      cards.forEach(c => c.classList.add('selected'));
+      const statusSelected = document.getElementById('files-status-selected');
+      if (statusSelected) {
+        statusSelected.textContent = `${this.selectedItems.length} öge seçili`;
+      }
+    },
+
+    async trashSelected() {
+      const picks = this.getSelectedTargets();
+      if (!picks.length) {
+        ReportManager?.showToast('Önce bir öge seçin.', 'error');
+        return;
+      }
+      if (this.isTrashView) {
+        await this.permanentDeleteSelected();
+        return;
+      }
+      let okCount = 0;
+      for (const it of picks) {
+        try {
+          await TauriBridge.invoke('move_to_trash', { path: it.path });
+          okCount++;
+        } catch (e) {
+          ReportManager?.showToast(`Çöpe taşınamadı (${it.name}): ${e.message || e}`, 'error');
+        }
+      }
+      if (okCount > 0) {
+        ReportManager?.showToast(okCount > 1 ? `${okCount} öge çöp kutusuna taşındı.` : 'Öge çöp kutusuna taşındı.');
+        this.refresh();
+        DesktopFiles?.refresh?.();
+      }
+    },
+
+    async permanentDeleteSelected() {
+      const picks = this.getSelectedTargets();
+      if (!picks.length) {
+        ReportManager?.showToast('Önce bir öge seçin.', 'error');
+        return;
+      }
+      const msg = picks.length > 1
+        ? `Seçili ${picks.length} öge kalıcı olarak silinsin mi? Bu işlem geri alınamaz!`
+        : `'${picks[0].name}' kalıcı olarak silinsin mi? Bu işlem geri alınamaz!`;
+      if (!confirm(msg)) return;
+      let okCount = 0;
+      for (const it of picks) {
+        try {
+          await TauriBridge.invoke('delete_file', { path: it.path });
+          okCount++;
+        } catch (e) {
+          ReportManager?.showToast(`Silinemedi (${it.name}): ${e.message || e}`, 'error');
+        }
+      }
+      if (okCount > 0) {
+        ReportManager?.showToast(okCount > 1 ? `${okCount} öge kalıcı olarak silindi.` : 'Öge kalıcı olarak silindi.');
+        if (this.isTrashView) this.loadTrash();
+        else this.refresh();
+        DesktopFiles?.refresh?.();
+      }
+    },
+
+    initKeyboardShortcuts() {
+      if (this._keysBound) return;
+      this._keysBound = true;
+      document.addEventListener('keydown', (e) => {
+        const winFiles = document.getElementById('win-files');
+        if (!winFiles || !winFiles.classList.contains('open') || !winFiles.classList.contains('active')) return;
+        const tag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
+        if (tag === 'input' || tag === 'textarea' || document.activeElement?.isContentEditable) return;
+
+        const key = (e.key || '').toLowerCase();
+        if (e.ctrlKey && e.shiftKey && key === 'n') {
+          e.preventDefault();
+          this.promptNewFolder();
+        } else if (e.ctrlKey && !e.altKey && key === 'h') {
+          e.preventDefault();
+          this.toggleHiddenFiles();
+        } else if ((e.ctrlKey && !e.altKey && key === 'l') || (e.altKey && key === 'd')) {
+          e.preventDefault();
+          this.openPathEditor();
+        } else if (e.ctrlKey && !e.altKey && key === 'a') {
+          e.preventDefault();
+          this.selectAllVisible();
+        } else if (e.ctrlKey && !e.altKey && key === 'c') {
+          e.preventDefault();
+          this.clipboardAdd('copy');
+        } else if (e.ctrlKey && !e.altKey && key === 'x') {
+          e.preventDefault();
+          this.clipboardAdd('cut');
+        } else if (e.ctrlKey && !e.altKey && key === 'v') {
+          e.preventDefault();
+          this.pasteClipboard();
+        } else if (e.key === 'F2') {
+          e.preventDefault();
+          if (this.selectedItem && !this.isTrashView) this.promptRename(this.selectedItem);
+        } else if (e.key === 'Delete') {
+          e.preventDefault();
+          if (e.shiftKey) this.permanentDeleteSelected();
+          else this.trashSelected();
+        } else if (e.key === 'F5' || (e.ctrlKey && key === 'r')) {
+          e.preventDefault();
+          this.refresh();
+        } else if (e.key === 'Backspace' || (e.altKey && e.key === 'ArrowUp')) {
+          e.preventDefault();
+          this.navigateUp();
+        } else if (e.key === 'Enter' && this.selectedItem && !this.isTrashView) {
+          e.preventDefault();
+          this.openItem(this.selectedItem);
+        }
+      });
     },
 
     // Üst menü çubuğu (Dosya / Düzenle / Görünüm / Hakkında).
@@ -459,12 +633,10 @@
         case 'cut': this.clipboardAdd('cut'); break;
         case 'paste': this.pasteClipboard(); break;
         case 'trash':
-          if (this.selectedItem) this.moveToTrash(this.selectedItem.path);
-          else ReportManager?.showToast('Önce bir öge seçin.', 'error');
+          this.trashSelected();
           break;
         case 'delete':
-          if (this.selectedItem) this.permanentDelete(this.selectedItem);
-          else ReportManager?.showToast('Önce bir öge seçin.', 'error');
+          this.permanentDeleteSelected();
           break;
         case 'shortcut': this.createShortcut(this.selectedItem); break;
         case 'sort-name': this.setSort('name'); break;
@@ -480,18 +652,39 @@
         case 'view-compact': this.setViewMode('compact'); break;
         case 'hidden': this.toggleHiddenFiles(); break;
         case 'about':
-          WindowManager.open('win-telemetry');
+          WindowManager.open('win-settings');
+          document.querySelector('.settings-nav-item[data-pane="pane-set-about"]')?.click();
           break;
       }
     },
 
+    nextUniqueLeaf(baseName) {
+      const existing = new Set((this.items || []).map(it => String(it.name || '').toLocaleLowerCase('tr')));
+      if (!existing.has(baseName.toLocaleLowerCase('tr'))) return baseName;
+      const dotIdx = baseName.lastIndexOf('.');
+      const hasExt = dotIdx > 0;
+      const stem = hasExt ? baseName.slice(0, dotIdx) : baseName;
+      const ext = hasExt ? baseName.slice(dotIdx) : '';
+      for (let n = 2; n <= 99; n++) {
+        const cand = `${stem} (${n})${ext}`;
+        if (!existing.has(cand.toLocaleLowerCase('tr'))) return cand;
+      }
+      return `${stem} (${Date.now().toString().slice(-4)})${ext}`;
+    },
+
     // Klasör/belge oluştur: hem boş-alan sağ tığı hem Dosya menüsünden.
     async promptCreateFile(kind, what) {
-      const name = prompt(what === 'doc' ? 'Belge adı: (ör. Notlar.md)' : 'Dosya adı:', what === 'doc' ? 'Yeni Belge.md' : 'Yeni Dosya.txt');
+      if (this.isTrashView) {
+        ReportManager?.showToast('Çöp kutusunun içinde yeni dosya oluşturulamaz.', 'error');
+        return;
+      }
+      const defName = this.nextUniqueLeaf(what === 'doc' ? 'Yeni Belge.md' : 'Yeni Dosya.txt');
+      const name = prompt(what === 'doc' ? 'Belge adı: (ör. Notlar.md)' : 'Dosya adı:', defName);
       if (!name || !name.trim()) return;
-      const clean = name.trim().replace(/[\\/:*?"<>|\0]/g, '-');
+      const clean = this.nextUniqueLeaf(name.trim().replace(/[\\/:*?"<>|\0]/g, '-'));
       let content = '';
-      const target = `${this.currentPath === '/' ? '' : this.currentPath}/${clean}`;
+      const baseDir = this.currentPath || this.userHome || '/home/ankora';
+      const target = `${baseDir === '/' ? '' : baseDir}/${clean}`;
       if (what === 'doc') {
         if (clean.toLowerCase().endsWith('.md')) content = `# ${clean.replace(/\.[^.]+$/, '')}\n\n`;
         else if (clean.toLowerCase().endsWith('.html')) content = '<!DOCTYPE html>\n<html lang="tr">\n<head><meta charset="utf-8"><title>Belge</title></head>\n<body>\n\n</body>\n</html>\n';
@@ -603,6 +796,14 @@
     initEmptyAreaMenu() {
       const area = document.getElementById('files-content-area');
       if (!area) return;
+      area.addEventListener('click', (e) => {
+        if (e.target.closest('.files-item-card')) return;
+        document.querySelectorAll('#files-grid .files-item-card.selected').forEach(c => c.classList.remove('selected'));
+        this.selectedItem = null;
+        this.selectedItems = [];
+        const statusSelected = document.getElementById('files-status-selected');
+        if (statusSelected) statusSelected.textContent = this.clipboard.length ? '' : 'Seçili öge yok';
+      });
       area.addEventListener('contextmenu', (e) => {
         if (e.target.closest('.files-item-card')) return;
         e.preventDefault();
@@ -713,6 +914,7 @@
         // gizli yapılandırma dosyaları "boş/gereksiz" satırlar gibi görünüyordu.
         const visibleItems = this.visibleSorted(this.items);
         this.selectedItem = null;
+        this.selectedItems = [];
 
         if (breadcrumbs) {
           breadcrumbs.replaceChildren();
@@ -779,11 +981,14 @@
             } else if (item.ext === 'deb') {
               icon = '<svg class="glyph" aria-hidden="true"><use href="#ico-package"></use></svg>';
               badge = '<span class="file-card-badge deb">DEB PAKET</span>';
+            } else if (item.ext === 'exe' || item.ext === 'msi') {
+              icon = '<svg class="glyph" aria-hidden="true"><use href="#ico-package"></use></svg>';
+              badge = '<span class="file-card-badge" style="background:rgba(59,130,246,0.18);color:#60a5fa;border-color:rgba(59,130,246,0.3);">WIN UYG</span>';
             } else if (['png', 'jpg', 'jpeg', 'webp', 'svg', 'gif'].includes(item.ext)) {
               icon = '<svg class="glyph" aria-hidden="true"><use href="#ico-image"></use></svg>';
             } else if (['pdf', 'doc', 'docx', 'odt'].includes(item.ext)) {
               icon = '<svg class="glyph" aria-hidden="true"><use href="#ico-file-text"></use></svg>';
-            } else if (['txt', 'md', 'json', 'js', 'py', 'sh', 'css', 'html', 'c', 'cpp', 'rs'].includes(item.ext)) {
+            } else if (['txt', 'md', 'csv', 'json', 'xml', 'toml', 'js', 'ts', 'tsx', 'jsx', 'py', 'sh', 'css', 'html', 'c', 'cpp', 'h', 'rs', 'go', 'java', 'sql'].includes(item.ext)) {
               icon = '<svg class="glyph" aria-hidden="true"><use href="#ico-edit"></use></svg>';
             } else if (['zip', 'tar', 'gz', 'xz', '7z', 'bz2'].includes(item.ext)) {
               icon = '<svg class="glyph" aria-hidden="true"><use href="#ico-archive"></use></svg>';
@@ -896,8 +1101,14 @@
         }
       }
 
+      // 1b. Windows Çalıştırılabilirleri (.exe / .msi): Wine yönlendirmesi
+      if (item.ext === 'exe' || item.ext === 'msi') {
+        await this.promptWindowsExecutable(item);
+        return;
+      }
+
       // 2. Metin, Kod ve Konfigürasyon Dosyaları
-      const codeExts = ['txt', 'md', 'json', 'js', 'py', 'sh', 'css', 'html', 'log', 'conf', 'ini', 'yml', 'yaml'];
+      const codeExts = ['txt', 'md', 'csv', 'json', 'xml', 'toml', 'js', 'ts', 'tsx', 'jsx', 'py', 'sh', 'css', 'html', 'log', 'conf', 'ini', 'yml', 'yaml', 'c', 'cpp', 'h', 'rs', 'go', 'java', 'sql'];
       if (codeExts.includes(item.ext)) {
         try {
           const doc = await TauriBridge.invoke('read_document_file', { filePath: item.path });
@@ -973,26 +1184,64 @@
       }
     },
 
+    async promptWindowsExecutable(item) {
+      if (!item || !item.path) return;
+      try {
+        await TauriBridge.invoke('launch_application', { exec: `wine "${item.path}"` });
+        ReportManager?.showToast(`'${item.name}' Wine ile başlatılıyor...`);
+      } catch (e) {
+        const msg = String(e && (e.message || e) || '');
+        const installWine = confirm(
+          `'${item.name}' bir Windows (.${item.ext || 'exe'}) dosyasıdır.\n\n` +
+          `Linux üzerinde doğrudan çalışmaz, ancak Ankora Mağaza'daki Wine uyumluluk katmanı ile çalıştırabilirsiniz.\n\n` +
+          `(${msg || 'Wine kurulu değil'})\n\n` +
+          `Ankora Mağaza'da Wine sayfasını açmak ister misiniz?`
+        );
+        if (installWine) {
+          WindowManager.open('win-store');
+          const sInput = document.getElementById('store-search-input') || document.getElementById('store-search');
+          if (sInput) {
+            sInput.value = 'wine';
+            sInput.dispatchEvent(new Event('input', { bubbles: true }));
+          }
+        }
+      }
+    },
+
     async promptNewFolder() {
-      const folderName = prompt('Yeni Klasör Adı:', 'Yeni Klasör');
+      if (this.isTrashView) {
+        ReportManager?.showToast('Çöp kutusunun içinde yeni klasör oluşturulamaz.', 'error');
+        return;
+      }
+      const defName = this.nextUniqueLeaf('Yeni Klasör');
+      const folderName = prompt('Yeni Klasör Adı:', defName);
       if (!folderName || !folderName.trim()) return;
 
       const cleanName = folderName.trim().replace(/[\\/:*?"<>|\0]/g, '');
       if (!cleanName) {
-        alert('Geçersiz klasör adı!');
+        ReportManager?.showToast('Geçersiz klasör adı.', 'error');
         return;
       }
+      const existing = (this.items || []).some(it => String(it.name || '').toLocaleLowerCase('tr') === cleanName.toLocaleLowerCase('tr'));
+      const finalName = existing ? this.nextUniqueLeaf(cleanName) : cleanName;
 
-      const targetPath = (this.currentPath.endsWith('/') ? this.currentPath : this.currentPath + '/') + cleanName;
+      const baseDir = this.currentPath || this.userHome || '/home/ankora';
+      const targetPath = (baseDir.endsWith('/') ? baseDir : baseDir + '/') + finalName;
       Terminal.log(`[KLASÖR] '${targetPath}' oluşturuluyor...`, 'cmd');
 
       try {
         await TauriBridge.invoke('create_folder', { path: targetPath });
-        Terminal.log(`[KLASÖR] '${cleanName}' başarıyla oluşturuldu.`, 'success');
+        Terminal.log(`[KLASÖR] '${finalName}' başarıyla oluşturuldu.`, 'success');
+        if (finalName !== cleanName) {
+          ReportManager?.showToast(`'${cleanName}' zaten var olduğu için '${finalName}' oluşturuldu.`);
+        } else {
+          ReportManager?.showToast(`'${finalName}' klasörü oluşturuldu.`);
+        }
         await this.refresh();
+        DesktopFiles?.refresh?.();
       } catch (err) {
         Terminal.log(`[HATA] Klasör oluşturulamadı: ${err}`, 'error');
-        alert(`Klasör oluşturulamadı: ${err}`);
+        ReportManager?.showToast(`Klasör oluşturulamadı: ${err}`, 'error');
       }
     },
 
@@ -1012,11 +1261,17 @@
       }
     },
 
-    openTerminalHere() {
-      WindowManager.open('win-terminal');
-      if (Terminal && Terminal.runCommand) {
-        Terminal.runCommand(`cd "${this.currentPath}"`);
-      }
+    openTerminalHere(dirOverride) {
+      const targetDir = dirOverride || this.currentPath || this.userHome || '/home/ankora';
+      TauriBridge.invoke('launch_interactive_terminal', { command: null, cwd: targetDir })
+        .then(() => {
+          Terminal.log(`[TERMİNAL] '${targetDir}' konumunda sistem terminali açıldı.`, 'success');
+          ReportManager?.showToast(`Terminal açıldı: ${targetDir}`);
+        })
+        .catch(() => {
+          WindowManager.open('win-terminal');
+          Terminal.log(`[TERMİNAL] Çalışma dizini: ${targetDir}`, 'muted');
+        });
     },
 
     async loadTrash() {
@@ -1403,17 +1658,11 @@
             case 'rename': this.promptRename(item); break;
             case 'open-term-here': {
               const targetDir = item.is_dir ? item.path : (item.path.substring(0, item.path.lastIndexOf('/')) || '/');
-              WindowManager.open('win-terminal');
-              if (typeof Terminal !== 'undefined' && Terminal.runCommand) {
-                Terminal.runCommand(`cd "${targetDir}"`);
-              }
+              this.openTerminalHere(targetDir);
               break;
             }
             case 'open-term-here-inside':
-              WindowManager.open('win-terminal');
-              if (typeof Terminal !== 'undefined' && Terminal.runCommand) {
-                Terminal.runCommand(`cd "${item.path}"`);
-              }
+              this.openTerminalHere(item.path);
               break;
             case 'restore': this.restoreTrashItem(item.name); break;
             case 'extract': this.extractArchive(item.path); break;

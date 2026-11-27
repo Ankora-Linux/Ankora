@@ -260,8 +260,13 @@
             <h3 class="desktop-folder-title" id="desktop-folder-title">Kategori</h3>
             <p class="desktop-folder-count" id="desktop-folder-count"></p>
           </div>
-          <button type="button" class="desktop-folder-close" id="desktop-folder-close" aria-label="Kategoriyi kapat">✕</button>
+          <div class="desktop-folder-head-actions" style="display:flex;align-items:center;gap:6px;">
+            <button type="button" class="btn-pkg-sm" id="desktop-folder-add-app" title="Bu kategoriye uygulama ekle">+ Uygulama Ekle</button>
+            <button type="button" class="btn-pkg-sm" id="desktop-folder-rename" title="Kategoriyi yeniden adlandır">Adını Değiştir</button>
+            <button type="button" class="desktop-folder-close" id="desktop-folder-close" aria-label="Kategoriyi kapat">✕</button>
+          </div>
         </div>
+        <div class="desktop-folder-picker" id="desktop-folder-picker" hidden style="padding:10px 14px;border-bottom:1px solid var(--border-subtle,rgba(128,128,128,0.2));display:flex;flex-wrap:wrap;gap:6px;max-height:132px;overflow-y:auto;"></div>
         <div class="desktop-folder-grid" id="desktop-folder-grid"></div>
       </section>
     </div>
@@ -3883,7 +3888,7 @@
     </div>
     <div class="ctx-item" data-action="new-group">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 0 1 2-2h4l2 3h8a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><line x1="9" y1="13" x2="15" y2="13"></line><line x1="12" y1="10" x2="12" y2="16"></line></svg>
-      <span>Kategori Oluştur</span>
+      <span>Uygulama Kategorisi Oluştur</span>
     </div>
     <div class="ctx-item" data-action="term">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>

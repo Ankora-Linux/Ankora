@@ -2858,7 +2858,12 @@ fn run_terminal_command_blocking(command: String) -> Result<String, String> {
 
 /// Etkileşimli TUI (nano, vim, htop vb.) veya doğrudan sistem terminali emülatörünü başlatır
 #[tauri::command]
-async fn launch_interactive_terminal(command: Option<String>) -> Result<String, String> {
+async fn launch_interactive_terminal(
+    command: Option<String>,
+    cwd: Option<String>,
+) -> Result<String, String> {
+    #[cfg(not(target_os = "linux"))]
+    let _ = &cwd;
     #[cfg(target_os = "linux")]
     {
         let terminal_candidates = [
@@ -2917,6 +2922,20 @@ async fn launch_interactive_terminal(command: Option<String>) -> Result<String, 
             "DISPLAY",
             std::env::var("DISPLAY").unwrap_or_else(|_| ":0".to_string()),
         );
+        if let Some(dir_raw) = cwd.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
+            let dir_path = Path::new(dir_raw);
+            if dir_path.is_dir() {
+                if let Ok(canon_dir) = fs::canonicalize(dir_path) {
+                    let canon_s = canon_dir.to_string_lossy();
+                    let blocked = ["/root", "/proc", "/sys", "/dev"]
+                        .iter()
+                        .any(|r| canon_s == *r || canon_s.starts_with(&format!("{}/", r)));
+                    if !blocked {
+                        spawn_cmd.current_dir(canon_dir);
+                    }
+                }
+            }
+        }
 
         if !cmd_str.is_empty() {
             let script = format!("{}; echo; echo '[İşlem tamamlandı, pencereyi kapatmak için Enter tuşuna basın]'; read -r _", cmd_str);
@@ -8462,27 +8481,32 @@ fn get_removable_drives() -> Result<Vec<RemovableDriveEntry>, String> {
                         .and_then(|f| f.as_str())
                         .unwrap_or("")
                         .to_string();
-                    let mut mountpoint = item
+                    let mountpoint = item
                         .get("mountpoint")
                         .and_then(|m| m.as_str())
+                        .filter(|s| !s.is_empty())
                         .map(|s| s.to_string());
 
-                    // Dahili diskler için de otomatik bağlama denenir (hata #6:
-                    // takılı olmayan bölümler dosya yöneticisinde hiç görünmüyordu).
-                    // Takılı olmayan bölümler için otomatik bağlama arka planda yapılmaz;
-                    // mountpoint boş olarak raporlanır.
-
-                    // Kullanıcı şikayeti — dahili (RM=0) diskler üstünde
-                    // takas olmayan gerçek bir dosya sistemi varsa da listeye
-                    // gir; yoksa dahili disk dosya yöneticisinde asla görünmez.
-                    let is_real_fs =
-                        !fstype.is_empty() && fstype != "swap" && fstype != "linux-swap";
-                    if is_rm
-                        || (is_real_fs && (is_rm || mountpoint.is_some()))
-                        || mountpoint
-                            .as_deref()
-                            .map(|p| p.starts_with("/media") || p.starts_with("/mnt"))
-                            .unwrap_or(false)
+                    // Canlı sistem/takılı olmayan gerçek veri bölümleri (NTFS/exFAT Windows diskleri, USB)
+                    // EFI/boot/swap/LUKS/LVM bölümleri kenar çubuğunu kirletmesin.
+                    let is_system_boot_mount = mountpoint
+                        .as_deref()
+                        .map(|p| p == "/" || p.starts_with("/boot"))
+                        .unwrap_or(false);
+                    let is_real_data_fs = !fstype.is_empty()
+                        && !matches!(
+                            fstype.as_str(),
+                            "swap" | "linux-swap" | "LVM2_member" | "crypto_LUKS" | "squashfs"
+                        );
+                    let is_win_or_data_fs = matches!(
+                        fstype.as_str(),
+                        "ntfs" | "ntfs3" | "exfat" | "vfat" | "ext4" | "ext3" | "ext2" | "btrfs" | "xfs"
+                    );
+                    if !is_system_boot_mount
+                        && (is_rm
+                            || (is_real_data_fs && mountpoint.is_some())
+                            || (is_win_or_data_fs && !label.is_empty())
+                            || matches!(fstype.as_str(), "ntfs" | "ntfs3" | "exfat"))
                     {
                         drives.push(RemovableDriveEntry {
                             name: name.to_string(),
@@ -8505,6 +8529,71 @@ fn get_removable_drives() -> Result<Vec<RemovableDriveEntry>, String> {
     #[cfg(not(target_os = "linux"))]
     {
         Ok(vec![])
+    }
+}
+
+#[tauri::command]
+fn mount_drive(device: String) -> Result<String, String> {
+    #[cfg(target_os = "linux")]
+    {
+        let raw = device.trim();
+        let leaf = raw.strip_prefix("/dev/").unwrap_or(raw);
+        if leaf.is_empty()
+            || leaf.contains('/')
+            || leaf.contains("..")
+            || !leaf
+                .chars()
+                .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')
+        {
+            return Err("Geçersiz disk aygıt adı.".to_string());
+        }
+        let dev_arg = format!("/dev/{}", leaf);
+        if !Path::new(&dev_arg).exists() {
+            return Err(format!("Disk aygıtı bulunamadı: {}", dev_arg));
+        }
+        if let Ok(cur_mp) = Command::new("lsblk")
+            .args(["-no", "MOUNTPOINT", &dev_arg])
+            .output()
+        {
+            let mp = String::from_utf8_lossy(&cur_mp.stdout).trim().to_string();
+            if !mp.is_empty() {
+                return Ok(mp);
+            }
+        }
+        let out = Command::new("udisksctl")
+            .args(["mount", "-b", &dev_arg, "--no-user-interaction"])
+            .output()
+            .map_err(|e| format!("Disk bağlama aracı (udisksctl) çalıştırılamadı: {}", e))?;
+        if out.status.success() {
+            let stdout = String::from_utf8_lossy(&out.stdout);
+            if let Some(idx) = stdout.find(" at ") {
+                let mp = stdout[idx + 4..].trim().trim_end_matches('.').to_string();
+                if !mp.is_empty() {
+                    return Ok(mp);
+                }
+            }
+            if let Ok(cur_mp) = Command::new("lsblk")
+                .args(["-no", "MOUNTPOINT", &dev_arg])
+                .output()
+            {
+                let mp = String::from_utf8_lossy(&cur_mp.stdout).trim().to_string();
+                if !mp.is_empty() {
+                    return Ok(mp);
+                }
+            }
+            return Err("Disk bağlandı ancak bağlama noktası okunamadı.".to_string());
+        }
+        let err = String::from_utf8_lossy(&out.stderr).trim().to_string();
+        Err(if err.is_empty() {
+            "Disk bağlanamadı.".to_string()
+        } else {
+            err
+        })
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        let _ = device;
+        Ok("/media/ankora/VeriDiski".to_string())
     }
 }
 
@@ -12060,6 +12149,7 @@ fn main() {
             get_display_modes,
             set_display_mode,
             get_removable_drives,
+            mount_drive,
             unmount_drive,
             get_clipboard_text,
             set_clipboard_text,

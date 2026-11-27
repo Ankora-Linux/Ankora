@@ -2070,27 +2070,45 @@
       sidebar.querySelectorAll('.usb-dynamic-drive').forEach(el => el.remove());
 
       drives.forEach(d => {
-        if (!d.mountpoint) return;
+        const hasMount = !!d.mountpoint;
         const isRemovable = d.removable !== false;
         const item = document.createElement('div');
         item.className = 'files-sidebar-item usb-dynamic-drive';
-        item.setAttribute('data-path', d.mountpoint);
+        item.setAttribute('data-path', d.mountpoint || d.name);
         item.style.cssText = isRemovable
-          ? 'color:#38bdf8;font-weight:500;'
+          ? 'color:var(--accent-active, #38bdf8);font-weight:500;'
           : 'color:var(--text-secondary, #9aa3b2);font-weight:500;opacity:0.92;';
-        item.innerHTML = `<svg class="files-sidebar-glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z"></path><line x1="8" y1="12" x2="8.01" y2="12"></line><line x1="12" y1="12" x2="12.01" y2="12"></line></svg><span>${escapeHtml(d.label || d.name)}</span>`;
-        item.title = isRemovable
-          ? `${d.label} (${d.size})\nBağlantı: ${d.mountpoint}\n• Tıkla: Aç\n• Sağ tık: Güvenle Çıkar`
-          : `${d.label} (${d.size}) — Dahili disk (${d.fstype || 'bilinmeyen dosya sistemi'})\nBağlantı: ${d.mountpoint}\n• Tıkla: Aç`;
-        item.addEventListener('click', () => {
+        const fsTag = d.fstype ? ` (${d.fstype.toUpperCase()})` : '';
+        const statusHint = hasMount ? '' : ' · Bağla';
+        item.innerHTML = `<svg class="files-sidebar-glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z"></path><line x1="8" y1="12" x2="8.01" y2="12"></line><line x1="12" y1="12" x2="12.01" y2="12"></line></svg><span>${escapeHtml((d.label || d.name) + statusHint)}</span>`;
+        item.title = hasMount
+          ? (isRemovable
+            ? `${d.label} (${d.size})${fsTag}\nBağlantı: ${d.mountpoint}\n• Tıkla: Aç\n• Sağ tık: Güvenle Çıkar`
+            : `${d.label} (${d.size}) — Dahili disk${fsTag}\nBağlantı: ${d.mountpoint}\n• Tıkla: Aç`)
+          : `${d.label} (${d.size})${fsTag}\nHenüz bağlı değil — Tıkla ve bağla`;
+        item.addEventListener('click', async () => {
           document.querySelectorAll('.files-sidebar-item').forEach(i => i.classList.remove('active'));
           item.classList.add('active');
-          FileManager?.loadDirectory(d.mountpoint);
+          if (d.mountpoint) {
+            FileManager?.loadDirectory(d.mountpoint);
+            return;
+          }
+          try {
+            ReportManager?.showToast(`Disk bağlanıyor: ${d.label || d.name}...`);
+            const mp = await TauriBridge.invoke('mount_drive', { device: d.name });
+            if (mp) {
+              d.mountpoint = mp;
+              ReportManager?.showToast(`Bağlandı: ${mp}`);
+              this.pollDrives(false);
+              FileManager?.loadDirectory(mp);
+            }
+          } catch (err) {
+            ReportManager?.showToast(`Disk bağlanamadı: ${err.message || err}`, 'error');
+          }
         });
         sidebar.appendChild(item);
-        // "Güvenle çıkar" yalnızca harici (USB vb.) aygıtlar için anlamlıdır;
-        // dahili disklerde çıkarılamaz, sağ tık sessizce yok sayılır.
-        if (!isRemovable) return;
+        // "Güvenle çıkar" yalnızca bağlı harici (USB vb.) aygıtlar için anlamlıdır.
+        if (!isRemovable || !hasMount) return;
         item.addEventListener('contextmenu', (e) => {
           e.preventDefault();
           e.stopPropagation();

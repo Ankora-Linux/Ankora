@@ -1525,7 +1525,7 @@
           }
           break;
         case 'lock_screen':
-          if (typeof LockScreenManager !== 'undefined') LockScreenManager.lock();
+          if (typeof LockManager !== 'undefined') LockManager.lock();
           break;
         case 'screenshot':
           if (typeof ScreenshotManager !== 'undefined' && !ScreenshotManager._captureBusy) {

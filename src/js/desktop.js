@@ -741,18 +741,68 @@
       const grid = document.getElementById('desktop-folder-grid');
       const title = document.getElementById('desktop-folder-title');
       const count = document.getElementById('desktop-folder-count');
+      const picker = document.getElementById('desktop-folder-picker');
+      const btnAddApp = document.getElementById('desktop-folder-add-app');
+      const btnRename = document.getElementById('desktop-folder-rename');
       if (!group || !overlay || !grid || !title) return;
       const apps = this.groupApps(group);
       this._groupReturnFocus = document.activeElement;
       this._openGroupId = groupId;
       title.textContent = group.name;
       if (count) count.textContent = apps.length ? `${apps.length} uygulama` : 'Henüz uygulama yok';
+      if (picker) {
+        picker.hidden = true;
+        picker.style.display = 'none';
+        picker.replaceChildren();
+      }
+      if (btnRename) {
+        btnRename.onclick = () => {
+          const next = prompt('Kategori adı:', group.name);
+          if (next && next.trim()) {
+            this.renameGroup(group.id, next);
+            this.openGroup(group.id);
+          }
+        };
+      }
+      if (btnAddApp && picker) {
+        btnAddApp.onclick = () => {
+          const opening = picker.hidden;
+          picker.replaceChildren();
+          if (!opening) {
+            picker.hidden = true;
+            picker.style.display = 'none';
+            return;
+          }
+          const inGroup = new Set(group.items);
+          const candidates = (this.installedApps || []).filter(a => a && a.id && !inGroup.has(a.id));
+          if (!candidates.length) {
+            const note = document.createElement('span');
+            note.style.cssText = 'font-size:12px;color:var(--text-muted,#9aa3b2);';
+            note.textContent = 'Eklenebilecek başka uygulama bulunamadı.';
+            picker.appendChild(note);
+          } else {
+            candidates.slice(0, 36).forEach(cand => {
+              const chip = document.createElement('button');
+              chip.type = 'button';
+              chip.className = 'btn-pkg-sm';
+              chip.textContent = `+ ${cand.name}`;
+              chip.addEventListener('click', () => {
+                this.moveAppToGroup(cand.id, group.id);
+                this.openGroup(group.id);
+              });
+              picker.appendChild(chip);
+            });
+          }
+          picker.hidden = false;
+          picker.style.display = 'flex';
+        };
+      }
       grid.textContent = '';
 
       if (!apps.length) {
         const empty = document.createElement('div');
         empty.className = 'folder-empty';
-        empty.textContent = 'Bir uygulamayı bu kategoriye taşımak için masaüstündeki simgesini klasörün üzerine sürükleyin.';
+        empty.textContent = 'Yukarıdan "+ Uygulama Ekle" düğmesine tıklayın veya masaüstü simgelerini bu kategorinin üzerine sürükleyin.';
         grid.appendChild(empty);
       } else {
         apps.forEach(app => {
@@ -955,18 +1005,24 @@
         const deskIcon = item.querySelector('.item-icon');
         if (deskIcon) IconResolver.tagIcon(deskIcon, app);
 
-        // Tek tık: Seç ve sürükleme yoksa doğrudan başlat (çift tıkla çakışmayı önleyen 600ms koruma)
-        let _downX = 0, _downY = 0;
+        // Farede tek tık seçer (Windows standardı), çift tık açar; dokunmatik ekranda tek dokunuş açar.
+        let _downX = 0, _downY = 0, _downPointer = 'mouse';
         item.addEventListener('pointerdown', (e) => {
           _downX = e.clientX;
           _downY = e.clientY;
+          _downPointer = e.pointerType || 'mouse';
         }, { passive: true });
 
         item.addEventListener('click', (e) => {
           e.stopPropagation();
+          if (e.ctrlKey || e.metaKey) {
+            item.classList.toggle('selected');
+            return;
+          }
           document.querySelectorAll('.desktop-item').forEach(el => el.classList.remove('selected'));
           item.classList.add('selected');
-          if (e.button !== 0 || e.ctrlKey || e.shiftKey) return;
+          if (e.button !== 0 || e.shiftKey) return;
+          if (_downPointer !== 'touch' && !document.body.classList.contains('has-touch')) return;
           if (Math.hypot(e.clientX - _downX, e.clientY - _downY) > 8) return;
           const now = Date.now();
           if (item._lastLaunchAt && now - item._lastLaunchAt < 650) return;
@@ -1240,6 +1296,20 @@
             });
             if (folder && folder.dataset.groupId) {
               this.moveAppToGroup(appId, folder.dataset.groupId);
+              return;
+            }
+          }
+          // Gerçek dosya/klasör simgesi başka bir gerçek masaüstü klasörünün üzerine bırakıldıysa taşınır.
+          if (appId.startsWith('file:') && el.dataset.filePath) {
+            const destFolder = Array.from(container.querySelectorAll('.desktop-item.file-item[data-is-dir="1"]')).find(item => {
+              if (item === el) return false;
+              const rect = item.getBoundingClientRect();
+              return ev.clientX >= rect.left && ev.clientX <= rect.right
+                && ev.clientY >= rect.top && ev.clientY <= rect.bottom;
+            });
+            if (destFolder && destFolder.dataset.filePath && typeof FileManager !== 'undefined' && FileManager.moveItem) {
+              FileManager.moveItem(el.dataset.filePath, destFolder.dataset.filePath)
+                .then(() => { if (typeof DesktopFiles !== 'undefined') DesktopFiles.refresh(); });
               return;
             }
           }
@@ -1853,6 +1923,9 @@
           el.tabIndex = 0;
           el.setAttribute('role', 'button');
           el.setAttribute('data-app-id', `file:${it.path}`);
+          el.dataset.filePath = it.path;
+          el.dataset.fileName = it.name;
+          el.dataset.isDir = it.is_dir ? '1' : '0';
           el.title = `${it.name}\n• Çift tıkla aç`;
           const glyph = this.fileGlyph(it.name, it.is_dir);
           el.innerHTML = `
@@ -1861,16 +1934,22 @@
             </div>
             <span class="item-name">${escapeHtml(it.name)}</span>
           `;
-          let _fDownX = 0, _fDownY = 0;
+          let _fDownX = 0, _fDownY = 0, _fDownPtr = 'mouse';
           el.addEventListener('pointerdown', (e) => {
             _fDownX = e.clientX;
             _fDownY = e.clientY;
+            _fDownPtr = e.pointerType || 'mouse';
           }, { passive: true });
           el.addEventListener('click', (e) => {
             e.stopPropagation();
+            if (e.ctrlKey || e.metaKey) {
+              el.classList.toggle('selected');
+              return;
+            }
             document.querySelectorAll('.desktop-item').forEach(x => x.classList.remove('selected'));
             el.classList.add('selected');
-            if (e.button !== 0 || e.ctrlKey || e.shiftKey) return;
+            if (e.button !== 0 || e.shiftKey) return;
+            if (_fDownPtr !== 'touch' && !document.body.classList.contains('has-touch')) return;
             if (Math.hypot(e.clientX - _fDownX, e.clientY - _fDownY) > 8) return;
             const now = Date.now();
             if (el._lastOpenAt && now - el._lastOpenAt < 650) return;
@@ -1913,6 +1992,7 @@
       el.className = 'desktop-item trash-item cat-util';
       el.tabIndex = 0;
       el.setAttribute('role', 'button');
+      el.setAttribute('data-app-id', 'sys:trash');
       el.title = 'Çöp Kutusu\n• Çift tıkla aç';
       el.innerHTML = `
         <div class="item-icon">
@@ -1963,6 +2043,10 @@
               PackageInstallerManager.open(it.path);
               return;
             }
+          }
+          if ((ext === 'exe' || ext === 'msi') && typeof FileManager !== 'undefined' && FileManager.promptWindowsExecutable) {
+            await FileManager.promptWindowsExecutable(it);
+            return;
           }
           await TauriBridge.invoke('open_path', { path: it.path });
         }

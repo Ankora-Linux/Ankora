@@ -415,8 +415,8 @@
         toggleQuickSettings(false);
         toggleCalendar(false);
         WorkspaceManager.closeOverview();
-        if (typeof NotificationCenter !== 'undefined' && NotificationCenter.closeDrawer) {
-          NotificationCenter.closeDrawer();
+        if (typeof NotificationManager !== 'undefined' && NotificationManager.closeDrawer) {
+          NotificationManager.closeDrawer();
         }
         const ctx = document.getElementById('desktop-context-menu');
         if (ctx) ctx.classList.remove('open');
@@ -467,6 +467,15 @@
       if (e.metaKey && (e.key === 'e' || e.key === 'E')) {
         e.preventDefault();
         WindowManager.open('win-files');
+        return;
+      }
+
+      // Hızlı Çalıştır / Arama: Super + R (Windows Çalıştır alışkanlığı)
+      if (e.metaKey && (e.key === 'r' || e.key === 'R')) {
+        e.preventDefault();
+        if (typeof SpotlightManager !== 'undefined' && SpotlightManager.open) {
+          SpotlightManager.open();
+        }
         return;
       }
 
@@ -1500,6 +1509,121 @@
         }
       });
 
+      const resolveDesktopDir = async () => {
+        if (typeof DesktopFiles !== 'undefined' && DesktopFiles.dir) return DesktopFiles.dir;
+        try {
+          const xdg = await TauriBridge.invoke('get_xdg_user_dirs', {});
+          if (xdg && xdg.desktop) {
+            if (typeof DesktopFiles !== 'undefined') DesktopFiles.dir = xdg.desktop;
+            return xdg.desktop;
+          }
+        } catch (err) {}
+        const homeRoot = (typeof FileManager !== 'undefined' && FileManager.userHome) ? FileManager.userHome : '/home/ankora';
+        return `${homeRoot.replace(/\/+$/, '')}/Masaüstü`;
+      };
+
+      const nextDesktopLeaf = async (deskDir, desiredName) => {
+        let existing = new Set();
+        try {
+          const res = await TauriBridge.invoke('list_directory', { path: deskDir });
+          (res && res.items ? res.items : []).forEach(it => {
+            if (it && it.name) existing.add(String(it.name).toLocaleLowerCase('tr'));
+          });
+        } catch (err) {}
+        if (!existing.has(desiredName.toLocaleLowerCase('tr'))) return desiredName;
+        const dotIdx = desiredName.lastIndexOf('.');
+        const hasExt = dotIdx > 0;
+        const stem = hasExt ? desiredName.slice(0, dotIdx) : desiredName;
+        const ext = hasExt ? desiredName.slice(dotIdx) : '';
+        for (let n = 2; n <= 99; n++) {
+          const cand = `${stem} (${n})${ext}`;
+          if (!existing.has(cand.toLocaleLowerCase('tr'))) return cand;
+        }
+        return `${stem} (${Date.now().toString().slice(-4)})${ext}`;
+      };
+
+      const createDesktopFolderFlow = async () => {
+        const deskDir = await resolveDesktopDir();
+        const defName = await nextDesktopLeaf(deskDir, 'Yeni Klasör');
+        const folderName = prompt('Masaüstünde yeni klasör adı:', defName);
+        if (!folderName || !folderName.trim()) return;
+        const clean = folderName.trim().replace(/[\\/:*?"<>|\0]/g, '');
+        if (!clean) {
+          ReportManager?.showToast('Geçersiz klasör adı.', 'error');
+          return;
+        }
+        const finalName = await nextDesktopLeaf(deskDir, clean);
+        const fullPath = `${deskDir.replace(/\/+$/, '')}/${finalName}`;
+        try {
+          await TauriBridge.invoke('create_folder', { path: fullPath });
+          Terminal.log(`[MASAÜSTÜ] Klasör oluşturuldu: ${finalName}`, 'success');
+          ReportManager?.showToast(`'${finalName}' klasörü masaüstünde oluşturuldu.`);
+          if (typeof FileManager !== 'undefined') FileManager.refresh();
+          if (typeof DesktopFiles !== 'undefined' && DesktopFiles.refresh) DesktopFiles.refresh();
+        } catch (err) {
+          ReportManager?.showToast(`Klasör oluşturulamadı: ${err.message || err}`, 'error');
+        }
+      };
+
+      // Masaüstü seçili simge kısayolları (F2, Delete, Shift+Delete, Ctrl+Shift+N, Ctrl+V)
+      document.addEventListener('keydown', (e) => {
+        const tag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
+        if (tag === 'input' || tag === 'textarea' || document.activeElement?.isContentEditable) return;
+        const activeWin = document.querySelector('.window.open.active');
+        if (activeWin) return;
+        const selEl = document.querySelector('#dynamic-desktop-icons .desktop-item.selected');
+        const key = (e.key || '').toLowerCase();
+
+        if (e.ctrlKey && e.shiftKey && key === 'n') {
+          e.preventDefault();
+          createDesktopFolderFlow();
+          return;
+        }
+        if (e.ctrlKey && !e.altKey && key === 'v') {
+          const pasteItem = ctxMenu.querySelector('[data-action="paste-desktop"]');
+          if (pasteItem && typeof FileManager !== 'undefined' && Array.isArray(FileManager.clipboard) && FileManager.clipboard.length) {
+            e.preventDefault();
+            pasteItem.click();
+          }
+          return;
+        }
+        if (!selEl) return;
+
+        if (e.key === 'F2') {
+          e.preventDefault();
+          if (selEl.classList.contains('file-item') && selEl.dataset.filePath && typeof FileManager !== 'undefined') {
+            FileManager.promptRename({ name: selEl.dataset.fileName || '', path: selEl.dataset.filePath });
+          } else if (selEl.classList.contains('folder-item') && selEl.dataset.groupId && typeof XdgDesktopEngine !== 'undefined') {
+            const grp = XdgDesktopEngine.groupById(selEl.dataset.groupId);
+            if (grp) {
+              const next = prompt('Kategori adı:', grp.name);
+              if (next && next.trim()) XdgDesktopEngine.renameGroup(grp.id, next);
+            }
+          }
+        } else if (e.key === 'Delete') {
+          e.preventDefault();
+          if (selEl.classList.contains('file-item') && selEl.dataset.filePath) {
+            const p = selEl.dataset.filePath;
+            const nm = selEl.dataset.fileName || 'Öge';
+            if (e.shiftKey) {
+              if (!confirm(`'${nm}' kalıcı olarak silinsin mi? Bu işlem geri alınamaz!`)) return;
+              TauriBridge.invoke('delete_file', { path: p })
+                .then(() => { ReportManager?.showToast('Öge kalıcı olarak silindi.'); DesktopFiles?.refresh?.(); })
+                .catch(err => ReportManager?.showToast(`Silinemedi: ${err.message || err}`, 'error'));
+            } else {
+              TauriBridge.invoke('move_to_trash', { path: p })
+                .then(() => { ReportManager?.showToast(`'${nm}' çöp kutusuna taşındı.`); DesktopFiles?.refresh?.(); })
+                .catch(err => ReportManager?.showToast(`Silinemedi: ${err.message || err}`, 'error'));
+            }
+          } else if (selEl.classList.contains('folder-item') && selEl.dataset.groupId && typeof XdgDesktopEngine !== 'undefined') {
+            const grp = XdgDesktopEngine.groupById(selEl.dataset.groupId);
+            if (grp && confirm(`'${grp.name}' kategorisi silinsin mi?`)) {
+              XdgDesktopEngine.deleteGroup(grp.id);
+            }
+          }
+        }
+      });
+
       ctxMenu.querySelectorAll('.ctx-item').forEach(item => {
         item.addEventListener('click', () => {
           const act = item.getAttribute('data-action');
@@ -1507,58 +1631,34 @@
           if (act === 'files') {
             WindowManager.open('win-files');
           } else if (act === 'new-folder') {
-            const folderName = prompt('Masaüstünde yeni klasör adı:', 'Yeni Klasör');
-            if (folderName && folderName.trim()) {
-              const clean = folderName.trim().replace(/[\\/:*?"<>|\0]/g, '');
-              if (clean) {
-                const home = (typeof DesktopFiles !== 'undefined' && DesktopFiles.dir)
-                  ? DesktopFiles.dir
-                  : ((typeof FileManager !== 'undefined' && FileManager.userHome) ? FileManager.userHome : '/home/ankora');
-                const fullPath = `${home}/${clean}`;
-                TauriBridge.invoke('create_folder', { path: fullPath })
-                  .then(() => {
-                    Terminal.log(`[MASAÜSTÜ] Klasör oluşturuldu: ${clean}`, 'success');
-                    if (typeof ReportManager !== 'undefined' && ReportManager.showToast) {
-                      ReportManager.showToast(`'${clean}' klasörü masaüstünde oluşturuldu.`);
-                    }
-                    if (typeof FileManager !== 'undefined') FileManager.refresh();
-                    if (typeof DesktopFiles !== 'undefined' && DesktopFiles.refresh) DesktopFiles.refresh();
-                  })
-                  .catch((err) => {
-                    alert(`Klasör oluşturulamadı: ${err.message || err}`);
-                  });
-              }
-            }
+            createDesktopFolderFlow();
           } else if (act === 'new-text') {
-            const docName = prompt('Yeni metin belgesi adı:', 'Yeni Belge.txt');
-            if (docName && docName.trim()) {
+            (async () => {
+              const deskDir = await resolveDesktopDir();
+              const defName = await nextDesktopLeaf(deskDir, 'Yeni Belge.txt');
+              const docName = prompt('Yeni metin belgesi adı:', defName);
+              if (!docName || !docName.trim()) return;
               const clean = docName.trim().replace(/[\\/:*?"<>|\0]/g, '');
-              if (clean) {
-                const home = (typeof DesktopFiles !== 'undefined' && DesktopFiles.dir)
-                  ? DesktopFiles.dir
-                  : ((typeof FileManager !== 'undefined' && FileManager.userHome) ? FileManager.userHome : '/home/ankora');
-                const fullPath = `${home}/${clean}`;
-                TauriBridge.invoke('write_text_file', { path: fullPath, content: '' })
-                  .then(() => {
-                    Terminal.log(`[MASAÜSTÜ] Metin belgesi oluşturuldu: ${clean}`, 'success');
-                    if (typeof ReportManager !== 'undefined' && ReportManager.showToast) {
-                      ReportManager.showToast(`'${clean}' belgesi masaüstünde oluşturuldu.`);
-                    }
-                    if (typeof FileManager !== 'undefined') FileManager.refresh();
-                    if (typeof DesktopFiles !== 'undefined' && DesktopFiles.refresh) DesktopFiles.refresh();
-                  })
-                  .catch(() => {
-                    WindowManager.open('win-notepad');
-                  });
+              if (!clean) return;
+              const finalName = await nextDesktopLeaf(deskDir, clean);
+              const fullPath = `${deskDir.replace(/\/+$/, '')}/${finalName}`;
+              try {
+                await TauriBridge.invoke('write_text_file', { path: fullPath, content: '' });
+                Terminal.log(`[MASAÜSTÜ] Metin belgesi oluşturuldu: ${finalName}`, 'success');
+                ReportManager?.showToast(`'${finalName}' belgesi masaüstünde oluşturuldu.`);
+                if (typeof FileManager !== 'undefined') FileManager.refresh();
+                if (typeof DesktopFiles !== 'undefined' && DesktopFiles.refresh) DesktopFiles.refresh();
+              } catch (err) {
+                WindowManager.open('win-notepad');
               }
-            }
+            })();
           } else if (act === 'new-group') {
-            const groupName = prompt('Masaüstü kategorisi adı:', 'Yeni Kategori');
+            const groupName = prompt('Uygulama kategorisi adı:', 'Yeni Kategori');
             if (groupName && groupName.trim() && typeof XdgDesktopEngine !== 'undefined') {
               const group = XdgDesktopEngine.createGroup(groupName);
               XdgDesktopEngine.renderToDesktop();
               if (typeof DesktopFiles !== 'undefined' && DesktopFiles.refresh) DesktopFiles.refresh();
-              ReportManager?.showToast(`'${group.name}' kategorisi oluşturuldu. Uygulamaları üzerine sürükleyin.`);
+              ReportManager?.showToast(`'${group.name}' kategorisi oluşturuldu. Çift tıklayarak içinden "+ Uygulama Ekle" diyebilirsiniz.`);
             }
           } else if (act === 'term') {
             WindowManager.open('win-terminal');
@@ -1567,19 +1667,20 @@
             if (!clips.length) {
               ReportManager?.showToast('Panoda öge yok.', 'error');
             } else {
-              const dest = (typeof DesktopFiles !== 'undefined' && DesktopFiles.dir) ? DesktopFiles.dir : '';
-              const wasCut = FileManager.clipboardOp === 'cut';
-              if (dest) {
-                clips.forEach(cl => {
-                  TauriBridge.invoke('copy_path_c', { sourcePath: cl.path, destPath: dest, moveOp: wasCut })
-                    .then(m => ReportManager?.showToast(m || 'Yapıştırıldı.'))
-                    .catch(err => ReportManager?.showToast(`Yapıştırılamadı: ${err.message || err}`, 'error'));
-                });
+              (async () => {
+                const dest = await resolveDesktopDir();
+                const wasCut = FileManager.clipboardOp === 'cut';
+                for (const cl of clips) {
+                  try {
+                    const m = await TauriBridge.invoke('copy_path_c', { sourcePath: cl.path, destPath: dest, moveOp: wasCut });
+                    ReportManager?.showToast(m || 'Yapıştırıldı.');
+                  } catch (err) {
+                    ReportManager?.showToast(`Yapıştırılamadı: ${err.message || err}`, 'error');
+                  }
+                }
                 if (wasCut) { FileManager.clipboard = []; FileManager.clipboardOp = null; }
-                setTimeout(() => { if (typeof DesktopFiles !== 'undefined' && DesktopFiles.refresh) DesktopFiles.refresh(); }, 400);
-              } else {
-                ReportManager?.showToast('Masaüstü dizini çözülemedi.', 'error');
-              }
+                if (typeof DesktopFiles !== 'undefined' && DesktopFiles.refresh) DesktopFiles.refresh();
+              })();
             }
           } else if (act === 'align-icons') {
             if (typeof XdgDesktopEngine !== 'undefined') {
@@ -1747,6 +1848,9 @@
       XdgDesktopEngine.installedApps.forEach(a => {
         if (a.id === app.id) a[key] = value;
       });
+      if (key === 'on_desktop' && value === false && XdgDesktopEngine.removeAppFromAllGroups) {
+        XdgDesktopEngine.removeAppFromAllGroups(app.id);
+      }
       try { SafeStorage.setItem('ankora_xdg_apps', JSON.stringify(XdgDesktopEngine.installedApps)); } catch (e) {}
       if (typeof XdgDesktopEngine.renderToStartMenu === 'function') XdgDesktopEngine.renderToStartMenu();
       if (typeof XdgDesktopEngine.renderToDesktop === 'function') XdgDesktopEngine.renderToDesktop();
