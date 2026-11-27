@@ -1,10 +1,12 @@
 #!/usr/bin/env node
-// Mağaza veri bütünlük testi: src/app.js içindeki gerçek `packages`
+// Mağaza veri bütünlük testi: src/js/store.js içindeki gerçek `packages`
 // dizisini çıkarıp değerlendirir, son kullanıcı kurallarını denetler.
 const fs = require('fs');
 const path = require('path');
 
-const src = fs.readFileSync(path.join(__dirname, '..', 'src', 'app.js'), 'utf8');
+const storePath = path.join(__dirname, '..', 'src', 'js', 'store.js');
+const fallbackPath = path.join(__dirname, '..', 'src', 'app.js');
+const src = fs.readFileSync(fs.existsSync(storePath) ? storePath : fallbackPath, 'utf8');
 const m = src.match(/packages: \[([\s\S]*?)\r?\n    \],\r?\n    tableBody: null,/);
 if (!m) {
   console.error('[HATA] packages dizisi bulunamadı');

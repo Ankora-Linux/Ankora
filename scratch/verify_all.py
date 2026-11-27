@@ -61,11 +61,24 @@ def main():
             ok, err = run([BASH, "-n", str(p)])
             check(f"bash -n {extra}", ok, err)
 
-    # 2. Arayüz JS
+    # 2. Arayüz JS (ana orkestratör + tüm src/js modülleri)
+    def read_frontend_js():
+        parts = [(ROOT / "src/app.js").read_text(encoding="utf-8")]
+        js_dir = ROOT / "src/js"
+        if js_dir.is_dir():
+            for jf in sorted(js_dir.glob("*.js")):
+                parts.append(jf.read_text(encoding="utf-8"))
+        return "\n".join(parts)
+
     ok, err = run([NODE, "--check", str(ROOT / "src/app.js")])
     check("node --check src/app.js", ok, err)
     ok, err = run([NODE, "--check", str(ROOT / "src/faces.js")])
     check("node --check src/faces.js", ok, err)
+    js_dir = ROOT / "src/js"
+    if js_dir.is_dir():
+        for jf in sorted(js_dir.glob("*.js")):
+            ok, err = run([NODE, "--check", str(jf)])
+            check(f"node --check src/js/{jf.name}", ok, err)
 
     # 3. HTML ayrıştırma
     try:
@@ -96,7 +109,7 @@ def main():
 
     # 6. Mağaza zorunlu girdileri
     try:
-        app_js = (ROOT / "src/app.js").read_text(encoding="utf-8")
+        app_js = read_frontend_js()
         for needle, label in (
             ("edu.mit.Scratch", "mağaza: Scratch"),
             ("meb-cert", "mağaza: MEB sertifikası"),
@@ -124,7 +137,7 @@ def main():
     try:
         html_text = (ROOT / "src/index.html").read_text(encoding="utf-8")
         check("iframe: allow-downloads", "allow-downloads" in html_text)
-        app_js = (ROOT / "src/app.js").read_text(encoding="utf-8")
+        app_js = read_frontend_js()
         main_rs = (ROOT / "src-tauri/src/main.rs").read_text(encoding="utf-8")
         check("xdg dizin komutu (js+rs)",
               "get_xdg_user_dirs" in app_js and "get_xdg_user_dirs" in main_rs)
@@ -159,7 +172,7 @@ def main():
 
     # 10. İkon kapsamı: öne çıkan her uygulamanın özel dalı olmalı.
     try:
-        app_js = (ROOT / "src/app.js").read_text(encoding="utf-8")
+        app_js = read_frontend_js()
         icon_fn = re.split(r"\r?\n    \},", app_js.split("getAppSvgIcon(app) {", 1)[1], 1)[0]
         missing = [k for k in (
             "firefox", "chromium", "telegram", "spotify", "vscode",
@@ -181,7 +194,7 @@ def main():
 
     # 12. Faz tahta dokunmatik desteği
     try:
-        app_js = (ROOT / "src/app.js").read_text(encoding="utf-8")
+        app_js = read_frontend_js()
         html_text = (ROOT / "src/index.html").read_text(encoding="utf-8")
         css = (ROOT / "src/style.css").read_text(encoding="utf-8")
         iso = (ROOT / "scripts/build-iso.sh").read_text(encoding="utf-8")

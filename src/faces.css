@@ -4325,3 +4325,481 @@ body[data-face="8"] .welcome-preview-window .ctrl-btn.close:hover {
   max-height: 44px !important;
   object-fit: contain !important;
 }
+
+/* ============================================================================
+   7. YEREL İŞLETİM SİSTEMİ UYGULAMA İÇLERİ, MENÜLER VE KİLİT EKRANI
+   (Mat pencere içi hiyerarşi, tek dil ikonlar, yüz uyumlu açılır menüler)
+   ============================================================================ */
+
+/* Kabuk ve menülerde yerel OS seçilmezlik hissi */
+#face-top-panel,
+#face-bottom-dock,
+#taskbar,
+.window-header,
+.start-flyout,
+.ayaz-quick-settings-flyout,
+.ayaz-calendar-flyout,
+.desktop-context-menu,
+.store-sidebar,
+.settings-sidebar,
+.files-sidebar,
+.files-menubar {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Pencere başlık simgeleri: dock ve masaüstü ile birebir aynı özgün Linux simgeleri */
+.window-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.win-header-icon {
+  width: 16px !important;
+  height: 16px !important;
+  max-width: 16px !important;
+  max-height: 16px !important;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+/* Başlat Menüsü simge kutuları: temiz, çerçevesiz, 22px tutarlı Linux simgeleri */
+.pinned-app-card .pinned-icon-box {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.pinned-app-card .pinned-icon-box .real-app-icon {
+  width: 22px !important;
+  height: 22px !important;
+  max-width: 22px !important;
+  max-height: 22px !important;
+  object-fit: contain !important;
+}
+
+/* Dosya Yöneticisi: gerçek Linux klasör simgesi ve temiz yol çubuğu */
+.files-native-folder-icon {
+  width: 38px !important;
+  height: 38px !important;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.14));
+}
+
+.files-app-container .files-item-card {
+  border-radius: 8px !important;
+  border: 1px solid transparent !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  transition: background-color 0.12s ease, border-color 0.12s ease !important;
+}
+
+.files-app-container .files-item-card:hover {
+  background: rgba(128, 128, 128, 0.10) !important;
+  border-color: var(--border-subtle) !important;
+  transform: none !important;
+}
+
+.files-app-container .files-path-bar {
+  border-radius: 7px !important;
+  box-shadow: none !important;
+}
+
+/* Yazılım Mağazası: taranabilir yerel Linux mağaza düzeni (GNOME Software / Pop!_Shop hissi) */
+#win-store .store-sidebar {
+  width: 204px !important;
+  padding: 12px 10px !important;
+}
+
+#win-store .store-sidebar-heading {
+  font-size: 10.5px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.04em !important;
+  text-transform: uppercase !important;
+  opacity: 0.62;
+  padding: 6px 8px 4px !important;
+}
+
+#win-store .store-card {
+  border-radius: 9px !important;
+  padding: 12px 14px !important;
+  box-shadow: none !important;
+  background-image: none !important;
+  transition: background-color 0.14s ease, border-color 0.14s ease !important;
+}
+
+#win-store .store-card:hover {
+  transform: none !important;
+  box-shadow: none !important;
+  border-color: var(--accent-active) !important;
+}
+
+#win-store .store-grid,
+#win-store .store-grid-featured {
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)) !important;
+}
+
+#win-store #store-grid > :not(.store-card),
+#win-store .store-spotlight-hero,
+#win-store .store-spotlight-card,
+#win-store .store-section-title {
+  grid-column: 1 / -1 !important;
+  width: 100% !important;
+}
+
+#win-store .store-hero-banner,
+#win-store .store-featured-banner {
+  background-image: none !important;
+  box-shadow: none !important;
+  border-radius: 10px !important;
+}
+
+/* Sistem Ayarları: Adwaita / macOS tarzı sade gruplanmış tercih satırları */
+#win-settings .settings-sidebar {
+  width: 214px !important;
+  padding: 12px 10px !important;
+}
+
+#win-settings .settings-nav-item {
+  height: 34px !important;
+  padding: 0 10px !important;
+  border-radius: 7px !important;
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  box-shadow: none !important;
+}
+
+#win-settings .settings-card-group {
+  border-radius: 10px !important;
+  box-shadow: none !important;
+  background-image: none !important;
+}
+
+#win-settings .pane-header {
+  border-bottom: 1px solid var(--border-subtle) !important;
+  padding-bottom: 12px !important;
+  margin-bottom: 16px !important;
+}
+
+#win-settings .pane-header h3 {
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.02em !important;
+}
+
+/* Paket Yükleyici penceresi (satır içi sabit stiller yerine temalı sınıflar) */
+.pkg-inst-view {
+  padding: 20px 24px !important;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.pkg-inst-head {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.pkg-inst-icon-box {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  background: var(--bg-surface, rgba(128, 128, 128, 0.1));
+  border: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+
+.pkg-inst-meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.pkg-inst-name {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pkg-inst-sub {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pkg-inst-desc {
+  font-size: 12px;
+  line-height: 1.48;
+  color: var(--text-secondary);
+  max-height: 88px;
+  overflow-y: auto;
+  background: var(--bg-surface, rgba(128, 128, 128, 0.08));
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+}
+
+.pkg-inst-progress-wrap {
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pkg-inst-progress-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11.5px;
+}
+
+.pkg-inst-status-label {
+  color: var(--accent-active);
+  font-weight: 600;
+}
+
+.pkg-inst-progress-track {
+  height: 5px;
+  background: var(--border-subtle);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.pkg-inst-progress-bar {
+  height: 100%;
+  width: 100%;
+  background: var(--accent-active);
+  transition: width 0.25s ease;
+}
+
+.pkg-inst-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.pkg-inst-error {
+  margin: 0;
+  max-height: 110px;
+  overflow: auto;
+  font-size: 11px;
+  line-height: 1.4;
+  color: #dc2626;
+  background: rgba(220, 38, 38, 0.09);
+  border: 1px solid rgba(220, 38, 38, 0.28);
+  border-radius: 7px;
+  padding: 8px 10px;
+  white-space: pre-wrap;
+}
+
+/* Pano Geçmişi açılır menüsü (satır içi koyu/neon stillerden temizlendi) */
+.ayaz-clipboard-flyout {
+  width: 340px;
+  max-height: 420px;
+  position: fixed;
+  bottom: 64px;
+  right: 20px;
+  z-index: 99999;
+  border-radius: 12px;
+  padding: 12px;
+  overflow: hidden;
+  flex-direction: column;
+  background: var(--bg-panel) !important;
+  border: 1px solid var(--border-subtle) !important;
+  color: var(--text-primary) !important;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.28);
+}
+
+.clipboard-flyout-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.clipboard-flyout-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.clipboard-clear-btn {
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+.clipboard-clear-btn:hover {
+  border-color: var(--accent-active);
+  color: var(--text-primary);
+}
+
+.clipboard-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+  max-height: 330px;
+  padding-right: 2px;
+}
+
+.clipboard-empty-msg {
+  color: var(--text-muted);
+  font-size: 12px;
+  text-align: center;
+  padding: 24px 0;
+}
+
+/* 4 Yüze Özel Açılır Menüler (Başlat, Hızlı Ayarlar, Takvim, Sağ Tık) */
+[data-face="3"] .start-flyout,
+[data-face="3"] .ayaz-quick-settings-flyout,
+[data-face="3"] .ayaz-calendar-flyout,
+[data-face="3"] .desktop-context-menu {
+  background: rgba(250, 250, 247, 0.92) !important;
+  -webkit-backdrop-filter: blur(26px) saturate(1.5) !important;
+  backdrop-filter: blur(26px) saturate(1.5) !important;
+  border: 1px solid rgba(18, 24, 18, 0.14) !important;
+  border-radius: 13px !important;
+  box-shadow: 0 22px 54px -10px rgba(10, 18, 12, 0.28), 0 4px 12px rgba(10, 18, 12, 0.08) !important;
+  color: #182018 !important;
+}
+
+[data-face="2"] .start-flyout,
+[data-face="2"] .ayaz-quick-settings-flyout,
+[data-face="2"] .ayaz-calendar-flyout,
+[data-face="2"] .desktop-context-menu {
+  background: rgba(30, 27, 26, 0.94) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(1.2) !important;
+  backdrop-filter: blur(24px) saturate(1.2) !important;
+  border: 1px solid rgba(255, 245, 235, 0.12) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 24px 58px -10px rgba(0, 0, 0, 0.64) !important;
+}
+
+[data-face="default"] .start-flyout,
+[data-face="default"] .ayaz-quick-settings-flyout,
+[data-face="default"] .ayaz-calendar-flyout,
+[data-face="default"] .desktop-context-menu {
+  background: rgba(24, 28, 36, 0.93) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(1.3) !important;
+  backdrop-filter: blur(24px) saturate(1.3) !important;
+  border: 1px solid rgba(255, 255, 255, 0.11) !important;
+  border-radius: 11px !important;
+  box-shadow: 0 22px 52px -10px rgba(0, 0, 0, 0.58) !important;
+}
+
+[data-face="8"] .start-flyout,
+[data-face="8"] .ayaz-quick-settings-flyout,
+[data-face="8"] .ayaz-calendar-flyout,
+[data-face="8"] .desktop-context-menu {
+  background: rgba(250, 249, 245, 0.96) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  backdrop-filter: blur(20px) !important;
+  border: 1.5px solid rgba(20, 23, 31, 0.72) !important;
+  border-radius: 10px !important;
+  box-shadow: 0 18px 42px rgba(15, 20, 32, 0.18) !important;
+  color: #14171f !important;
+}
+
+/* Kilit Ekranı: web giriş kartı yerine sade, tam duvar kağıdı bütünleşik OS kilit ekranı */
+#screen-lock .lock-backdrop {
+  background: rgba(10, 14, 18, 0.44) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(1.25) !important;
+  backdrop-filter: blur(28px) saturate(1.25) !important;
+}
+
+#screen-lock .lock-auth-card {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  padding: 12px 0 !important;
+}
+
+#screen-lock .lock-big-time {
+  font-size: 76px !important;
+  font-weight: 300 !important;
+  letter-spacing: -0.04em !important;
+  font-variant-numeric: tabular-nums !important;
+  text-shadow: 0 4px 24px rgba(0, 0, 0, 0.36) !important;
+}
+
+#screen-lock .lock-big-date {
+  font-size: 16px !important;
+  font-weight: 500 !important;
+  opacity: 0.88 !important;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.32) !important;
+}
+
+#screen-lock .lock-input-group {
+  background: rgba(255, 255, 255, 0.16) !important;
+  border: 1px solid rgba(255, 255, 255, 0.28) !important;
+  border-radius: 999px !important;
+  -webkit-backdrop-filter: blur(18px) !important;
+  backdrop-filter: blur(18px) !important;
+}
+
+#screen-lock .lock-input {
+  color: #ffffff !important;
+}
+
+#screen-lock .lock-input::placeholder {
+  color: rgba(255, 255, 255, 0.72) !important;
+}
+
+#screen-lock .btn-unlock {
+  border-radius: 50% !important;
+  background: rgba(255, 255, 255, 0.22) !important;
+  border: 1px solid rgba(255, 255, 255, 0.30) !important;
+}
+
+#screen-lock .btn-unlock:hover {
+  background: rgba(255, 255, 255, 0.34) !important;
+}
+
+#screen-lock .lock-bottom-bar {
+  justify-content: center !important;
+  gap: 12px !important;
+}
+
+#screen-lock .lock-power-btn {
+  background: rgba(255, 255, 255, 0.12) !important;
+  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+  border-radius: 999px !important;
+  padding: 0 15px !important;
+  height: 34px !important;
+  width: auto !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 7px !important;
+  white-space: nowrap !important;
+  font-size: 12.5px !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+  backdrop-filter: blur(14px) !important;
+}
+
+#screen-lock .lock-power-btn svg {
+  width: 15px !important;
+  height: 15px !important;
+  flex-shrink: 0 !important;
+}

@@ -163,7 +163,12 @@ def test_tauri_and_frontend_hardening():
     html = read_text("src/index.html")
     assert csp in html, "index.html CSP değeri tauri.conf.json ile birebir eşleşmeli"
 
-    app_js = read_text("src/app.js")
+    app_js_parts = [read_text("src/app.js")]
+    js_dir = ROOT / "src" / "js"
+    if js_dir.is_dir():
+        for jf in sorted(js_dir.glob("*.js")):
+            app_js_parts.append(jf.read_text(encoding="utf-8"))
+    app_js = "\n".join(app_js_parts)
     assert "__TAURI_INTERNALS__" in app_js
     assert "Bubblewrap (bwrap) + Kısıtlı IPC" in app_js
     m_upd = re.search(r"case 'download_and_apply_de_update':(.*?)case 'restart_desktop_process':", app_js, re.S)

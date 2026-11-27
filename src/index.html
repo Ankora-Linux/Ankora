@@ -90,7 +90,7 @@
           <!-- PIN / Şifre Giriş Formu (CSP Uyumlu) -->
           <form class="lock-form" id="lock-auth-form">
             <div class="lock-input-group">
-              <input type="password" id="lock-password-input" class="lock-input" placeholder="Giriş yapmak için tıklayın veya Enter'a basın..." autocomplete="current-password">
+              <input type="password" id="lock-password-input" class="lock-input" placeholder="Parola veya Enter..." autocomplete="current-password">
               <button type="button" class="btn-toggle-eye" id="btn-lock-toggle-pass" title="Göster/Gizle"><svg class="glyph" aria-hidden="true"><use href="#ico-eye"></use></svg></button>
             </div>
             <button type="submit" class="btn-unlock" id="btn-lock-submit" title="Giriş Yap">
@@ -405,8 +405,8 @@
     <section class="window" id="win-installer" style="top: 50px; left: 200px; width: 780px; height: 540px;" aria-labelledby="installer-header-title">
       <div class="window-header">
         <div class="window-meta">
-          <img src="logo.svg" alt="Icon" class="meta-logo">
-          <span id="installer-header-title">Ankora Linux Kurulum Aracı (OS Installer)</span>
+          <img src="icons/linux/installer.svg" alt="" class="win-header-icon" width="16" height="16">
+          <span id="installer-header-title">Ankora Linux Kurulum Aracı</span>
         </div>
         <div class="window-controls">
           <button class="ctrl-btn min" title="Küçült">−</button>
@@ -565,6 +565,7 @@
     <section class="window" id="win-store" style="top: 60px; left: 80px; width: 920px; height: 580px;" aria-labelledby="store-header-title">
       <div class="window-header">
         <div class="window-meta">
+          <img src="icons/linux/ankora-store.png" alt="" class="win-header-icon" width="16" height="16">
           <span id="store-header-title">Ankora Yazılım Merkezi</span>
         </div>
         <div class="window-controls">
@@ -715,7 +716,8 @@
     <section class="window" id="win-terminal" style="top: 90px; left: 180px; width: 780px; height: 460px;" aria-labelledby="term-header-title">
       <div class="window-header">
         <div class="window-meta">
-          <span id="term-header-title">ankora@ankora-os: ~ (bash / native-ipc)</span>
+          <img src="icons/linux/terminal.svg" alt="" class="win-header-icon" width="16" height="16">
+          <span id="term-header-title">ankora@ankora-os: ~</span>
         </div>
         <div class="window-controls">
           <button class="ctrl-btn min" title="Küçült">−</button>
@@ -1030,12 +1032,8 @@
     <section class="window" id="win-browser" style="top: 50px; left: 120px; width: 920px; height: 580px;" aria-labelledby="browser-header-title">
       <div class="window-header">
         <div class="window-meta">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width: 15px; height: 15px;">
-            <circle cx="12" cy="12" r="10"></circle>
-            <line x1="2" y1="12" x2="22" y2="12"></line>
-            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
-          </svg>
-          <span id="browser-header-title">Ayaz Web Tarayıcısı · Dahili Web Görüntüleyici</span>
+          <img src="icons/linux/browser.svg" alt="" class="win-header-icon" width="16" height="16">
+          <span id="browser-header-title">Ayaz Web Tarayıcısı</span>
         </div>
         <div class="window-controls">
           <button class="ctrl-btn min" title="Küçült">−</button>
@@ -1174,10 +1172,8 @@
     <section class="window" id="win-files" style="top: 55px; left: 160px; width: 860px; height: 550px;" aria-labelledby="files-header-title">
       <div class="window-header">
         <div class="window-meta">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width: 16px; height: 16px; color: #38bdf8;">
-            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
-          </svg>
-          <span id="files-header-title">Dosyalar · Ankora Linux</span>
+          <img src="icons/linux/files.svg" alt="" class="win-header-icon" width="16" height="16">
+          <span id="files-header-title">Dosyalar</span>
         </div>
         <div class="window-controls">
           <button class="ctrl-btn min" title="Küçült">−</button>
@@ -1292,8 +1288,8 @@
     <section class="window" id="win-settings" style="top: 40px; left: 140px; width: 880px; height: 580px;" aria-labelledby="settings-header-title">
       <div class="window-header">
         <div class="window-meta">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width: 16px; height: 16px;"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-          <span id="settings-header-title">Sistem Ayarları - Ankora Linux 5.0</span>
+          <img src="icons/linux/settings.svg" alt="" class="win-header-icon" width="16" height="16">
+          <span id="settings-header-title">Sistem Ayarları</span>
         </div>
         <div class="window-controls">
           <button class="ctrl-btn min" title="Küçült">−</button>
@@ -1432,7 +1428,7 @@
                       <div class="fp-preview-dock-default"></div>
                     </div>
                     <strong>Yüz 1 · Arduvaz</strong>
-                    <span>Düz mat yüzeyler, 1px kenarlıklar, terakota vurgu ve alt/üst panel desteği</span>
+                    <span>Tam genişlik görev çubuğu, üretken klasik masaüstü düzeni ve alt/üst panel desteği</span>
                   </div>
                   <div class="face-card-choice" data-face="2">
                     <div class="face-preview-box face-preview-2">
@@ -1441,7 +1437,7 @@
                       <div class="fp-preview-dock-2"></div>
                     </div>
                     <strong>Yüz 2 · Bakır</strong>
-                    <span>Sıcak grafit, 34px üst panel, bakır vurgu ve alt merkezlenmiş mat dock</span>
+                    <span>Dinamik çalışma alanı haplı koyu üst bar, birleşik hızlı ayarlar ve koyu alt dock</span>
                   </div>
                   <div class="face-card-choice active" data-face="3">
                     <div class="face-preview-box face-preview-3">
@@ -1450,7 +1446,7 @@
                       <div class="fp-preview-dock-3"></div>
                     </div>
                     <strong>Yüz 3 · Bostan (Varsayılan)</strong>
-                    <span>Açık keten yüzeyler, zeytin mürekkep, okunaklı üst çubuk ve kapsül dock</span>
+                    <span>28px buzlu menü çubuğu, ortalanmış saat ve yüzen yarı saydam cam dock</span>
                   </div>
                   <div class="face-card-choice" data-face="8">
                     <div class="face-preview-box face-preview-8">
@@ -1459,7 +1455,7 @@
                       <div class="fp-preview-dock-8"></div>
                     </div>
                     <strong>Yüz 8 · Cıvata</strong>
-                    <span>Teknik çizim kâğıdı, keskin 1.5px mürekkep çerçeveler ve alt araç şeridi</span>
+                    <span>Alt dock olmadan 3 ayrık yüzen üst Waybar modülü ve 2px kobalt pencere çerçevesi</span>
                   </div>
                 </div>
 
@@ -2477,10 +2473,8 @@
     <section class="window" id="win-updater" style="top: 80px; left: 220px; width: 680px; height: 510px;" aria-labelledby="updater-header-title">
       <div class="window-header">
         <div class="window-meta">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width: 14px; height: 14px; margin-right: 6px; display: inline-block; vertical-align: -2px;">
-            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
-          </svg>
-          <span id="updater-header-title">Ayaz Güncelleyici · Masaüstü Ortamı (DE)</span>
+          <img src="icons/linux/updater.svg" alt="" class="win-header-icon" width="16" height="16">
+          <span id="updater-header-title">Sistem Güncelleyici</span>
         </div>
         <div class="window-controls">
           <button class="ctrl-btn min" title="Küçült">−</button>
@@ -2545,7 +2539,7 @@
             <div class="updater-buttons">
               <button class="btn-pkg" id="btn-updater-check">DE Güncellemelerini Denetle</button>
               <button class="btn-pkg" id="btn-updater-apt" title="Sistem paket havuzunu yenile (apt-get update)">Paket Listesini Denetle (APT)</button>
-              <button class="btn-pkg" id="btn-updater-upgrade" style="background: rgba(37, 99, 235, 0.2); color: #38bdf8; border-color: rgba(37, 99, 235, 0.4);" title="Tüm sistem paketlerini ve masaüstü ortamını en son sürüme yükselt (apt-get upgrade)">Tüm Sistemi Güncelle (Upgrade)</button>
+              <button class="btn-pkg btn-pkg-primary" id="btn-updater-upgrade" title="Tüm sistem paketlerini ve masaüstü ortamını en son sürüme yükselt (apt-get upgrade)">Tüm Sistemi Güncelle (Upgrade)</button>
               <button class="btn-pkg primary" id="btn-updater-apply" disabled style="display: none; background: var(--text-primary); color: var(--bg-deep);">Şimdi Güncelle</button>
               <button class="btn-pkg" id="btn-updater-restart" style="display: none; background: #10b981; color: #fff;">Masaüstünü Yeniden Başlat</button>
             </div>
@@ -2561,10 +2555,8 @@
     <section class="window" id="win-taskmgr" style="top: 70px; left: 180px; width: 820px; height: 530px;" aria-labelledby="taskmgr-header-title">
       <div class="window-header">
         <div class="window-meta">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width: 14px; height: 14px; margin-right: 6px; display: inline-block; vertical-align: -2px;">
-            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
-          </svg>
-          <span id="taskmgr-header-title">Görev Yöneticisi · Sistem Kaynakları</span>
+          <img src="icons/linux/taskmgr.svg" alt="" class="win-header-icon" width="16" height="16">
+          <span id="taskmgr-header-title">Görev Yöneticisi</span>
         </div>
         <div class="window-controls">
           <button class="ctrl-btn min" title="Küçült">−</button>
@@ -2657,14 +2649,8 @@
     <section class="window" id="win-notepad" style="top: 90px; left: 240px; width: 720px; height: 480px;" aria-labelledby="notepad-header-title">
       <div class="window-header">
         <div class="window-meta">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width: 14px; height: 14px; margin-right: 6px; display: inline-block; vertical-align: -2px;">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-            <polyline points="14 2 14 8 20 8"></polyline>
-            <line x1="16" y1="13" x2="8" y2="13"></line>
-            <line x1="16" y1="17" x2="8" y2="17"></line>
-            <polyline points="10 9 9 9 8 9"></polyline>
-          </svg>
-          <span id="notepad-header-title">Ankora Not Defteri</span>
+          <img src="icons/linux/notes.svg" alt="" class="win-header-icon" width="16" height="16">
+          <span id="notepad-header-title">Not Defteri</span>
         </div>
         <div class="window-controls">
           <button class="ctrl-btn min" title="Küçült">−</button>
@@ -2947,8 +2933,8 @@
     <section class="window" id="win-screenshot" style="top: 80px; left: 260px; width: 620px; height: 500px;" aria-labelledby="ss-header-title">
       <div class="window-header">
         <div class="window-meta">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:16px;height:16px;color:#38bdf8;margin-right:6px;"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
-          <span id="ss-header-title">Ekran Alıntısı Aracı · Ankora AyazDE</span>
+          <img src="icons/linux/screenshot.svg" alt="" class="win-header-icon" width="16" height="16">
+          <span id="ss-header-title">Ekran Alıntısı Aracı</span>
         </div>
         <div class="window-controls">
           <button class="ctrl-btn min" title="Küçült">−</button>
@@ -3023,7 +3009,7 @@
     <section class="window" id="win-menu-editor" style="top: 90px; left: 300px; width: 640px; height: 560px;" aria-labelledby="me-header-title">
       <div class="window-header">
         <div class="window-meta">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:16px;height:16px;color:#38bdf8;margin-right:6px;"><path d="M3 6h18"></path><path d="M3 12h12"></path><path d="M3 18h8"></path></svg>
+          <img src="icons/linux/apps.svg" alt="" class="win-header-icon" width="16" height="16">
           <span class="window-title" id="me-header-title">Başlat Menüsü Düzenleyici</span>
         </div>
         <div class="window-controls">
@@ -3147,45 +3133,45 @@
     <section class="window" id="win-pkg-installer" style="top: calc(50vh - 200px); left: calc(50vw - 250px); width: 500px; height: auto; min-height: 320px;" aria-labelledby="pkg-installer-title">
       <div class="window-header">
         <div class="window-meta">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:16px;height:16px;color:var(--accent-active,#38bdf8);margin-right:6px;"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+          <img src="icons/linux/ankora-store.png" alt="" class="win-header-icon" width="16" height="16">
           <span id="pkg-installer-title">Paket Yükleyici</span>
         </div>
         <div class="window-controls">
           <button class="ctrl-btn close" title="Kapat (Esc)" aria-label="Kapat">✕</button>
         </div>
       </div>
-      <div class="window-view" style="padding: 20px 24px; display: flex; flex-direction: column; gap: 14px;">
-        <div style="display: flex; gap: 14px; align-items: flex-start;">
-          <div id="pkg-inst-icon-box" style="width: 48px; height: 48px; border-radius: 10px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; flex: none;">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width: 26px; height: 26px; color: var(--accent-active,#38bdf8);"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>
+      <div class="window-view pkg-inst-view">
+        <div class="pkg-inst-head">
+          <div id="pkg-inst-icon-box" class="pkg-inst-icon-box">
+            <img src="icons/linux/ankora-store.png" alt="" width="30" height="30">
           </div>
-          <div style="flex: 1; min-width: 0;">
-            <h3 id="pkg-inst-name" style="margin: 0; font-size: 14px; font-weight: 600; color: var(--text-primary, #f8fafc); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Uygulama Paketi</h3>
-            <div id="pkg-inst-version" style="font-size: 11.5px; color: var(--text-muted, #94a3b8); margin-top: 2px;">Sürüm: -- · Mimari: amd64</div>
-            <div id="pkg-inst-size" style="font-size: 11px; color: var(--text-muted, #94a3b8); margin-top: 2px;">Boyut: --</div>
-            <div id="pkg-inst-depends" style="font-size: 11px; color: var(--text-muted, #94a3b8); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Bağımlılık: --</div>
+          <div class="pkg-inst-meta">
+            <h3 id="pkg-inst-name" class="pkg-inst-name">Uygulama Paketi</h3>
+            <div id="pkg-inst-version" class="pkg-inst-sub">Sürüm: -- · Mimari: amd64</div>
+            <div id="pkg-inst-size" class="pkg-inst-sub">Boyut: --</div>
+            <div id="pkg-inst-depends" class="pkg-inst-sub">Bağımlılık: --</div>
           </div>
         </div>
 
-        <div id="pkg-inst-desc" style="font-size: 11.5px; line-height: 1.45; color: var(--text-secondary, #cbd5e1); max-height: 85px; overflow-y: auto; background: rgba(0,0,0,0.2); padding: 8px 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.06);">
+        <div id="pkg-inst-desc" class="pkg-inst-desc">
           Paket bilgileri okunuyor...
         </div>
 
-        <div id="pkg-inst-progress-wrap" style="display: none; flex-direction: column; gap: 5px;">
-          <div style="display: flex; justify-content: space-between; font-size: 11px;">
-            <span id="pkg-inst-status-label" style="color: var(--accent-active, #38bdf8);">Yükleniyor...</span>
-            <span id="pkg-inst-status-pct" style="color: var(--text-muted, #94a3b8);">Lütfen bekleyin</span>
+        <div id="pkg-inst-progress-wrap" class="pkg-inst-progress-wrap" style="display: none;">
+          <div class="pkg-inst-progress-row">
+            <span id="pkg-inst-status-label" class="pkg-inst-status-label">Yükleniyor...</span>
+            <span id="pkg-inst-status-pct" class="pkg-inst-sub">Lütfen bekleyin</span>
           </div>
-          <div style="height: 5px; background: rgba(255,255,255,0.08); border-radius: 3px; overflow: hidden;">
-            <div id="pkg-inst-progress-bar" style="height: 100%; width: 100%; background: var(--accent-active, #38bdf8); transition: width 0.3s ease;"></div>
+          <div class="pkg-inst-progress-track">
+            <div id="pkg-inst-progress-bar" class="pkg-inst-progress-bar"></div>
           </div>
         </div>
 
-        <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 6px;">
+        <div class="pkg-inst-actions">
           <button type="button" class="btn-pkg-sm" id="btn-pkg-inst-cancel">İptal</button>
-          <button type="button" class="btn-pkg-sm" id="btn-pkg-inst-action" style="background: var(--accent-active, #0284c7); color: #ffffff; font-weight: 500;">Paketi Kur</button>
+          <button type="button" class="btn-pkg-sm btn-pkg-primary" id="btn-pkg-inst-action">Paketi Kur</button>
         </div>
-        <pre id="pkg-inst-error" hidden style="margin: 0; max-height: 110px; overflow: auto; font-size: 10.5px; line-height: 1.4; color: #fca5a5; background: rgba(127, 29, 29, 0.25); border: 1px solid rgba(248, 113, 113, 0.35); border-radius: 6px; padding: 8px 10px; white-space: pre-wrap;"></pre>
+        <pre id="pkg-inst-error" hidden class="pkg-inst-error"></pre>
       </div>
     </section>
 
@@ -3292,7 +3278,7 @@
             <!-- 0. Dosyalar (Dosya Yöneticisi) -->
             <div class="pinned-app-card" data-open="win-files" data-cats="favorites system" tabindex="0" role="button">
               <div class="pinned-icon-box">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h6l2 2h10v10H3z"></path></svg>
+                <img class="real-app-icon" src="icons/linux/files.svg" width="22" height="22" alt="" draggable="false">
               </div>
               <div class="pinned-app-meta">
                 <span class="app-title">Dosyalar</span>
@@ -3303,7 +3289,7 @@
             <!-- 1. Mağaza -->
             <div class="pinned-app-card" data-open="win-store" data-cats="favorites system" tabindex="0" role="button">
               <div class="pinned-icon-box store-accent">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
+                <img class="real-app-icon" src="icons/linux/ankora-store.png" width="22" height="22" alt="" draggable="false">
               </div>
               <div class="pinned-app-meta">
                 <span class="app-title">Mağaza</span>
@@ -3314,7 +3300,7 @@
             <!-- 2. Terminal -->
             <div class="pinned-app-card" data-open="win-terminal" data-cats="favorites dev system" tabindex="0" role="button">
               <div class="pinned-icon-box terminal-accent">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="15" rx="1.5"></rect><path d="M7 9.5l3 2.5-3 2.5M12.5 15h5"></path></svg>
+                <img class="real-app-icon" src="icons/linux/terminal.svg" width="22" height="22" alt="" draggable="false">
               </div>
               <div class="pinned-app-meta">
                 <span class="app-title">Terminal</span>
@@ -3325,40 +3311,40 @@
             <!-- 3. Ayaz Web Tarayıcı (Dahili WebKit) -->
             <div class="pinned-app-card" data-open="win-browser" data-cats="favorites internet" tabindex="0" role="button">
               <div class="pinned-icon-box browser-accent">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="8"></circle><path d="M4 12h16" stroke-linecap="round"></path><path d="M12 4c-3 4-3 12 0 16M12 4c3 4 3 12 0 16" stroke-linecap="round"></path></svg>
+                <img class="real-app-icon" src="icons/linux/browser.svg" width="22" height="22" alt="" draggable="false">
               </div>
               <div class="pinned-app-meta">
                 <span class="app-title">Ayaz Tarayıcı</span>
-                <span class="app-desc">Dahili Hafif WebKit</span>
+                <span class="app-desc">Dahili WebKit</span>
               </div>
             </div>
 
             <!-- 3b. Brave Web Tarayıcı (Yerel Chromium) -->
             <div class="pinned-app-card" data-launch="brave-browser" data-cats="favorites internet" tabindex="0" role="button">
               <div class="pinned-icon-box browser-accent">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><polygon points="10.2 10.2 15.5 8.5 13.8 13.8 8.5 15.5 10.2 10.2"></polygon></svg>
+                <img class="real-app-icon" src="icons/linux/brave.svg" width="22" height="22" alt="" draggable="false">
               </div>
               <div class="pinned-app-meta">
                 <span class="app-title">Brave Tarayıcı</span>
-                <span class="app-desc">Hızlı &amp; Gizlilik Odaklı</span>
+                <span class="app-desc">Web Tarayıcısı</span>
               </div>
             </div>
 
             <!-- 4. AI Asistanı -->
             <div class="pinned-app-card" data-open="win-ai" data-cats="favorites system settings" tabindex="0" role="button">
               <div class="pinned-icon-box ai-accent">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4h13A1.5 1.5 0 0 1 20 5.5V15a1.5 1.5 0 0 1-1.5 1.5h-8L6 21v-4.5h-.5A1.5 1.5 0 0 1 4 15z"></path><path d="M8.5 9h7M8.5 12h4"></path></svg>
+                <img class="real-app-icon" src="logo.svg" width="22" height="22" alt="" draggable="false">
               </div>
               <div class="pinned-app-meta">
                 <span class="app-title">AI Asistan</span>
-                <span class="app-desc">Yerel ve Bulut Yardımcı</span>
+                <span class="app-desc">Yerel Yardımcı</span>
               </div>
             </div>
 
             <!-- 4b. Görev Yöneticisi -->
             <div class="pinned-app-card" data-open="win-taskmgr" data-cats="system" tabindex="0" role="button">
               <div class="pinned-icon-box taskmgr-accent">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h3.5l2.5 6.5 4.5-13 2.5 6.5H21"></path></svg>
+                <img class="real-app-icon" src="icons/linux/taskmgr.svg" width="22" height="22" alt="" draggable="false">
               </div>
               <div class="pinned-app-meta">
                 <span class="app-title">Görev Yöneticisi</span>
@@ -3369,18 +3355,18 @@
             <!-- 5. Not Defteri -->
             <div class="pinned-app-card" data-open="win-notepad" data-cats="favorites office dev" tabindex="0" role="button">
               <div class="pinned-icon-box notepad-accent">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+                <img class="real-app-icon" src="icons/linux/notes.svg" width="22" height="22" alt="" draggable="false">
               </div>
               <div class="pinned-app-meta">
                 <span class="app-title">Not Defteri</span>
-                <span class="app-desc">Hızlı Not &amp; Kod</span>
+                <span class="app-desc">Metin &amp; Kod</span>
               </div>
             </div>
 
             <!-- 6. Hesap Makinesi -->
             <div class="pinned-app-card" data-open="win-calc" data-cats="office system" tabindex="0" role="button">
               <div class="pinned-icon-box calc-accent">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2.5" width="16" height="19" rx="2"></rect><path d="M8 6.5h8M8.5 11h.01M12 11h.01M15.5 11h.01M8.5 14.5h.01M12 14.5h.01M15.5 14.5h.01M8.5 18h4.5"></path></svg>
+                <img class="real-app-icon" src="icons/libreoffice-calc.svg" width="22" height="22" alt="" draggable="false">
               </div>
               <div class="pinned-app-meta">
                 <span class="app-title">Hesap Makinesi</span>
@@ -3391,18 +3377,18 @@
             <!-- 7. Sistem Ayarları -->
             <div class="pinned-app-card" data-open="win-settings" data-cats="favorites settings system" tabindex="0" role="button">
               <div class="pinned-icon-box settings-accent">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h16M4 17h16"></path><circle cx="14.5" cy="7" r="2"></circle><circle cx="8" cy="12" r="2"></circle><circle cx="16" cy="17" r="2"></circle></svg>
+                <img class="real-app-icon" src="icons/linux/settings.svg" width="22" height="22" alt="" draggable="false">
               </div>
               <div class="pinned-app-meta">
                 <span class="app-title">Ayarlar</span>
-                <span class="app-desc">Ekran &amp; Donanım</span>
+                <span class="app-desc">Ekran &amp; Sistem</span>
               </div>
             </div>
 
             <!-- 8. Belgeler & Ofis -->
             <div class="pinned-app-card" data-open="win-office" data-cats="favorites office" tabindex="0" role="button">
               <div class="pinned-icon-box office-accent">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+                <img class="real-app-icon" src="icons/evince.svg" width="22" height="22" alt="" draggable="false">
               </div>
               <div class="pinned-app-meta">
                 <span class="app-title">Belgeler</span>
@@ -3413,7 +3399,7 @@
             <!-- 9. Ayaz Güncelleyici -->
             <div class="pinned-app-card" data-open="win-updater" data-cats="system settings" tabindex="0" role="button">
               <div class="pinned-icon-box">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path></svg>
+                <img class="real-app-icon" src="icons/linux/updater.svg" width="22" height="22" alt="" draggable="false">
               </div>
               <div class="pinned-app-meta">
                 <span class="app-title">Güncelleyici</span>
@@ -3424,18 +3410,18 @@
             <!-- 10. Ankora Karşılayıcı -->
             <div class="pinned-app-card" data-open="win-welcome" data-cats="system settings" tabindex="0" role="button">
               <div class="pinned-icon-box welcome-accent">
-                <img src="logo.svg" alt="Ankora" style="width: 20px; height: 20px;">
+                <img class="real-app-icon" src="logo.svg" width="22" height="22" alt="" draggable="false">
               </div>
               <div class="pinned-app-meta">
                 <span class="app-title">Karşılayıcı</span>
-                <span class="app-desc">Hoş Geldiniz</span>
+                <span class="app-desc">Başlangıç</span>
               </div>
             </div>
 
             <!-- 11. Diske Kurulum -->
             <div class="pinned-app-card" data-open="win-installer" data-cats="favorites system" tabindex="0" role="button">
               <div class="pinned-icon-box installer-accent">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v8M8 12l4 4 4-4"></path></svg>
+                <img class="real-app-icon" src="icons/linux/installer.svg" width="22" height="22" alt="" draggable="false">
               </div>
               <div class="pinned-app-meta">
                 <span class="app-title">Kurulum</span>
@@ -3824,17 +3810,17 @@
       </div>
       <div class="cal-notif-list" id="cal-notif-list">
         <div class="cal-notif-card">
-          <div class="cal-notif-icon"><svg class="glyph" aria-hidden="true"><use href="#ico-shield"></use></svg></div>
+          <div class="cal-notif-icon"><svg class="glyph" aria-hidden="true"><use href="#ico-info"></use></svg></div>
           <div class="cal-notif-body">
-            <strong>Ankora Koruma Kalkanı</strong>
-            <p>SysVinit Kiosk çekirdeği aktif. Tüm sistem kaynakları güvende.</p>
+            <strong>Sistem Hazır</strong>
+            <p>Oturum başlatıldı. Bekleyen sistem uyarısı yok.</p>
           </div>
         </div>
         <div class="cal-notif-card">
           <div class="cal-notif-icon"><svg class="glyph" aria-hidden="true"><use href="#ico-bot"></use></svg></div>
           <div class="cal-notif-body">
-            <strong>Ankora AI Hazır</strong>
-            <p>Otonom sistem yöneticisi ve geliştirici ajanı komut bekliyor.</p>
+            <strong>Ankora AI</strong>
+            <p>Üst çubuktan tek tıkla erişilebilir.</p>
           </div>
         </div>
       </div>
@@ -3842,16 +3828,16 @@
   </div>
 
   <!-- Ayaz DE Pano Geçmişi Flyout (Super + V) -->
-  <div class="tray-popover ayaz-clipboard-flyout" id="clipboard-flyout" style="display:none;width:340px;max-height:420px;position:fixed;bottom:58px;right:180px;z-index:99999;background:rgba(18,22,31,0.96);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:12px;box-shadow:0 12px 36px rgba(0,0,0,0.5);color:#fff;overflow:hidden;flex-direction:column;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,0.08);">
-      <div style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:#38bdf8;">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
-        Pano Geçmişi (Super + V)
+  <div class="tray-popover ayaz-clipboard-flyout" id="clipboard-flyout" style="display:none;">
+    <div class="clipboard-flyout-header">
+      <div class="clipboard-flyout-title">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
+        <span>Pano Geçmişi (Super + V)</span>
       </div>
-      <button id="btn-clipboard-clear" type="button" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#94a3b8;font-size:11px;cursor:pointer;padding:3px 8px;border-radius:5px;">Temizle</button>
+      <button id="btn-clipboard-clear" type="button" class="clipboard-clear-btn">Temizle</button>
     </div>
-    <div id="clipboard-items-list" style="display:flex;flex-direction:column;gap:6px;overflow-y:auto;max-height:330px;padding-right:2px;">
-      <div style="color:#64748b;font-size:12px;text-align:center;padding:24px 0;">Henüz kopyalanan metin yok</div>
+    <div id="clipboard-items-list" class="clipboard-items-list">
+      <div class="clipboard-empty-msg">Henüz kopyalanan metin yok</div>
     </div>
   </div>
 
@@ -3977,8 +3963,18 @@
   <!-- Ayaz DE Global Bildirim Kapsülü (Toast) -->
   <div id="ayaz-global-toast" class="ayaz-toast-notification" role="status" aria-live="polite"></div>
 
-  <script src="app.js?v=4.5.0"></script>
-  <script src="faces.js?v=4.5.0"></script>
+  <script src="js/core.js?v=5.0.0"></script>
+  <script src="js/wm.js?v=5.0.0"></script>
+  <script src="js/desktop.js?v=5.0.0"></script>
+  <script src="js/store.js?v=5.0.0"></script>
+  <script src="js/files.js?v=5.0.0"></script>
+  <script src="js/ai.js?v=5.0.0"></script>
+  <script src="js/settings.js?v=5.0.0"></script>
+  <script src="js/shell-ui.js?v=5.0.0"></script>
+  <script src="js/apps.js?v=5.0.0"></script>
+  <script src="js/system.js?v=5.0.0"></script>
+  <script src="app.js?v=5.0.0"></script>
+  <script src="faces.js?v=5.0.0"></script>
   <!-- ======================================================================= -->
   <!-- GÜÇ VE ÇIKIŞ DİYALOĞU (POWER DIALOG MODAL)                               -->
   <!-- ======================================================================= -->
