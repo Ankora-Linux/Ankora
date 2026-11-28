@@ -41,7 +41,9 @@
             const out = await TauriBridge.invoke('system_update_apt', { doUpgrade: false });
             if (out) Terminal.log(out, 'muted');
             Terminal.log('[APT] Paket depoları başarıyla güncellendi.', 'success');
-            alert('Sistem paket listeleri (Debian/Devuan depoları) başarıyla güncellendi.');
+            if (typeof ReportManager !== 'undefined' && ReportManager.showToast) {
+              ReportManager.showToast('Sistem paket listeleri (Devuan depoları) başarıyla güncellendi.');
+            }
           } catch (e) {
             Terminal.log(`[APT HATA] ${e.message || e}`, 'muted');
             ReportManager.showToast(`Paket listesi güncellenemedi: ${e.message || e}`);
@@ -62,7 +64,9 @@
             const out = await TauriBridge.invoke('system_update_apt', { doUpgrade: true });
             if (out) Terminal.log(out, 'muted');
             Terminal.log('[APT] Tüm paketler başarıyla en son sürüme yükseltildi.', 'success');
-            alert('Tüm Ankora Linux sistem paketleri başarıyla yükseltildi.');
+            if (typeof ReportManager !== 'undefined' && ReportManager.showToast) {
+              ReportManager.showToast('Tüm Ankora Linux sistem paketleri en son sürüme yükseltildi.');
+            }
           } catch (e) {
             Terminal.log(`[APT HATA] ${e.message || e}`, 'muted');
             ReportManager.showToast(`Sistem yükseltilemedi: ${e.message || e}`);
@@ -108,7 +112,7 @@
         this.latestRelease = info;
 
         if (currVerEl) currVerEl.textContent = `v${info.current_version}`;
-        if (latestVerEl) latestVerEl.textContent = info.latest_version ? `v${info.latest_version.replace(/^v/i, '')}` : '—';
+        if (latestVerEl) latestVerEl.textContent = info.latest_version ? `v${info.latest_version.replace(/^v/i, '')}` : '-';
         if (dateEl && info.published_at) {
           const d = new Date(info.published_at);
           dateEl.textContent = isNaN(d.getTime()) ? '' : `Yayın: ${d.toLocaleDateString('tr-TR')}`;
@@ -225,6 +229,11 @@
         if (progressPct) progressPct.textContent = '100%';
         if (progressLabel) progressLabel.textContent = 'Paket kuruldu. Yeni sürümün devreye girmesi için oturumu yeniden başlatın.';
 
+        const badge = document.getElementById('updater-status-badge');
+        if (badge) {
+          badge.className = 'updater-badge up-to-date';
+          badge.textContent = 'Yeniden Başlatma Bekleniyor';
+        }
         if (btnApply) btnApply.style.display = 'none';
         const btnRestart = document.getElementById('btn-updater-restart');
         if (btnRestart) btnRestart.style.display = 'inline-block';
@@ -1633,8 +1642,9 @@
       if (!this.overlay) return;
 
       // Backend native hash yapılandırmasını kontrol et
+      let configured = false;
       try {
-        const configured = await TauriBridge.invoke('is_lock_configured');
+        configured = await TauriBridge.invoke('is_lock_configured');
         const welcomeStatus = document.getElementById('welcome-lock-status-label');
         if (welcomeStatus) {
           welcomeStatus.textContent = configured
@@ -1643,6 +1653,30 @@
           welcomeStatus.style.color = configured ? '#10b981' : '#f59e0b';
         }
       } catch (e) {}
+
+      // Yeniden yükleme / yeniden başlatma sonrasında kilit durumu sürdürülür
+      try {
+        const backendLocked = configured
+          ? await TauriBridge.invoke('is_session_locked').catch(() => false)
+          : false;
+        const storageLocked = SafeStorage.getItem('ankora_session_locked') === '1';
+        if (configured && (backendLocked || storageLocked)) {
+          await this.lock(true);
+        } else if (!configured && storageLocked) {
+          SafeStorage.removeItem('ankora_session_locked');
+        }
+      } catch (e) {}
+
+      // Odağı dış X11 penceresi çalarsa kilitteyken katman ve odak korunur
+      window.addEventListener('blur', () => {
+        if (!this.isLocked) return;
+        TauriBridge.invoke('set_desktop_layer', { above: true }).catch(() => {});
+        setTimeout(() => {
+          if (this.isLocked && this.input) {
+            try { this.input.focus(); } catch (e) {}
+          }
+        }, 60);
+      });
 
       // Otomatik kilit süresi ayarını yükle
       const savedAutoLock = SafeStorage.getItem('ankora_autolock_mins');
@@ -1658,15 +1692,20 @@
         if (this.overlay && this.overlay.classList.contains('show')) this.updateClock();
       }, 1000);
 
-      // Kilit açıkken klavye yalnız kilit formuna gider: arka plandaki
-      // kısayollar, terminal ve gizli pencereler tuş yutamaz. xtrlock bunu
-      // X seviyesinde yapar ama PIN girişini de boğduğu için kullanılmıyor;
-      // aynı koruma burada DOM seviyesinde, formu serbest bırakarak sağlanır.
+      // Kilit açıkken klavye yalnız kilit formuna gider ve yenileme/kapatma tuşları
+      // form odaktayken bile engellenir (F5, Ctrl+R, Alt+F4).
       const keyGuard = (e) => {
         if (!this.isLocked || !this.overlay) return;
-        if (this.overlay.contains(e.target)) return;
-        e.stopPropagation();
-        e.preventDefault();
+        const k = (e.key || '').toLowerCase();
+        const isReloadOrEscape =
+          e.key === 'F5' ||
+          ((e.ctrlKey || e.metaKey) && k === 'r') ||
+          (e.altKey && e.key === 'F4') ||
+          e.key === 'Meta';
+        if (isReloadOrEscape || !this.overlay.contains(e.target)) {
+          e.stopPropagation();
+          e.preventDefault();
+        }
       };
       document.addEventListener('keydown', keyGuard, true);
       document.addEventListener('keyup', keyGuard, true);
@@ -1774,7 +1813,7 @@
       this.overlay.style.cssText = '';
     },
 
-    async lock() {
+    async lock(skipConfigCheck = false) {
       // Super+L iki ayrı keydown dinleyicisinden geçebiliyor (masaüstü
       // kısayolu + kilit yöneticisi); ikinci çağrı ikinci kilidi
       // doğuruyordu. is_lock_configured çağrısı asenkron olduğu için beklerken
@@ -1782,29 +1821,41 @@
       if (!this.overlay || this.isLocked || this._locking) return;
       this._locking = true;
       try {
-        // Eğer henüz PIN ayarlanmamışsa kullanıcıyı uyar
-        let configured = false;
-        try {
-          configured = await TauriBridge.invoke('is_lock_configured');
-        } catch (e) {
-          Terminal.log(`[KİLİT] Kilit yapılandırması sorulamadı: ${e}`, 'error');
-        }
-        if (!configured) {
-          if (typeof ReportManager !== 'undefined' && ReportManager.showToast) {
-            ReportManager.showToast("Önce Ayarlar veya Hoş Geldiniz ekranından bir kilit PIN'i belirleyin.");
+        if (!skipConfigCheck) {
+          // Eğer henüz PIN ayarlanmamışsa kullanıcıyı uyar
+          let configured = false;
+          try {
+            configured = await TauriBridge.invoke('is_lock_configured');
+          } catch (e) {
+            Terminal.log(`[KİLİT] Kilit yapılandırması sorulamadı: ${e}`, 'error');
           }
-          if (typeof WindowManager !== 'undefined') {
-            WindowManager.open('win-welcome');
+          if (!configured) {
+            if (typeof ReportManager !== 'undefined' && ReportManager.showToast) {
+              ReportManager.showToast("Önce Ayarlar veya Hoş Geldiniz ekranından bir kilit PIN'i belirleyin.");
+            }
+            if (typeof WindowManager !== 'undefined') {
+              WindowManager.open('win-welcome');
+            }
+            return;
           }
-          return;
         }
 
+        // Açık menü ve açılır panelleri kilitlemeden önce kapat
+        try {
+          if (typeof window.toggleStartMenu === 'function') window.toggleStartMenu(false);
+          document.getElementById('quick-settings-popover')?.classList.remove('open');
+          document.getElementById('calendar-flyout')?.classList.remove('open');
+          document.getElementById('ai-mini-popover')?.classList.remove('open');
+        } catch (e) {}
+
         this.isLocked = true;
+        SafeStorage.setItem('ankora_session_locked', '1');
         this.updateClock();
         this.showOverlay();
         const watchWave = document.getElementById('ai-watch-wave');
         if (watchWave) watchWave.hidden = true;
         try {
+          await TauriBridge.invoke('engage_session_lock').catch(() => {});
           TauriBridge.invoke('set_desktop_layer', { above: true }).catch(() => {});
         } catch (e) {}
         if (this.errorMsg) {
@@ -1832,11 +1883,9 @@
         const ok = await TauriBridge.invoke('verify_lock_credentials', { pin: entered });
         if (ok) {
           this.isLocked = false;
+          SafeStorage.removeItem('ankora_session_locked');
           this.hideOverlay();
           if (typeof window.syncAiMiniWatch === 'function') window.syncAiMiniWatch();
-          try {
-            TauriBridge.invoke('set_desktop_layer', { above: false }).catch(() => {});
-          } catch (e) {}
           this.input.value = '';
           // X11 girişi xtrlock'ta yakalanır: süreç kapatılmazsa imleç kilit
           // simgesinde kalır ve masaüstünde hiçbir yere tıklanamaz.
@@ -1845,6 +1894,13 @@
           } catch (e) {
             Terminal.log(`[KİLİT] X11 kilidi açılamadı: ${e}`, 'error');
           }
+          try {
+            if (typeof WindowManager !== 'undefined' && WindowManager.syncDesktopLayer) {
+              WindowManager.syncDesktopLayer();
+            } else {
+              TauriBridge.invoke('set_desktop_layer', { above: false }).catch(() => {});
+            }
+          } catch (e) {}
           Terminal.log('[GÜVENLİK] Kilit açıldı. Hoş geldiniz.', 'cmd');
           this.resetActivityTimer();
         } else {

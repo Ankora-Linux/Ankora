@@ -441,6 +441,13 @@
         case 'is_lock_configured':
           return false;
 
+        case 'is_session_locked':
+          return SafeStorage.getItem('ankora_session_locked') === '1';
+
+        case 'engage_session_lock':
+          SafeStorage.setItem('ankora_session_locked', '1');
+          return true;
+
         case 'verify_lock_credentials':
           throw new Error('Kilit doğrulaması yalnızca native backend üzerinden yapılabilir.');
 
@@ -449,6 +456,10 @@
 
         case 'lock_x11_session':
           return 'Oturum kilitlendi.';
+
+        case 'unlock_x11_session':
+          SafeStorage.removeItem('ankora_session_locked');
+          return 'Oturum kilidi açıldı.';
 
         case 'download_and_apply_de_update':
           throw new Error('Güncelleme yardımcısına (Tauri IPC) ulaşılamadı. Paket kurulmadı.');

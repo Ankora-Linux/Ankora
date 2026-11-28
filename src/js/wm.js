@@ -84,6 +84,9 @@
     },
 
     ensureDesktopLayer(above, force = false) {
+      if (typeof LockManager !== 'undefined' && LockManager.isLocked) {
+        above = true;
+      }
       if (above && !force && this._isLayerAbove === true) return;
       this._isLayerAbove = Boolean(above);
       TauriBridge.invoke('set_desktop_layer', { above: Boolean(above) }).catch(() => {});

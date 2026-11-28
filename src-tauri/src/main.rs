@@ -851,6 +851,14 @@ fn get_lock_hash_path() -> PathBuf {
 static LOCK_ATTEMPTS: Mutex<(u32, Option<Instant>)> = Mutex::new((0, None));
 static SESSION_UNLOCK_PERMITTED_UNTIL: Mutex<Option<Instant>> = Mutex::new(None);
 
+fn get_lock_active_path() -> PathBuf {
+    get_ankora_config_dir().join("lock.active")
+}
+
+fn is_session_locked_internal() -> bool {
+    get_lock_hash_path().exists() && get_lock_active_path().exists()
+}
+
 fn compute_salted_pin_hash(salt: &[u8], pin: &str) -> [u8; 32] {
     let mut state = salt.to_vec();
     state.extend_from_slice(pin.as_bytes());
@@ -1002,6 +1010,7 @@ fn verify_lock_credentials(pin: String) -> Result<bool, String> {
         if is_valid {
             lock.0 = 0;
             lock.1 = None;
+            let _ = fs::remove_file(get_lock_active_path());
             if let Ok(mut auth) = SESSION_UNLOCK_PERMITTED_UNTIL.lock() {
                 *auth = Some(Instant::now() + Duration::from_secs(30));
             }
@@ -1012,6 +1021,56 @@ fn verify_lock_credentials(pin: String) -> Result<bool, String> {
     }
 
     Ok(is_valid)
+}
+
+#[tauri::command]
+fn is_session_locked() -> Result<bool, String> {
+    Ok(is_session_locked_internal())
+}
+
+#[tauri::command]
+fn engage_session_lock() -> Result<bool, String> {
+    if !is_lock_configured()? {
+        return Ok(false);
+    }
+    if let Ok(mut auth) = SESSION_UNLOCK_PERMITTED_UNTIL.lock() {
+        *auth = None;
+    }
+    let active_path = get_lock_active_path();
+    fs::write(&active_path, b"1")
+        .map_err(|e| format!("Kilit oturum işareti yazılamadı: {}", e))?;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let _ = fs::set_permissions(&active_path, fs::Permissions::from_mode(0o600));
+    }
+    #[cfg(target_os = "linux")]
+    {
+        if let Ok(out) = Command::new("wmctrl").args(["-l", "-x"]).output() {
+            if out.status.success() {
+                for line in String::from_utf8_lossy(&out.stdout).lines() {
+                    let parts: Vec<&str> = line.split_whitespace().collect();
+                    if parts.len() < 4 || !is_valid_x11_window_id(parts[0]) {
+                        continue;
+                    }
+                    let wm_class = parts[2].to_lowercase();
+                    let title = if parts.len() >= 5 {
+                        parts[4..].join(" ").to_lowercase()
+                    } else {
+                        String::new()
+                    };
+                    if is_ayaz_wmctrl_entry(&wm_class, &title) {
+                        continue;
+                    }
+                    let _ = Command::new("wmctrl")
+                        .args(["-i", "-r", parts[0], "-b", "remove,fullscreen,above"])
+                        .output();
+                }
+            }
+        }
+        raise_ayaz_window();
+    }
+    Ok(true)
 }
 
 #[cfg_attr(not(target_os = "linux"), allow(dead_code))]
@@ -1083,6 +1142,7 @@ fn unlock_x11_session() -> Result<String, String> {
             return Err("Güvenlik İlkesi İhlali: Kilit açma yetkisi yok veya süresi doldu. Lütfen önce PIN doğrulayın.".to_string());
         }
     }
+    let _ = fs::remove_file(get_lock_active_path());
 
     #[cfg(target_os = "linux")]
     {
@@ -1354,7 +1414,7 @@ fn install_deb_package_inner(
                             || detail_l.contains("network is unreachable")
                         {
                             detail = format!(
-                                " — Ağ bağlantısı yok veya depolara ulaşılamıyor.\n{}",
+                                " - Ağ bağlantısı yok veya depolara ulaşılamıyor.\n{}",
                                 detail
                             );
                         } else if detail_l.contains("not valid yet")
@@ -1367,19 +1427,19 @@ fn install_deb_package_inner(
                             || detail_l.contains("güvenli bir şekilde")
                         {
                             detail = format!(
-                                " — Depo imza veya sistem saati doğrulama hatası (Ayarlar > Tarih & Saat > NTP Eşitle deneyin).\n{}",
+                                " - Depo imza veya sistem saati doğrulama hatası (Ayarlar > Tarih & Saat > NTP Eşitle deneyin).\n{}",
                                 detail
                             );
                         } else if detail_l.contains("unable to locate package")
                             || detail_l.contains("paketi bulunamadı")
                         {
                             detail = format!(
-                                " — Paket etkin depolarda bulunamadı.\n{}",
+                                " - Paket etkin depolarda bulunamadı.\n{}",
                                 detail
                             );
                         } else if auth_failed && !sudo_available() && pkexec_available() {
                             detail = format!(
-                                " — Yönetici yetkisi penceresi onaylanmadı veya açılamadı.\n{}",
+                                " - Yönetici yetkisi penceresi onaylanmadı veya açılamadı.\n{}",
                                 detail
                             );
                         }
@@ -1463,18 +1523,7 @@ fn install_deb_package_inner(
 
         // Gerçek Masaüstü (~/Masaüstü veya XDG_DESKTOP_DIR) ve Başlat Menüsü (~/.local/share/applications) XDG .desktop Dosyası Yerleştirme
         if let Some(home_dir) = dirs::home_dir() {
-            let desktop_dir = get_xdg_user_dirs()
-                .ok()
-                .map(|x| PathBuf::from(x.desktop))
-                .or_else(dirs::desktop_dir)
-                .unwrap_or_else(|| {
-                    let tr_desk = home_dir.join("Masaüstü");
-                    if tr_desk.is_dir() {
-                        tr_desk
-                    } else {
-                        home_dir.join("Desktop")
-                    }
-                });
+            let desktop_dir = resolve_user_desktop_dir(&home_dir);
             let local_apps_dir = home_dir.join(".local/share/applications");
             let _ = fs::create_dir_all(&desktop_dir);
             let _ = fs::create_dir_all(&local_apps_dir);
@@ -1603,12 +1652,12 @@ fn install_vendor_package_blocking(vendor: String) -> Result<XdgApplication, Str
                 || detail_l.contains("network is unreachable")
             {
                 detail = format!(
-                    " — Ağ bağlantısı yok veya resmî depoya ulaşılamıyor.\n{}",
+                    " - Ağ bağlantısı yok veya resmî depoya ulaşılamıyor.\n{}",
                     detail
                 );
             } else if auth_failed && !sudo_available() && pkexec_available() {
                 detail = format!(
-                    " — Yönetici yetkisi penceresi onaylanmadı veya açılamadı.\n{}",
+                    " - Yönetici yetkisi penceresi onaylanmadı veya açılamadı.\n{}",
                     detail
                 );
             }
@@ -2065,6 +2114,22 @@ fn get_xdg_user_dirs() -> Result<XdgUserDirs, String> {
         music: pick("XDG_MUSIC_DIR", &["Music", "Müzik"]),
         videos: pick("XDG_VIDEOS_DIR", &["Videos", "Videolar"]),
     })
+}
+
+#[cfg_attr(not(target_os = "linux"), allow(dead_code))]
+fn resolve_user_desktop_dir(home_dir: &Path) -> PathBuf {
+    get_xdg_user_dirs()
+        .ok()
+        .map(|x| PathBuf::from(x.desktop))
+        .or_else(dirs::desktop_dir)
+        .unwrap_or_else(|| {
+            let tr_desk = home_dir.join("Masaüstü");
+            if tr_desk.is_dir() {
+                tr_desk
+            } else {
+                home_dir.join("Desktop")
+            }
+        })
 }
 
 fn find_icon_file(candidates: &[String]) -> Option<(PathBuf, &'static str)> {
@@ -6445,6 +6510,11 @@ async fn download_and_apply_de_update(
 fn restart_desktop_process() -> Result<(), String> {
     #[cfg(target_os = "linux")]
     {
+        if let Some(home_dir) = dirs::home_dir() {
+            let cache_dir = home_dir.join(".cache");
+            let _ = fs::create_dir_all(&cache_dir);
+            let _ = fs::write(cache_dir.join("ayaz-restart-requested"), "1");
+        }
         let _ = fs::write("/tmp/ayaz-restart-requested", "1");
         std::thread::spawn(|| {
             std::thread::sleep(Duration::from_millis(250));
@@ -7701,6 +7771,15 @@ async fn get_native_windows() -> Result<Vec<NativeWindowInfo>, String> {
 }
 
 #[cfg(target_os = "linux")]
+fn is_ayaz_wmctrl_entry(wm_class_lower: &str, title_lower: &str) -> bool {
+    wm_class_lower.contains("ankora-desktop")
+        || wm_class_lower.contains("ayaz-de")
+        || wm_class_lower.contains("org.ankora.ayaz")
+        || title_lower.contains("ayaz · ankora")
+        || title_lower.contains("ayaz — ankora")
+}
+
+#[cfg(target_os = "linux")]
 fn find_ayaz_window_id() -> Option<String> {
     let out = Command::new("wmctrl").args(["-l", "-x"]).output().ok()?;
     if !out.status.success() {
@@ -7718,12 +7797,7 @@ fn find_ayaz_window_id() -> Option<String> {
         } else {
             String::new()
         };
-        if wm_class.contains("ankora-desktop")
-            || wm_class.contains("ayaz-de")
-            || wm_class.contains("org.ankora.ayaz")
-            || title.contains("ayaz · ankora")
-            || title.contains("ayaz — ankora")
-        {
+        if is_ayaz_wmctrl_entry(&wm_class, &title) {
             return Some(parts[0].to_string());
         }
     }
@@ -7918,7 +7992,7 @@ async fn set_desktop_layer(above: bool) -> Result<bool, String> {
     tauri::async_runtime::spawn_blocking(move || {
         #[cfg(target_os = "linux")]
         {
-            if above {
+            if above || is_session_locked_internal() {
                 raise_ayaz_window();
             } else {
                 lower_ayaz_window();
@@ -9020,6 +9094,24 @@ async fn install_flatpak_app(app_id: String) -> Result<String, String> {
     #[cfg(target_os = "linux")]
     {
         tauri::async_runtime::spawn_blocking(move || {
+            if !Path::new("/usr/bin/flatpak").exists() {
+                let helper = Path::new("/usr/local/bin/ayaz-pkg-helper");
+                let boot_res = if helper.exists() {
+                    root_command("/usr/local/bin/ayaz-pkg-helper", &["install", "flatpak"])
+                } else {
+                    root_command("apt-get", &["install", "-y", "--no-install-recommends", "flatpak"])
+                };
+                match boot_res {
+                    Ok(o) if o.status.success() && Path::new("/usr/bin/flatpak").exists() => {}
+                    Ok(o) => {
+                        let detail = String::from_utf8_lossy(&o.stderr).trim().to_string();
+                        return Err(format!("Flatpak altyapısı kurulamadı: {}", detail));
+                    }
+                    Err(e) => {
+                        return Err(format!("Flatpak kurulum yardımcısı çalıştırılamadı: {}", e));
+                    }
+                }
+            }
             let remote_out = Command::new("flatpak")
                 .args([
                     "remote-add",
@@ -9050,7 +9142,35 @@ async fn install_flatpak_app(app_id: String) -> Result<String, String> {
                 .args(["install", "--user", "-y", "--noninteractive", "flathub", &id])
                 .output();
             match out {
-                Ok(o) if o.status.success() => Ok(format!("{} Flatpak başarıyla kuruldu.", id)),
+                Ok(o) if o.status.success() => {
+                    if let Some(home_dir) = dirs::home_dir() {
+                        let desktop_file_name = format!("{}.desktop", id);
+                        let candidates = [
+                            home_dir
+                                .join(".local/share/flatpak/exports/share/applications")
+                                .join(&desktop_file_name),
+                            PathBuf::from("/var/lib/flatpak/exports/share/applications")
+                                .join(&desktop_file_name),
+                        ];
+                        if let Some(src_desktop) = candidates.into_iter().find(|p| p.is_file()) {
+                            let desktop_dir = resolve_user_desktop_dir(&home_dir);
+                            let local_apps_dir = home_dir.join(".local/share/applications");
+                            let _ = fs::create_dir_all(&desktop_dir);
+                            let _ = fs::create_dir_all(&local_apps_dir);
+                            let target_desktop = desktop_dir.join(&desktop_file_name);
+                            let target_local = local_apps_dir.join(&desktop_file_name);
+                            let _ = fs::copy(&src_desktop, &target_desktop);
+                            let _ = fs::copy(&src_desktop, &target_local);
+                            #[cfg(unix)]
+                            {
+                                use std::os::unix::fs::PermissionsExt;
+                                let _ = fs::set_permissions(&target_desktop, fs::Permissions::from_mode(0o755));
+                                let _ = fs::set_permissions(&target_local, fs::Permissions::from_mode(0o755));
+                            }
+                        }
+                    }
+                    Ok(format!("{} Flatpak başarıyla kuruldu.", id))
+                }
                 Ok(o) => {
                     let err = String::from_utf8_lossy(&o.stderr).trim().to_string();
                     let out_s = String::from_utf8_lossy(&o.stdout).trim().to_string();
@@ -9067,9 +9187,9 @@ async fn install_flatpak_app(app_id: String) -> Result<String, String> {
                         || low.contains("network is unreachable")
                         || low.contains("unable to connect")
                     {
-                        " — İnternet bağlantısı yok veya Flathub sunucusuna ulaşılamıyor.\n"
+                        " - İnternet bağlantısı yok veya Flathub sunucusuna ulaşılamıyor.\n"
                     } else if low.contains("remote") && low.contains("not found") && !remote_err.is_empty() {
-                        " — Flathub deposu eklenemedi; ağ bağlantısını kontrol edin.\n"
+                        " - Flathub deposu eklenemedi; ağ bağlantısını kontrol edin.\n"
                     } else {
                         ""
                     };
@@ -9101,13 +9221,24 @@ async fn remove_flatpak_app(app_id: String) -> Result<String, String> {
                 .output();
             if let Ok(ref o) = out {
                 if !o.status.success() {
-                    out = Command::new("flatpak")
-                        .args(["uninstall", "-y", "--noninteractive", &id])
-                        .output();
+                    if Path::new("/var/lib/flatpak/app").join(&id).exists() {
+                        out = root_command("flatpak", &["uninstall", "--system", "-y", "--noninteractive", &id]);
+                    } else {
+                        out = Command::new("flatpak")
+                            .args(["uninstall", "-y", "--noninteractive", &id])
+                            .output();
+                    }
                 }
             }
             match out {
-                Ok(o) if o.status.success() => Ok(format!("{} Flatpak başarıyla kaldırıldı.", id)),
+                Ok(o) if o.status.success() => {
+                    if let Some(home_dir) = dirs::home_dir() {
+                        let desktop_file_name = format!("{}.desktop", id);
+                        let _ = fs::remove_file(resolve_user_desktop_dir(&home_dir).join(&desktop_file_name));
+                        let _ = fs::remove_file(home_dir.join(".local/share/applications").join(&desktop_file_name));
+                    }
+                    Ok(format!("{} Flatpak başarıyla kaldırıldı.", id))
+                }
                 Ok(o) => {
                     let err = String::from_utf8_lossy(&o.stderr).trim().to_string();
                     Err(format!("Flatpak kaldırma hatası: {}", err))
@@ -12104,6 +12235,8 @@ fn main() {
             has_ai_credential,
             delete_ai_credential,
             is_lock_configured,
+            is_session_locked,
+            engage_session_lock,
             set_lock_credentials,
             verify_lock_credentials,
             lock_x11_session,

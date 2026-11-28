@@ -251,12 +251,13 @@ if [ -z "$AYAZ_BIN" ]; then
     printf '[Ayaz] Masaüstü ikilisi bulunamadı (/usr/bin/ayaz-de, /usr/bin/ayaz).\n' >>"$AYAZ_LOG"
     AYAZ_RC=127
 else
+    _RESTART_USER_FLAG="${HOME}/.cache/ayaz-restart-requested"
     while :; do
-        rm -f /tmp/ayaz-restart-requested 2>/dev/null || true
+        rm -f /tmp/ayaz-restart-requested "$_RESTART_USER_FLAG" 2>/dev/null || true
         "$AYAZ_BIN" >>"$AYAZ_LOG" 2>&1
         AYAZ_RC=$?
-        if [ "$AYAZ_RC" -eq 0 ] && [ -f /tmp/ayaz-restart-requested ]; then
-            rm -f /tmp/ayaz-restart-requested 2>/dev/null || true
+        if [ "$AYAZ_RC" -eq 0 ] && { [ -f /tmp/ayaz-restart-requested ] || [ -f "$_RESTART_USER_FLAG" ]; }; then
+            rm -f /tmp/ayaz-restart-requested "$_RESTART_USER_FLAG" 2>/dev/null || true
             printf '[Ayaz] Oturum içi temiz yeniden başlatma tetiklendi...\n' >>"$AYAZ_LOG"
             # İkili güncelleme sonrası değişmişse güncel yolu yeniden seç
             if [ -x /usr/bin/ayaz-de ]; then

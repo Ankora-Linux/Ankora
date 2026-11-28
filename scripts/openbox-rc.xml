@@ -171,9 +171,11 @@
       </action>
     </keybind>
 
-    <!-- Super+D: Masaüstünü göster (Tüm pencereleri küçült) -->
+    <!-- Super+D: Masaüstünü göster (kilitliyken engellenir) -->
     <keybind key="W-d">
-      <action name="ToggleShowDesktop"/>
+      <action name="Execute">
+        <command>/usr/bin/ayaz-ctl show-desktop</command>
+      </action>
     </keybind>
 
     <!-- Super+L: Ekranı Kilitle -->
@@ -252,10 +254,10 @@
       </action>
     </keybind>
 
-    <!-- Ctrl+Alt+T: Terminal -->
+    <!-- Ctrl+Alt+T: Terminal (kilitliyken engellenir) -->
     <keybind key="C-A-t">
       <action name="Execute">
-        <command>x-terminal-emulator</command>
+        <command>/usr/bin/ayaz-ctl open-terminal</command>
       </action>
     </keybind>
 

@@ -357,6 +357,9 @@
 
     const toggleStart = (forceState) => {
       if (!startFlyout) return;
+      if (typeof LockManager !== 'undefined' && LockManager.isLocked) {
+        forceState = false;
+      }
       const isOpen = typeof forceState === 'boolean' ? forceState : !startFlyout.classList.contains('open');
       startFlyout.classList.toggle('open', isOpen);
       if (startBtn) startBtn.classList.toggle('active', isOpen);
@@ -364,7 +367,9 @@
         btn.classList.toggle('active', isOpen);
       });
       try {
-        if (typeof WindowManager !== 'undefined') {
+        if (typeof LockManager !== 'undefined' && LockManager.isLocked) {
+          TauriBridge.invoke('set_desktop_layer', { above: true }).catch(() => {});
+        } else if (typeof WindowManager !== 'undefined') {
           if (isOpen) WindowManager.ensureDesktopLayer(true);
           else WindowManager.checkAllMinimizedOrClosed();
         } else {

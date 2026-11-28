@@ -2746,6 +2746,12 @@
       this.isOpen = false;
       this.overlay.style.display = 'none';
       this.input.blur();
+      if (typeof LockManager !== 'undefined' && LockManager.isLocked) {
+        if (typeof WindowManager !== 'undefined' && WindowManager.ensureDesktopLayer) {
+          WindowManager.ensureDesktopLayer(true, true);
+        }
+        return;
+      }
       if (typeof WindowManager !== 'undefined' && WindowManager.syncDesktopLayer) {
         WindowManager.syncDesktopLayer();
       } else {

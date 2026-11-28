@@ -224,14 +224,15 @@ elif [ -x "$(dirname "$0")/../src-tauri/target/release/ayaz-de" ]; then
 fi
 
 if [ -n "$AYAZ_BIN" ]; then
+    _RESTART_USER_FLAG="${HOME}/.cache/ayaz-restart-requested"
     while :; do
-        rm -f /tmp/ayaz-restart-requested 2>/dev/null || true
+        rm -f /tmp/ayaz-restart-requested "$_RESTART_USER_FLAG" 2>/dev/null || true
         set +e
         "$AYAZ_BIN"
         AYAZ_RC=$?
         set -e
-        if [ "$AYAZ_RC" -eq 0 ] && [ -f /tmp/ayaz-restart-requested ]; then
-            rm -f /tmp/ayaz-restart-requested 2>/dev/null || true
+        if [ "$AYAZ_RC" -eq 0 ] && { [ -f /tmp/ayaz-restart-requested ] || [ -f "$_RESTART_USER_FLAG" ]; }; then
+            rm -f /tmp/ayaz-restart-requested "$_RESTART_USER_FLAG" 2>/dev/null || true
             [ -x /usr/bin/ayaz-de ] && AYAZ_BIN="/usr/bin/ayaz-de"
             continue
         fi

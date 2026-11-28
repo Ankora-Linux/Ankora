@@ -106,6 +106,15 @@ capture_x11_screenshot() {
     return 0
 }
 
+if [ -f "$HOME/.config/ankora/lock.active" ] && [ "$CMD" != "lock" ] && [ "$CMD" != "help" ]; then
+    WID=$(get_ayaz_win_id)
+    if [ -n "$WID" ]; then
+        command -v wmctrl >/dev/null 2>&1 && { wmctrl -i -r "$WID" -b remove,below 2>/dev/null || true; wmctrl -i -r "$WID" -b add,above 2>/dev/null || true; }
+        command -v xdotool >/dev/null 2>&1 && xdotool windowactivate "$WID" 2>/dev/null || true
+    fi
+    exit 0
+fi
+
 case "$CMD" in
     toggle-start)
         # 1. Başlat menüsünü aç / kapat
@@ -141,10 +150,19 @@ case "$CMD" in
         ;;
 
     show-desktop)
-        # 3. Masaüstünü göster (Tüm pencereleri küçült)
+        # 3. Masaüstünü göster / geri al (yalnız kilit kapalıyken)
         if command -v wmctrl >/dev/null 2>&1; then
-            wmctrl -k on 2>/dev/null || true
+            if command -v xprop >/dev/null 2>&1 && xprop -root _NET_SHOWING_DESKTOP 2>/dev/null | grep -q '= 1'; then
+                wmctrl -k off 2>/dev/null || true
+            else
+                wmctrl -k on 2>/dev/null || true
+            fi
         fi
+        ;;
+
+    open-terminal)
+        # Harici X11 uçbirim başlat (oturum kilitliyken engellenir)
+        nohup x-terminal-emulator </dev/null >/dev/null 2>&1 &
         ;;
 
     raise-ayaz)
@@ -195,6 +213,7 @@ case "$CMD" in
         echo "  raise-ayaz        Ayaz penceresini öne al (Menü katmanı)"
         echo "  lower-ayaz        Ayaz penceresini arka plana al (Masaüstü katmanı)"
         echo "  lock              Ekranı güvenli kilit moduna al"
+        echo "  open-terminal     Harici X11 uçbirim başlat (kilitliyken engellenir)"
         echo "  screenshot        Canlı tam ekran görüntüsü al (odak çalmadan)"
         echo "  screenshot-window Etkin pencerenin görüntüsünü al (odak çalmadan)"
         ;;
